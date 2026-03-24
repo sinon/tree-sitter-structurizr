@@ -135,9 +135,14 @@ fn parses_core_views_without_errors() {
 }
 
 #[test]
-fn tracks_dynamic_views_as_pending_future_coverage() {
+fn parses_advanced_views_directives_and_configuration_without_errors() {
     let source = indoc! {r#"
         workspace {
+            !identifiers hierarchical
+            !impliedRelationships false
+            !docs "docs"
+            !adrs "docs/adrs"
+
             model {
                 user = person "User"
                 system = softwareSystem "System"
@@ -147,12 +152,58 @@ fn tracks_dynamic_views_as_pending_future_coverage() {
 
             views {
                 dynamic system "dynamic-view" {
-                    user -> system "Requests data"
+                    1: user -> system "Requests data" "HTTPS"
+                    autoLayout lr
+                    title "Dynamic"
+                }
+
+                deployment * "Live" "deployment-view" {
+                    include *
+                    autoLayout
+                }
+
+                custom "custom-view" "Custom title" {
+                    include user system
+                    description "Custom description"
+                }
+
+                image * "image-view" {
+                    plantuml "diagram.puml"
+                    title "Architecture image"
+                }
+            }
+
+            configuration {
+                scope landscape
+                visibility private
+
+                users {
+                    "alice@example.com" read
+                    "bob@example.com" write
                 }
             }
         }
     "#};
     let tree = common::parse(source);
 
-    common::assert_has_errors("inline::dynamic_view_pending", &tree, source);
+    common::assert_no_errors("inline::advanced_tier4", &tree, source);
+}
+
+#[test]
+fn tracks_styles_and_script_blocks_as_pending_future_coverage() {
+    let source = indoc! {r#"
+        workspace {
+            !script groovy {
+                println "hello"
+            }
+
+            views {
+                styles {
+                }
+            }
+        }
+    "#};
+    let tree = common::parse(source);
+
+    common::assert_has_errors("inline::styles_and_script_pending", &tree, source);
 }

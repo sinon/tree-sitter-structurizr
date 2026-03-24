@@ -1,0 +1,130 @@
+==================
+Advanced workspace
+==================
+
+workspace {
+  !identifiers hierarchical
+  !impliedRelationships false
+  !docs "docs"
+  !adrs "docs/adrs"
+
+  model {
+    user = person "User"
+    system = softwareSystem "System"
+
+    user -> system "Uses"
+  }
+
+  views {
+    dynamic system "dynamic-view" {
+      1: user -> system "Requests data" "HTTPS"
+      autoLayout lr
+      title "Dynamic"
+    }
+
+    deployment * "Live" "deployment-view" {
+      include *
+      autoLayout
+    }
+
+    custom "custom-view" "Custom title" {
+      include user system
+      description "Custom description"
+    }
+
+    image * "image-view" {
+      plantuml "diagram.puml"
+      title "Architecture image"
+    }
+  }
+
+  configuration {
+    scope landscape
+    visibility private
+
+    users {
+      "alice@example.com" read
+      "bob@example.com" write
+    }
+  }
+}
+
+---
+
+(source_file
+  (workspace
+    (workspace_block
+      (identifiers_directive
+        (identifier))
+      (implied_relationships_directive
+        (identifier))
+      (docs_directive
+        (string))
+      (adrs_directive
+        (string))
+      (model
+        (model_block
+          (person
+            (identifier)
+            (string))
+          (software_system
+            (identifier)
+            (string))
+          (relationship
+            (identifier)
+            (identifier)
+            (string))))
+      (views
+        (views_block
+          (dynamic_view
+            (identifier)
+            (string)
+            (dynamic_view_block
+              (dynamic_relationship
+                (order)
+                (identifier)
+                (identifier)
+                (string)
+                (string))
+              (auto_layout_statement
+                (layout_direction))
+              (title_statement
+                (string))))
+          (deployment_view
+            (wildcard)
+            (string)
+            (string)
+            (deployment_view_block
+              (include_statement
+                (wildcard))
+              (auto_layout_statement)))
+          (custom_view
+            (string)
+            (string)
+            (custom_view_block
+              (include_statement
+                (identifier)
+                (identifier))
+              (description_statement
+                (string))))
+          (image_view
+            (wildcard)
+            (string)
+            (image_view_block
+              (plantuml_source
+                (string))
+              (title_statement
+                (string))))))
+      (configuration
+        (configuration_block
+          (scope_statement
+            (identifier))
+          (visibility_statement
+            (identifier))
+          (users_block
+            (user_entry
+              (string)
+              (identifier))
+            (user_entry
+              (string)
+              (identifier))))))))

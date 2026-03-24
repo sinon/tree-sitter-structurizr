@@ -27,6 +27,8 @@ export default grammar({
 
     number: _ => /\d+/,
 
+    bare_value: _ => /[^\s{}"]+/,
+
     string: _ => token(seq(
       '"',
       repeat(choice(
@@ -43,10 +45,19 @@ export default grammar({
 
     _metadata_value: $ => $.string,
 
+    _directive_value: $ => choice(
+      $.string,
+      $.bare_value,
+      $.identifier,
+    ),
+
     _definition: $ => choice(
       $.workspace,
       $.model,
       $.views,
+      $.include_directive,
+      $.identifiers_directive,
+      $.implied_relationships_directive,
     ),
 
     workspace: $ => choice(
@@ -76,10 +87,16 @@ export default grammar({
     workspace_block: $ => seq(
       "{",
       repeat(choice(
+        $.include_directive,
+        $.identifiers_directive,
+        $.implied_relationships_directive,
+        $.docs_directive,
+        $.adrs_directive,
         $.name_statement,
         $.description_statement,
         $.model,
         $.views,
+        $.configuration,
       )),
       "}",
     ),
@@ -140,6 +157,8 @@ export default grammar({
     _software_system_item: $ => choice(
       $.container,
       $.relationship,
+      $.docs_directive,
+      $.adrs_directive,
       $.description_statement,
       $.tags_statement,
     ),
@@ -147,6 +166,8 @@ export default grammar({
     _container_item: $ => choice(
       $.component,
       $.relationship,
+      $.docs_directive,
+      $.adrs_directive,
       $.description_statement,
       $.technology_statement,
       $.tags_statement,
@@ -420,6 +441,10 @@ export default grammar({
       $.container_view,
       $.component_view,
       $.filtered_view,
+      $.dynamic_view,
+      $.deployment_view,
+      $.custom_view,
+      $.image_view,
     ),
 
     _view_value: $ => choice(
@@ -429,6 +454,8 @@ export default grammar({
     ),
 
     wildcard: _ => choice("*", "*?"),
+
+    layout_direction: _ => choice("tb", "bt", "lr", "rl"),
 
     _static_view_statement: $ => choice(
       $.include_statement,
@@ -440,6 +467,23 @@ export default grammar({
     ),
 
     _filtered_view_statement: $ => choice(
+      $.default_statement,
+      $.title_statement,
+      $.description_statement,
+    ),
+
+    _dynamic_view_statement: $ => choice(
+      $.dynamic_relationship,
+      $.auto_layout_statement,
+      $.default_statement,
+      $.title_statement,
+      $.description_statement,
+    ),
+
+    _advanced_view_statement: $ => choice(
+      $.include_statement,
+      $.exclude_statement,
+      $.auto_layout_statement,
       $.default_statement,
       $.title_statement,
       $.description_statement,
@@ -457,17 +501,42 @@ export default grammar({
 
     auto_layout_statement: $ => choice(
       "autoLayout",
-      seq("autoLayout", field("direction", $.identifier)),
-      seq("autoLayout", field("direction", $.identifier), field("rank_separation", $.number)),
+      seq("autoLayout", field("direction", $.layout_direction)),
+      seq("autoLayout", field("direction", $.layout_direction), field("rank_separation", $.number)),
       seq(
         "autoLayout",
-        field("direction", $.identifier),
+        field("direction", $.layout_direction),
         field("rank_separation", $.number),
         field("node_separation", $.number),
       ),
     ),
 
     default_statement: _ => "default",
+
+    include_directive: $ => seq(
+      "!include",
+      field("value", $._directive_value),
+    ),
+
+    identifiers_directive: $ => seq(
+      "!identifiers",
+      field("value", $._directive_value),
+    ),
+
+    implied_relationships_directive: $ => seq(
+      "!impliedRelationships",
+      field("value", $._directive_value),
+    ),
+
+    docs_directive: $ => seq(
+      "!docs",
+      field("path", $._directive_value),
+    ),
+
+    adrs_directive: $ => seq(
+      "!adrs",
+      field("path", $._directive_value),
+    ),
 
     system_landscape_view: $ => choice(
       seq("systemLandscape", field("body", $.system_landscape_view_block)),
@@ -598,6 +667,194 @@ export default grammar({
       "{",
       repeat($._filtered_view_statement),
       "}",
+    ),
+
+    dynamic_view: $ => choice(
+      seq(
+        "dynamic",
+        field("scope", $._view_value),
+        field("body", $.dynamic_view_block),
+      ),
+      seq(
+        "dynamic",
+        field("scope", $._view_value),
+        field("key", $._value),
+        field("body", $.dynamic_view_block),
+      ),
+      seq(
+        "dynamic",
+        field("scope", $._view_value),
+        field("key", $._value),
+        field("description", $._metadata_value),
+        field("body", $.dynamic_view_block),
+      ),
+    ),
+
+    dynamic_view_block: $ => seq(
+      "{",
+      repeat($._dynamic_view_statement),
+      "}",
+    ),
+
+    order: _ => token(/[0-9]+(\.[0-9]+)*/),
+
+    dynamic_relationship: $ => choice(
+      seq(
+        optional(seq(field("order", $.order), ":")),
+        field("source", $.identifier),
+        "->",
+        field("destination", $.identifier),
+      ),
+      seq(
+        optional(seq(field("order", $.order), ":")),
+        field("source", $.identifier),
+        "->",
+        field("destination", $.identifier),
+        field("description", $._metadata_value),
+      ),
+      seq(
+        optional(seq(field("order", $.order), ":")),
+        field("source", $.identifier),
+        "->",
+        field("destination", $.identifier),
+        field("description", $._metadata_value),
+        field("technology", $._metadata_value),
+      ),
+    ),
+
+    deployment_view: $ => choice(
+      seq(
+        "deployment",
+        field("scope", $._view_value),
+        field("environment", $._value),
+        field("body", $.deployment_view_block),
+      ),
+      seq(
+        "deployment",
+        field("scope", $._view_value),
+        field("environment", $._value),
+        field("key", $._value),
+        field("body", $.deployment_view_block),
+      ),
+      seq(
+        "deployment",
+        field("scope", $._view_value),
+        field("environment", $._value),
+        field("key", $._value),
+        field("description", $._metadata_value),
+        field("body", $.deployment_view_block),
+      ),
+    ),
+
+    deployment_view_block: $ => seq(
+      "{",
+      repeat($._advanced_view_statement),
+      "}",
+    ),
+
+    custom_view: $ => choice(
+      seq("custom", field("body", $.custom_view_block)),
+      seq("custom", field("key", $._value), field("body", $.custom_view_block)),
+      seq("custom", field("key", $._value), field("title", $._value), field("body", $.custom_view_block)),
+      seq(
+        "custom",
+        field("key", $._value),
+        field("title", $._value),
+        field("description", $._metadata_value),
+        field("body", $.custom_view_block),
+      ),
+    ),
+
+    custom_view_block: $ => seq(
+      "{",
+      repeat($._advanced_view_statement),
+      "}",
+    ),
+
+    image_view: $ => choice(
+      seq(
+        "image",
+        field("scope", $._view_value),
+        field("body", $.image_view_block),
+      ),
+      seq(
+        "image",
+        field("scope", $._view_value),
+        field("key", $._value),
+        field("body", $.image_view_block),
+      ),
+    ),
+
+    image_view_block: $ => seq(
+      "{",
+      repeat(choice(
+        $.plantuml_source,
+        $.mermaid_source,
+        $.kroki_source,
+        $.image_source,
+        $.default_statement,
+        $.title_statement,
+        $.description_statement,
+      )),
+      "}",
+    ),
+
+    plantuml_source: $ => seq(
+      "plantuml",
+      field("value", $._directive_value),
+    ),
+
+    mermaid_source: $ => seq(
+      "mermaid",
+      field("value", $._directive_value),
+    ),
+
+    kroki_source: $ => seq(
+      "kroki",
+      field("format", $._directive_value),
+      field("value", $._directive_value),
+    ),
+
+    image_source: $ => seq(
+      "image",
+      field("value", $._directive_value),
+    ),
+
+    configuration: $ => seq(
+      "configuration",
+      field("body", $.configuration_block),
+    ),
+
+    configuration_block: $ => seq(
+      "{",
+      repeat(choice(
+        $.scope_statement,
+        $.visibility_statement,
+        $.users_block,
+      )),
+      "}",
+    ),
+
+    scope_statement: $ => seq(
+      "scope",
+      field("value", $._directive_value),
+    ),
+
+    visibility_statement: $ => seq(
+      "visibility",
+      field("value", $._directive_value),
+    ),
+
+    users_block: $ => seq(
+      "users",
+      "{",
+      repeat($.user_entry),
+      "}",
+    ),
+
+    user_entry: $ => seq(
+      field("username", $._directive_value),
+      field("role", $._directive_value),
     ),
   },
 });

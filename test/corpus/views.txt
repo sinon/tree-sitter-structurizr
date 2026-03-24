@@ -62,7 +62,7 @@ workspace {
               (include_statement
                 (wildcard))
               (auto_layout_statement
-                (identifier)
+                (layout_direction)
                 (number)
                 (number))
               (title_statement

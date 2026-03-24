@@ -1,5 +1,29 @@
 [
   {
+    "type": "adrs_directive",
+    "named": true,
+    "fields": {
+      "path": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "auto_layout_statement",
     "named": true,
     "fields": {
@@ -8,7 +32,7 @@
         "required": false,
         "types": [
           {
-            "type": "identifier",
+            "type": "layout_direction",
             "named": true
           }
         ]
@@ -218,6 +242,45 @@
     }
   },
   {
+    "type": "configuration",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "configuration_block",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "configuration_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "scope_statement",
+          "named": true
+        },
+        {
+          "type": "users_block",
+          "named": true
+        },
+        {
+          "type": "visibility_statement",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "container",
     "named": true,
     "fields": {
@@ -296,11 +359,19 @@
       "required": false,
       "types": [
         {
+          "type": "adrs_directive",
+          "named": true
+        },
+        {
           "type": "component",
           "named": true
         },
         {
           "type": "description_statement",
+          "named": true
+        },
+        {
+          "type": "docs_directive",
           "named": true
         },
         {
@@ -404,6 +475,202 @@
     }
   },
   {
+    "type": "custom_view",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "custom_view_block",
+            "named": true
+          }
+        ]
+      },
+      "description": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      },
+      "key": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      },
+      "title": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "custom_view_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "auto_layout_statement",
+          "named": true
+        },
+        {
+          "type": "default_statement",
+          "named": true
+        },
+        {
+          "type": "description_statement",
+          "named": true
+        },
+        {
+          "type": "exclude_statement",
+          "named": true
+        },
+        {
+          "type": "include_statement",
+          "named": true
+        },
+        {
+          "type": "title_statement",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "deployment_view",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "deployment_view_block",
+            "named": true
+          }
+        ]
+      },
+      "description": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      },
+      "environment": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      },
+      "key": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      },
+      "scope": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "wildcard",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "deployment_view_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "auto_layout_statement",
+          "named": true
+        },
+        {
+          "type": "default_statement",
+          "named": true
+        },
+        {
+          "type": "description_statement",
+          "named": true
+        },
+        {
+          "type": "exclude_statement",
+          "named": true
+        },
+        {
+          "type": "include_statement",
+          "named": true
+        },
+        {
+          "type": "title_statement",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "description_statement",
     "named": true,
     "fields": {
@@ -421,6 +688,175 @@
           }
         ]
       }
+    }
+  },
+  {
+    "type": "docs_directive",
+    "named": true,
+    "fields": {
+      "path": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "dynamic_relationship",
+    "named": true,
+    "fields": {
+      "description": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      },
+      "destination": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "order": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "order",
+            "named": true
+          }
+        ]
+      },
+      "source": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "technology": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "dynamic_view",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "dynamic_view_block",
+            "named": true
+          }
+        ]
+      },
+      "description": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      },
+      "key": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      },
+      "scope": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "wildcard",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "dynamic_view_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "auto_layout_statement",
+          "named": true
+        },
+        {
+          "type": "default_statement",
+          "named": true
+        },
+        {
+          "type": "description_statement",
+          "named": true
+        },
+        {
+          "type": "dynamic_relationship",
+          "named": true
+        },
+        {
+          "type": "title_statement",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -545,6 +981,189 @@
     }
   },
   {
+    "type": "identifiers_directive",
+    "named": true,
+    "fields": {
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "image_source",
+    "named": true,
+    "fields": {
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "image_view",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "image_view_block",
+            "named": true
+          }
+        ]
+      },
+      "key": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      },
+      "scope": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "wildcard",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "image_view_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "default_statement",
+          "named": true
+        },
+        {
+          "type": "description_statement",
+          "named": true
+        },
+        {
+          "type": "image_source",
+          "named": true
+        },
+        {
+          "type": "kroki_source",
+          "named": true
+        },
+        {
+          "type": "mermaid_source",
+          "named": true
+        },
+        {
+          "type": "plantuml_source",
+          "named": true
+        },
+        {
+          "type": "title_statement",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "implied_relationships_directive",
+    "named": true,
+    "fields": {
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "include_directive",
+    "named": true,
+    "fields": {
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "include_statement",
     "named": true,
     "fields": {
@@ -562,6 +1181,77 @@
           },
           {
             "type": "wildcard",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "kroki_source",
+    "named": true,
+    "fields": {
+      "format": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      },
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "layout_direction",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "mermaid_source",
+    "named": true,
+    "fields": {
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
             "named": true
           }
         ]
@@ -711,6 +1401,30 @@
     }
   },
   {
+    "type": "plantuml_source",
+    "named": true,
+    "fields": {
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "relationship",
     "named": true,
     "fields": {
@@ -758,6 +1472,30 @@
         "multiple": false,
         "required": false,
         "types": [
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "scope_statement",
+    "named": true,
+    "fields": {
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
           {
             "type": "string",
             "named": true
@@ -835,11 +1573,19 @@
       "required": false,
       "types": [
         {
+          "type": "adrs_directive",
+          "named": true
+        },
+        {
           "type": "container",
           "named": true
         },
         {
           "type": "description_statement",
+          "named": true
+        },
+        {
+          "type": "docs_directive",
           "named": true
         },
         {
@@ -862,6 +1608,18 @@
       "multiple": true,
       "required": false,
       "types": [
+        {
+          "type": "identifiers_directive",
+          "named": true
+        },
+        {
+          "type": "implied_relationships_directive",
+          "named": true
+        },
+        {
+          "type": "include_directive",
+          "named": true
+        },
         {
           "type": "model",
           "named": true
@@ -1098,6 +1856,63 @@
     }
   },
   {
+    "type": "user_entry",
+    "named": true,
+    "fields": {
+      "role": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      },
+      "username": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "users_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "user_entry",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "views",
     "named": true,
     "fields": {
@@ -1130,7 +1945,23 @@
           "named": true
         },
         {
+          "type": "custom_view",
+          "named": true
+        },
+        {
+          "type": "deployment_view",
+          "named": true
+        },
+        {
+          "type": "dynamic_view",
+          "named": true
+        },
+        {
           "type": "filtered_view",
+          "named": true
+        },
+        {
+          "type": "image_view",
           "named": true
         },
         {
@@ -1142,6 +1973,30 @@
           "named": true
         }
       ]
+    }
+  },
+  {
+    "type": "visibility_statement",
+    "named": true,
+    "fields": {
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
     }
   },
   {
@@ -1216,7 +2071,31 @@
       "required": false,
       "types": [
         {
+          "type": "adrs_directive",
+          "named": true
+        },
+        {
+          "type": "configuration",
+          "named": true
+        },
+        {
           "type": "description_statement",
+          "named": true
+        },
+        {
+          "type": "docs_directive",
+          "named": true
+        },
+        {
+          "type": "identifiers_directive",
+          "named": true
+        },
+        {
+          "type": "implied_relationships_directive",
+          "named": true
+        },
+        {
+          "type": "include_directive",
           "named": true
         },
         {
@@ -1235,6 +2114,26 @@
     }
   },
   {
+    "type": "!adrs",
+    "named": false
+  },
+  {
+    "type": "!docs",
+    "named": false
+  },
+  {
+    "type": "!identifiers",
+    "named": false
+  },
+  {
+    "type": "!impliedRelationships",
+    "named": false
+  },
+  {
+    "type": "!include",
+    "named": false
+  },
+  {
     "type": "*",
     "named": false
   },
@@ -1247,11 +2146,23 @@
     "named": false
   },
   {
+    "type": ":",
+    "named": false
+  },
+  {
     "type": "=",
     "named": false
   },
   {
     "type": "autoLayout",
+    "named": false
+  },
+  {
+    "type": "bare_value",
+    "named": true
+  },
+  {
+    "type": "bt",
     "named": false
   },
   {
@@ -1264,7 +2175,15 @@
     "named": false
   },
   {
+    "type": "configuration",
+    "named": false
+  },
+  {
     "type": "container",
+    "named": false
+  },
+  {
+    "type": "custom",
     "named": false
   },
   {
@@ -1272,7 +2191,15 @@
     "named": true
   },
   {
+    "type": "deployment",
+    "named": false
+  },
+  {
     "type": "description",
+    "named": false
+  },
+  {
+    "type": "dynamic",
     "named": false
   },
   {
@@ -1292,7 +2219,23 @@
     "named": true
   },
   {
+    "type": "image",
+    "named": false
+  },
+  {
     "type": "include",
+    "named": false
+  },
+  {
+    "type": "kroki",
+    "named": false
+  },
+  {
+    "type": "lr",
+    "named": false
+  },
+  {
+    "type": "mermaid",
     "named": false
   },
   {
@@ -1308,7 +2251,23 @@
     "named": true
   },
   {
+    "type": "order",
+    "named": true
+  },
+  {
     "type": "person",
+    "named": false
+  },
+  {
+    "type": "plantuml",
+    "named": false
+  },
+  {
+    "type": "rl",
+    "named": false
+  },
+  {
+    "type": "scope",
     "named": false
   },
   {
@@ -1332,6 +2291,10 @@
     "named": false
   },
   {
+    "type": "tb",
+    "named": false
+  },
+  {
     "type": "technology",
     "named": false
   },
@@ -1340,7 +2303,15 @@
     "named": false
   },
   {
+    "type": "users",
+    "named": false
+  },
+  {
     "type": "views",
+    "named": false
+  },
+  {
+    "type": "visibility",
     "named": false
   },
   {
