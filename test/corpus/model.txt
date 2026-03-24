@@ -1,0 +1,46 @@
+==================
+Model elements
+==================
+
+workspace {
+  model {
+    user = person "User"
+    system = softwareSystem "System" {
+      api = container "API" "Handles requests" "Rust" {
+        worker = component "Worker" "Processes jobs" "Rust"
+      }
+    }
+
+    user -> system "Uses"
+  }
+}
+
+---
+
+(source_file
+  (workspace
+    (workspace_block
+      (model
+        (model_block
+          (person
+            (identifier)
+            (string))
+          (software_system
+            (identifier)
+            (string)
+            (software_system_block
+              (container
+                (identifier)
+                (string)
+                (string)
+                (string)
+                (container_block
+                  (component
+                    (identifier)
+                    (string)
+                    (string)
+                    (string))))))
+          (relationship
+            (identifier)
+            (identifier)
+            (string)))))))

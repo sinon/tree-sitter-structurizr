@@ -39,15 +39,52 @@ fn parses_workspace_metadata_and_comments_without_errors() {
 }
 
 #[test]
-fn tracks_model_contents_as_pending_tier_two_coverage() {
+fn parses_model_elements_and_relationships_without_errors() {
     let source = indoc! {r#"
         workspace {
             model {
                 user = person "User"
+                system = softwareSystem "System"
+
+                user -> system "Uses"
             }
         }
     "#};
     let tree = common::parse(source);
 
-    common::assert_has_errors("inline::model_contents_pending", &tree, source);
+    common::assert_no_errors("inline::model_elements", &tree, source);
+}
+
+#[test]
+fn parses_nested_containers_and_components_without_errors() {
+    let source = indoc! {r#"
+        workspace {
+            model {
+                system = softwareSystem "System" {
+                    api = container "API" "Handles requests" "Rust" {
+                        worker = component "Worker" "Processes jobs" "Rust"
+                    }
+                }
+            }
+        }
+    "#};
+    let tree = common::parse(source);
+
+    common::assert_no_errors("inline::nested_elements", &tree, source);
+}
+
+#[test]
+fn tracks_extended_model_features_as_pending_future_coverage() {
+    let source = indoc! {r#"
+        workspace {
+            model {
+                user = person "User"
+                group "Internal" {
+                }
+            }
+        }
+    "#};
+    let tree = common::parse(source);
+
+    common::assert_has_errors("inline::model_group_pending", &tree, source);
 }
