@@ -1,0 +1,42 @@
+{
+  "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/config.schema.json",
+  "grammars": [
+    {
+      "name": "structurizr",
+      "camelcase": "Structurizr",
+      "title": "Structurizr",
+      "scope": "source.structurizr",
+      "file-types": [
+        "dsl"
+      ],
+      "injection-regex": "^structurizr$",
+      "class-name": "TreeSitterStructurizr"
+    }
+  ],
+  "metadata": {
+    "version": "0.0.1",
+    "license": "MIT",
+    "description": "Grammar for Structurizr DSL for describing c4 models",
+    "authors": [
+      {
+        "name": "Rob Hand",
+        "email": "146272+sinon@users.noreply.github.com",
+        "url": ""
+      }
+    ],
+    "links": {
+      "repository": "https://github.com/tree-sitter/tree-sitter-structurizr",
+      "funding": ""
+    }
+  },
+  "bindings": {
+    "c": false,
+    "go": false,
+    "java": false,
+    "node": false,
+    "python": false,
+    "rust": true,
+    "swift": false,
+    "zig": false
+  }
+}
