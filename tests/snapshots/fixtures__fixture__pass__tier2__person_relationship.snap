@@ -2,4 +2,4 @@
 source: tests/fixtures.rs
 expression: "common::tree_sexp(&tree)"
 ---
-(source_file (workspace body: (workspace_block (model body: (model_block (person identifier: (identifier) name: (string)) (software_system identifier: (identifier) name: (string)) (relationship source: (identifier) destination: (identifier) description: (string)))))))
+(source_file (workspace body: (workspace_block (model body: (model_block (person identifier: (identifier) name: (string)) (software_system identifier: (identifier) name: (string)) (relationship source: (identifier) operator: (relationship_operator) destination: (identifier) attribute: (string)))))))

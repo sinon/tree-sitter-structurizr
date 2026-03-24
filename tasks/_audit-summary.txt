@@ -1,3 +1,0 @@
-checked=84
-issues=63
-clean=21

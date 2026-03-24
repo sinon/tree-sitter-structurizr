@@ -479,6 +479,40 @@
         }
       ]
     },
+    "tag_statement": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "tag"
+        },
+        {
+          "type": "FIELD",
+          "name": "value",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_value"
+          }
+        }
+      ]
+    },
+    "metadata_statement": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "metadata"
+        },
+        {
+          "type": "FIELD",
+          "name": "value",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_value"
+          }
+        }
+      ]
+    },
     "title_statement": {
       "type": "SEQ",
       "members": [
@@ -501,11 +535,35 @@
       "members": [
         {
           "type": "SYMBOL",
+          "name": "archetypes"
+        },
+        {
+          "type": "SYMBOL",
           "name": "person"
         },
         {
           "type": "SYMBOL",
           "name": "software_system"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "custom_element"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "archetype_instance"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "elements_directive"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "element_directive"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "identifiers_directive"
         },
         {
           "type": "SYMBOL",
@@ -522,6 +580,22 @@
         },
         {
           "type": "SYMBOL",
+          "name": "custom_element"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "archetype_instance"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "elements_directive"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "element_directive"
+        },
+        {
+          "type": "SYMBOL",
           "name": "relationship"
         },
         {
@@ -538,7 +612,15 @@
         },
         {
           "type": "SYMBOL",
+          "name": "tag_statement"
+        },
+        {
+          "type": "SYMBOL",
           "name": "tags_statement"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "metadata_statement"
         }
       ]
     },
@@ -551,6 +633,22 @@
         },
         {
           "type": "SYMBOL",
+          "name": "custom_element"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "archetype_instance"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "elements_directive"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "element_directive"
+        },
+        {
+          "type": "SYMBOL",
           "name": "relationship"
         },
         {
@@ -571,13 +669,29 @@
         },
         {
           "type": "SYMBOL",
+          "name": "tag_statement"
+        },
+        {
+          "type": "SYMBOL",
           "name": "tags_statement"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "metadata_statement"
         }
       ]
     },
     "_component_item": {
       "type": "CHOICE",
       "members": [
+        {
+          "type": "SYMBOL",
+          "name": "elements_directive"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "element_directive"
+        },
         {
           "type": "SYMBOL",
           "name": "relationship"
@@ -592,7 +706,84 @@
         },
         {
           "type": "SYMBOL",
+          "name": "tag_statement"
+        },
+        {
+          "type": "SYMBOL",
           "name": "tags_statement"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "metadata_statement"
+        }
+      ]
+    },
+    "_custom_block_item": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "person"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "software_system"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "container"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "component"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "custom_element"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "archetype_instance"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "elements_directive"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "element_directive"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "relationship"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "description_statement"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "technology_statement"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "tag_statement"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "tags_statement"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "metadata_statement"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "docs_directive"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "adrs_directive"
         }
       ]
     },
@@ -823,11 +1014,19 @@
               },
               {
                 "type": "SYMBOL",
+                "name": "tag_statement"
+              },
+              {
+                "type": "SYMBOL",
                 "name": "tags_statement"
               },
               {
                 "type": "SYMBOL",
                 "name": "relationship"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "metadata_statement"
               }
             ]
           }
@@ -1716,20 +1915,51 @@
               "name": "source",
               "content": {
                 "type": "SYMBOL",
-                "name": "identifier"
+                "name": "_relationship_endpoint"
               }
             },
             {
-              "type": "STRING",
-              "value": "->"
+              "type": "FIELD",
+              "name": "operator",
+              "content": {
+                "type": "SYMBOL",
+                "name": "relationship_operator"
+              }
             },
             {
               "type": "FIELD",
               "name": "destination",
               "content": {
                 "type": "SYMBOL",
-                "name": "identifier"
+                "name": "_relationship_endpoint"
               }
+            },
+            {
+              "type": "REPEAT",
+              "content": {
+                "type": "FIELD",
+                "name": "attribute",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_metadata_value"
+                }
+              }
+            },
+            {
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "FIELD",
+                  "name": "body",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "relationship_block"
+                  }
+                },
+                {
+                  "type": "BLANK"
+                }
+              ]
             }
           ]
         },
@@ -1738,123 +1968,590 @@
           "members": [
             {
               "type": "FIELD",
-              "name": "source",
+              "name": "operator",
               "content": {
                 "type": "SYMBOL",
-                "name": "identifier"
+                "name": "relationship_operator"
               }
-            },
-            {
-              "type": "STRING",
-              "value": "->"
             },
             {
               "type": "FIELD",
               "name": "destination",
               "content": {
                 "type": "SYMBOL",
-                "name": "identifier"
+                "name": "_relationship_endpoint"
               }
             },
             {
-              "type": "FIELD",
-              "name": "description",
+              "type": "REPEAT",
               "content": {
-                "type": "SYMBOL",
-                "name": "_metadata_value"
+                "type": "FIELD",
+                "name": "attribute",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_metadata_value"
+                }
               }
+            },
+            {
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "FIELD",
+                  "name": "body",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "relationship_block"
+                  }
+                },
+                {
+                  "type": "BLANK"
+                }
+              ]
             }
           ]
+        }
+      ]
+    },
+    "_relationship_endpoint": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "identifier"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "this_keyword"
+        }
+      ]
+    },
+    "this_keyword": {
+      "type": "STRING",
+      "value": "this"
+    },
+    "relationship_operator": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "->"
         },
         {
           "type": "SEQ",
           "members": [
             {
+              "type": "STRING",
+              "value": "--"
+            },
+            {
               "type": "FIELD",
-              "name": "source",
+              "name": "archetype",
               "content": {
                 "type": "SYMBOL",
-                "name": "identifier"
+                "name": "relationship_archetype_name"
               }
             },
             {
               "type": "STRING",
               "value": "->"
-            },
+            }
+          ]
+        }
+      ]
+    },
+    "relationship_archetype_name": {
+      "type": "PATTERN",
+      "value": "[A-Za-z_][A-Za-z0-9_.]*"
+    },
+    "relationship_block": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "{"
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "tag_statement"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "tags_statement"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "description_statement"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "technology_statement"
+              }
+            ]
+          }
+        },
+        {
+          "type": "STRING",
+          "value": "}"
+        }
+      ]
+    },
+    "archetypes": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "archetypes"
+        },
+        {
+          "type": "FIELD",
+          "name": "body",
+          "content": {
+            "type": "SYMBOL",
+            "name": "archetypes_block"
+          }
+        }
+      ]
+    },
+    "archetypes_block": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "{"
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "SYMBOL",
+            "name": "archetype_definition"
+          }
+        },
+        {
+          "type": "STRING",
+          "value": "}"
+        }
+      ]
+    },
+    "archetype_definition": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "FIELD",
+          "name": "identifier",
+          "content": {
+            "type": "SYMBOL",
+            "name": "identifier"
+          }
+        },
+        {
+          "type": "STRING",
+          "value": "="
+        },
+        {
+          "type": "FIELD",
+          "name": "base",
+          "content": {
+            "type": "SYMBOL",
+            "name": "archetype_base"
+          }
+        },
+        {
+          "type": "CHOICE",
+          "members": [
             {
               "type": "FIELD",
-              "name": "destination",
+              "name": "body",
               "content": {
                 "type": "SYMBOL",
-                "name": "identifier"
+                "name": "archetype_body"
               }
             },
             {
-              "type": "FIELD",
-              "name": "description",
-              "content": {
+              "type": "BLANK"
+            }
+          ]
+        }
+      ]
+    },
+    "archetype_base": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "person"
+        },
+        {
+          "type": "STRING",
+          "value": "softwareSystem"
+        },
+        {
+          "type": "STRING",
+          "value": "container"
+        },
+        {
+          "type": "STRING",
+          "value": "component"
+        },
+        {
+          "type": "STRING",
+          "value": "element"
+        },
+        {
+          "type": "STRING",
+          "value": "group"
+        },
+        {
+          "type": "STRING",
+          "value": "->"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "identifier"
+        }
+      ]
+    },
+    "archetype_body": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "{"
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "CHOICE",
+            "members": [
+              {
                 "type": "SYMBOL",
-                "name": "_metadata_value"
+                "name": "description_statement"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "technology_statement"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "tag_statement"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "tags_statement"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "metadata_statement"
               }
+            ]
+          }
+        },
+        {
+          "type": "STRING",
+          "value": "}"
+        }
+      ]
+    },
+    "custom_element": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SEQ",
+              "members": [
+                {
+                  "type": "FIELD",
+                  "name": "identifier",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "identifier"
+                  }
+                },
+                {
+                  "type": "STRING",
+                  "value": "="
+                }
+              ]
             },
             {
-              "type": "FIELD",
-              "name": "technology",
-              "content": {
-                "type": "SYMBOL",
-                "name": "_metadata_value"
-              }
+              "type": "BLANK"
             }
           ]
         },
         {
-          "type": "SEQ",
+          "type": "STRING",
+          "value": "element"
+        },
+        {
+          "type": "FIELD",
+          "name": "name",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_value"
+          }
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "FIELD",
+            "name": "attribute",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_metadata_value"
+            }
+          }
+        },
+        {
+          "type": "CHOICE",
           "members": [
             {
               "type": "FIELD",
-              "name": "source",
+              "name": "body",
               "content": {
                 "type": "SYMBOL",
-                "name": "identifier"
+                "name": "custom_element_block"
               }
             },
             {
-              "type": "STRING",
-              "value": "->"
-            },
-            {
-              "type": "FIELD",
-              "name": "destination",
-              "content": {
-                "type": "SYMBOL",
-                "name": "identifier"
-              }
-            },
-            {
-              "type": "FIELD",
-              "name": "description",
-              "content": {
-                "type": "SYMBOL",
-                "name": "_metadata_value"
-              }
-            },
-            {
-              "type": "FIELD",
-              "name": "technology",
-              "content": {
-                "type": "SYMBOL",
-                "name": "_metadata_value"
-              }
-            },
-            {
-              "type": "FIELD",
-              "name": "tags",
-              "content": {
-                "type": "SYMBOL",
-                "name": "_metadata_value"
-              }
+              "type": "BLANK"
             }
           ]
+        }
+      ]
+    },
+    "custom_element_block": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "{"
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_custom_block_item"
+          }
+        },
+        {
+          "type": "STRING",
+          "value": "}"
+        }
+      ]
+    },
+    "archetype_instance": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SEQ",
+              "members": [
+                {
+                  "type": "FIELD",
+                  "name": "identifier",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "identifier"
+                  }
+                },
+                {
+                  "type": "STRING",
+                  "value": "="
+                }
+              ]
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        },
+        {
+          "type": "FIELD",
+          "name": "kind",
+          "content": {
+            "type": "SYMBOL",
+            "name": "identifier"
+          }
+        },
+        {
+          "type": "FIELD",
+          "name": "name",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_value"
+          }
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "FIELD",
+            "name": "metadata",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_metadata_value"
+            }
+          }
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "FIELD",
+              "name": "body",
+              "content": {
+                "type": "SYMBOL",
+                "name": "custom_element_block"
+              }
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        }
+      ]
+    },
+    "element_directive": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SEQ",
+              "members": [
+                {
+                  "type": "FIELD",
+                  "name": "identifier",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "identifier"
+                  }
+                },
+                {
+                  "type": "STRING",
+                  "value": "="
+                }
+              ]
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        },
+        {
+          "type": "STRING",
+          "value": "!element"
+        },
+        {
+          "type": "FIELD",
+          "name": "target",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_directive_value"
+          }
+        },
+        {
+          "type": "FIELD",
+          "name": "body",
+          "content": {
+            "type": "SYMBOL",
+            "name": "element_directive_block"
+          }
+        }
+      ]
+    },
+    "element_directive_block": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "{"
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_custom_block_item"
+          }
+        },
+        {
+          "type": "STRING",
+          "value": "}"
+        }
+      ]
+    },
+    "elements_directive": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "!elements"
+        },
+        {
+          "type": "FIELD",
+          "name": "expression",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_directive_value"
+          }
+        },
+        {
+          "type": "FIELD",
+          "name": "body",
+          "content": {
+            "type": "SYMBOL",
+            "name": "elements_block"
+          }
+        }
+      ]
+    },
+    "elements_block": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "{"
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "relationship"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "tag_statement"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "tags_statement"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "description_statement"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "technology_statement"
+              }
+            ]
+          }
+        },
+        {
+          "type": "STRING",
+          "value": "}"
         }
       ]
     },

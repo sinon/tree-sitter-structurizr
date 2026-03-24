@@ -21,6 +21,12 @@ test-rust:
 test-rust-fast:
     cargo nextest run
 
+audit-upstream:
+    cargo test --test upstream_audit -- --ignored --nocapture
+
+audit-upstream-all:
+    STRUCTURIZR_UPSTREAM_INCLUDE_UNSUPPORTED=1 cargo test --test upstream_audit -- --ignored --nocapture
+
 test-grammar:
     tree-sitter test
 

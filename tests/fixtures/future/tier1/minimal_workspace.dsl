@@ -1,6 +1,8 @@
 workspace {
     model {
-        description "Model-level metadata is not supported yet"
+        properties {
+            "mode" "pending"
+        }
     }
 
     views {

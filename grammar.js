@@ -148,41 +148,92 @@ export default grammar({
       field("value", $._value),
     ),
 
+    tag_statement: $ => seq(
+      "tag",
+      field("value", $._value),
+    ),
+
+    metadata_statement: $ => seq(
+      "metadata",
+      field("value", $._value),
+    ),
+
     title_statement: $ => seq(
       "title",
       field("value", $._value),
     ),
 
     _model_item: $ => choice(
+      $.archetypes,
       $.person,
       $.software_system,
+      $.custom_element,
+      $.archetype_instance,
+      $.elements_directive,
+      $.element_directive,
+      $.identifiers_directive,
       $.relationship,
     ),
 
     _software_system_item: $ => choice(
       $.container,
+      $.custom_element,
+      $.archetype_instance,
+      $.elements_directive,
+      $.element_directive,
       $.relationship,
       $.docs_directive,
       $.adrs_directive,
       $.description_statement,
+      $.tag_statement,
       $.tags_statement,
+      $.metadata_statement,
     ),
 
     _container_item: $ => choice(
       $.component,
+      $.custom_element,
+      $.archetype_instance,
+      $.elements_directive,
+      $.element_directive,
       $.relationship,
       $.docs_directive,
       $.adrs_directive,
       $.description_statement,
       $.technology_statement,
+      $.tag_statement,
       $.tags_statement,
+      $.metadata_statement,
     ),
 
     _component_item: $ => choice(
+      $.elements_directive,
+      $.element_directive,
       $.relationship,
       $.description_statement,
       $.technology_statement,
+      $.tag_statement,
       $.tags_statement,
+      $.metadata_statement,
+    ),
+
+    _custom_block_item: $ => choice(
+      $.person,
+      $.software_system,
+      $.container,
+      $.component,
+      $.custom_element,
+      $.archetype_instance,
+      $.elements_directive,
+      $.element_directive,
+      $.relationship,
+      $.description_statement,
+      $.technology_statement,
+      $.tag_statement,
+      $.tags_statement,
+      $.metadata_statement,
+      $.docs_directive,
+      $.adrs_directive,
     ),
 
     person: $ => seq(
@@ -231,8 +282,10 @@ export default grammar({
       "{",
       repeat(choice(
         $.description_statement,
+        $.tag_statement,
         $.tags_statement,
         $.relationship,
+        $.metadata_statement,
       )),
       "}",
     ),
@@ -413,31 +466,137 @@ export default grammar({
 
     relationship: $ => choice(
       seq(
-        field("source", $.identifier),
-        "->",
-        field("destination", $.identifier),
+        field("source", $._relationship_endpoint),
+        field("operator", $.relationship_operator),
+        field("destination", $._relationship_endpoint),
+        repeat(field("attribute", $._metadata_value)),
+        optional(field("body", $.relationship_block)),
       ),
       seq(
-        field("source", $.identifier),
-        "->",
-        field("destination", $.identifier),
-        field("description", $._metadata_value),
+        field("operator", $.relationship_operator),
+        field("destination", $._relationship_endpoint),
+        repeat(field("attribute", $._metadata_value)),
+        optional(field("body", $.relationship_block)),
       ),
-      seq(
-        field("source", $.identifier),
-        "->",
-        field("destination", $.identifier),
-        field("description", $._metadata_value),
-        field("technology", $._metadata_value),
-      ),
-      seq(
-        field("source", $.identifier),
-        "->",
-        field("destination", $.identifier),
-        field("description", $._metadata_value),
-        field("technology", $._metadata_value),
-        field("tags", $._metadata_value),
-      ),
+    ),
+
+    _relationship_endpoint: $ => choice(
+      $.identifier,
+      $.this_keyword,
+    ),
+
+    this_keyword: _ => "this",
+
+    relationship_operator: $ => choice(
+      "->",
+      seq("--", field("archetype", $.relationship_archetype_name), "->"),
+    ),
+
+    relationship_archetype_name: _ => /[A-Za-z_][A-Za-z0-9_.]*/,
+
+    relationship_block: $ => seq(
+      "{",
+      repeat(choice(
+        $.tag_statement,
+        $.tags_statement,
+        $.description_statement,
+        $.technology_statement,
+      )),
+      "}",
+    ),
+
+    archetypes: $ => seq(
+      "archetypes",
+      field("body", $.archetypes_block),
+    ),
+
+    archetypes_block: $ => seq(
+      "{",
+      repeat($.archetype_definition),
+      "}",
+    ),
+
+    archetype_definition: $ => seq(
+      field("identifier", $.identifier),
+      "=",
+      field("base", $.archetype_base),
+      optional(field("body", $.archetype_body)),
+    ),
+
+    archetype_base: $ => choice(
+      "person",
+      "softwareSystem",
+      "container",
+      "component",
+      "element",
+      "group",
+      "->",
+      $.identifier,
+    ),
+
+    archetype_body: $ => seq(
+      "{",
+      repeat(choice(
+        $.description_statement,
+        $.technology_statement,
+        $.tag_statement,
+        $.tags_statement,
+        $.metadata_statement,
+      )),
+      "}",
+    ),
+
+    custom_element: $ => seq(
+      optional(seq(field("identifier", $.identifier), "=")),
+      "element",
+      field("name", $._value),
+      repeat(field("attribute", $._metadata_value)),
+      optional(field("body", $.custom_element_block)),
+    ),
+
+    custom_element_block: $ => seq(
+      "{",
+      repeat($._custom_block_item),
+      "}",
+    ),
+
+    archetype_instance: $ => seq(
+      optional(seq(field("identifier", $.identifier), "=")),
+      field("kind", $.identifier),
+      field("name", $._value),
+      repeat(field("metadata", $._metadata_value)),
+      optional(field("body", $.custom_element_block)),
+    ),
+
+    element_directive: $ => seq(
+      optional(seq(field("identifier", $.identifier), "=")),
+      "!element",
+      field("target", $._directive_value),
+      field("body", $.element_directive_block),
+    ),
+
+    element_directive_block: $ => seq(
+      "{",
+      repeat($._custom_block_item),
+      "}",
+    ),
+
+    elements_directive: $ => seq(
+      "!elements",
+      field("expression", $._directive_value),
+      field("body", $.elements_block),
+    ),
+
+    elements_block: $ => seq(
+      "{",
+      repeat(choice(
+        $.relationship,
+        $.tag_statement,
+        $.tags_statement,
+        $.description_statement,
+        $.technology_statement,
+      )),
+      "}",
     ),
 
     _view_item: $ => choice(

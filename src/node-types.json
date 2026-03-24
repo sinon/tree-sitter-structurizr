@@ -24,6 +24,179 @@
     }
   },
   {
+    "type": "archetype_base",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": false,
+      "types": [
+        {
+          "type": "identifier",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "archetype_body",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "description_statement",
+          "named": true
+        },
+        {
+          "type": "metadata_statement",
+          "named": true
+        },
+        {
+          "type": "tag_statement",
+          "named": true
+        },
+        {
+          "type": "tags_statement",
+          "named": true
+        },
+        {
+          "type": "technology_statement",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "archetype_definition",
+    "named": true,
+    "fields": {
+      "base": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "archetype_base",
+            "named": true
+          }
+        ]
+      },
+      "body": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "archetype_body",
+            "named": true
+          }
+        ]
+      },
+      "identifier": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "archetype_instance",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "custom_element_block",
+            "named": true
+          }
+        ]
+      },
+      "identifier": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "kind": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "metadata": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "archetypes",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "archetypes_block",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "archetypes_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "archetype_definition",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "auto_layout_statement",
     "named": true,
     "fields": {
@@ -142,7 +315,23 @@
           "named": true
         },
         {
+          "type": "element_directive",
+          "named": true
+        },
+        {
+          "type": "elements_directive",
+          "named": true
+        },
+        {
+          "type": "metadata_statement",
+          "named": true
+        },
+        {
           "type": "relationship",
+          "named": true
+        },
+        {
+          "type": "tag_statement",
           "named": true
         },
         {
@@ -363,7 +552,15 @@
           "named": true
         },
         {
+          "type": "archetype_instance",
+          "named": true
+        },
+        {
           "type": "component",
+          "named": true
+        },
+        {
+          "type": "custom_element",
           "named": true
         },
         {
@@ -375,7 +572,23 @@
           "named": true
         },
         {
+          "type": "element_directive",
+          "named": true
+        },
+        {
+          "type": "elements_directive",
+          "named": true
+        },
+        {
+          "type": "metadata_statement",
+          "named": true
+        },
+        {
           "type": "relationship",
+          "named": true
+        },
+        {
+          "type": "tag_statement",
           "named": true
         },
         {
@@ -469,6 +682,131 @@
         },
         {
           "type": "title_statement",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "custom_element",
+    "named": true,
+    "fields": {
+      "attribute": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      },
+      "body": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "custom_element_block",
+            "named": true
+          }
+        ]
+      },
+      "identifier": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "custom_element_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "adrs_directive",
+          "named": true
+        },
+        {
+          "type": "archetype_instance",
+          "named": true
+        },
+        {
+          "type": "component",
+          "named": true
+        },
+        {
+          "type": "container",
+          "named": true
+        },
+        {
+          "type": "custom_element",
+          "named": true
+        },
+        {
+          "type": "description_statement",
+          "named": true
+        },
+        {
+          "type": "docs_directive",
+          "named": true
+        },
+        {
+          "type": "element_directive",
+          "named": true
+        },
+        {
+          "type": "elements_directive",
+          "named": true
+        },
+        {
+          "type": "metadata_statement",
+          "named": true
+        },
+        {
+          "type": "person",
+          "named": true
+        },
+        {
+          "type": "relationship",
+          "named": true
+        },
+        {
+          "type": "software_system",
+          "named": true
+        },
+        {
+          "type": "tag_statement",
+          "named": true
+        },
+        {
+          "type": "tags_statement",
+          "named": true
+        },
+        {
+          "type": "technology_statement",
           "named": true
         }
       ]
@@ -876,6 +1214,125 @@
     }
   },
   {
+    "type": "element_directive",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "element_directive_block",
+            "named": true
+          }
+        ]
+      },
+      "identifier": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "target": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "element_directive_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "adrs_directive",
+          "named": true
+        },
+        {
+          "type": "archetype_instance",
+          "named": true
+        },
+        {
+          "type": "component",
+          "named": true
+        },
+        {
+          "type": "container",
+          "named": true
+        },
+        {
+          "type": "custom_element",
+          "named": true
+        },
+        {
+          "type": "description_statement",
+          "named": true
+        },
+        {
+          "type": "docs_directive",
+          "named": true
+        },
+        {
+          "type": "element_directive",
+          "named": true
+        },
+        {
+          "type": "elements_directive",
+          "named": true
+        },
+        {
+          "type": "metadata_statement",
+          "named": true
+        },
+        {
+          "type": "person",
+          "named": true
+        },
+        {
+          "type": "relationship",
+          "named": true
+        },
+        {
+          "type": "software_system",
+          "named": true
+        },
+        {
+          "type": "tag_statement",
+          "named": true
+        },
+        {
+          "type": "tags_statement",
+          "named": true
+        },
+        {
+          "type": "technology_statement",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "element_style",
     "named": true,
     "fields": {
@@ -893,6 +1350,71 @@
         "multiple": false,
         "required": true,
         "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "elements_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "description_statement",
+          "named": true
+        },
+        {
+          "type": "relationship",
+          "named": true
+        },
+        {
+          "type": "tag_statement",
+          "named": true
+        },
+        {
+          "type": "tags_statement",
+          "named": true
+        },
+        {
+          "type": "technology_statement",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "elements_directive",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "elements_block",
+            "named": true
+          }
+        ]
+      },
+      "expression": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
           {
             "type": "identifier",
             "named": true
@@ -1321,6 +1843,26 @@
     }
   },
   {
+    "type": "metadata_statement",
+    "named": true,
+    "fields": {
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "model",
     "named": true,
     "fields": {
@@ -1344,6 +1886,30 @@
       "multiple": true,
       "required": false,
       "types": [
+        {
+          "type": "archetype_instance",
+          "named": true
+        },
+        {
+          "type": "archetypes",
+          "named": true
+        },
+        {
+          "type": "custom_element",
+          "named": true
+        },
+        {
+          "type": "element_directive",
+          "named": true
+        },
+        {
+          "type": "elements_directive",
+          "named": true
+        },
+        {
+          "type": "identifiers_directive",
+          "named": true
+        },
         {
           "type": "person",
           "named": true
@@ -1452,7 +2018,15 @@
           "named": true
         },
         {
+          "type": "metadata_statement",
+          "named": true
+        },
+        {
           "type": "relationship",
+          "named": true
+        },
+        {
+          "type": "tag_statement",
           "named": true
         },
         {
@@ -1547,12 +2121,22 @@
     "type": "relationship",
     "named": true,
     "fields": {
-      "description": {
-        "multiple": false,
+      "attribute": {
+        "multiple": true,
         "required": false,
         "types": [
           {
             "type": "string",
+            "named": true
+          }
+        ]
+      },
+      "body": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "relationship_block",
             "named": true
           }
         ]
@@ -1564,35 +2148,76 @@
           {
             "type": "identifier",
             "named": true
+          },
+          {
+            "type": "this_keyword",
+            "named": true
+          }
+        ]
+      },
+      "operator": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "relationship_operator",
+            "named": true
           }
         ]
       },
       "source": {
         "multiple": false,
-        "required": true,
+        "required": false,
         "types": [
           {
             "type": "identifier",
             "named": true
-          }
-        ]
-      },
-      "tags": {
-        "multiple": false,
-        "required": false,
-        "types": [
+          },
           {
-            "type": "string",
+            "type": "this_keyword",
             "named": true
           }
         ]
-      },
-      "technology": {
+      }
+    }
+  },
+  {
+    "type": "relationship_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "description_statement",
+          "named": true
+        },
+        {
+          "type": "tag_statement",
+          "named": true
+        },
+        {
+          "type": "tags_statement",
+          "named": true
+        },
+        {
+          "type": "technology_statement",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "relationship_operator",
+    "named": true,
+    "fields": {
+      "archetype": {
         "multiple": false,
         "required": false,
         "types": [
           {
-            "type": "string",
+            "type": "relationship_archetype_name",
             "named": true
           }
         ]
@@ -1726,7 +2351,15 @@
           "named": true
         },
         {
+          "type": "archetype_instance",
+          "named": true
+        },
+        {
           "type": "container",
+          "named": true
+        },
+        {
+          "type": "custom_element",
           "named": true
         },
         {
@@ -1738,7 +2371,23 @@
           "named": true
         },
         {
+          "type": "element_directive",
+          "named": true
+        },
+        {
+          "type": "elements_directive",
+          "named": true
+        },
+        {
+          "type": "metadata_statement",
+          "named": true
+        },
+        {
           "type": "relationship",
+          "named": true
+        },
+        {
+          "type": "tag_statement",
           "named": true
         },
         {
@@ -2061,6 +2710,26 @@
           "named": true
         }
       ]
+    }
+  },
+  {
+    "type": "tag_statement",
+    "named": true,
+    "fields": {
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
     }
   },
   {
@@ -2394,6 +3063,14 @@
     "named": false
   },
   {
+    "type": "!element",
+    "named": false
+  },
+  {
+    "type": "!elements",
+    "named": false
+  },
+  {
     "type": "!identifiers",
     "named": false
   },
@@ -2414,6 +3091,10 @@
     "named": false
   },
   {
+    "type": "--",
+    "named": false
+  },
+  {
     "type": "->",
     "named": false
   },
@@ -2423,6 +3104,10 @@
   },
   {
     "type": "=",
+    "named": false
+  },
+  {
+    "type": "archetypes",
     "named": false
   },
   {
@@ -2495,6 +3180,10 @@
     "named": false
   },
   {
+    "type": "group",
+    "named": false
+  },
+  {
     "type": "identifier",
     "named": true
   },
@@ -2520,6 +3209,10 @@
   },
   {
     "type": "mermaid",
+    "named": false
+  },
+  {
+    "type": "metadata",
     "named": false
   },
   {
@@ -2555,6 +3248,10 @@
     "named": false
   },
   {
+    "type": "relationship_archetype_name",
+    "named": true
+  },
+  {
     "type": "rl",
     "named": false
   },
@@ -2583,6 +3280,10 @@
     "named": false
   },
   {
+    "type": "tag",
+    "named": false
+  },
+  {
     "type": "tags",
     "named": false
   },
@@ -2593,6 +3294,10 @@
   {
     "type": "technology",
     "named": false
+  },
+  {
+    "type": "this_keyword",
+    "named": true
   },
   {
     "type": "title",

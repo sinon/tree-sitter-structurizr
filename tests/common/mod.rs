@@ -3,7 +3,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use tree_sitter::{Parser, Tree};
+use tree_sitter::{Node, Parser, Point, Tree};
 
 #[derive(Debug)]
 pub struct FixtureCase {
@@ -30,6 +30,21 @@ pub fn parse(source: &str) -> Tree {
 
 pub fn tree_sexp(tree: &Tree) -> String {
     tree.root_node().to_sexp()
+}
+
+#[derive(Debug, Clone)]
+pub struct ParseIssue {
+    pub kind: &'static str,
+    pub node_kind: String,
+    pub start: Point,
+    pub end: Point,
+    pub text: String,
+}
+
+pub fn collect_parse_issues(tree: &Tree, source: &str) -> Vec<ParseIssue> {
+    let mut issues = Vec::new();
+    collect_node_issues(tree.root_node(), source, &mut issues);
+    issues
 }
 
 pub fn assert_no_errors(label: &str, tree: &Tree, source: &str) {
@@ -87,4 +102,43 @@ fn relative_fixture_name(path: &Path) -> String {
         .map(|component| component.as_os_str().to_string_lossy().replace('-', "_"))
         .collect::<Vec<_>>()
         .join("__")
+}
+
+fn collect_node_issues(node: Node, source: &str, issues: &mut Vec<ParseIssue>) {
+    if node.is_error() || node.is_missing() {
+        issues.push(ParseIssue {
+            kind: if node.is_missing() { "MISSING" } else { "ERROR" },
+            node_kind: node.kind().to_string(),
+            start: node.start_position(),
+            end: node.end_position(),
+            text: issue_text(node, source),
+        });
+    }
+
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_node_issues(child, source, issues);
+    }
+}
+
+fn issue_text(node: Node, source: &str) -> String {
+    let bytes = source.as_bytes();
+    let raw = if node.start_byte() < node.end_byte() {
+        node.utf8_text(bytes).unwrap_or("")
+    } else {
+        context_excerpt(source, node.start_byte())
+    };
+
+    let squashed = raw.split_whitespace().collect::<Vec<_>>().join(" ");
+    if squashed.is_empty() {
+        "<empty>".to_string()
+    } else {
+        squashed
+    }
+}
+
+fn context_excerpt(source: &str, byte: usize) -> &str {
+    let start = byte.saturating_sub(30);
+    let end = (byte + 30).min(source.len());
+    &source[start..end]
 }

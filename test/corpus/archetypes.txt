@@ -1,0 +1,49 @@
+==================
+Archetypes and custom elements
+==================
+
+workspace {
+  model {
+    archetypes {
+      hardwareSystem = element {
+        metadata "Hardware System"
+        tag "Hardware System"
+      }
+    }
+
+    a = softwareSystem "A"
+    b = hardwareSystem "B"
+
+    a -> b "Gets data from"
+  }
+}
+
+---
+
+(source_file
+  (workspace
+    (workspace_block
+      (model
+        (model_block
+          (archetypes
+            (archetypes_block
+              (archetype_definition
+                (identifier)
+                (archetype_base)
+                (archetype_body
+                  (metadata_statement
+                    (string))
+                  (tag_statement
+                    (string))))))
+          (software_system
+            (identifier)
+            (string))
+          (archetype_instance
+            (identifier)
+            (identifier)
+            (string))
+          (relationship
+            (identifier)
+            (relationship_operator)
+            (identifier)
+            (string)))))))

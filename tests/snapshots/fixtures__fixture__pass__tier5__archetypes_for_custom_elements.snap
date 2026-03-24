@@ -1,0 +1,5 @@
+---
+source: tests/fixtures.rs
+expression: "common::tree_sexp(&tree)"
+---
+(source_file (workspace body: (workspace_block (model body: (model_block (archetypes body: (archetypes_block (archetype_definition identifier: (identifier) base: (archetype_base) body: (archetype_body (metadata_statement value: (string)) (tag_statement value: (string)))))) (software_system identifier: (identifier) name: (string)) (archetype_instance identifier: (identifier) kind: (identifier) name: (string)) (relationship source: (identifier) operator: (relationship_operator) destination: (identifier) attribute: (string)))))))

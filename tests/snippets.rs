@@ -78,15 +78,17 @@ fn tracks_extended_model_features_as_pending_future_coverage() {
     let source = indoc! {r#"
         workspace {
             model {
-                user = person "User"
                 group "Internal" {
+                    properties {
+                        "mode" "pending"
+                    }
                 }
             }
         }
     "#};
     let tree = common::parse(source);
 
-    common::assert_has_errors("inline::model_group_pending", &tree, source);
+    common::assert_has_errors("inline::model_group_properties_pending", &tree, source);
 }
 
 #[test]
@@ -228,6 +230,75 @@ fn parses_block_comments_and_view_styles_without_errors() {
     let tree = common::parse(source);
 
     common::assert_no_errors("inline::block_comments_and_styles", &tree, source);
+}
+
+#[test]
+fn parses_archetypes_and_custom_elements_without_errors() {
+    let source = indoc! {r#"
+        workspace {
+            model {
+                archetypes {
+                    hardwareSystem = element {
+                        metadata "Hardware System"
+                        tag "Hardware System"
+                    }
+
+                    application = container {
+                        tag "Application"
+                    }
+
+                    https = -> {
+                        technology "HTTPS"
+                    }
+                }
+
+                a = softwareSystem "A"
+                b = hardwareSystem "B"
+
+                application1 = application "Application 1" {
+                    a --https-> this "Uses"
+                }
+
+                a -> b "Gets data from"
+            }
+        }
+    "#};
+    let tree = common::parse(source);
+
+    common::assert_no_errors("inline::archetypes_and_custom_elements", &tree, source);
+}
+
+#[test]
+fn parses_bulk_element_operations_without_errors() {
+    let source = indoc! {r#"
+        workspace {
+            model {
+                user = person "User"
+
+                !identifiers flat
+
+                softwareSystem1 = softwareSystem "Software System 1" {
+                    application1 = container "Application" {
+                        component "ComponentA"
+                        component "ComponentB"
+                    }
+
+                    databaseSchema1 = container "Database Schema"
+
+                    !elements "element.parent==application1" {
+                        tags "Tag 1"
+                        user -> this "Uses 1"
+                        this -> databaseSchema1 "Uses 1" {
+                            tags "Tag"
+                        }
+                    }
+                }
+            }
+        }
+    "#};
+    let tree = common::parse(source);
+
+    common::assert_no_errors("inline::bulk_element_operations", &tree, source);
 }
 
 #[test]
