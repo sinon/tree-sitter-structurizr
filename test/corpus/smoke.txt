@@ -1,9 +1,21 @@
 ==================
-Placeholder grammar
+Minimal workspace
 ==================
 
-hello
+workspace {
+  model {
+  }
+
+  views {
+  }
+}
 
 ---
 
-(source_file)
+(source_file
+  (workspace
+    (workspace_block
+      (model
+        (model_block))
+      (views
+        (views_block)))))

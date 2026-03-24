@@ -1,0 +1,8 @@
+workspace {
+    model {
+    }
+
+    views {
+    }
+}
+
