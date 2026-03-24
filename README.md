@@ -49,6 +49,8 @@ These are currently out of scope on purpose rather than merely unfinished:
 
 `!script` is intentionally treated as unsupported because this grammar targets editor parsing, not executable DSL extensions. The upstream audit excludes script-related fixtures by default so they do not block progress on the parser.
 
+Upstream fixtures whose names contain `unexpected-` are also ignored permanently by the audit because they are intentional negative parser tests from the upstream project rather than valid DSL samples.
+
 If you want to include those fixtures in an audit run anyway, use:
 
 ```sh

@@ -6,6 +6,7 @@ use std::env;
 use serde::Deserialize;
 
 const DEFAULT_UNSUPPORTED_FILTERS: &[&str] = &["script"];
+const ALWAYS_IGNORED_FILTERS: &[&str] = &["unexpected-"];
 
 #[derive(Debug, Deserialize)]
 struct GitHubContent {
@@ -44,6 +45,10 @@ fn upstream_structurizr_samples_parse_without_errors() {
     if let Ok(filter) = env::var("STRUCTURIZR_UPSTREAM_FILTER") {
         entries.retain(|entry| entry.path.contains(&filter));
     }
+
+    let before_always_ignored = entries.len();
+    entries.retain(|entry| !is_always_ignored(&entry.path));
+    let excluded_as_negative_cases = before_always_ignored - entries.len();
 
     let include_unsupported = env_flag("STRUCTURIZR_UPSTREAM_INCLUDE_UNSUPPORTED");
     let excluded_by_default = if include_unsupported {
@@ -88,6 +93,18 @@ fn upstream_structurizr_samples_parse_without_errors() {
         clean,
         failures.len()
     );
+
+    if excluded_as_negative_cases > 0 {
+        println!(
+            "Ignored {} upstream DSL files permanently as intentional negative tests ({})",
+            excluded_as_negative_cases,
+            ALWAYS_IGNORED_FILTERS
+                .iter()
+                .map(|pattern| format!("contains `{pattern}`"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+    }
 
     if excluded_by_default > 0 {
         println!(
@@ -167,6 +184,13 @@ fn feature_bucket(path: &str) -> &'static str {
 fn is_explicitly_unsupported(path: &str) -> bool {
     let lower = path.to_ascii_lowercase();
     DEFAULT_UNSUPPORTED_FILTERS
+        .iter()
+        .any(|pattern| lower.contains(pattern))
+}
+
+fn is_always_ignored(path: &str) -> bool {
+    let lower = path.to_ascii_lowercase();
+    ALWAYS_IGNORED_FILTERS
         .iter()
         .any(|pattern| lower.contains(pattern))
 }
