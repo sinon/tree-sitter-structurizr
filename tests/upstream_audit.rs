@@ -5,7 +5,7 @@ use std::env;
 
 use serde::Deserialize;
 
-const DEFAULT_UNSUPPORTED_FILTERS: &[&str] = &["script"];
+const DEFAULT_UNSUPPORTED_FILTERS: &[&str] = &["script", "plugin"];
 const ALWAYS_IGNORED_FILTERS: &[&str] = &["unexpected-"];
 
 #[derive(Debug, Deserialize)]

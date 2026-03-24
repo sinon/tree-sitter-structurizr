@@ -46,8 +46,9 @@ These areas are still in progress. Some parse partially, but they are not consid
 These are currently out of scope on purpose rather than merely unfinished:
 
 - `!script`
+- `!plugin`
 
-`!script` is intentionally treated as unsupported because this grammar targets editor parsing, not executable DSL extensions. The upstream audit excludes script-related fixtures by default so they do not block progress on the parser.
+`!script` and `!plugin` are intentionally treated as unsupported because this grammar targets editor parsing, not executable DSL extensions. The upstream audit excludes script- and plugin-related fixtures by default so they do not block progress on the parser.
 
 Upstream fixtures whose names contain `unexpected-` are also ignored permanently by the audit because they are intentional negative parser tests from the upstream project rather than valid DSL samples.
 
@@ -77,7 +78,7 @@ just audit-upstream
 Useful variants:
 
 - `just test-rust-fast` runs `cargo nextest run` without doctests.
-- `just audit-upstream-all` includes explicitly unsupported upstream fixtures such as `!script`.
+- `just audit-upstream-all` includes explicitly unsupported upstream fixtures such as `!script` and `!plugin`.
 - `STRUCTURIZR_UPSTREAM_FILTER=<text> just audit-upstream` narrows the upstream audit to matching file paths.
 
 ## Repository layout
