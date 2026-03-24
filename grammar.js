@@ -20,7 +20,12 @@ export default grammar({
 
     comment: _ => token(choice(
       seq("//", /.*/),
-      seq("#", /.*/),
+      seq("#", /[ \t].*/),
+      seq(
+        "/*",
+        /[^*]*\*+([^/*][^*]*\*+)*/,
+        "/",
+      ),
     )),
 
     identifier: _ => /[A-Za-z_][A-Za-z0-9_.-]*/,
@@ -445,6 +450,7 @@ export default grammar({
       $.deployment_view,
       $.custom_view,
       $.image_view,
+      $.styles,
     ),
 
     _view_value: $ => choice(
@@ -797,6 +803,88 @@ export default grammar({
         $.description_statement,
       )),
       "}",
+    ),
+
+    styles: $ => seq(
+      "styles",
+      field("body", $.styles_block),
+    ),
+
+    styles_block: $ => seq(
+      "{",
+      repeat($._style_item),
+      "}",
+    ),
+
+    _style_item: $ => choice(
+      $.element_style,
+      $.relationship_style,
+      $.light_styles,
+      $.dark_styles,
+    ),
+
+    light_styles: $ => seq(
+      "light",
+      field("body", $.style_mode_block),
+    ),
+
+    dark_styles: $ => seq(
+      "dark",
+      field("body", $.style_mode_block),
+    ),
+
+    style_mode_block: $ => seq(
+      "{",
+      repeat(choice(
+        $.element_style,
+        $.relationship_style,
+      )),
+      "}",
+    ),
+
+    element_style: $ => seq(
+      "element",
+      field("tag", $._value),
+      field("body", $.style_rule_block),
+    ),
+
+    relationship_style: $ => seq(
+      "relationship",
+      field("tag", $._value),
+      field("body", $.style_rule_block),
+    ),
+
+    style_rule_block: $ => seq(
+      "{",
+      repeat(choice(
+        $.style_setting,
+        $.properties_block,
+      )),
+      "}",
+    ),
+
+    style_setting: $ => seq(
+      field("name", $.identifier),
+      field("value", $._style_value),
+    ),
+
+    _style_value: $ => choice(
+      $.string,
+      $.number,
+      $.identifier,
+      $.bare_value,
+    ),
+
+    properties_block: $ => seq(
+      "properties",
+      "{",
+      repeat($.property_entry),
+      "}",
+    ),
+
+    property_entry: $ => seq(
+      field("name", $._directive_value),
+      field("value", $._directive_value),
     ),
 
     plantuml_source: $ => seq(

@@ -564,6 +564,22 @@
     }
   },
   {
+    "type": "dark_styles",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "style_mode_block",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "deployment_view",
     "named": true,
     "fields": {
@@ -857,6 +873,36 @@
           "named": true
         }
       ]
+    }
+  },
+  {
+    "type": "element_style",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "style_rule_block",
+            "named": true
+          }
+        ]
+      },
+      "tag": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
     }
   },
   {
@@ -1235,6 +1281,22 @@
     "fields": {}
   },
   {
+    "type": "light_styles",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "style_mode_block",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "mermaid_source",
     "named": true,
     "fields": {
@@ -1425,6 +1487,63 @@
     }
   },
   {
+    "type": "properties_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "property_entry",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "property_entry",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      },
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "relationship",
     "named": true,
     "fields": {
@@ -1472,6 +1591,36 @@
         "multiple": false,
         "required": false,
         "types": [
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "relationship_style",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "style_rule_block",
+            "named": true
+          }
+        ]
+      },
+      "tag": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
           {
             "type": "string",
             "named": true
@@ -1630,6 +1779,125 @@
         },
         {
           "type": "workspace",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "style_mode_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "element_style",
+          "named": true
+        },
+        {
+          "type": "relationship_style",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "style_rule_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "properties_block",
+          "named": true
+        },
+        {
+          "type": "style_setting",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "style_setting",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "number",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "styles",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "styles_block",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "styles_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "dark_styles",
+          "named": true
+        },
+        {
+          "type": "element_style",
+          "named": true
+        },
+        {
+          "type": "light_styles",
+          "named": true
+        },
+        {
+          "type": "relationship_style",
           "named": true
         }
       ]
@@ -1965,6 +2233,10 @@
           "named": true
         },
         {
+          "type": "styles",
+          "named": true
+        },
+        {
           "type": "system_context_view",
           "named": true
         },
@@ -2187,6 +2459,10 @@
     "named": false
   },
   {
+    "type": "dark",
+    "named": false
+  },
+  {
     "type": "default_statement",
     "named": true
   },
@@ -2200,6 +2476,10 @@
   },
   {
     "type": "dynamic",
+    "named": false
+  },
+  {
+    "type": "element",
     "named": false
   },
   {
@@ -2228,6 +2508,10 @@
   },
   {
     "type": "kroki",
+    "named": false
+  },
+  {
+    "type": "light",
     "named": false
   },
   {
@@ -2263,6 +2547,14 @@
     "named": false
   },
   {
+    "type": "properties",
+    "named": false
+  },
+  {
+    "type": "relationship",
+    "named": false
+  },
+  {
     "type": "rl",
     "named": false
   },
@@ -2277,6 +2569,10 @@
   {
     "type": "string",
     "named": true
+  },
+  {
+    "type": "styles",
+    "named": false
   },
   {
     "type": "systemContext",

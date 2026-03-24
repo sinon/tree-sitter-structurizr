@@ -190,7 +190,48 @@ fn parses_advanced_views_directives_and_configuration_without_errors() {
 }
 
 #[test]
-fn tracks_styles_and_script_blocks_as_pending_future_coverage() {
+fn parses_block_comments_and_view_styles_without_errors() {
+    let source = indoc! {r#"
+        /*
+         * This is a combined version of the following workspaces:
+         *
+         * - "Big Bank plc - System Landscape"
+         * - "Big Bank plc - Internet Banking System"
+         */
+        workspace {
+            views {
+                systemContext financialRiskSystem "Context" "An example System Context diagram for the Financial Risk System architecture kata." {
+                    include *
+                    autoLayout
+                }
+
+                styles {
+                    element "Software System" {
+                        background #801515
+                        shape RoundedBox
+                        color #ffffff
+                        opacity 30
+                    }
+
+                    element "Person" {
+                        background #d46a6a
+                        shape Person
+                    }
+
+                    relationship "Future State" {
+                        opacity 30
+                    }
+                }
+            }
+        }
+    "#};
+    let tree = common::parse(source);
+
+    common::assert_no_errors("inline::block_comments_and_styles", &tree, source);
+}
+
+#[test]
+fn tracks_script_blocks_as_pending_future_coverage() {
     let source = indoc! {r#"
         workspace {
             !script groovy {
@@ -198,12 +239,10 @@ fn tracks_styles_and_script_blocks_as_pending_future_coverage() {
             }
 
             views {
-                styles {
-                }
             }
         }
     "#};
     let tree = common::parse(source);
 
-    common::assert_has_errors("inline::styles_and_script_pending", &tree, source);
+    common::assert_has_errors("inline::script_pending", &tree, source);
 }

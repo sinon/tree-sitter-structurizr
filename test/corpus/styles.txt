@@ -1,0 +1,83 @@
+==================
+Comments and styles
+==================
+
+/*
+ * This is a combined version of the following workspaces:
+ *
+ * - "Big Bank plc - System Landscape"
+ * - "Big Bank plc - Internet Banking System"
+ */
+workspace {
+  views {
+    systemContext financialRiskSystem "Context" "An example System Context diagram for the Financial Risk System architecture kata." {
+      include *
+      autoLayout
+    }
+
+    styles {
+      element "Software System" {
+        background #801515
+        shape RoundedBox
+        color #ffffff
+        opacity 30
+      }
+      element "Person" {
+        background #d46a6a
+        shape Person
+      }
+      relationship "Future State" {
+        opacity 30
+      }
+    }
+  }
+}
+
+---
+
+(source_file
+  (comment)
+  (workspace
+    (workspace_block
+      (views
+        (views_block
+          (system_context_view
+            (identifier)
+            (string)
+            (string)
+            (system_context_view_block
+              (include_statement
+                (wildcard))
+              (auto_layout_statement)))
+          (styles
+            (styles_block
+              (element_style
+                (string)
+                (style_rule_block
+                  (style_setting
+                    (identifier)
+                    (bare_value))
+                  (style_setting
+                    (identifier)
+                    (identifier))
+                  (style_setting
+                    (identifier)
+                    (bare_value))
+                  (style_setting
+                    (identifier)
+                    (number))))
+              (element_style
+                (string)
+                (style_rule_block
+                  (style_setting
+                    (identifier)
+                    (bare_value))
+                  (style_setting
+                    (identifier)
+                    (identifier))))
+              (relationship_style
+                (string)
+                (style_rule_block
+                  (style_setting
+                    (identifier)
+                    (number)))))))))))
