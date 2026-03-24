@@ -1,0 +1,5 @@
+---
+source: tests/fixtures.rs
+expression: "common::tree_sexp(&tree)"
+---
+(source_file (workspace body: (workspace_block (identifiers_directive value: (identifier)) (model body: (model_block (software_system identifier: (identifier) name: (string) body: (software_system_block (container identifier: (identifier) name: (string)) (container identifier: (identifier) name: (string) body: (container_block (relationship operator: (relationship_operator) destination: (identifier) attribute: (string)))))) (deployment_environment name: (string) body: (deployment_environment_block (deployment_group identifier: (identifier) name: (string)) (deployment_group identifier: (identifier) name: (string)) (deployment_node name: (string) body: (deployment_node_block (container_instance target: (identifier) deployment_group: (identifier)) (container_instance target: (identifier) deployment_group: (identifier)))) (deployment_node name: (string) body: (deployment_node_block (container_instance target: (identifier) deployment_group: (identifier)) (container_instance target: (identifier) deployment_group: (identifier)))))))))))

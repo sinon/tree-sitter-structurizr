@@ -64,6 +64,118 @@
       "type": "PATTERN",
       "value": "[A-Za-z_][A-Za-z0-9_.-]*"
     },
+    "_assignment_identifier": {
+      "type": "PREC",
+      "value": 1,
+      "content": {
+        "type": "CHOICE",
+        "members": [
+          {
+            "type": "SYMBOL",
+            "name": "identifier"
+          },
+          {
+            "type": "ALIAS",
+            "content": {
+              "type": "STRING",
+              "value": "person"
+            },
+            "named": true,
+            "value": "identifier"
+          },
+          {
+            "type": "ALIAS",
+            "content": {
+              "type": "STRING",
+              "value": "softwareSystem"
+            },
+            "named": true,
+            "value": "identifier"
+          },
+          {
+            "type": "ALIAS",
+            "content": {
+              "type": "STRING",
+              "value": "softwaresystem"
+            },
+            "named": true,
+            "value": "identifier"
+          },
+          {
+            "type": "ALIAS",
+            "content": {
+              "type": "STRING",
+              "value": "container"
+            },
+            "named": true,
+            "value": "identifier"
+          },
+          {
+            "type": "ALIAS",
+            "content": {
+              "type": "STRING",
+              "value": "component"
+            },
+            "named": true,
+            "value": "identifier"
+          },
+          {
+            "type": "ALIAS",
+            "content": {
+              "type": "STRING",
+              "value": "deploymentEnvironment"
+            },
+            "named": true,
+            "value": "identifier"
+          },
+          {
+            "type": "ALIAS",
+            "content": {
+              "type": "STRING",
+              "value": "deploymentGroup"
+            },
+            "named": true,
+            "value": "identifier"
+          },
+          {
+            "type": "ALIAS",
+            "content": {
+              "type": "STRING",
+              "value": "deploymentNode"
+            },
+            "named": true,
+            "value": "identifier"
+          },
+          {
+            "type": "ALIAS",
+            "content": {
+              "type": "STRING",
+              "value": "infrastructureNode"
+            },
+            "named": true,
+            "value": "identifier"
+          },
+          {
+            "type": "ALIAS",
+            "content": {
+              "type": "STRING",
+              "value": "containerInstance"
+            },
+            "named": true,
+            "value": "identifier"
+          },
+          {
+            "type": "ALIAS",
+            "content": {
+              "type": "STRING",
+              "value": "softwareSystemInstance"
+            },
+            "named": true,
+            "value": "identifier"
+          }
+        ]
+      }
+    },
     "number": {
       "type": "PATTERN",
       "value": "\\d+"
@@ -555,6 +667,10 @@
         },
         {
           "type": "SYMBOL",
+          "name": "deployment_environment"
+        },
+        {
+          "type": "SYMBOL",
           "name": "elements_directive"
         },
         {
@@ -718,6 +834,56 @@
         }
       ]
     },
+    "_deployment_item": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "deployment_group"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "deployment_node"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "relationship"
+        }
+      ]
+    },
+    "_deployment_node_item": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "deployment_node"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "infrastructure_node"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "container_instance"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "software_system_instance"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "relationship"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "tag_statement"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "tags_statement"
+        }
+      ]
+    },
     "_custom_block_item": {
       "type": "CHOICE",
       "members": [
@@ -801,7 +967,7 @@
                   "name": "identifier",
                   "content": {
                     "type": "SYMBOL",
-                    "name": "identifier"
+                    "name": "_assignment_identifier"
                   }
                 },
                 {
@@ -1051,7 +1217,7 @@
                   "name": "identifier",
                   "content": {
                     "type": "SYMBOL",
-                    "name": "identifier"
+                    "name": "_assignment_identifier"
                   }
                 },
                 {
@@ -1072,8 +1238,17 @@
               "type": "SEQ",
               "members": [
                 {
-                  "type": "STRING",
-                  "value": "softwareSystem"
+                  "type": "CHOICE",
+                  "members": [
+                    {
+                      "type": "STRING",
+                      "value": "softwareSystem"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "softwaresystem"
+                    }
+                  ]
                 },
                 {
                   "type": "FIELD",
@@ -1089,8 +1264,17 @@
               "type": "SEQ",
               "members": [
                 {
-                  "type": "STRING",
-                  "value": "softwareSystem"
+                  "type": "CHOICE",
+                  "members": [
+                    {
+                      "type": "STRING",
+                      "value": "softwareSystem"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "softwaresystem"
+                    }
+                  ]
                 },
                 {
                   "type": "FIELD",
@@ -1114,8 +1298,17 @@
               "type": "SEQ",
               "members": [
                 {
-                  "type": "STRING",
-                  "value": "softwareSystem"
+                  "type": "CHOICE",
+                  "members": [
+                    {
+                      "type": "STRING",
+                      "value": "softwareSystem"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "softwaresystem"
+                    }
+                  ]
                 },
                 {
                   "type": "FIELD",
@@ -1147,8 +1340,17 @@
               "type": "SEQ",
               "members": [
                 {
-                  "type": "STRING",
-                  "value": "softwareSystem"
+                  "type": "CHOICE",
+                  "members": [
+                    {
+                      "type": "STRING",
+                      "value": "softwareSystem"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "softwaresystem"
+                    }
+                  ]
                 },
                 {
                   "type": "FIELD",
@@ -1172,8 +1374,17 @@
               "type": "SEQ",
               "members": [
                 {
-                  "type": "STRING",
-                  "value": "softwareSystem"
+                  "type": "CHOICE",
+                  "members": [
+                    {
+                      "type": "STRING",
+                      "value": "softwareSystem"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "softwaresystem"
+                    }
+                  ]
                 },
                 {
                   "type": "FIELD",
@@ -1205,8 +1416,17 @@
               "type": "SEQ",
               "members": [
                 {
-                  "type": "STRING",
-                  "value": "softwareSystem"
+                  "type": "CHOICE",
+                  "members": [
+                    {
+                      "type": "STRING",
+                      "value": "softwareSystem"
+                    },
+                    {
+                      "type": "STRING",
+                      "value": "softwaresystem"
+                    }
+                  ]
                 },
                 {
                   "type": "FIELD",
@@ -1280,7 +1500,7 @@
                   "name": "identifier",
                   "content": {
                     "type": "SYMBOL",
-                    "name": "identifier"
+                    "name": "_assignment_identifier"
                   }
                 },
                 {
@@ -1599,7 +1819,7 @@
                   "name": "identifier",
                   "content": {
                     "type": "SYMBOL",
-                    "name": "identifier"
+                    "name": "_assignment_identifier"
                   }
                 },
                 {
@@ -1903,6 +2123,413 @@
           "value": "}"
         }
       ]
+    },
+    "deployment_environment": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SEQ",
+              "members": [
+                {
+                  "type": "FIELD",
+                  "name": "identifier",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "_assignment_identifier"
+                  }
+                },
+                {
+                  "type": "STRING",
+                  "value": "="
+                }
+              ]
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        },
+        {
+          "type": "STRING",
+          "value": "deploymentEnvironment"
+        },
+        {
+          "type": "FIELD",
+          "name": "name",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_value"
+          }
+        },
+        {
+          "type": "FIELD",
+          "name": "body",
+          "content": {
+            "type": "SYMBOL",
+            "name": "deployment_environment_block"
+          }
+        }
+      ]
+    },
+    "deployment_environment_block": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "{"
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_deployment_item"
+          }
+        },
+        {
+          "type": "STRING",
+          "value": "}"
+        }
+      ]
+    },
+    "deployment_group": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SEQ",
+              "members": [
+                {
+                  "type": "FIELD",
+                  "name": "identifier",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "_assignment_identifier"
+                  }
+                },
+                {
+                  "type": "STRING",
+                  "value": "="
+                }
+              ]
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        },
+        {
+          "type": "STRING",
+          "value": "deploymentGroup"
+        },
+        {
+          "type": "FIELD",
+          "name": "name",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_value"
+          }
+        }
+      ]
+    },
+    "deployment_node": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SEQ",
+              "members": [
+                {
+                  "type": "FIELD",
+                  "name": "identifier",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "_assignment_identifier"
+                  }
+                },
+                {
+                  "type": "STRING",
+                  "value": "="
+                }
+              ]
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        },
+        {
+          "type": "STRING",
+          "value": "deploymentNode"
+        },
+        {
+          "type": "FIELD",
+          "name": "name",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_value"
+          }
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "FIELD",
+            "name": "attribute",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_deployment_node_attribute"
+            }
+          }
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "FIELD",
+              "name": "body",
+              "content": {
+                "type": "SYMBOL",
+                "name": "deployment_node_block"
+              }
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        }
+      ]
+    },
+    "infrastructure_node": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SEQ",
+              "members": [
+                {
+                  "type": "FIELD",
+                  "name": "identifier",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "_assignment_identifier"
+                  }
+                },
+                {
+                  "type": "STRING",
+                  "value": "="
+                }
+              ]
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        },
+        {
+          "type": "STRING",
+          "value": "infrastructureNode"
+        },
+        {
+          "type": "FIELD",
+          "name": "name",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_value"
+          }
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "FIELD",
+            "name": "attribute",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_deployment_node_attribute"
+            }
+          }
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "FIELD",
+              "name": "body",
+              "content": {
+                "type": "SYMBOL",
+                "name": "deployment_node_block"
+              }
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        }
+      ]
+    },
+    "_deployment_node_attribute": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "_metadata_value"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "number"
+        }
+      ]
+    },
+    "deployment_node_block": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "{"
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_deployment_node_item"
+          }
+        },
+        {
+          "type": "STRING",
+          "value": "}"
+        }
+      ]
+    },
+    "container_instance": {
+      "type": "PREC_RIGHT",
+      "value": 0,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SEQ",
+                "members": [
+                  {
+                    "type": "FIELD",
+                    "name": "identifier",
+                    "content": {
+                      "type": "SYMBOL",
+                      "name": "_assignment_identifier"
+                    }
+                  },
+                  {
+                    "type": "STRING",
+                    "value": "="
+                  }
+                ]
+              },
+              {
+                "type": "BLANK"
+              }
+            ]
+          },
+          {
+            "type": "STRING",
+            "value": "containerInstance"
+          },
+          {
+            "type": "FIELD",
+            "name": "target",
+            "content": {
+              "type": "SYMBOL",
+              "name": "identifier"
+            }
+          },
+          {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "FIELD",
+                "name": "deployment_group",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "identifier"
+                }
+              },
+              {
+                "type": "BLANK"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "software_system_instance": {
+      "type": "PREC_RIGHT",
+      "value": 0,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SEQ",
+                "members": [
+                  {
+                    "type": "FIELD",
+                    "name": "identifier",
+                    "content": {
+                      "type": "SYMBOL",
+                      "name": "identifier"
+                    }
+                  },
+                  {
+                    "type": "STRING",
+                    "value": "="
+                  }
+                ]
+              },
+              {
+                "type": "BLANK"
+              }
+            ]
+          },
+          {
+            "type": "STRING",
+            "value": "softwareSystemInstance"
+          },
+          {
+            "type": "FIELD",
+            "name": "target",
+            "content": {
+              "type": "SYMBOL",
+              "name": "identifier"
+            }
+          },
+          {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "FIELD",
+                "name": "deployment_group",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "identifier"
+                }
+              },
+              {
+                "type": "BLANK"
+              }
+            ]
+          }
+        ]
+      }
     },
     "relationship": {
       "type": "CHOICE",
@@ -2271,7 +2898,7 @@
                   "name": "identifier",
                   "content": {
                     "type": "SYMBOL",
-                    "name": "identifier"
+                    "name": "_assignment_identifier"
                   }
                 },
                 {
@@ -2360,7 +2987,7 @@
                   "name": "identifier",
                   "content": {
                     "type": "SYMBOL",
-                    "name": "identifier"
+                    "name": "_assignment_identifier"
                   }
                 },
                 {
@@ -2433,7 +3060,7 @@
                   "name": "identifier",
                   "content": {
                     "type": "SYMBOL",
-                    "name": "identifier"
+                    "name": "_assignment_identifier"
                   }
                 },
                 {
@@ -2597,6 +3224,14 @@
         {
           "type": "SYMBOL",
           "name": "styles"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "theme_statement"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "themes_statement"
         }
       ]
     },
@@ -2735,6 +3370,10 @@
         },
         {
           "type": "SYMBOL",
+          "name": "animation_statement"
+        },
+        {
+          "type": "SYMBOL",
           "name": "auto_layout_statement"
         },
         {
@@ -2795,15 +3434,33 @@
       "type": "CHOICE",
       "members": [
         {
-          "type": "STRING",
-          "value": "autoLayout"
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "STRING",
+              "value": "autoLayout"
+            },
+            {
+              "type": "STRING",
+              "value": "autolayout"
+            }
+          ]
         },
         {
           "type": "SEQ",
           "members": [
             {
-              "type": "STRING",
-              "value": "autoLayout"
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": "autoLayout"
+                },
+                {
+                  "type": "STRING",
+                  "value": "autolayout"
+                }
+              ]
             },
             {
               "type": "FIELD",
@@ -2819,8 +3476,17 @@
           "type": "SEQ",
           "members": [
             {
-              "type": "STRING",
-              "value": "autoLayout"
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": "autoLayout"
+                },
+                {
+                  "type": "STRING",
+                  "value": "autolayout"
+                }
+              ]
             },
             {
               "type": "FIELD",
@@ -2844,8 +3510,17 @@
           "type": "SEQ",
           "members": [
             {
-              "type": "STRING",
-              "value": "autoLayout"
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": "autoLayout"
+                },
+                {
+                  "type": "STRING",
+                  "value": "autolayout"
+                }
+              ]
             },
             {
               "type": "FIELD",
@@ -2878,6 +3553,68 @@
     "default_statement": {
       "type": "STRING",
       "value": "default"
+    },
+    "animation_statement": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "animation"
+        },
+        {
+          "type": "FIELD",
+          "name": "body",
+          "content": {
+            "type": "SYMBOL",
+            "name": "animation_block"
+          }
+        }
+      ]
+    },
+    "animation_block": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "{"
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "FIELD",
+            "name": "value",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_animation_value"
+            }
+          }
+        },
+        {
+          "type": "STRING",
+          "value": "}"
+        }
+      ]
+    },
+    "_animation_value": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "identifier"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "bare_value"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "wildcard"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "string"
+        }
+      ]
     },
     "include_directive": {
       "type": "SEQ",
@@ -4316,6 +5053,43 @@
         {
           "type": "STRING",
           "value": "}"
+        }
+      ]
+    },
+    "theme_statement": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "theme"
+        },
+        {
+          "type": "FIELD",
+          "name": "value",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_directive_value"
+          }
+        }
+      ]
+    },
+    "themes_statement": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "themes"
+        },
+        {
+          "type": "REPEAT1",
+          "content": {
+            "type": "FIELD",
+            "name": "value",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_directive_value"
+            }
+          }
         }
       ]
     },

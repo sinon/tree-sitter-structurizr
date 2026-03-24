@@ -302,6 +302,57 @@ fn parses_bulk_element_operations_without_errors() {
 }
 
 #[test]
+fn parses_deployment_environments_and_views_without_errors() {
+    let source = indoc! {r#"
+        workspace {
+            !identifiers hierarchical
+
+            model {
+                softwareSystem = softwareSystem "Software System" {
+                    api = container "API"
+                    database = container "DB"
+                }
+
+                live = deploymentEnvironment "Live" {
+                    blue = deploymentGroup "Blue"
+
+                    aws = deploymentNode "Amazon Web Services" "" "" "Amazon Web Services - Cloud" {
+                        region = deploymentNode "us-east-1" {
+                            elb = infrastructureNode "Elastic Load Balancer"
+
+                            server = deploymentNode "Server" {
+                                apiInstance = containerInstance softwareSystem.api blue
+                                databaseInstance = containerInstance softwareSystem.database blue
+                            }
+                        }
+                    }
+
+                    elb -> apiInstance "Routes to"
+                }
+            }
+
+            views {
+                deployment softwareSystem "Live" "live-deployment" {
+                    include *
+                    autolayout lr
+
+                    animation {
+                        live.aws.region.elb
+                        live.aws.region.server.apiInstance
+                        live.aws.region.server.databaseInstance
+                    }
+                }
+
+                themes https://example.com/theme.json
+            }
+        }
+    "#};
+    let tree = common::parse(source);
+
+    common::assert_no_errors("inline::deployment_model_and_view", &tree, source);
+}
+
+#[test]
 fn tracks_script_blocks_as_pending_future_coverage() {
     let source = indoc! {r#"
         workspace {

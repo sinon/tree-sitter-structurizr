@@ -24,6 +24,50 @@
     }
   },
   {
+    "type": "animation_block",
+    "named": true,
+    "fields": {
+      "value": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "wildcard",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "animation_statement",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "animation_block",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "archetype_base",
     "named": true,
     "fields": {},
@@ -603,6 +647,42 @@
     }
   },
   {
+    "type": "container_instance",
+    "named": true,
+    "fields": {
+      "deployment_group": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "identifier": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "target": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "container_view",
     "named": true,
     "fields": {
@@ -875,6 +955,10 @@
       "required": false,
       "types": [
         {
+          "type": "animation_statement",
+          "named": true
+        },
+        {
           "type": "auto_layout_statement",
           "named": true
         },
@@ -915,6 +999,192 @@
           }
         ]
       }
+    }
+  },
+  {
+    "type": "deployment_environment",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "deployment_environment_block",
+            "named": true
+          }
+        ]
+      },
+      "identifier": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "deployment_environment_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "deployment_group",
+          "named": true
+        },
+        {
+          "type": "deployment_node",
+          "named": true
+        },
+        {
+          "type": "relationship",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "deployment_group",
+    "named": true,
+    "fields": {
+      "identifier": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "deployment_node",
+    "named": true,
+    "fields": {
+      "attribute": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": "number",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      },
+      "body": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "deployment_node_block",
+            "named": true
+          }
+        ]
+      },
+      "identifier": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "deployment_node_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "container_instance",
+          "named": true
+        },
+        {
+          "type": "deployment_node",
+          "named": true
+        },
+        {
+          "type": "infrastructure_node",
+          "named": true
+        },
+        {
+          "type": "relationship",
+          "named": true
+        },
+        {
+          "type": "software_system_instance",
+          "named": true
+        },
+        {
+          "type": "tag_statement",
+          "named": true
+        },
+        {
+          "type": "tags_statement",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -997,6 +1267,10 @@
       "multiple": true,
       "required": false,
       "types": [
+        {
+          "type": "animation_statement",
+          "named": true
+        },
         {
           "type": "auto_layout_statement",
           "named": true
@@ -1756,6 +2030,60 @@
     }
   },
   {
+    "type": "infrastructure_node",
+    "named": true,
+    "fields": {
+      "attribute": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": "number",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      },
+      "body": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "deployment_node_block",
+            "named": true
+          }
+        ]
+      },
+      "identifier": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "kroki_source",
     "named": true,
     "fields": {
@@ -1896,6 +2224,10 @@
         },
         {
           "type": "custom_element",
+          "named": true
+        },
+        {
+          "type": "deployment_environment",
           "named": true
         },
         {
@@ -2398,6 +2730,42 @@
     }
   },
   {
+    "type": "software_system_instance",
+    "named": true,
+    "fields": {
+      "deployment_group": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "identifier": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "target": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "source_file",
     "named": true,
     "root": true,
@@ -2773,6 +3141,54 @@
     }
   },
   {
+    "type": "theme_statement",
+    "named": true,
+    "fields": {
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "themes_statement",
+    "named": true,
+    "fields": {
+      "value": {
+        "multiple": true,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "title_statement",
     "named": true,
     "fields": {
@@ -2911,6 +3327,14 @@
         },
         {
           "type": "system_landscape_view",
+          "named": true
+        },
+        {
+          "type": "theme_statement",
+          "named": true
+        },
+        {
+          "type": "themes_statement",
           "named": true
         }
       ]
@@ -3107,11 +3531,19 @@
     "named": false
   },
   {
+    "type": "animation",
+    "named": false
+  },
+  {
     "type": "archetypes",
     "named": false
   },
   {
     "type": "autoLayout",
+    "named": false
+  },
+  {
+    "type": "autolayout",
     "named": false
   },
   {
@@ -3140,6 +3572,10 @@
     "named": false
   },
   {
+    "type": "containerInstance",
+    "named": false
+  },
+  {
     "type": "custom",
     "named": false
   },
@@ -3153,6 +3589,18 @@
   },
   {
     "type": "deployment",
+    "named": false
+  },
+  {
+    "type": "deploymentEnvironment",
+    "named": false
+  },
+  {
+    "type": "deploymentGroup",
+    "named": false
+  },
+  {
+    "type": "deploymentNode",
     "named": false
   },
   {
@@ -3193,6 +3641,10 @@
   },
   {
     "type": "include",
+    "named": false
+  },
+  {
+    "type": "infrastructureNode",
     "named": false
   },
   {
@@ -3264,6 +3716,14 @@
     "named": false
   },
   {
+    "type": "softwareSystemInstance",
+    "named": false
+  },
+  {
+    "type": "softwaresystem",
+    "named": false
+  },
+  {
     "type": "string",
     "named": true
   },
@@ -3293,6 +3753,14 @@
   },
   {
     "type": "technology",
+    "named": false
+  },
+  {
+    "type": "theme",
+    "named": false
+  },
+  {
+    "type": "themes",
     "named": false
   },
   {

@@ -35,6 +35,21 @@ export default grammar({
 
     identifier: _ => /[A-Za-z_][A-Za-z0-9_.-]*/,
 
+    _assignment_identifier: $ => prec(1, choice(
+      $.identifier,
+      alias("person", $.identifier),
+      alias("softwareSystem", $.identifier),
+      alias("softwaresystem", $.identifier),
+      alias("container", $.identifier),
+      alias("component", $.identifier),
+      alias("deploymentEnvironment", $.identifier),
+      alias("deploymentGroup", $.identifier),
+      alias("deploymentNode", $.identifier),
+      alias("infrastructureNode", $.identifier),
+      alias("containerInstance", $.identifier),
+      alias("softwareSystemInstance", $.identifier),
+    )),
+
     number: _ => /\d+/,
 
     bare_value: _ => /[^\s{}"]+/,
@@ -180,6 +195,7 @@ export default grammar({
       $.software_system,
       $.custom_element,
       $.archetype_instance,
+      $.deployment_environment,
       $.elements_directive,
       $.element_directive,
       $.identifiers_directive,
@@ -228,6 +244,22 @@ export default grammar({
       $.metadata_statement,
     ),
 
+    _deployment_item: $ => choice(
+      $.deployment_group,
+      $.deployment_node,
+      $.relationship,
+    ),
+
+    _deployment_node_item: $ => choice(
+      $.deployment_node,
+      $.infrastructure_node,
+      $.container_instance,
+      $.software_system_instance,
+      $.relationship,
+      $.tag_statement,
+      $.tags_statement,
+    ),
+
     _custom_block_item: $ => choice(
       $.person,
       $.software_system,
@@ -251,7 +283,7 @@ export default grammar({
     // assignment, a keyword, a few positional metadata slots, and an optional body.
     person: $ => seq(
       optional(seq(
-        field("identifier", $.identifier),
+        field("identifier", $._assignment_identifier),
         "=",
       )),
       choice(
@@ -305,38 +337,38 @@ export default grammar({
 
     software_system: $ => seq(
       optional(seq(
-        field("identifier", $.identifier),
+        field("identifier", $._assignment_identifier),
         "=",
       )),
       choice(
         seq(
-          "softwareSystem",
+          choice("softwareSystem", "softwaresystem"),
           field("name", $._value),
         ),
         seq(
-          "softwareSystem",
+          choice("softwareSystem", "softwaresystem"),
           field("name", $._value),
           field("description", $._metadata_value),
         ),
         seq(
-          "softwareSystem",
+          choice("softwareSystem", "softwaresystem"),
           field("name", $._value),
           field("description", $._metadata_value),
           field("tags", $._metadata_value),
         ),
         seq(
-          "softwareSystem",
+          choice("softwareSystem", "softwaresystem"),
           field("name", $._value),
           field("body", $.software_system_block),
         ),
         seq(
-          "softwareSystem",
+          choice("softwareSystem", "softwaresystem"),
           field("name", $._value),
           field("description", $._metadata_value),
           field("body", $.software_system_block),
         ),
         seq(
-          "softwareSystem",
+          choice("softwareSystem", "softwaresystem"),
           field("name", $._value),
           field("description", $._metadata_value),
           field("tags", $._metadata_value),
@@ -353,7 +385,7 @@ export default grammar({
 
     container: $ => seq(
       optional(seq(
-        field("identifier", $.identifier),
+        field("identifier", $._assignment_identifier),
         "=",
       )),
       choice(
@@ -416,7 +448,7 @@ export default grammar({
 
     component: $ => seq(
       optional(seq(
-        field("identifier", $.identifier),
+        field("identifier", $._assignment_identifier),
         "=",
       )),
       choice(
@@ -476,6 +508,84 @@ export default grammar({
       repeat($._component_item),
       "}",
     ),
+
+    deployment_environment: $ => seq(
+      optional(seq(
+        field("identifier", $._assignment_identifier),
+        "=",
+      )),
+      "deploymentEnvironment",
+      field("name", $._value),
+      field("body", $.deployment_environment_block),
+    ),
+
+    deployment_environment_block: $ => seq(
+      "{",
+      repeat($._deployment_item),
+      "}",
+    ),
+
+    deployment_group: $ => seq(
+      optional(seq(
+        field("identifier", $._assignment_identifier),
+        "=",
+      )),
+      "deploymentGroup",
+      field("name", $._value),
+    ),
+
+    deployment_node: $ => seq(
+      optional(seq(
+        field("identifier", $._assignment_identifier),
+        "=",
+      )),
+      "deploymentNode",
+      field("name", $._value),
+      repeat(field("attribute", $._deployment_node_attribute)),
+      optional(field("body", $.deployment_node_block)),
+    ),
+
+    infrastructure_node: $ => seq(
+      optional(seq(
+        field("identifier", $._assignment_identifier),
+        "=",
+      )),
+      "infrastructureNode",
+      field("name", $._value),
+      repeat(field("attribute", $._deployment_node_attribute)),
+      optional(field("body", $.deployment_node_block)),
+    ),
+
+    _deployment_node_attribute: $ => choice(
+      $._metadata_value,
+      $.number,
+    ),
+
+    deployment_node_block: $ => seq(
+      "{",
+      repeat($._deployment_node_item),
+      "}",
+    ),
+
+    container_instance: $ => prec.right(seq(
+      optional(seq(
+        field("identifier", $._assignment_identifier),
+        "=",
+      )),
+      "containerInstance",
+      field("target", $.identifier),
+      optional(field("deployment_group", $.identifier)),
+    )),
+
+    software_system_instance: $ => prec.right(seq(
+      optional(seq(
+        field("identifier", $.identifier),
+        "=",
+      )),
+      "softwareSystemInstance",
+      field("target", $.identifier),
+      optional(field("deployment_group", $.identifier)),
+    )),
 
     // Relationships appear both as top-level model statements and nested inside
     // element bodies. The grammar keeps them permissive enough to cover plain `->`
@@ -566,7 +676,7 @@ export default grammar({
     ),
 
     custom_element: $ => seq(
-      optional(seq(field("identifier", $.identifier), "=")),
+      optional(seq(field("identifier", $._assignment_identifier), "=")),
       "element",
       field("name", $._value),
       repeat(field("attribute", $._metadata_value)),
@@ -580,7 +690,7 @@ export default grammar({
     ),
 
     archetype_instance: $ => seq(
-      optional(seq(field("identifier", $.identifier), "=")),
+      optional(seq(field("identifier", $._assignment_identifier), "=")),
       field("kind", $.identifier),
       field("name", $._value),
       repeat(field("metadata", $._metadata_value)),
@@ -588,7 +698,7 @@ export default grammar({
     ),
 
     element_directive: $ => seq(
-      optional(seq(field("identifier", $.identifier), "=")),
+      optional(seq(field("identifier", $._assignment_identifier), "=")),
       "!element",
       field("target", $._directive_value),
       field("body", $.element_directive_block),
@@ -631,6 +741,8 @@ export default grammar({
       $.custom_view,
       $.image_view,
       $.styles,
+      $.theme_statement,
+      $.themes_statement,
     ),
 
     _view_value: $ => choice(
@@ -669,6 +781,7 @@ export default grammar({
     _advanced_view_statement: $ => choice(
       $.include_statement,
       $.exclude_statement,
+      $.animation_statement,
       $.auto_layout_statement,
       $.default_statement,
       $.title_statement,
@@ -686,11 +799,11 @@ export default grammar({
     ),
 
     auto_layout_statement: $ => choice(
-      "autoLayout",
-      seq("autoLayout", field("direction", $.layout_direction)),
-      seq("autoLayout", field("direction", $.layout_direction), field("rank_separation", $.number)),
+      choice("autoLayout", "autolayout"),
+      seq(choice("autoLayout", "autolayout"), field("direction", $.layout_direction)),
+      seq(choice("autoLayout", "autolayout"), field("direction", $.layout_direction), field("rank_separation", $.number)),
       seq(
-        "autoLayout",
+        choice("autoLayout", "autolayout"),
         field("direction", $.layout_direction),
         field("rank_separation", $.number),
         field("node_separation", $.number),
@@ -698,6 +811,24 @@ export default grammar({
     ),
 
     default_statement: _ => "default",
+
+    animation_statement: $ => seq(
+      "animation",
+      field("body", $.animation_block),
+    ),
+
+    animation_block: $ => seq(
+      "{",
+      repeat(field("value", $._animation_value)),
+      "}",
+    ),
+
+    _animation_value: $ => choice(
+      $.identifier,
+      $.bare_value,
+      $.wildcard,
+      $.string,
+    ),
 
     // These directives are intentionally modeled as lightweight syntactic forms.
     // They matter for editor tooling and fixture coverage even when downstream
@@ -988,6 +1119,16 @@ export default grammar({
         $.description_statement,
       )),
       "}",
+    ),
+
+    theme_statement: $ => seq(
+      "theme",
+      field("value", $._directive_value),
+    ),
+
+    themes_statement: $ => seq(
+      "themes",
+      repeat1(field("value", $._directive_value)),
     ),
 
     // Style rules are effectively key/value bags scoped by tag, so the grammar keeps
