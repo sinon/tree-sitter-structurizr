@@ -1,0 +1,1 @@
+; Placeholder highlighting query file.

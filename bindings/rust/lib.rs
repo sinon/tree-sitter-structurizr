@@ -4,8 +4,7 @@
 //! tree-sitter [`Parser`], and then use the parser to parse some code:
 //!
 //! ```
-//! let code = r#"
-//! "#;
+//! let code = "hello";
 //! let mut parser = tree_sitter::Parser::new();
 //! let language = tree_sitter_structurizr::LANGUAGE;
 //! parser

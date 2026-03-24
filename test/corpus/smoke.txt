@@ -1,0 +1,9 @@
+==================
+Placeholder grammar
+==================
+
+hello
+
+---
+
+(source_file)

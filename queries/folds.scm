@@ -1,0 +1,1 @@
+; Placeholder folding query file
