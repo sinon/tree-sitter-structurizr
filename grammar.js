@@ -25,6 +25,8 @@ export default grammar({
 
     identifier: _ => /[A-Za-z_][A-Za-z0-9_.-]*/,
 
+    number: _ => /\d+/,
+
     string: _ => token(seq(
       '"',
       repeat(choice(
@@ -98,7 +100,11 @@ export default grammar({
       field("body", $.views_block),
     ),
 
-    views_block: _ => seq("{", "}"),
+    views_block: $ => seq(
+      "{",
+      repeat($._view_item),
+      "}",
+    ),
 
     name_statement: $ => seq(
       "name",
@@ -117,6 +123,11 @@ export default grammar({
 
     tags_statement: $ => seq(
       "tags",
+      field("value", $._value),
+    ),
+
+    title_statement: $ => seq(
+      "title",
       field("value", $._value),
     ),
 
@@ -401,6 +412,192 @@ export default grammar({
         field("technology", $._metadata_value),
         field("tags", $._metadata_value),
       ),
+    ),
+
+    _view_item: $ => choice(
+      $.system_landscape_view,
+      $.system_context_view,
+      $.container_view,
+      $.component_view,
+      $.filtered_view,
+    ),
+
+    _view_value: $ => choice(
+      $.identifier,
+      $.string,
+      $.wildcard,
+    ),
+
+    wildcard: _ => choice("*", "*?"),
+
+    _static_view_statement: $ => choice(
+      $.include_statement,
+      $.exclude_statement,
+      $.auto_layout_statement,
+      $.default_statement,
+      $.title_statement,
+      $.description_statement,
+    ),
+
+    _filtered_view_statement: $ => choice(
+      $.default_statement,
+      $.title_statement,
+      $.description_statement,
+    ),
+
+    include_statement: $ => seq(
+      "include",
+      repeat1(field("value", $._view_value)),
+    ),
+
+    exclude_statement: $ => seq(
+      "exclude",
+      repeat1(field("value", $._view_value)),
+    ),
+
+    auto_layout_statement: $ => choice(
+      "autoLayout",
+      seq("autoLayout", field("direction", $.identifier)),
+      seq("autoLayout", field("direction", $.identifier), field("rank_separation", $.number)),
+      seq(
+        "autoLayout",
+        field("direction", $.identifier),
+        field("rank_separation", $.number),
+        field("node_separation", $.number),
+      ),
+    ),
+
+    default_statement: _ => "default",
+
+    system_landscape_view: $ => choice(
+      seq("systemLandscape", field("body", $.system_landscape_view_block)),
+      seq("systemLandscape", field("key", $._value), field("body", $.system_landscape_view_block)),
+      seq(
+        "systemLandscape",
+        field("key", $._value),
+        field("description", $._metadata_value),
+        field("body", $.system_landscape_view_block),
+      ),
+    ),
+
+    system_landscape_view_block: $ => seq(
+      "{",
+      repeat($._static_view_statement),
+      "}",
+    ),
+
+    system_context_view: $ => choice(
+      seq(
+        "systemContext",
+        field("scope", $.identifier),
+        field("body", $.system_context_view_block),
+      ),
+      seq(
+        "systemContext",
+        field("scope", $.identifier),
+        field("key", $._value),
+        field("body", $.system_context_view_block),
+      ),
+      seq(
+        "systemContext",
+        field("scope", $.identifier),
+        field("key", $._value),
+        field("description", $._metadata_value),
+        field("body", $.system_context_view_block),
+      ),
+    ),
+
+    system_context_view_block: $ => seq(
+      "{",
+      repeat($._static_view_statement),
+      "}",
+    ),
+
+    container_view: $ => choice(
+      seq(
+        "container",
+        field("scope", $.identifier),
+        field("body", $.container_view_block),
+      ),
+      seq(
+        "container",
+        field("scope", $.identifier),
+        field("key", $._value),
+        field("body", $.container_view_block),
+      ),
+      seq(
+        "container",
+        field("scope", $.identifier),
+        field("key", $._value),
+        field("description", $._metadata_value),
+        field("body", $.container_view_block),
+      ),
+    ),
+
+    container_view_block: $ => seq(
+      "{",
+      repeat($._static_view_statement),
+      "}",
+    ),
+
+    component_view: $ => choice(
+      seq(
+        "component",
+        field("scope", $.identifier),
+        field("body", $.component_view_block),
+      ),
+      seq(
+        "component",
+        field("scope", $.identifier),
+        field("key", $._value),
+        field("body", $.component_view_block),
+      ),
+      seq(
+        "component",
+        field("scope", $.identifier),
+        field("key", $._value),
+        field("description", $._metadata_value),
+        field("body", $.component_view_block),
+      ),
+    ),
+
+    component_view_block: $ => seq(
+      "{",
+      repeat($._static_view_statement),
+      "}",
+    ),
+
+    filtered_view: $ => choice(
+      seq(
+        "filtered",
+        field("base_key", $._value),
+        field("mode", $.identifier),
+        field("tags", $._metadata_value),
+        field("body", $.filtered_view_block),
+      ),
+      seq(
+        "filtered",
+        field("base_key", $._value),
+        field("mode", $.identifier),
+        field("tags", $._metadata_value),
+        field("key", $._value),
+        field("body", $.filtered_view_block),
+      ),
+      seq(
+        "filtered",
+        field("base_key", $._value),
+        field("mode", $.identifier),
+        field("tags", $._metadata_value),
+        field("key", $._value),
+        field("description", $._metadata_value),
+        field("body", $.filtered_view_block),
+      ),
+    ),
+
+    filtered_view_block: $ => seq(
+      "{",
+      repeat($._filtered_view_statement),
+      "}",
     ),
   },
 });

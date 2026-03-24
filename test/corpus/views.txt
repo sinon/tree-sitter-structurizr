@@ -1,0 +1,104 @@
+==================
+Core views
+==================
+
+workspace {
+  model {
+    system = softwareSystem "System" {
+      api = container "API"
+    }
+  }
+
+  views {
+    systemLandscape "landscape" "Overview" {
+      include *
+      autoLayout lr 300 200
+      title "Landscape"
+    }
+
+    systemContext system "system-context" "System context" {
+      include *
+      exclude api
+      description "System context"
+    }
+
+    container system "container-view" {
+      include *
+      default
+    }
+
+    component api "component-view" {
+      include *
+      title "Components"
+    }
+
+    filtered "container-view" include "Element,Relationship" "filtered-view" {
+      default
+      title "Filtered"
+    }
+  }
+}
+
+---
+
+(source_file
+  (workspace
+    (workspace_block
+      (model
+        (model_block
+          (software_system
+            (identifier)
+            (string)
+            (software_system_block
+              (container
+                (identifier)
+                (string))))))
+      (views
+        (views_block
+          (system_landscape_view
+            (string)
+            (string)
+            (system_landscape_view_block
+              (include_statement
+                (wildcard))
+              (auto_layout_statement
+                (identifier)
+                (number)
+                (number))
+              (title_statement
+                (string))))
+          (system_context_view
+            (identifier)
+            (string)
+            (string)
+            (system_context_view_block
+              (include_statement
+                (wildcard))
+              (exclude_statement
+                (identifier))
+              (description_statement
+                (string))))
+          (container_view
+            (identifier)
+            (string)
+            (container_view_block
+              (include_statement
+                (wildcard))
+              (default_statement)))
+          (component_view
+            (identifier)
+            (string)
+            (component_view_block
+              (include_statement
+                (wildcard))
+              (title_statement
+                (string))))
+          (filtered_view
+            (string)
+            (identifier)
+            (string)
+            (string)
+            (filtered_view_block
+              (default_statement)
+              (title_statement
+                (string)))))))))

@@ -88,3 +88,71 @@ fn tracks_extended_model_features_as_pending_future_coverage() {
 
     common::assert_has_errors("inline::model_group_pending", &tree, source);
 }
+
+#[test]
+fn parses_core_views_without_errors() {
+    let source = indoc! {r#"
+        workspace {
+            model {
+                system = softwareSystem "System" {
+                    api = container "API"
+                }
+            }
+
+            views {
+                systemLandscape "landscape" "Overview" {
+                    include *
+                    autoLayout lr 300 200
+                    title "Landscape"
+                }
+
+                systemContext system "system-context" "System context" {
+                    include *
+                    exclude api
+                    description "System context"
+                }
+
+                container system "container-view" {
+                    include *
+                    default
+                }
+
+                component api "component-view" {
+                    include *
+                    title "Components"
+                }
+
+                filtered "container-view" include "Element,Relationship" "filtered-view" {
+                    default
+                    title "Filtered"
+                }
+            }
+        }
+    "#};
+    let tree = common::parse(source);
+
+    common::assert_no_errors("inline::core_views", &tree, source);
+}
+
+#[test]
+fn tracks_dynamic_views_as_pending_future_coverage() {
+    let source = indoc! {r#"
+        workspace {
+            model {
+                user = person "User"
+                system = softwareSystem "System"
+
+                user -> system "Uses"
+            }
+
+            views {
+                dynamic system "dynamic-view" {
+                    user -> system "Requests data"
+                }
+            }
+        }
+    "#};
+    let tree = common::parse(source);
+
+    common::assert_has_errors("inline::dynamic_view_pending", &tree, source);
+}
