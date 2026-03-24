@@ -1,7 +1,7 @@
 /**
  * @file Grammar for Structurizr DSL for describing c4 models
  * @author Rob Hand <146272+sinon@users.noreply.github.com>
- * @license MIT
+ * @license MIT OR Apache-2.0
  */
 
 /// <reference types="tree-sitter-cli/dsl" />
@@ -16,8 +16,13 @@ export default grammar({
   ],
 
   rules: {
+    // Structurizr files are mostly a sequence of top-level blocks and directives,
+    // with `workspace { ... }` as the usual outer envelope.
     source_file: $ => repeat($._definition),
 
+    // The DSL accepts line comments and C-style block comments. Hash comments are
+    // only treated as comments when followed by whitespace so color values such as
+    // `#ffffff` remain available to styles.
     comment: _ => token(choice(
       seq("//", /.*/),
       seq("#", /[ \t].*/),
@@ -65,6 +70,8 @@ export default grammar({
       $.implied_relationships_directive,
     ),
 
+    // A workspace can be declared bare, named/described inline, or extend another
+    // workspace. Most of the rest of the language hangs off this envelope.
     workspace: $ => choice(
       seq(
         "workspace",
@@ -89,6 +96,8 @@ export default grammar({
       ),
     ),
 
+    // The spec organizes content into `model`, `views`, and optional supporting
+    // directives/configuration, so the workspace block keeps those concerns separate.
     workspace_block: $ => seq(
       "{",
       repeat(choice(
@@ -106,6 +115,8 @@ export default grammar({
       "}",
     ),
 
+    // The model section is where people, systems, containers, components,
+    // relationships, and custom/archetyped elements are declared.
     model: $ => seq(
       "model",
       field("body", $.model_block),
@@ -236,6 +247,8 @@ export default grammar({
       $.adrs_directive,
     ),
 
+    // Structurizr model elements share a common shape: optional identifier
+    // assignment, a keyword, a few positional metadata slots, and an optional body.
     person: $ => seq(
       optional(seq(
         field("identifier", $.identifier),
@@ -464,6 +477,9 @@ export default grammar({
       "}",
     ),
 
+    // Relationships appear both as top-level model statements and nested inside
+    // element bodies. The grammar keeps them permissive enough to cover plain `->`
+    // as well as archetyped operators like `--https->`.
     relationship: $ => choice(
       seq(
         field("source", $._relationship_endpoint),
@@ -505,6 +521,9 @@ export default grammar({
       "}",
     ),
 
+    // Archetypes and custom elements are Structurizr's extension points. This slice
+    // aims to preserve their overall shape for editor tooling, even where richer
+    // semantics are still being filled in.
     archetypes: $ => seq(
       "archetypes",
       field("body", $.archetypes_block),
@@ -599,6 +618,8 @@ export default grammar({
       "}",
     ),
 
+    // The views section contains several related families of view definitions that
+    // mostly differ by their header fields while sharing a common set of statements.
     _view_item: $ => choice(
       $.system_landscape_view,
       $.system_context_view,
@@ -678,6 +699,9 @@ export default grammar({
 
     default_statement: _ => "default",
 
+    // These directives are intentionally modeled as lightweight syntactic forms.
+    // They matter for editor tooling and fixture coverage even when downstream
+    // consumers do not execute or resolve them.
     include_directive: $ => seq(
       "!include",
       field("value", $._directive_value),
@@ -887,6 +911,8 @@ export default grammar({
       ),
     ),
 
+    // `custom` and `image` views sit outside the core C4 view set but are important
+    // to parse because they show up in real workspaces and affect editor behavior.
     deployment_view: $ => choice(
       seq(
         "deployment",
@@ -964,6 +990,8 @@ export default grammar({
       "}",
     ),
 
+    // Style rules are effectively key/value bags scoped by tag, so the grammar keeps
+    // them deliberately generic instead of trying to encode every allowed property.
     styles: $ => seq(
       "styles",
       field("body", $.styles_block),
@@ -1046,6 +1074,8 @@ export default grammar({
       field("value", $._directive_value),
     ),
 
+    // Image views can point at several source syntaxes; these are modeled as small,
+    // explicit statements so query authors can target them later.
     plantuml_source: $ => seq(
       "plantuml",
       field("value", $._directive_value),
@@ -1067,6 +1097,8 @@ export default grammar({
       field("value", $._directive_value),
     ),
 
+    // Configuration is comparatively small in the DSL, but it affects visibility and
+    // audience semantics that downstream tools may want to surface.
     configuration: $ => seq(
       "configuration",
       field("body", $.configuration_block),

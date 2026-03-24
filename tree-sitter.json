@@ -15,7 +15,7 @@
   ],
   "metadata": {
     "version": "0.0.1",
-    "license": "MIT",
+    "license": "MIT OR Apache-2.0",
     "description": "Grammar for Structurizr DSL for describing c4 models",
     "authors": [
       {
