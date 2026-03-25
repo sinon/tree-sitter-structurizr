@@ -27,6 +27,12 @@ This project is not trying to become a Structurizr runtime. It should preserve a
 - `queries/` — placeholder area for future highlighting/folding/indentation queries
 - `Justfile` — canonical command surface
 
+## Core upstream files
+
+- `https://github.com/structurizr/structurizr.github.io/blob/main/dsl/71-language.md` - the language reference for the `.dsl`
+- `https://github.com/structurizr/dsl/tree/master/src` - the upstream dsl parser written in Java
+- `https://github.com/structurizr/dsl/tree/master/src/test/dsl` - the corpus of test `.dsl` files used to test the Java parser
+
 ## Test harnesses and why they exist
 
 ### 1. Tree-sitter corpus tests
