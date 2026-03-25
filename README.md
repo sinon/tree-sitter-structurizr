@@ -23,12 +23,12 @@ The following syntax is implemented and covered by the local corpus and Rust tes
 - Core metadata and tokens: strings, numbers, identifiers, wildcard values, and comments (`//`, whitespace-prefixed `#`, and `/* ... */`).
 - Core model elements: `person`, `softwareSystem`, `container`, and `component`, including identifier assignment.
 - Deployment model constructs: `deploymentEnvironment`, `deploymentGroup`, `deploymentNode`, `infrastructureNode`, `containerInstance`, and `softwareSystemInstance`.
-- Relationships: basic `->`, tagged operators such as `--https->`, `this`, and relationship bodies used by the current fixtures.
+- Relationships: basic `->`, tagged operators such as `--https->`, assigned relationships like `r = a -> b`, `this`, and relationship bodies used by the current fixtures.
 - Views: `systemLandscape`, `systemContext`, `container`, `component`, `filtered`, `dynamic`, `deployment`, `custom`, and `image`.
 - Common view statements: `include`, `exclude`, `autoLayout`, `default`, `title`, and `description`.
 - Deployment/view helpers used by current fixtures: `animation`, `themes`, and lowercase `autolayout`.
 - Styles inside `views`: `styles`, `element`, `relationship`, and flat style settings like `background`, `shape`, `color`, and `opacity`.
-- Directives and configuration currently used by fixtures: `!include`, `!identifiers`, `!impliedRelationships`, `!docs`, `!adrs`, plus `configuration { scope, visibility, users }`.
+- Directives and configuration currently used by fixtures: `!include` at workspace and model level, `!const`, `!constant`, `!var`, `!identifiers`, `!impliedRelationships`, `!docs`, `!adrs`, plus `configuration { scope, visibility, users }`.
 - Expanded archetype/custom-element support: archetype defaults, nested `properties` and `perspectives` inside archetype bodies, relationship archetype extensions such as `sync = -> { ... }` / `--sync->`, custom elements, `!elements`, and `!element`.
 
 ## Not yet implemented

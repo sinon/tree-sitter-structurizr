@@ -1,0 +1,30 @@
+---
+source: tests/fixtures.rs
+expression: "common::tree_sexp(&tree)"
+---
+(source_file
+  (workspace body:
+    (workspace_block
+      (const_directive name:
+        (string) value:
+        (string))
+      (constant_directive name:
+        (identifier) value:
+        (identifier))
+      (var_directive name:
+        (string) value:
+        (string))
+      (model body:
+        (model_block
+          (var_directive name:
+            (identifier) value:
+            (string))
+          (include_directive value:
+            (bare_value))
+          (const_directive name:
+            (identifier) value:
+            (bare_value))
+          (include_directive value:
+            (bare_value))
+          (include_directive value:
+            (bare_value)))))))

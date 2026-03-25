@@ -243,6 +243,9 @@ export default grammar({
       $.model,
       $.views,
       $.include_directive,
+      $.const_directive,
+      $.constant_directive,
+      $.var_directive,
       $.identifiers_directive,
       $.implied_relationships_directive,
     ),
@@ -279,6 +282,9 @@ export default grammar({
       "{",
       repeat(choice(
         $.include_directive,
+        $.const_directive,
+        $.constant_directive,
+        $.var_directive,
         $.identifiers_directive,
         $.implied_relationships_directive,
         $.docs_directive,
@@ -358,6 +364,10 @@ export default grammar({
       $.custom_element,
       $.archetype_instance,
       $.deployment_environment,
+      $.include_directive,
+      $.const_directive,
+      $.constant_directive,
+      $.var_directive,
       $.elements_directive,
       $.element_directive,
       $.identifiers_directive,
@@ -754,6 +764,10 @@ export default grammar({
     // as well as archetyped operators like `--https->`.
     relationship: $ => choice(
       seq(
+        optional(seq(
+          field("identifier", $._assignment_identifier),
+          "=",
+        )),
         field("source", $._relationship_endpoint),
         field("operator", $.relationship_operator),
         field("destination", $._relationship_endpoint),
@@ -761,6 +775,10 @@ export default grammar({
         optional(field("body", $.relationship_block)),
       ),
       seq(
+        optional(seq(
+          field("identifier", $._assignment_identifier),
+          "=",
+        )),
         field("operator", $.relationship_operator),
         field("destination", $._relationship_endpoint),
         repeat(field("attribute", $._metadata_value)),
@@ -917,6 +935,7 @@ export default grammar({
       $.identifier,
       $.string,
       $.wildcard,
+      $.bare_value,
     ),
 
     wildcard: _ => choice("*", "*?"),
@@ -1003,6 +1022,24 @@ export default grammar({
     // consumers do not execute or resolve them.
     include_directive: $ => seq(
       "!include",
+      field("value", $._directive_value),
+    ),
+
+    const_directive: $ => seq(
+      "!const",
+      field("name", $._directive_value),
+      field("value", $._directive_value),
+    ),
+
+    constant_directive: $ => seq(
+      "!constant",
+      field("name", $._directive_value),
+      field("value", $._directive_value),
+    ),
+
+    var_directive: $ => seq(
+      "!var",
+      field("name", $._directive_value),
       field("value", $._directive_value),
     ),
 

@@ -129,3 +129,70 @@ workspace {
             (user_entry
               (string)
               (identifier))))))))
+
+=========================
+Workspace extension forms
+=========================
+
+workspace {
+  !const "NAME" "Name"
+  !constant NAME VALUE
+  !var DESCRIPTION "Description"
+
+  model {
+    !var SOFTWARE_SYSTEM_NAME "Software System 1"
+    !include include/model.dsl
+
+    a = softwareSystem "A"
+    b = softwareSystem "B"
+    rel = a -> b
+  }
+
+  views {
+    systemLandscape {
+      include rel
+      exclude *->*
+    }
+  }
+}
+
+---
+
+(source_file
+  (workspace
+    (workspace_block
+      (const_directive
+        (string)
+        (string))
+      (constant_directive
+        (identifier)
+        (identifier))
+      (var_directive
+        (identifier)
+        (string))
+      (model
+        (model_block
+          (var_directive
+            (identifier)
+            (string))
+          (include_directive
+            (bare_value))
+          (software_system
+            (identifier)
+            (string))
+          (software_system
+            (identifier)
+            (string))
+          (relationship
+            (identifier)
+            (identifier)
+            (relationship_operator)
+            (identifier))))
+      (views
+        (views_block
+          (system_landscape_view
+            (system_landscape_view_block
+              (include_statement
+                (identifier))
+              (exclude_statement
+                (bare_value)))))))))

@@ -545,6 +545,90 @@
     }
   },
   {
+    "type": "const_directive",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      },
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "constant_directive",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      },
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "container",
     "named": true,
     "fields": {
@@ -1275,6 +1359,10 @@
         "required": true,
         "types": [
           {
+            "type": "bare_value",
+            "named": true
+          },
+          {
             "type": "identifier",
             "named": true
           },
@@ -1471,6 +1559,10 @@
         "multiple": false,
         "required": true,
         "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
           {
             "type": "identifier",
             "named": true
@@ -1741,6 +1833,10 @@
         "required": true,
         "types": [
           {
+            "type": "bare_value",
+            "named": true
+          },
+          {
             "type": "identifier",
             "named": true
           },
@@ -1934,6 +2030,10 @@
         "required": true,
         "types": [
           {
+            "type": "bare_value",
+            "named": true
+          },
+          {
             "type": "identifier",
             "named": true
           },
@@ -2044,6 +2144,10 @@
         "multiple": true,
         "required": true,
         "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
           {
             "type": "identifier",
             "named": true
@@ -2254,6 +2358,14 @@
           "named": true
         },
         {
+          "type": "const_directive",
+          "named": true
+        },
+        {
+          "type": "constant_directive",
+          "named": true
+        },
+        {
           "type": "custom_element",
           "named": true
         },
@@ -2274,6 +2386,10 @@
           "named": true
         },
         {
+          "type": "include_directive",
+          "named": true
+        },
+        {
           "type": "person",
           "named": true
         },
@@ -2283,6 +2399,10 @@
         },
         {
           "type": "software_system",
+          "named": true
+        },
+        {
+          "type": "var_directive",
           "named": true
         }
       ]
@@ -2571,6 +2691,16 @@
           },
           {
             "type": "this_keyword",
+            "named": true
+          }
+        ]
+      },
+      "identifier": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
             "named": true
           }
         ]
@@ -2871,6 +3001,14 @@
       "required": false,
       "types": [
         {
+          "type": "const_directive",
+          "named": true
+        },
+        {
+          "type": "constant_directive",
+          "named": true
+        },
+        {
           "type": "identifiers_directive",
           "named": true
         },
@@ -2884,6 +3022,10 @@
         },
         {
           "type": "model",
+          "named": true
+        },
+        {
+          "type": "var_directive",
           "named": true
         },
         {
@@ -3366,6 +3508,48 @@
     }
   },
   {
+    "type": "var_directive",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      },
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "views",
     "named": true,
     "fields": {
@@ -3544,6 +3728,14 @@
           "named": true
         },
         {
+          "type": "const_directive",
+          "named": true
+        },
+        {
+          "type": "constant_directive",
+          "named": true
+        },
+        {
           "type": "description_statement",
           "named": true
         },
@@ -3572,6 +3764,10 @@
           "named": true
         },
         {
+          "type": "var_directive",
+          "named": true
+        },
+        {
           "type": "views",
           "named": true
         }
@@ -3580,6 +3776,14 @@
   },
   {
     "type": "!adrs",
+    "named": false
+  },
+  {
+    "type": "!const",
+    "named": false
+  },
+  {
+    "type": "!constant",
     "named": false
   },
   {
@@ -3604,6 +3808,10 @@
   },
   {
     "type": "!include",
+    "named": false
+  },
+  {
+    "type": "!var",
     "named": false
   },
   {
