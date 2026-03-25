@@ -15,7 +15,7 @@ build-wasm:
 test: test-rust test-grammar
 
 test-rust:
-    cargo nextest run
+    cargo nextest run --no-fail-fast
     cargo test --doc
 
 test-rust-fast:

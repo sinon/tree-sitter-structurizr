@@ -110,3 +110,100 @@ workspace {
                   (software_system
                     (identifier)
                     (string)))))))))))
+
+===============================
+No-relationship deployment flow
+===============================
+
+workspace {
+  !identifiers hierarchical
+
+  model {
+    ss = softwareSystem "Software System" {
+      ui = container "UI"
+      backend = container "Backend"
+    }
+
+    env = deploymentEnvironment "Live" {
+      computer = deploymentNode "Computer" {
+        browser = deploymentNode "Browser" {
+          uiInstance = instanceOf ss.ui
+        }
+      }
+      datacenter = deploymentNode "Data Center" {
+        loadBalancer = infrastructureNode "Load Balancer"
+        server = deploymentNode "Server" {
+          backendInstance = instanceOf ss.backend
+        }
+      }
+    }
+
+    computer.browser.uiInstance -/> datacenter.server.backendInstance {
+      computer.browser.uiInstance -> datacenter.loadBalancer
+      datacenter.loadBalancer -> datacenter.server.backendInstance "Forwards"
+    }
+  }
+}
+
+---
+
+(source_file
+  (workspace
+    (workspace_block
+      (identifiers_directive
+        (identifier))
+      (model
+        (model_block
+          (software_system
+            (identifier)
+            (string)
+            (software_system_block
+              (container
+                (identifier)
+                (string))
+              (container
+                (identifier)
+                (string))))
+          (deployment_environment
+            (identifier)
+            (string)
+            (deployment_environment_block
+              (deployment_node
+                (identifier)
+                (string)
+                (deployment_node_block
+                  (deployment_node
+                    (identifier)
+                    (string)
+                    (deployment_node_block
+                      (instance_of
+                        (identifier)
+                        (identifier))))))
+              (deployment_node
+                (identifier)
+                (string)
+                (deployment_node_block
+                  (infrastructure_node
+                    (identifier)
+                    (string))
+                  (deployment_node
+                    (identifier)
+                    (string)
+                    (deployment_node_block
+                      (instance_of
+                        (identifier)
+                        (identifier))))))))
+          (relationship
+            (identifier)
+            (relationship_operator)
+            (identifier)
+            (relationship_block
+              (nested_relationship
+                (identifier)
+                (relationship_operator)
+                (identifier))
+              (nested_relationship
+                (identifier)
+                (relationship_operator)
+                (identifier)
+                (string)))))))))

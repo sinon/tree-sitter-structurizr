@@ -177,6 +177,10 @@ export default grammar({
   conflicts: $ => [
     [$.container_instance_simple, $.container_instance_grouped],
     [$.software_system_instance_simple, $.software_system_instance_grouped],
+    [$.person],
+    [$.software_system],
+    [$.container],
+    [$.component],
   ],
 
   rules: {
@@ -251,6 +255,11 @@ export default grammar({
     ),
 
     _metadata_value: $ => $.string,
+
+    _tag_value: $ => choice(
+      $.string,
+      $.identifier,
+    ),
 
     _directive_value: $ => choice(
       $.string,
@@ -456,6 +465,7 @@ export default grammar({
       $.infrastructure_node,
       $.container_instance,
       $.software_system_instance,
+      $.instance_of,
       $.relationship,
       $.tag_statement,
       $.tags_statement,
@@ -526,7 +536,7 @@ export default grammar({
           "person",
           field("name", $._value),
           field("description", $._metadata_value),
-          field("tags", $._metadata_value),
+          field("tags", $._tag_value),
         ),
         seq(
           "person",
@@ -543,7 +553,7 @@ export default grammar({
           "person",
           field("name", $._value),
           field("description", $._metadata_value),
-          field("tags", $._metadata_value),
+          field("tags", $._tag_value),
           field("body", $.person_block),
         ),
       ),
@@ -580,7 +590,7 @@ export default grammar({
           choice("softwareSystem", "softwaresystem"),
           field("name", $._value),
           field("description", $._metadata_value),
-          field("tags", $._metadata_value),
+          field("tags", $._tag_value),
         ),
         seq(
           choice("softwareSystem", "softwaresystem"),
@@ -597,7 +607,7 @@ export default grammar({
           choice("softwareSystem", "softwaresystem"),
           field("name", $._value),
           field("description", $._metadata_value),
-          field("tags", $._metadata_value),
+          field("tags", $._tag_value),
           field("body", $.software_system_block),
         ),
       ),
@@ -635,7 +645,7 @@ export default grammar({
           field("name", $._value),
           field("description", $._metadata_value),
           field("technology", $._metadata_value),
-          field("tags", $._metadata_value),
+          field("tags", $._tag_value),
         ),
         seq(
           "container",
@@ -660,7 +670,7 @@ export default grammar({
           field("name", $._value),
           field("description", $._metadata_value),
           field("technology", $._metadata_value),
-          field("tags", $._metadata_value),
+          field("tags", $._tag_value),
           field("body", $.container_block),
         ),
       ),
@@ -698,7 +708,7 @@ export default grammar({
           field("name", $._value),
           field("description", $._metadata_value),
           field("technology", $._metadata_value),
-          field("tags", $._metadata_value),
+          field("tags", $._tag_value),
         ),
         seq(
           "component",
@@ -723,7 +733,7 @@ export default grammar({
           field("name", $._value),
           field("description", $._metadata_value),
           field("technology", $._metadata_value),
-          field("tags", $._metadata_value),
+          field("tags", $._tag_value),
           field("body", $.component_block),
         ),
       ),
@@ -857,10 +867,19 @@ export default grammar({
       field("deployment_group", $.identifier),
     ),
 
+    instance_of: $ => seq(
+      optional(seq(
+        field("identifier", $._assignment_identifier),
+        "=",
+      )),
+      "instanceOf",
+      field("target", $.identifier),
+    ),
+
     // Relationships appear both as top-level model statements and nested inside
     // element bodies. The grammar keeps them permissive enough to cover plain `->`
     // as well as archetyped operators like `--https->`.
-    relationship: $ => choice(
+    relationship: $ => prec.right(choice(
       seq(
         optional(seq(
           field("identifier", $._assignment_identifier),
@@ -869,7 +888,42 @@ export default grammar({
         field("source", $._relationship_endpoint),
         field("operator", $.relationship_operator),
         field("destination", $._relationship_endpoint),
-        repeat(field("attribute", $._metadata_value)),
+        optional(field("body", $.relationship_block)),
+      ),
+      seq(
+        optional(seq(
+          field("identifier", $._assignment_identifier),
+          "=",
+        )),
+        field("source", $._relationship_endpoint),
+        field("operator", $.relationship_operator),
+        field("destination", $._relationship_endpoint),
+        field("attribute", $._metadata_value),
+        optional(field("body", $.relationship_block)),
+      ),
+      seq(
+        optional(seq(
+          field("identifier", $._assignment_identifier),
+          "=",
+        )),
+        field("source", $._relationship_endpoint),
+        field("operator", $.relationship_operator),
+        field("destination", $._relationship_endpoint),
+        field("attribute", $._metadata_value),
+        field("attribute", $._metadata_value),
+        optional(field("body", $.relationship_block)),
+      ),
+      seq(
+        optional(seq(
+          field("identifier", $._assignment_identifier),
+          "=",
+        )),
+        field("source", $._relationship_endpoint),
+        field("operator", $.relationship_operator),
+        field("destination", $._relationship_endpoint),
+        field("attribute", $._metadata_value),
+        field("attribute", $._metadata_value),
+        field("attribute", $._tag_value),
         optional(field("body", $.relationship_block)),
       ),
       seq(
@@ -879,10 +933,42 @@ export default grammar({
         )),
         field("operator", $.relationship_operator),
         field("destination", $._relationship_endpoint),
-        repeat(field("attribute", $._metadata_value)),
         optional(field("body", $.relationship_block)),
       ),
-    ),
+      seq(
+        optional(seq(
+          field("identifier", $._assignment_identifier),
+          "=",
+        )),
+        field("operator", $.relationship_operator),
+        field("destination", $._relationship_endpoint),
+        field("attribute", $._metadata_value),
+        optional(field("body", $.relationship_block)),
+      ),
+      seq(
+        optional(seq(
+          field("identifier", $._assignment_identifier),
+          "=",
+        )),
+        field("operator", $.relationship_operator),
+        field("destination", $._relationship_endpoint),
+        field("attribute", $._metadata_value),
+        field("attribute", $._metadata_value),
+        optional(field("body", $.relationship_block)),
+      ),
+      seq(
+        optional(seq(
+          field("identifier", $._assignment_identifier),
+          "=",
+        )),
+        field("operator", $.relationship_operator),
+        field("destination", $._relationship_endpoint),
+        field("attribute", $._metadata_value),
+        field("attribute", $._metadata_value),
+        field("attribute", $._tag_value),
+        optional(field("body", $.relationship_block)),
+      ),
+    )),
 
     _relationship_endpoint: $ => choice(
       $.identifier,
@@ -893,6 +979,7 @@ export default grammar({
 
     relationship_operator: $ => choice(
       "->",
+      "-/>",
       seq("--", field("archetype", $.relationship_archetype_name), "->"),
     ),
 
@@ -907,8 +994,45 @@ export default grammar({
         $.technology_statement,
         $.properties_block,
         $.perspectives_block,
+        $.nested_relationship,
       )),
       "}",
+    ),
+
+    nested_relationship: $ => choice(
+      seq(
+        field("source", $._relationship_endpoint),
+        field("operator", $.relationship_operator),
+        field("destination", $._relationship_endpoint),
+      ),
+      seq(
+        field("source", $._relationship_endpoint),
+        field("operator", $.relationship_operator),
+        field("destination", $._relationship_endpoint),
+        field("attribute", $._metadata_value),
+      ),
+      seq(
+        field("source", $._relationship_endpoint),
+        field("operator", $.relationship_operator),
+        field("destination", $._relationship_endpoint),
+        field("attribute", $._metadata_value),
+        field("attribute", $._metadata_value),
+      ),
+      seq(
+        field("operator", $.relationship_operator),
+        field("destination", $._relationship_endpoint),
+      ),
+      seq(
+        field("operator", $.relationship_operator),
+        field("destination", $._relationship_endpoint),
+        field("attribute", $._metadata_value),
+      ),
+      seq(
+        field("operator", $.relationship_operator),
+        field("destination", $._relationship_endpoint),
+        field("attribute", $._metadata_value),
+        field("attribute", $._metadata_value),
+      ),
     ),
 
     // Archetypes and custom elements are Structurizr's extension points. This slice
@@ -1279,14 +1403,35 @@ export default grammar({
         "filtered",
         field("base_key", $._value),
         field("mode", $.identifier),
-        field("tags", $._metadata_value),
+        field("tags", $._tag_value),
+      ),
+      seq(
+        "filtered",
+        field("base_key", $._value),
+        field("mode", $.identifier),
+        field("tags", $._tag_value),
+        field("key", $._value),
+      ),
+      seq(
+        "filtered",
+        field("base_key", $._value),
+        field("mode", $.identifier),
+        field("tags", $._tag_value),
+        field("key", $._value),
+        field("description", $._metadata_value),
+      ),
+      seq(
+        "filtered",
+        field("base_key", $._value),
+        field("mode", $.identifier),
+        field("tags", $._tag_value),
         field("body", $.filtered_view_block),
       ),
       seq(
         "filtered",
         field("base_key", $._value),
         field("mode", $.identifier),
-        field("tags", $._metadata_value),
+        field("tags", $._tag_value),
         field("key", $._value),
         field("body", $.filtered_view_block),
       ),
@@ -1294,7 +1439,7 @@ export default grammar({
         "filtered",
         field("base_key", $._value),
         field("mode", $.identifier),
-        field("tags", $._metadata_value),
+        field("tags", $._tag_value),
         field("key", $._value),
         field("description", $._metadata_value),
         field("body", $.filtered_view_block),

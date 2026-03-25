@@ -364,6 +364,10 @@
         "required": false,
         "types": [
           {
+            "type": "identifier",
+            "named": true
+          },
+          {
             "type": "string",
             "named": true
           }
@@ -708,6 +712,10 @@
         "multiple": false,
         "required": false,
         "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
           {
             "type": "string",
             "named": true
@@ -1374,6 +1382,10 @@
         },
         {
           "type": "infrastructure_node",
+          "named": true
+        },
+        {
+          "type": "instance_of",
           "named": true
         },
         {
@@ -2072,7 +2084,7 @@
       },
       "body": {
         "multiple": false,
-        "required": true,
+        "required": false,
         "types": [
           {
             "type": "filtered_view_block",
@@ -2118,6 +2130,10 @@
         "multiple": false,
         "required": true,
         "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
           {
             "type": "string",
             "named": true
@@ -2570,6 +2586,32 @@
     }
   },
   {
+    "type": "instance_of",
+    "named": true,
+    "fields": {
+      "identifier": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "target": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "kroki_source",
     "named": true,
     "fields": {
@@ -2800,6 +2842,60 @@
     }
   },
   {
+    "type": "nested_relationship",
+    "named": true,
+    "fields": {
+      "attribute": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      },
+      "destination": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "this_keyword",
+            "named": true
+          }
+        ]
+      },
+      "operator": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "relationship_operator",
+            "named": true
+          }
+        ]
+      },
+      "source": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "this_keyword",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "person",
     "named": true,
     "fields": {
@@ -2851,6 +2947,10 @@
         "multiple": false,
         "required": false,
         "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
           {
             "type": "string",
             "named": true
@@ -3057,6 +3157,10 @@
         "required": false,
         "types": [
           {
+            "type": "identifier",
+            "named": true
+          },
+          {
             "type": "string",
             "named": true
           }
@@ -3132,6 +3236,10 @@
       "types": [
         {
           "type": "description_statement",
+          "named": true
+        },
+        {
+          "type": "nested_relationship",
           "named": true
         },
         {
@@ -3283,6 +3391,10 @@
         "multiple": false,
         "required": false,
         "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
           {
             "type": "string",
             "named": true
@@ -4327,6 +4439,10 @@
     "named": false
   },
   {
+    "type": "-/>",
+    "named": false
+  },
+  {
     "type": "->",
     "named": false
   },
@@ -4457,6 +4573,10 @@
   },
   {
     "type": "infrastructureNode",
+    "named": false
+  },
+  {
+    "type": "instanceOf",
     "named": false
   },
   {

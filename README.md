@@ -22,8 +22,8 @@ The following syntax is implemented and covered by the local corpus and Rust tes
 - Workspace structure: `workspace`, nested `model`, `views`, and `configuration` blocks.
 - Core metadata and tokens: strings, numbers, identifiers, wildcard values, and comments (`//`, whitespace-prefixed `#`, and `/* ... */`).
 - Core model elements: `person`, `softwareSystem`, `container`, and `component`, including identifier assignment.
-- Deployment model constructs: `deploymentEnvironment`, `deploymentGroup`, `deploymentNode`, `infrastructureNode`, `containerInstance`, and `softwareSystemInstance`.
-- Relationships: basic `->`, tagged operators such as `--https->`, assigned relationships like `r = a -> b`, `this`, and relationship bodies used by the current fixtures.
+- Deployment model constructs: `deploymentEnvironment`, `deploymentGroup`, `deploymentNode`, `infrastructureNode`, `containerInstance`, `softwareSystemInstance`, and `instanceOf`.
+- Relationships: basic `->`, `-/>`, tagged operators such as `--https->`, assigned relationships like `r = a -> b`, `this`, inline filtered-view tags, and relationship bodies used by the current fixtures.
 - Views: `systemLandscape`, `systemContext`, `container`, `component`, `filtered`, `dynamic`, `deployment`, `custom`, and `image`.
 - Common view statements: `include`, `exclude`, `animation`, `autoLayout`, `default`, `title`, and `description`.
 - Deployment/view helpers used by current fixtures: `animation`, `themes`, and lowercase `autolayout`.
@@ -37,9 +37,8 @@ The following syntax is implemented and covered by the local corpus and Rust tes
 
 These areas are still in progress. Some parse partially, but they are not considered complete or stable yet:
 
-- Remaining group edge cases outside the current fixtures.
 - Remaining deployment edge cases found in upstream fixtures.
-- Additional relationship/filter expression variants from upstream examples.
+- Remaining broad umbrella samples and deployment edge cases found in upstream fixtures.
 - Query authoring for highlighting/folding/indentation is still placeholder-only.
 
 ## Explicitly unsupported

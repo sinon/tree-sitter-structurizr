@@ -238,3 +238,59 @@ workspace {
             (image_view_block
               (plantuml_source
                 (text_block_string)))))))))
+
+=====================
+Inline filtered views
+=====================
+
+workspace {
+  model {
+    user = person "User"
+    future = softwareSystem "Future System" "Desc" Future
+    user -> future "Uses" "" Future
+  }
+
+  views {
+    systemLandscape FullLandscape {
+      include *
+    }
+
+    filtered FullLandscape exclude Future FutureLandscape "Future landscape"
+  }
+}
+
+---
+
+(source_file
+  (workspace
+    (workspace_block
+      (model
+        (model_block
+          (person
+            (identifier)
+            (string))
+          (software_system
+            (identifier)
+            (string)
+            (string)
+            (identifier))
+          (relationship
+            (identifier)
+            (relationship_operator)
+            (identifier)
+            (string)
+            (string)
+            (identifier))))
+      (views
+        (views_block
+          (system_landscape_view
+            (identifier)
+            (system_landscape_view_block
+              (include_statement
+                (wildcard))))
+          (filtered_view
+            (identifier)
+            (identifier)
+            (identifier)
+            (identifier)
+            (string)))))))
