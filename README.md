@@ -30,6 +30,7 @@ The following syntax is implemented and covered by the local corpus and Rust tes
 - Dynamic view coverage includes explicit relationship references such as `r2 "Async"` and nested parallel blocks.
 - Styles inside `views`: `styles`, `element`, `relationship`, and flat style settings like `background`, `shape`, `color`, and `opacity`.
 - Directives and configuration currently used by fixtures: `!include` at workspace and model level, `!const`, `!constant`, `!var`, `!identifiers`, `!impliedRelationships`, `!docs`, `!adrs`, plus `configuration { scope, visibility, users }`.
+- Text features used by current fixtures: triple-quoted text blocks, multiline `\` continuations between tokens and inside quoted strings, and image/PlantUML sources fed from text blocks.
 - Expanded archetype/custom-element support: archetype defaults, nested `properties` and `perspectives` inside archetype bodies, relationship archetype extensions such as `sync = -> { ... }` / `--sync->`, custom elements, `!elements`, and `!element`.
 
 ## Not yet implemented
@@ -39,7 +40,6 @@ These areas are still in progress. Some parse partially, but they are not consid
 - Full group semantics and broader model-level metadata/property constructs.
 - Remaining deployment edge cases found in upstream fixtures.
 - Additional relationship/filter expression variants from upstream examples.
-- Text block and multiline constructs not covered by the current fixtures.
 - Query authoring for highlighting/folding/indentation is still placeholder-only.
 
 ## Explicitly unsupported
@@ -52,6 +52,8 @@ These are currently out of scope on purpose rather than merely unfinished:
 `!script` and `!plugin` are intentionally treated as unsupported because this grammar targets editor parsing, not executable DSL extensions. The upstream audit excludes script- and plugin-related fixtures by default so they do not block progress on the parser.
 
 Upstream fixtures whose names contain `unexpected-` are also ignored permanently by the audit because they are intentional negative parser tests from the upstream project rather than valid DSL samples.
+
+The audit also ignores `multi-line-with-error.dsl` permanently because it is an intentional invalid multiline sample whose remaining failure is the nested invalid model shape rather than the line-continuation syntax itself.
 
 If you want to include those fixtures in an audit run anyway, use:
 

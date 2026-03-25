@@ -6,7 +6,7 @@ use std::env;
 use serde::Deserialize;
 
 const DEFAULT_UNSUPPORTED_FILTERS: &[&str] = &["script", "plugin"];
-const ALWAYS_IGNORED_FILTERS: &[&str] = &["unexpected-"];
+const ALWAYS_IGNORED_FILTERS: &[&str] = &["unexpected-", "multi-line-with-error"];
 
 #[derive(Debug, Deserialize)]
 struct GitHubContent {

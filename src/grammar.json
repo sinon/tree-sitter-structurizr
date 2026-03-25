@@ -60,6 +60,26 @@
         ]
       }
     },
+    "_line_continuation": {
+      "type": "TOKEN",
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "STRING",
+            "value": "\\"
+          },
+          {
+            "type": "PATTERN",
+            "value": "\\r?\\n"
+          },
+          {
+            "type": "PATTERN",
+            "value": "[ \\t]*"
+          }
+        ]
+      }
+    },
     "identifier": {
       "type": "PATTERN",
       "value": "[A-Za-z_][A-Za-z0-9_.-]*"
@@ -820,6 +840,23 @@
                 {
                   "type": "PATTERN",
                   "value": "\\\\."
+                },
+                {
+                  "type": "SEQ",
+                  "members": [
+                    {
+                      "type": "STRING",
+                      "value": "\\"
+                    },
+                    {
+                      "type": "PATTERN",
+                      "value": "\\r?\\n"
+                    },
+                    {
+                      "type": "PATTERN",
+                      "value": "[ \\t]*"
+                    }
+                  ]
                 }
               ]
             }
@@ -827,6 +864,42 @@
           {
             "type": "STRING",
             "value": "\""
+          }
+        ]
+      }
+    },
+    "text_block_string": {
+      "type": "TOKEN",
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "STRING",
+            "value": "\"\"\""
+          },
+          {
+            "type": "REPEAT",
+            "content": {
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "PATTERN",
+                  "value": "[^\"]+"
+                },
+                {
+                  "type": "PATTERN",
+                  "value": "\"[^\"]"
+                },
+                {
+                  "type": "PATTERN",
+                  "value": "\"\"[^\"]"
+                }
+              ]
+            }
+          },
+          {
+            "type": "STRING",
+            "value": "\"\"\""
           }
         ]
       }
@@ -854,6 +927,10 @@
         {
           "type": "SYMBOL",
           "name": "string"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "text_block_string"
         },
         {
           "type": "SYMBOL",
@@ -4052,6 +4129,22 @@
         },
         {
           "type": "SYMBOL",
+          "name": "properties_block"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "const_directive"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "constant_directive"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "var_directive"
+        },
+        {
+          "type": "SYMBOL",
           "name": "styles"
         },
         {
@@ -6703,6 +6796,10 @@
     {
       "type": "SYMBOL",
       "name": "comment"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_line_continuation"
     }
   ],
   "conflicts": [

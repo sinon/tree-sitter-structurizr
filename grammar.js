@@ -171,6 +171,7 @@ export default grammar({
   extras: $ => [
     /\s/,
     $.comment,
+    $._line_continuation,
   ],
 
   conflicts: $ => [
@@ -195,6 +196,8 @@ export default grammar({
         "/",
       ),
     )),
+
+    _line_continuation: _ => token(seq("\\", /\r?\n/, /[ \t]*/)),
 
     identifier: _ => /[A-Za-z_][A-Za-z0-9_.-]*/,
 
@@ -226,8 +229,19 @@ export default grammar({
       repeat(choice(
         /[^"\\\n]+/,
         /\\./,
+        seq("\\", /\r?\n/, /[ \t]*/),
       )),
       '"',
+    )),
+
+    text_block_string: _ => token(seq(
+      '"""',
+      repeat(choice(
+        /[^"]+/,
+        /"[^"]/,
+        /""[^"]/,
+      )),
+      '"""',
     )),
 
     _value: $ => choice(
@@ -239,6 +253,7 @@ export default grammar({
 
     _directive_value: $ => choice(
       $.string,
+      $.text_block_string,
       $.bare_value,
       $.identifier,
     ),
@@ -959,6 +974,10 @@ export default grammar({
       $.deployment_view,
       $.custom_view,
       $.image_view,
+      $.properties_block,
+      $.const_directive,
+      $.constant_directive,
+      $.var_directive,
       $.styles,
       $.theme_statement,
       $.themes_statement,

@@ -45,3 +45,27 @@ workspace {
             (relationship_operator)
             (identifier)
             (string)))))))
+
+=======================
+Multiline continuation
+=======================
+
+workspace {
+  model {
+    system = \
+      softwareSystem \
+      "Software \
+      System"
+  }
+}
+
+---
+
+(source_file
+  (workspace
+    (workspace_block
+      (model
+        (model_block
+          (software_system
+            (identifier)
+            (string)))))))

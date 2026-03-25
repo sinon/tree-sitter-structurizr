@@ -1,0 +1,25 @@
+---
+source: tests/fixtures.rs
+expression: "common::tree_sexp(&tree)"
+---
+(source_file
+  (workspace body:
+    (workspace_block
+      (views body:
+        (views_block
+          (properties_block
+            (property_entry name:
+              (string) value:
+              (string)))
+          (const_directive name:
+            (identifier) value:
+            (text_block_string))
+          (var_directive name:
+            (identifier) value:
+            (text_block_string))
+          (image_view scope:
+            (wildcard) key:
+            (string) body:
+            (image_view_block
+              (plantuml_source value:
+                (text_block_string)))))))))

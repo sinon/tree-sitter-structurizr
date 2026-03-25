@@ -193,3 +193,48 @@ workspace {
               (dynamic_relationship_reference
                 (identifier)
                 (string)))))))))
+
+==================
+Text block values
+==================
+
+workspace {
+  views {
+    properties {
+      "plantuml.url" "https://plantuml.com/plantuml"
+    }
+
+    !const SOURCE """
+      class MyClass
+      """
+
+    image * "image" {
+      plantuml """
+        @startuml
+        ${SOURCE}
+        @enduml
+      """
+    }
+  }
+}
+
+---
+
+(source_file
+  (workspace
+    (workspace_block
+      (views
+        (views_block
+          (properties_block
+            (property_entry
+              (string)
+              (string)))
+          (const_directive
+            (identifier)
+            (text_block_string))
+          (image_view
+            (wildcard)
+            (string)
+            (image_view_block
+              (plantuml_source
+                (text_block_string)))))))))

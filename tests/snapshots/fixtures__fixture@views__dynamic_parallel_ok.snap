@@ -1,0 +1,65 @@
+---
+source: tests/fixtures.rs
+expression: "common::tree_sexp(&tree)"
+---
+(source_file
+  (workspace body:
+    (workspace_block
+      (model body:
+        (model_block
+          (software_system identifier:
+            (identifier) name:
+            (string))
+          (software_system identifier:
+            (identifier) name:
+            (string))
+          (software_system identifier:
+            (identifier) name:
+            (string))
+          (software_system identifier:
+            (identifier) name:
+            (string))
+          (software_system identifier:
+            (identifier) name:
+            (string))
+          (relationship source:
+            (identifier) operator:
+            (relationship_operator) destination:
+            (identifier))
+          (relationship source:
+            (identifier) operator:
+            (relationship_operator) destination:
+            (identifier))
+          (relationship source:
+            (identifier) operator:
+            (relationship_operator) destination:
+            (identifier))
+          (relationship source:
+            (identifier) operator:
+            (relationship_operator) destination:
+            (identifier))))
+      (views body:
+        (views_block
+          (dynamic_view scope:
+            (wildcard) body:
+            (dynamic_view_block
+              (dynamic_relationship source:
+                (identifier) destination:
+                (identifier) description:
+                (string))
+              (dynamic_parallel_block
+                (dynamic_parallel_block
+                  (dynamic_relationship source:
+                    (identifier) destination:
+                    (identifier) description:
+                    (string)))
+                (dynamic_parallel_block
+                  (dynamic_relationship source:
+                    (identifier) destination:
+                    (identifier) description:
+                    (string))))
+              (dynamic_relationship source:
+                (identifier) destination:
+                (identifier) description:
+                (string))
+              (auto_layout_statement))))))))

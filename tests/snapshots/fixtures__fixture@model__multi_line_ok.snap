@@ -1,0 +1,12 @@
+---
+source: tests/fixtures.rs
+expression: "common::tree_sexp(&tree)"
+---
+(source_file
+  (workspace body:
+    (workspace_block
+      (model body:
+        (model_block
+          (software_system identifier:
+            (identifier) name:
+            (string)))))))

@@ -18,6 +18,10 @@
           {
             "type": "string",
             "named": true
+          },
+          {
+            "type": "text_block_string",
+            "named": true
           }
         ]
       }
@@ -567,6 +571,10 @@
           {
             "type": "string",
             "named": true
+          },
+          {
+            "type": "text_block_string",
+            "named": true
           }
         ]
       },
@@ -584,6 +592,10 @@
           },
           {
             "type": "string",
+            "named": true
+          },
+          {
+            "type": "text_block_string",
             "named": true
           }
         ]
@@ -609,6 +621,10 @@
           {
             "type": "string",
             "named": true
+          },
+          {
+            "type": "text_block_string",
+            "named": true
           }
         ]
       },
@@ -626,6 +642,10 @@
           },
           {
             "type": "string",
+            "named": true
+          },
+          {
+            "type": "text_block_string",
             "named": true
           }
         ]
@@ -1509,6 +1529,10 @@
           {
             "type": "string",
             "named": true
+          },
+          {
+            "type": "text_block_string",
+            "named": true
           }
         ]
       }
@@ -1769,6 +1793,10 @@
           {
             "type": "string",
             "named": true
+          },
+          {
+            "type": "text_block_string",
+            "named": true
           }
         ]
       }
@@ -1939,6 +1967,10 @@
           {
             "type": "string",
             "named": true
+          },
+          {
+            "type": "text_block_string",
+            "named": true
           }
         ]
       }
@@ -2088,6 +2120,10 @@
           {
             "type": "string",
             "named": true
+          },
+          {
+            "type": "text_block_string",
+            "named": true
           }
         ]
       }
@@ -2111,6 +2147,10 @@
           },
           {
             "type": "string",
+            "named": true
+          },
+          {
+            "type": "text_block_string",
             "named": true
           }
         ]
@@ -2227,6 +2267,10 @@
           {
             "type": "string",
             "named": true
+          },
+          {
+            "type": "text_block_string",
+            "named": true
           }
         ]
       }
@@ -2250,6 +2294,10 @@
           },
           {
             "type": "string",
+            "named": true
+          },
+          {
+            "type": "text_block_string",
             "named": true
           }
         ]
@@ -2357,6 +2405,10 @@
           {
             "type": "string",
             "named": true
+          },
+          {
+            "type": "text_block_string",
+            "named": true
           }
         ]
       },
@@ -2374,6 +2426,10 @@
           },
           {
             "type": "string",
+            "named": true
+          },
+          {
+            "type": "text_block_string",
             "named": true
           }
         ]
@@ -2419,6 +2475,10 @@
           },
           {
             "type": "string",
+            "named": true
+          },
+          {
+            "type": "text_block_string",
             "named": true
           }
         ]
@@ -2658,6 +2718,10 @@
           {
             "type": "string",
             "named": true
+          },
+          {
+            "type": "text_block_string",
+            "named": true
           }
         ]
       },
@@ -2675,6 +2739,10 @@
           },
           {
             "type": "string",
+            "named": true
+          },
+          {
+            "type": "text_block_string",
             "named": true
           }
         ]
@@ -2715,6 +2783,10 @@
           {
             "type": "string",
             "named": true
+          },
+          {
+            "type": "text_block_string",
+            "named": true
           }
         ]
       }
@@ -2754,6 +2826,10 @@
           {
             "type": "string",
             "named": true
+          },
+          {
+            "type": "text_block_string",
+            "named": true
           }
         ]
       },
@@ -2771,6 +2847,10 @@
           },
           {
             "type": "string",
+            "named": true
+          },
+          {
+            "type": "text_block_string",
             "named": true
           }
         ]
@@ -2950,6 +3030,10 @@
           },
           {
             "type": "string",
+            "named": true
+          },
+          {
+            "type": "text_block_string",
             "named": true
           }
         ]
@@ -3574,6 +3658,10 @@
           {
             "type": "string",
             "named": true
+          },
+          {
+            "type": "text_block_string",
+            "named": true
           }
         ]
       }
@@ -3597,6 +3685,10 @@
           },
           {
             "type": "string",
+            "named": true
+          },
+          {
+            "type": "text_block_string",
             "named": true
           }
         ]
@@ -3642,6 +3734,10 @@
           {
             "type": "string",
             "named": true
+          },
+          {
+            "type": "text_block_string",
+            "named": true
           }
         ]
       },
@@ -3659,6 +3755,10 @@
           },
           {
             "type": "string",
+            "named": true
+          },
+          {
+            "type": "text_block_string",
             "named": true
           }
         ]
@@ -3699,6 +3799,10 @@
           {
             "type": "string",
             "named": true
+          },
+          {
+            "type": "text_block_string",
+            "named": true
           }
         ]
       },
@@ -3716,6 +3820,10 @@
           },
           {
             "type": "string",
+            "named": true
+          },
+          {
+            "type": "text_block_string",
             "named": true
           }
         ]
@@ -3751,6 +3859,14 @@
           "named": true
         },
         {
+          "type": "const_directive",
+          "named": true
+        },
+        {
+          "type": "constant_directive",
+          "named": true
+        },
+        {
           "type": "container_view",
           "named": true
         },
@@ -3775,6 +3891,10 @@
           "named": true
         },
         {
+          "type": "properties_block",
+          "named": true
+        },
+        {
           "type": "styles",
           "named": true
         },
@@ -3792,6 +3912,10 @@
         },
         {
           "type": "themes_statement",
+          "named": true
+        },
+        {
+          "type": "var_directive",
           "named": true
         }
       ]
@@ -3815,6 +3939,10 @@
           },
           {
             "type": "string",
+            "named": true
+          },
+          {
+            "type": "text_block_string",
             "named": true
           }
         ]
@@ -4247,6 +4375,10 @@
   {
     "type": "technology",
     "named": false
+  },
+  {
+    "type": "text_block_string",
+    "named": true
   },
   {
     "type": "theme",
