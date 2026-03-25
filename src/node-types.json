@@ -912,6 +912,10 @@
           {
             "type": "identifier",
             "named": true
+          },
+          {
+            "type": "string",
+            "named": true
           }
         ]
       },
@@ -4279,6 +4283,10 @@
           {
             "type": "identifier",
             "named": true
+          },
+          {
+            "type": "string",
+            "named": true
           }
         ]
       },
@@ -5647,6 +5655,14 @@
   },
   {
     "type": "systemLandscape",
+    "named": false
+  },
+  {
+    "type": "systemcontext",
+    "named": false
+  },
+  {
+    "type": "systemlandscape",
     "named": false
   },
   {

@@ -3824,7 +3824,7 @@
           "name": "deployment_group",
           "content": {
             "type": "SYMBOL",
-            "name": "identifier"
+            "name": "_value"
           }
         },
         {
@@ -3961,7 +3961,7 @@
           "name": "deployment_group",
           "content": {
             "type": "SYMBOL",
-            "name": "identifier"
+            "name": "_value"
           }
         },
         {
@@ -6232,8 +6232,17 @@
           "type": "SEQ",
           "members": [
             {
-              "type": "STRING",
-              "value": "systemLandscape"
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": "systemLandscape"
+                },
+                {
+                  "type": "STRING",
+                  "value": "systemlandscape"
+                }
+              ]
             },
             {
               "type": "FIELD",
@@ -6249,8 +6258,17 @@
           "type": "SEQ",
           "members": [
             {
-              "type": "STRING",
-              "value": "systemLandscape"
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": "systemLandscape"
+                },
+                {
+                  "type": "STRING",
+                  "value": "systemlandscape"
+                }
+              ]
             },
             {
               "type": "FIELD",
@@ -6274,8 +6292,17 @@
           "type": "SEQ",
           "members": [
             {
-              "type": "STRING",
-              "value": "systemLandscape"
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": "systemLandscape"
+                },
+                {
+                  "type": "STRING",
+                  "value": "systemlandscape"
+                }
+              ]
             },
             {
               "type": "FIELD",
@@ -6332,8 +6359,17 @@
           "type": "SEQ",
           "members": [
             {
-              "type": "STRING",
-              "value": "systemContext"
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": "systemContext"
+                },
+                {
+                  "type": "STRING",
+                  "value": "systemcontext"
+                }
+              ]
             },
             {
               "type": "FIELD",
@@ -6357,8 +6393,17 @@
           "type": "SEQ",
           "members": [
             {
-              "type": "STRING",
-              "value": "systemContext"
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": "systemContext"
+                },
+                {
+                  "type": "STRING",
+                  "value": "systemcontext"
+                }
+              ]
             },
             {
               "type": "FIELD",
@@ -6390,8 +6435,17 @@
           "type": "SEQ",
           "members": [
             {
-              "type": "STRING",
-              "value": "systemContext"
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": "systemContext"
+                },
+                {
+                  "type": "STRING",
+                  "value": "systemcontext"
+                }
+              ]
             },
             {
               "type": "FIELD",

@@ -37,6 +37,7 @@ This project is not trying to become a Structurizr runtime. It should preserve a
 ### General development notes
 - For ad-hoc debugging, create a temporary Rust example in examples/ and run it with cargo run --example <name>. Remove the example after use.
 - Use tmp/ (project-local) for intermediate files and comparison artifacts, not /tmp. This keeps outputs discoverable and project-scoped. The tmp/ directory is gitignored.
+- Use `gh` for fetching files from github instead of fetching web content.
 
 ## Test harnesses and why they exist
 

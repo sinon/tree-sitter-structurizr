@@ -926,7 +926,7 @@ export default grammar({
       )),
       "containerInstance",
       field("target", $.identifier),
-      field("deployment_group", $.identifier),
+      field("deployment_group", $._value),
       optional(field("body", $.deployment_instance_block)),
     ),
 
@@ -952,7 +952,7 @@ export default grammar({
       )),
       "softwareSystemInstance",
       field("target", $.identifier),
-      field("deployment_group", $.identifier),
+      field("deployment_group", $._value),
       optional(field("body", $.deployment_instance_block)),
     ),
 
@@ -1419,10 +1419,10 @@ export default grammar({
     ),
 
     system_landscape_view: $ => choice(
-      seq("systemLandscape", field("body", $.system_landscape_view_block)),
-      seq("systemLandscape", field("key", $._value), field("body", $.system_landscape_view_block)),
+      seq(choice("systemLandscape", "systemlandscape"), field("body", $.system_landscape_view_block)),
+      seq(choice("systemLandscape", "systemlandscape"), field("key", $._value), field("body", $.system_landscape_view_block)),
       seq(
-        "systemLandscape",
+        choice("systemLandscape", "systemlandscape"),
         field("key", $._value),
         field("description", $._metadata_value),
         field("body", $.system_landscape_view_block),
@@ -1437,18 +1437,18 @@ export default grammar({
 
     system_context_view: $ => choice(
       seq(
-        "systemContext",
+        choice("systemContext", "systemcontext"),
         field("scope", $.identifier),
         field("body", $.system_context_view_block),
       ),
       seq(
-        "systemContext",
+        choice("systemContext", "systemcontext"),
         field("scope", $.identifier),
         field("key", $._value),
         field("body", $.system_context_view_block),
       ),
       seq(
-        "systemContext",
+        choice("systemContext", "systemcontext"),
         field("scope", $.identifier),
         field("key", $._value),
         field("description", $._metadata_value),

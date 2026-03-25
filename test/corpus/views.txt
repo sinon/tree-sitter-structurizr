@@ -93,15 +93,67 @@ workspace {
                 (wildcard))
               (title_statement
                 (string))))
-          (filtered_view
+           (filtered_view
+             (string)
+             (identifier)
+             (string)
+             (string)
+             (filtered_view_block
+               (default_statement)
+               (title_statement
+                 (string)))))))))
+
+==========================
+Lowercase upstream views
+==========================
+
+workspace {
+  model {
+    system = softwareSystem "System"
+  }
+
+  views {
+    systemlandscape "landscape" {
+      include *
+      autoLayout
+    }
+
+    systemcontext system "context" {
+      include *
+      animation {
+        system
+      }
+    }
+  }
+}
+
+---
+
+(source_file
+  (workspace
+    (workspace_block
+      (model
+        (model_block
+          (software_system
+            (identifier)
+            (string))))
+      (views
+        (views_block
+          (system_landscape_view
             (string)
+            (system_landscape_view_block
+              (include_statement
+                (wildcard))
+              (auto_layout_statement)))
+          (system_context_view
             (identifier)
             (string)
-            (string)
-            (filtered_view_block
-              (default_statement)
-              (title_statement
-                (string)))))))))
+            (system_context_view_block
+              (include_statement
+                (wildcard))
+              (animation_statement
+                (animation_block
+                  (identifier))))))))))
 
 ======================
 Static view animation
