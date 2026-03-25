@@ -236,6 +236,37 @@ fn parses_block_comments_and_view_styles_without_errors() {
 }
 
 #[test]
+fn snapshots_specialized_color_nodes_in_styles() {
+    let source = indoc! {r#"
+        workspace {
+            views {
+                styles {
+                    element "Element" {
+                        background #801515
+                        color #ffffff
+                        stroke navy
+                    }
+
+                    element "Person" {
+                        background floralwhite
+                        colour white
+                    }
+
+                    relationship "Relationship" {
+                        colour red
+                        stroke rebeccapurple
+                    }
+                }
+            }
+        }
+    "#};
+    let tree = common::parse(source);
+
+    common::assert_no_errors("inline::color_nodes", &tree, source);
+    insta::assert_snapshot!("inline__color_nodes", common::tree_sexp(&tree));
+}
+
+#[test]
 fn parses_archetypes_and_custom_elements_without_errors() {
     let source = indoc! {r#"
         workspace {

@@ -2,4 +2,64 @@
 source: tests/fixtures.rs
 expression: "common::tree_sexp(&tree)"
 ---
-(source_file (workspace body: (workspace_block (model body: (model_block (software_system identifier: (identifier) name: (string) body: (software_system_block (container identifier: (identifier) name: (string)))))) (views body: (views_block (system_landscape_view key: (string) description: (string) body: (system_landscape_view_block (include_statement value: (wildcard)) (auto_layout_statement direction: (layout_direction) rank_separation: (number) node_separation: (number)) (title_statement value: (string)))) (system_context_view scope: (identifier) key: (string) description: (string) body: (system_context_view_block (include_statement value: (wildcard)) (exclude_statement value: (identifier)) (description_statement value: (string)))) (container_view scope: (identifier) key: (string) body: (container_view_block (include_statement value: (wildcard)) (default_statement))) (component_view scope: (identifier) key: (string) body: (component_view_block (include_statement value: (wildcard)) (title_statement value: (string)))) (filtered_view base_key: (string) mode: (identifier) tags: (string) key: (string) body: (filtered_view_block (default_statement) (title_statement value: (string)))))))))
+(source_file
+  (workspace body:
+    (workspace_block
+      (model body:
+        (model_block
+          (software_system identifier:
+            (identifier) name:
+            (string) body:
+            (software_system_block
+              (container identifier:
+                (identifier) name:
+                (string))))))
+      (views body:
+        (views_block
+          (system_landscape_view key:
+            (string) description:
+            (string) body:
+            (system_landscape_view_block
+              (include_statement value:
+                (wildcard))
+              (auto_layout_statement direction:
+                (layout_direction) rank_separation:
+                (number) node_separation:
+                (number))
+              (title_statement value:
+                (string))))
+          (system_context_view scope:
+            (identifier) key:
+            (string) description:
+            (string) body:
+            (system_context_view_block
+              (include_statement value:
+                (wildcard))
+              (exclude_statement value:
+                (identifier))
+              (description_statement value:
+                (string))))
+          (container_view scope:
+            (identifier) key:
+            (string) body:
+            (container_view_block
+              (include_statement value:
+                (wildcard))
+              (default_statement)))
+          (component_view scope:
+            (identifier) key:
+            (string) body:
+            (component_view_block
+              (include_statement value:
+                (wildcard))
+              (title_statement value:
+                (string))))
+          (filtered_view base_key:
+            (string) mode:
+            (identifier) tags:
+            (string) key:
+            (string) body:
+            (filtered_view_block
+              (default_statement)
+              (title_statement value:
+                (string)))))))))

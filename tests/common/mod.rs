@@ -29,7 +29,7 @@ pub fn parse(source: &str) -> Tree {
 }
 
 pub fn tree_sexp(tree: &Tree) -> String {
-    tree.root_node().to_sexp()
+    format_tree_sexp(&tree.root_node().to_sexp())
 }
 
 #[derive(Debug, Clone)]
@@ -141,4 +141,55 @@ fn context_excerpt(source: &str, byte: usize) -> &str {
     let start = byte.saturating_sub(30);
     let end = (byte + 30).min(source.len());
     &source[start..end]
+}
+
+fn format_tree_sexp(sexp: &str) -> String {
+    let mut formatted = String::new();
+    let mut indent = 0usize;
+    let mut i = 0usize;
+    let bytes = sexp.as_bytes();
+
+    while i < bytes.len() {
+        match bytes[i] as char {
+            '(' => {
+                if !formatted.is_empty() {
+                    formatted.push('\n');
+                }
+                formatted.push_str(&"  ".repeat(indent));
+                formatted.push('(');
+                indent += 1;
+                i += 1;
+
+                while i < bytes.len() {
+                    let ch = bytes[i] as char;
+                    if ch == '(' || ch == ')' || ch.is_whitespace() {
+                        break;
+                    }
+                    formatted.push(ch);
+                    i += 1;
+                }
+            }
+            ')' => {
+                indent = indent.saturating_sub(1);
+                formatted.push(')');
+                i += 1;
+            }
+            c if c.is_whitespace() => {
+                i += 1;
+            }
+            _ => {
+                formatted.push(' ');
+                while i < bytes.len() {
+                    let ch = bytes[i] as char;
+                    if ch == '(' || ch == ')' || ch.is_whitespace() {
+                        break;
+                    }
+                    formatted.push(ch);
+                    i += 1;
+                }
+            }
+        }
+    }
+
+    formatted
 }

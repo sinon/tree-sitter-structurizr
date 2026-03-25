@@ -1,21 +1,12 @@
 ---
-source: tests/fixtures.rs
+source: tests/snippets.rs
 expression: "common::tree_sexp(&tree)"
 ---
 (source_file
-  (comment)
   (workspace body:
     (workspace_block
       (views body:
         (views_block
-          (system_context_view scope:
-            (identifier) key:
-            (string) description:
-            (string) body:
-            (system_context_view_block
-              (include_statement value:
-                (wildcard))
-              (auto_layout_statement)))
           (styles body:
             (styles_block
               (element_style tag:
@@ -27,28 +18,19 @@ expression: "common::tree_sexp(&tree)"
                       (hex_color)))
                   (style_setting name:
                     (identifier) value:
-                    (identifier))
-                  (style_setting name:
-                    (identifier) value:
                     (color_value
                       (hex_color)))
                   (style_setting name:
                     (identifier) value:
                     (color_value
-                      (named_color)))
-                  (style_setting name:
-                    (identifier) value:
-                    (number))))
+                      (named_color)))))
               (element_style tag:
                 (string) body:
                 (style_rule_block
                   (style_setting name:
                     (identifier) value:
                     (color_value
-                      (hex_color)))
-                  (style_setting name:
-                    (identifier) value:
-                    (identifier))
+                      (named_color)))
                   (style_setting name:
                     (identifier) value:
                     (color_value
@@ -62,4 +44,5 @@ expression: "common::tree_sexp(&tree)"
                       (named_color)))
                   (style_setting name:
                     (identifier) value:
-                    (number)))))))))))
+                    (color_value
+                      (named_color))))))))))))

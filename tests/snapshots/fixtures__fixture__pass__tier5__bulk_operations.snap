@@ -2,4 +2,58 @@
 source: tests/fixtures.rs
 expression: "common::tree_sexp(&tree)"
 ---
-(source_file (workspace body: (workspace_block (model body: (model_block (person identifier: (identifier) name: (string)) (identifiers_directive value: (identifier)) (software_system identifier: (identifier) name: (string) body: (software_system_block (container identifier: (identifier) name: (string) body: (container_block (component name: (string)) (component name: (string)) (component name: (string)))) (container identifier: (identifier) name: (string)) (elements_directive expression: (string) body: (elements_block (tags_statement value: (string)) (relationship source: (identifier) operator: (relationship_operator) destination: (this_keyword) attribute: (string)) (relationship source: (this_keyword) operator: (relationship_operator) destination: (identifier) attribute: (string) body: (relationship_block (tags_statement value: (string)))))) (elements_directive expression: (string) body: (elements_block (relationship operator: (relationship_operator) destination: (identifier) attribute: (string) body: (relationship_block (tags_statement value: (string)))))))))))))
+(source_file
+  (workspace body:
+    (workspace_block
+      (model body:
+        (model_block
+          (person identifier:
+            (identifier) name:
+            (string))
+          (identifiers_directive value:
+            (identifier))
+          (software_system identifier:
+            (identifier) name:
+            (string) body:
+            (software_system_block
+              (container identifier:
+                (identifier) name:
+                (string) body:
+                (container_block
+                  (component name:
+                    (string))
+                  (component name:
+                    (string))
+                  (component name:
+                    (string))))
+              (container identifier:
+                (identifier) name:
+                (string))
+              (elements_directive expression:
+                (string) body:
+                (elements_block
+                  (tags_statement value:
+                    (string))
+                  (relationship source:
+                    (identifier) operator:
+                    (relationship_operator) destination:
+                    (this_keyword) attribute:
+                    (string))
+                  (relationship source:
+                    (this_keyword) operator:
+                    (relationship_operator) destination:
+                    (identifier) attribute:
+                    (string) body:
+                    (relationship_block
+                      (tags_statement value:
+                        (string))))))
+              (elements_directive expression:
+                (string) body:
+                (elements_block
+                  (relationship operator:
+                    (relationship_operator) destination:
+                    (identifier) attribute:
+                    (string) body:
+                    (relationship_block
+                      (tags_statement value:
+                        (string)))))))))))))

@@ -2,4 +2,130 @@
 source: tests/fixtures.rs
 expression: "common::tree_sexp(&tree)"
 ---
-(source_file (workspace name: (string) description: (string) body: (workspace_block (identifiers_directive value: (identifier)) (model body: (model_block (software_system identifier: (identifier) name: (string) description: (string) tags: (string) body: (software_system_block (container identifier: (identifier) name: (string) description: (string) technology: (string)) (container identifier: (identifier) name: (string) description: (string) technology: (string) tags: (string)) (relationship source: (identifier) operator: (relationship_operator) destination: (identifier) attribute: (string) attribute: (string)))) (deployment_environment identifier: (identifier) name: (string) body: (deployment_environment_block (deployment_node identifier: (identifier) name: (string) attribute: (string) attribute: (string) attribute: (string) body: (deployment_node_block (deployment_node identifier: (identifier) name: (string) attribute: (string) attribute: (string) attribute: (string) body: (deployment_node_block (infrastructure_node identifier: (identifier) name: (string) attribute: (string) attribute: (string) attribute: (string)) (infrastructure_node identifier: (identifier) name: (string) attribute: (string) attribute: (string) attribute: (string)) (deployment_node identifier: (identifier) name: (string) attribute: (string) attribute: (string) attribute: (string) body: (deployment_node_block (deployment_node identifier: (identifier) name: (string) attribute: (string) attribute: (string) attribute: (string) body: (deployment_node_block (container_instance identifier: (identifier) target: (identifier) deployment_group: (identifier)) (relationship operator: (relationship_operator) destination: (identifier) attribute: (string) attribute: (string)))))) (deployment_node identifier: (identifier) name: (string) attribute: (string) attribute: (string) attribute: (string) body: (deployment_node_block (deployment_node identifier: (identifier) name: (string) attribute: (string) attribute: (string) attribute: (string) body: (deployment_node_block (container_instance identifier: (identifier) target: (identifier)))))) (relationship source: (identifier) operator: (relationship_operator) destination: (identifier) attribute: (string) attribute: (string)))))))))) (views body: (views_block (deployment_view scope: (identifier) environment: (string) key: (string) body: (deployment_view_block (include_statement value: (wildcard)) (auto_layout_statement direction: (layout_direction)) (animation_statement body: (animation_block value: (identifier) value: (identifier) value: (identifier) value: (identifier))))) (themes_statement value: (bare_value)))))))
+(source_file
+  (workspace name:
+    (string) description:
+    (string) body:
+    (workspace_block
+      (identifiers_directive value:
+        (identifier))
+      (model body:
+        (model_block
+          (software_system identifier:
+            (identifier) name:
+            (string) description:
+            (string) tags:
+            (string) body:
+            (software_system_block
+              (container identifier:
+                (identifier) name:
+                (string) description:
+                (string) technology:
+                (string))
+              (container identifier:
+                (identifier) name:
+                (string) description:
+                (string) technology:
+                (string) tags:
+                (string))
+              (relationship source:
+                (identifier) operator:
+                (relationship_operator) destination:
+                (identifier) attribute:
+                (string) attribute:
+                (string))))
+          (deployment_environment identifier:
+            (identifier) name:
+            (string) body:
+            (deployment_environment_block
+              (deployment_node identifier:
+                (identifier) name:
+                (string) attribute:
+                (string) attribute:
+                (string) attribute:
+                (string) body:
+                (deployment_node_block
+                  (deployment_node identifier:
+                    (identifier) name:
+                    (string) attribute:
+                    (string) attribute:
+                    (string) attribute:
+                    (string) body:
+                    (deployment_node_block
+                      (infrastructure_node identifier:
+                        (identifier) name:
+                        (string) attribute:
+                        (string) attribute:
+                        (string) attribute:
+                        (string))
+                      (infrastructure_node identifier:
+                        (identifier) name:
+                        (string) attribute:
+                        (string) attribute:
+                        (string) attribute:
+                        (string))
+                      (deployment_node identifier:
+                        (identifier) name:
+                        (string) attribute:
+                        (string) attribute:
+                        (string) attribute:
+                        (string) body:
+                        (deployment_node_block
+                          (deployment_node identifier:
+                            (identifier) name:
+                            (string) attribute:
+                            (string) attribute:
+                            (string) attribute:
+                            (string) body:
+                            (deployment_node_block
+                              (container_instance identifier:
+                                (identifier) target:
+                                (identifier) deployment_group:
+                                (identifier))
+                              (relationship operator:
+                                (relationship_operator) destination:
+                                (identifier) attribute:
+                                (string) attribute:
+                                (string))))))
+                      (deployment_node identifier:
+                        (identifier) name:
+                        (string) attribute:
+                        (string) attribute:
+                        (string) attribute:
+                        (string) body:
+                        (deployment_node_block
+                          (deployment_node identifier:
+                            (identifier) name:
+                            (string) attribute:
+                            (string) attribute:
+                            (string) attribute:
+                            (string) body:
+                            (deployment_node_block
+                              (container_instance identifier:
+                                (identifier) target:
+                                (identifier))))))
+                      (relationship source:
+                        (identifier) operator:
+                        (relationship_operator) destination:
+                        (identifier) attribute:
+                        (string) attribute:
+                        (string))))))))))
+      (views body:
+        (views_block
+          (deployment_view scope:
+            (identifier) environment:
+            (string) key:
+            (string) body:
+            (deployment_view_block
+              (include_statement value:
+                (wildcard))
+              (auto_layout_statement direction:
+                (layout_direction))
+              (animation_statement body:
+                (animation_block value:
+                  (identifier) value:
+                  (identifier) value:
+                  (identifier) value:
+                  (identifier)))))
+          (themes_statement value:
+            (bare_value)))))))
