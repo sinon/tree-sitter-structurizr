@@ -51,7 +51,8 @@ expression: "common::tree_sexp(&tree)"
                     (string))))
               (archetype_definition identifier:
                 (identifier) base:
-                (archetype_base) body:
+                (archetype_base
+                  (relationship_operator)) body:
                 (archetype_body
                   (technology_statement value:
                     (string))))))

@@ -78,6 +78,10 @@
         {
           "type": "identifier",
           "named": true
+        },
+        {
+          "type": "relationship_operator",
+          "named": true
         }
       ]
     }
@@ -96,6 +100,14 @@
         },
         {
           "type": "metadata_statement",
+          "named": true
+        },
+        {
+          "type": "perspectives_block",
+          "named": true
+        },
+        {
+          "type": "properties_block",
           "named": true
         },
         {
@@ -139,7 +151,7 @@
       },
       "identifier": {
         "multiple": false,
-        "required": true,
+        "required": false,
         "types": [
           {
             "type": "identifier",
@@ -2388,6 +2400,63 @@
     }
   },
   {
+    "type": "perspective_entry",
+    "named": true,
+    "fields": {
+      "description": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "perspectives_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "perspective_entry",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "plantuml_source",
     "named": true,
     "fields": {
@@ -2542,6 +2611,14 @@
       "types": [
         {
           "type": "description_statement",
+          "named": true
+        },
+        {
+          "type": "perspectives_block",
+          "named": true
+        },
+        {
+          "type": "properties_block",
           "named": true
         },
         {
@@ -3716,6 +3793,10 @@
   },
   {
     "type": "person",
+    "named": false
+  },
+  {
+    "type": "perspectives",
     "named": false
   },
   {

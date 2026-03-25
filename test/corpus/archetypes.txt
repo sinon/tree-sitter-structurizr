@@ -47,3 +47,130 @@ workspace {
             (relationship_operator)
             (identifier)
             (string)))))))
+
+==================
+Archetype defaults
+==================
+
+workspace {
+  model {
+    archetypes {
+      softwaresystem {
+        description "Default Description"
+        tag "Default Tag"
+        properties {
+          "Default Property Name" "Default Property Value"
+        }
+        perspectives {
+          "Default Perspective Name" "Default Perspective Description"
+        }
+      }
+      -> {
+        technology "HTTPS"
+        tag "Secure"
+      }
+    }
+  }
+}
+
+---
+
+(source_file
+  (workspace
+    (workspace_block
+      (model
+        (model_block
+          (archetypes
+            (archetypes_block
+              (archetype_definition
+                (archetype_base)
+                (archetype_body
+                  (description_statement
+                    (string))
+                  (tag_statement
+                    (string))
+                  (properties_block
+                    (property_entry
+                      (string)
+                      (string)))
+                  (perspectives_block
+                    (perspective_entry
+                      (string)
+                      (string)))))
+              (archetype_definition
+                (archetype_base
+                  (relationship_operator))
+                (archetype_body
+                  (technology_statement
+                    (string))
+                  (tag_statement
+                    (string)))))))))))
+
+====================
+Archetype extensions
+====================
+
+workspace {
+  model {
+    archetypes {
+      softwareSystem {
+        tag "Default Tag"
+      }
+      sync = -> {
+        tag "Synchronous"
+      }
+      https = --sync-> {
+        technology "HTTPS"
+        tag "HTTPS"
+      }
+    }
+
+    a = softwareSystem "A"
+    b = softwareSystem "B"
+    a --https-> b "Makes API calls to"
+  }
+}
+
+---
+
+(source_file
+  (workspace
+    (workspace_block
+      (model
+        (model_block
+          (archetypes
+            (archetypes_block
+              (archetype_definition
+                (archetype_base)
+                (archetype_body
+                  (tag_statement
+                    (string))))
+              (archetype_definition
+                (identifier)
+                (archetype_base
+                  (relationship_operator))
+                (archetype_body
+                  (tag_statement
+                    (string))))
+              (archetype_definition
+                (identifier)
+                (archetype_base
+                  (relationship_operator
+                    (relationship_archetype_name)))
+                (archetype_body
+                  (technology_statement
+                    (string))
+                  (tag_statement
+                    (string))))))
+          (software_system
+            (identifier)
+            (string))
+          (software_system
+            (identifier)
+            (string))
+          (relationship
+            (identifier)
+            (relationship_operator
+              (relationship_archetype_name))
+            (identifier)
+            (string)))))))

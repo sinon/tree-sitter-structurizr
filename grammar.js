@@ -789,6 +789,8 @@ export default grammar({
         $.tags_statement,
         $.description_statement,
         $.technology_statement,
+        $.properties_block,
+        $.perspectives_block,
       )),
       "}",
     ),
@@ -808,20 +810,22 @@ export default grammar({
     ),
 
     archetype_definition: $ => seq(
-      field("identifier", $.identifier),
-      "=",
+      optional(seq(
+        field("identifier", $.identifier),
+        "=",
+      )),
       field("base", $.archetype_base),
       optional(field("body", $.archetype_body)),
     ),
 
     archetype_base: $ => choice(
       "person",
-      "softwareSystem",
+      choice("softwareSystem", "softwaresystem"),
       "container",
       "component",
       "element",
       "group",
-      "->",
+      $.relationship_operator,
       $.identifier,
     ),
 
@@ -833,6 +837,8 @@ export default grammar({
         $.tag_statement,
         $.tags_statement,
         $.metadata_statement,
+        $.properties_block,
+        $.perspectives_block,
       )),
       "}",
     ),
@@ -1386,6 +1392,18 @@ export default grammar({
     property_entry: $ => seq(
       field("name", $._directive_value),
       field("value", $._directive_value),
+    ),
+
+    perspectives_block: $ => seq(
+      "perspectives",
+      "{",
+      repeat($.perspective_entry),
+      "}",
+    ),
+
+    perspective_entry: $ => seq(
+      field("name", $._directive_value),
+      field("description", $._directive_value),
     ),
 
     // Image views can point at several source syntaxes; these are modeled as small,

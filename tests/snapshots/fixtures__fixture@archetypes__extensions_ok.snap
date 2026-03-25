@@ -1,0 +1,62 @@
+---
+source: tests/fixtures.rs
+expression: "common::tree_sexp(&tree)"
+---
+(source_file
+  (workspace body:
+    (workspace_block
+      (model body:
+        (model_block
+          (archetypes body:
+            (archetypes_block
+              (archetype_definition base:
+                (archetype_base) body:
+                (archetype_body
+                  (tag_statement value:
+                    (string))))
+              (archetype_definition identifier:
+                (identifier) base:
+                (archetype_base) body:
+                (archetype_body
+                  (tag_statement value:
+                    (string))))
+              (archetype_definition base:
+                (archetype_base
+                  (relationship_operator)) body:
+                (archetype_body
+                  (technology_statement value:
+                    (string))
+                  (tag_statement value:
+                    (string))))
+              (archetype_definition identifier:
+                (identifier) base:
+                (archetype_base
+                  (relationship_operator)) body:
+                (archetype_body
+                  (tag_statement value:
+                    (string))))
+              (archetype_definition identifier:
+                (identifier) base:
+                (archetype_base
+                  (relationship_operator archetype:
+                    (relationship_archetype_name))) body:
+                (archetype_body
+                  (technology_statement value:
+                    (string))
+                  (tag_statement value:
+                    (string))))))
+          (software_system identifier:
+            (identifier) name:
+            (string) description:
+            (string))
+          (archetype_instance identifier:
+            (identifier) kind:
+            (identifier) name:
+            (string) metadata:
+            (string))
+          (relationship source:
+            (identifier) operator:
+            (relationship_operator archetype:
+              (relationship_archetype_name)) destination:
+            (identifier) attribute:
+            (string)))))))

@@ -3333,6 +3333,14 @@
               {
                 "type": "SYMBOL",
                 "name": "technology_statement"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "properties_block"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "perspectives_block"
               }
             ]
           }
@@ -3384,16 +3392,29 @@
       "type": "SEQ",
       "members": [
         {
-          "type": "FIELD",
-          "name": "identifier",
-          "content": {
-            "type": "SYMBOL",
-            "name": "identifier"
-          }
-        },
-        {
-          "type": "STRING",
-          "value": "="
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SEQ",
+              "members": [
+                {
+                  "type": "FIELD",
+                  "name": "identifier",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "identifier"
+                  }
+                },
+                {
+                  "type": "STRING",
+                  "value": "="
+                }
+              ]
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
         },
         {
           "type": "FIELD",
@@ -3429,8 +3450,17 @@
           "value": "person"
         },
         {
-          "type": "STRING",
-          "value": "softwareSystem"
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "STRING",
+              "value": "softwareSystem"
+            },
+            {
+              "type": "STRING",
+              "value": "softwaresystem"
+            }
+          ]
         },
         {
           "type": "STRING",
@@ -3449,8 +3479,8 @@
           "value": "group"
         },
         {
-          "type": "STRING",
-          "value": "->"
+          "type": "SYMBOL",
+          "name": "relationship_operator"
         },
         {
           "type": "SYMBOL",
@@ -3489,6 +3519,14 @@
               {
                 "type": "SYMBOL",
                 "name": "metadata_statement"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "properties_block"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "perspectives_block"
               }
             ]
           }
@@ -6053,6 +6091,51 @@
         {
           "type": "FIELD",
           "name": "value",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_directive_value"
+          }
+        }
+      ]
+    },
+    "perspectives_block": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "perspectives"
+        },
+        {
+          "type": "STRING",
+          "value": "{"
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "SYMBOL",
+            "name": "perspective_entry"
+          }
+        },
+        {
+          "type": "STRING",
+          "value": "}"
+        }
+      ]
+    },
+    "perspective_entry": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "FIELD",
+          "name": "name",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_directive_value"
+          }
+        },
+        {
+          "type": "FIELD",
+          "name": "description",
           "content": {
             "type": "SYMBOL",
             "name": "_directive_value"

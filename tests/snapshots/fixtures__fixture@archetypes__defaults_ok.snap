@@ -1,0 +1,54 @@
+---
+source: tests/fixtures.rs
+expression: "common::tree_sexp(&tree)"
+---
+(source_file
+  (workspace body:
+    (workspace_block
+      (model body:
+        (model_block
+          (archetypes body:
+            (archetypes_block
+              (archetype_definition base:
+                (archetype_base) body:
+                (archetype_body
+                  (description_statement value:
+                    (string))
+                  (tag_statement value:
+                    (string))
+                  (properties_block
+                    (property_entry name:
+                      (string) value:
+                      (string)))
+                  (perspectives_block
+                    (perspective_entry name:
+                      (string) description:
+                      (string)))))
+              (archetype_definition base:
+                (archetype_base
+                  (relationship_operator)) body:
+                (archetype_body
+                  (description_statement value:
+                    (string))
+                  (technology_statement value:
+                    (string))
+                  (tag_statement value:
+                    (string))
+                  (properties_block
+                    (property_entry name:
+                      (string) value:
+                      (string)))
+                  (perspectives_block
+                    (perspective_entry name:
+                      (string) description:
+                      (string)))))))
+          (software_system identifier:
+            (identifier) name:
+            (string))
+          (software_system identifier:
+            (identifier) name:
+            (string))
+          (relationship source:
+            (identifier) operator:
+            (relationship_operator) destination:
+            (identifier)))))))

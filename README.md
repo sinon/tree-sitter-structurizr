@@ -29,13 +29,12 @@ The following syntax is implemented and covered by the local corpus and Rust tes
 - Deployment/view helpers used by current fixtures: `animation`, `themes`, and lowercase `autolayout`.
 - Styles inside `views`: `styles`, `element`, `relationship`, and flat style settings like `background`, `shape`, `color`, and `opacity`.
 - Directives and configuration currently used by fixtures: `!include`, `!identifiers`, `!impliedRelationships`, `!docs`, `!adrs`, plus `configuration { scope, visibility, users }`.
-- Initial archetype/custom-element support: `archetypes`, custom elements, basic archetype extension by identifier, `!elements`, and `!element`.
+- Expanded archetype/custom-element support: archetype defaults, nested `properties` and `perspectives` inside archetype bodies, relationship archetype extensions such as `sync = -> { ... }` / `--sync->`, custom elements, `!elements`, and `!element`.
 
 ## Not yet implemented
 
 These areas are still in progress. Some parse partially, but they are not considered complete or stable yet:
 
-- Richer archetype defaults and extensions, especially nested defaults such as `properties` and `perspectives` inside archetype definitions.
 - Full group semantics and broader model-level metadata/property constructs.
 - Broader workspace extension/include coverage beyond the currently tested directive forms.
 - Remaining dynamic/deployment edge cases found in upstream fixtures.
