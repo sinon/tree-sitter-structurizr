@@ -10,12 +10,19 @@ pub struct FixtureCase {
     pub name: String,
     pub path: PathBuf,
     pub source: String,
+    pub expectation: FixtureExpectation,
 }
 
 impl FixtureCase {
     pub fn snapshot_name(&self) -> String {
         format!("fixture__{}", self.name)
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FixtureExpectation {
+    ParseOk,
+    ParseError,
 }
 
 pub fn parse(source: &str) -> Tree {
@@ -63,45 +70,62 @@ pub fn assert_has_errors(label: &str, tree: &Tree, source: &str) {
     );
 }
 
-pub fn load_fixtures(root: impl AsRef<Path>) -> Vec<FixtureCase> {
-    let root = root.as_ref();
-    let mut paths = Vec::new();
-    collect_dsl_files(root, &mut paths);
-    paths.sort();
-
-    paths.into_iter()
-        .map(|path| FixtureCase {
-            name: relative_fixture_name(&path),
-            source: fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("failed to read fixture `{}`: {error}", path.display())),
-            path,
-        })
-        .collect()
-}
-
-fn collect_dsl_files(root: &Path, paths: &mut Vec<PathBuf>) {
-    for entry in fs::read_dir(root)
-        .unwrap_or_else(|error| panic!("failed to read fixture directory `{}`: {error}", root.display()))
-    {
-        let entry = entry.expect("failed to read fixture directory entry");
-        let path = entry.path();
-
-        if path.is_dir() {
-            collect_dsl_files(&path, paths);
-        } else if path.extension().and_then(|ext| ext.to_str()) == Some("dsl") {
-            paths.push(path);
-        }
+pub fn load_fixture(path: impl AsRef<Path>) -> FixtureCase {
+    let path = path.as_ref().to_path_buf();
+    FixtureCase {
+        name: relative_fixture_name(&path),
+        source: fs::read_to_string(&path)
+            .unwrap_or_else(|error| panic!("failed to read fixture `{}`: {error}", path.display())),
+        expectation: fixture_expectation(&path),
+        path,
     }
 }
 
 fn relative_fixture_name(path: &Path) -> String {
-    path.strip_prefix("tests/fixtures")
-        .expect("fixture path should live under tests/fixtures")
-        .with_extension("")
+    let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    let relative = path
+        .strip_prefix(&fixture_root)
+        .or_else(|_| path.strip_prefix("tests/fixtures"))
+        .unwrap_or_else(|_| panic!("fixture path should live under tests/fixtures: {}", path.display()))
+        .with_extension("");
+
+    relative
         .components()
-        .map(|component| component.as_os_str().to_string_lossy().replace('-', "_"))
+        .map(|component| fixture_name_component(&component.as_os_str().to_string_lossy()))
         .collect::<Vec<_>>()
         .join("__")
+}
+
+fn fixture_name_component(component: &str) -> String {
+    if let Some(base) = component.strip_suffix("-ok") {
+        format!("{}_ok", normalize_fixture_component(base))
+    } else if let Some(base) = component.strip_suffix("-err") {
+        format!("{}_err", normalize_fixture_component(base))
+    } else {
+        normalize_fixture_component(component)
+    }
+}
+
+fn normalize_fixture_component(component: &str) -> String {
+    component.replace(['-', '.'], "_")
+}
+
+fn fixture_expectation(path: &Path) -> FixtureExpectation {
+    let stem = path
+        .file_stem()
+        .and_then(|stem| stem.to_str())
+        .unwrap_or_else(|| panic!("fixture path should have valid utf-8 stem: {}", path.display()));
+
+    if stem.ends_with("-ok") {
+        FixtureExpectation::ParseOk
+    } else if stem.ends_with("-err") {
+        FixtureExpectation::ParseError
+    } else {
+        panic!(
+            "fixture name must end with `-ok.dsl` or `-err.dsl`: {}",
+            path.display()
+        );
+    }
 }
 
 fn collect_node_issues(node: Node, source: &str, issues: &mut Vec<ParseIssue>) {

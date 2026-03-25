@@ -1,31 +1,33 @@
 mod common;
 
-#[test]
-fn passing_fixtures_parse_without_errors() {
-    for fixture in common::load_fixtures("tests/fixtures/pass") {
-        let tree = common::parse(&fixture.source);
+use std::path::PathBuf;
 
-        common::assert_no_errors(&fixture.name, &tree, &fixture.source);
-        insta::assert_snapshot!(fixture.snapshot_name(), common::tree_sexp(&tree));
-    }
+use rstest::rstest;
+
+macro_rules! set_snapshot_suffix {
+    ($($expr:expr),* $(,)?) => {
+        let mut settings = insta::Settings::clone_current();
+        settings.set_snapshot_suffix(format!($($expr),*));
+        let _guard = settings.bind_to_scope();
+    };
 }
 
-#[test]
-fn future_structurizr_fixtures_are_tracked_as_pending_coverage() {
-    for fixture in common::load_fixtures("tests/fixtures/future") {
-        let tree = common::parse(&fixture.source);
+#[rstest]
+fn fixtures_match_expected_parse_outcomes(
+    #[files("tests/fixtures/**/*.dsl")] path: PathBuf,
+) {
+    let fixture = common::load_fixture(&path);
+    let tree = common::parse(&fixture.source);
 
-        assert!(
-            tree.root_node().has_error() || tree.root_node().is_missing(),
-            "expected `{}` to remain pending future grammar coverage\nsource:\n{}\n\nsexp:\n{}",
-            fixture.name,
-            fixture.source,
-            common::tree_sexp(&tree)
-        );
-        assert!(
-            fixture.path.exists(),
-            "fixture path should continue to exist: {}",
-            fixture.path.display()
-        );
+    match fixture.expectation {
+        common::FixtureExpectation::ParseOk => {
+            common::assert_no_errors(&fixture.name, &tree, &fixture.source);
+        }
+        common::FixtureExpectation::ParseError => {
+            common::assert_has_errors(&fixture.name, &tree, &fixture.source);
+        }
     }
+
+    set_snapshot_suffix!("{}", fixture.name);
+    insta::assert_snapshot!("fixture", common::tree_sexp(&tree));
 }

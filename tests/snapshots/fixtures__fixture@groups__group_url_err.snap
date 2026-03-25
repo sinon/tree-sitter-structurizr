@@ -1,0 +1,18 @@
+---
+source: tests/fixtures.rs
+expression: "common::tree_sexp(&tree)"
+---
+(source_file
+  (workspace body:
+    (workspace_block
+      (model body:
+        (model_block
+          (archetype_instance kind:
+            (identifier) name:
+            (string) body:
+            (custom_element_block
+              (archetype_instance kind:
+                (identifier) name:
+                (identifier))
+              (ERROR)
+              (comment))))))))

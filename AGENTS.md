@@ -17,13 +17,11 @@ This project is not trying to become a Structurizr runtime. It should preserve a
 
 - `grammar.js` — source of truth for the grammar
 - `src/parser.c`, `src/grammar.json`, `src/node-types.json` — generated artifacts
-- `tests/snippets.rs` — focused inline Rust parser tests
 - `tests/fixtures.rs` — fixture-driven Rust tests with snapshots
 - `tests/common/mod.rs` — shared parser/test helpers and parse-issue extraction
 - `tests/upstream_audit.rs` — ignored integration test that downloads upstream Structurizr DSL fixtures and audits parser coverage
 - `test/corpus/` — Tree-sitter CLI corpus tests
-- `tests/fixtures/pass/` — fixtures that should parse cleanly
-- `tests/fixtures/future/` — fixtures intentionally kept as pending coverage
+- `tests/fixtures/` — the main Rust fixture tree, organized by feature area
 - `queries/` — placeholder area for future highlighting/folding/indentation queries
 - `Justfile` — canonical command surface
 
@@ -53,7 +51,7 @@ Use this harness for:
 
 This is the fastest harness for parser structure changes, but it is intentionally smaller and narrower than the Rust suite.
 
-### 2. Rust snippets and snapshot fixtures
+### 2. Rust fixture snapshots
 
 Commands:
 
@@ -64,10 +62,12 @@ just test-rust-fast
 
 This is the main local correctness harness.
 
-It has two layers:
+It is fixture-first:
 
-- `tests/snippets.rs` for focused inline examples
-- `tests/fixtures.rs` for file-based fixtures under `tests/fixtures/`
+- `tests/fixtures.rs` loads file-based fixtures under `tests/fixtures/`
+- fixture filenames encode expectation:
+  - `-ok.dsl` means the fixture should parse without errors
+  - `-err.dsl` means the fixture should continue to produce parse errors
 
 The fixture tests snapshot parse trees with `insta`. This gives stable visibility into parse-tree shape changes over time, which is especially useful when a grammar change fixes one syntax family but accidentally reshapes another.
 
@@ -128,8 +128,8 @@ When changing the grammar, use this loop:
 1. Pick a narrow syntax slice from the upstream audit.
 2. Read the failing upstream examples for that slice.
 3. Add or adjust local coverage first:
-   - snippet tests in `tests/snippets.rs`
-   - fixture files under `tests/fixtures/pass/` or `tests/fixtures/future/`
+   - fixture files under `tests/fixtures/`, organized by feature area
+   - use `-ok.dsl` or `-err.dsl` suffixes to express expected outcome
    - corpus coverage under `test/corpus/` if the syntax belongs in the compact CLI suite
 4. Update `grammar.js`.
 5. Regenerate parser artifacts:
@@ -165,23 +165,18 @@ Use `test/corpus/` when:
 - the tree shape is important
 - the syntax belongs in the stable Tree-sitter-native regression suite
 
-Use `tests/snippets.rs` when:
-
-- you want a focused parser assertion
-- the syntax is easier to express inline
-- you need a high-signal regression test for a single feature
-
-Use `tests/fixtures/pass/` when:
+Use `tests/fixtures/` when:
 
 - the example is more realistic or multi-block
 - you want snapshot coverage for a representative DSL file
+- you want the expectation encoded in the fixture filename (`-ok.dsl` / `-err.dsl`)
 
-Use `tests/fixtures/future/` when:
+Use direct Rust tests only when:
 
-- the syntax is intentionally still pending
-- you want to keep a concrete example around without claiming support yet
+- the behavior is really about the harness, not a DSL sample
+- the assertion is awkward to express as a fixture file
 
-If a future fixture starts parsing cleanly because the grammar expanded, move or rewrite it. Future fixtures are expected to continue producing parse errors.
+If an `-err.dsl` fixture starts parsing cleanly because the grammar expanded, rename or rewrite it so the expected outcome remains intentional.
 
 ## Current support model
 
@@ -215,7 +210,7 @@ The preferred way to improve the grammar is incremental and audit-driven:
 2. Choose one broad bucket
 3. Narrow to a smaller sub-slice by file or feature
 4. Implement only enough syntax to make that slice parse well
-5. Add local corpus/snippet/fixture coverage
+5. Add local corpus/fixture coverage
 6. Regenerate and update snapshots
 7. Re-run the audit and measure the drop in failures
 

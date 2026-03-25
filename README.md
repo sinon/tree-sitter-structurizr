@@ -6,7 +6,7 @@ The project goal is editor tooling first: syntax highlighting, folding, indentat
 
 ## Status
 
-The grammar is usable today for a meaningful subset of the DSL and has a Rust-first test harness plus an upstream audit harness.
+The grammar is usable today for a meaningful subset of the DSL and has a fixture-first Rust test harness plus an upstream audit harness.
 
 Current validation:
 
@@ -88,6 +88,8 @@ Useful variants:
 - `grammar.js` defines the grammar.
 - `src/parser.c`, `src/grammar.json`, and `src/node-types.json` are generated artifacts and should be regenerated after grammar changes.
 - `tests/` contains the Rust parser harness, fixtures, snapshots, and upstream audit.
+- `tests/fixtures/` is the main Rust regression surface, organized by feature area.
+- Rust fixture files use explicit expectations in their filenames: `-ok.dsl` for clean parses and `-err.dsl` for expected parse errors.
 - `test/corpus/` contains Tree-sitter CLI corpus tests.
 - `queries/` is reserved for editor query files used by consumers like Zed.
 
