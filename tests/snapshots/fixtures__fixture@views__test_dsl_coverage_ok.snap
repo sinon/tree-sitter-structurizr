@@ -1,0 +1,203 @@
+---
+source: tests/fixtures.rs
+expression: "common::tree_sexp(&tree)"
+---
+(source_file
+  (workspace body:
+    (workspace_block
+      (model body:
+        (model_block
+          (implied_relationships_directive value:
+            (identifier))
+          (enterprise name:
+            (string) body:
+            (enterprise_block
+              (software_system identifier:
+                (identifier) name:
+                (string) body:
+                (software_system_block
+                  (container identifier:
+                    (identifier) name:
+                    (string) body:
+                    (container_block
+                      (component identifier:
+                        (identifier) name:
+                        (string) body:
+                        (component_block
+                          (url_statement value:
+                            (string))
+                          (properties_block
+                            (property_entry name:
+                              (string) value:
+                              (string)))
+                          (perspectives_block
+                            (perspective_entry name:
+                              (string) description:
+                              (string))
+                            (perspective_definition name:
+                              (string) body:
+                              (perspective_block
+                                (value_statement value:
+                                  (string))
+                                (description_statement value:
+                                  (string)))))))))))))
+          (person identifier:
+            (identifier) name:
+            (string) body:
+            (person_block
+              (url_statement value:
+                (string))
+              (perspectives_block
+                (perspective_entry name:
+                  (string) description:
+                  (string) value:
+                  (string)))))
+          (relationship source:
+            (identifier) operator:
+            (relationship_operator) destination:
+            (identifier) attribute:
+            (string))
+          (relationships_directive expression:
+            (string) body:
+            (relationships_block
+              (tag_statement value:
+                (string))
+              (url_statement value:
+                (string))
+              (properties_block
+                (property_entry name:
+                  (string) value:
+                  (string)))
+              (perspectives_block
+                (perspective_entry name:
+                  (string) description:
+                  (string)))))
+          (deployment_environment identifier:
+            (identifier) name:
+            (string) body:
+            (deployment_environment_block
+              (deployment_node name:
+                (string) body:
+                (deployment_node_block
+                  (infrastructure_node name:
+                    (string) body:
+                    (deployment_node_block
+                      (url_statement value:
+                        (string))
+                      (perspectives_block
+                        (perspective_entry name:
+                          (string) description:
+                          (string)))))
+                  (container_instance
+                    (container_instance_simple identifier:
+                      (identifier) target:
+                      (identifier) body:
+                      (deployment_instance_block
+                        (url_statement value:
+                          (string))
+                        (properties_block
+                          (property_entry name:
+                            (string) value:
+                            (string)))
+                        (perspectives_block
+                          (perspective_entry name:
+                            (string) description:
+                            (string)))
+                        (health_check_statement name:
+                          (string) url:
+                          (string))
+                        (health_check_statement name:
+                          (string) url:
+                          (string) interval:
+                          (number))
+                        (health_check_statement name:
+                          (string) url:
+                          (string) interval:
+                          (number) timeout:
+                          (number)))))
+                  (instance_of identifier:
+                    (identifier) target:
+                    (identifier) body:
+                    (deployment_instance_block
+                      (url_statement value:
+                        (string))))))))))
+      (views body:
+        (views_block
+          (system_context_view scope:
+            (identifier) key:
+            (string) description:
+            (string) body:
+            (system_context_view_block
+              (include_statement value:
+                (wildcard))
+              (properties_block
+                (property_entry name:
+                  (string) value:
+                  (string)))
+              (default_statement)))
+          (dynamic_view scope:
+            (identifier) key:
+            (string) description:
+            (string) body:
+            (dynamic_view_block
+              (dynamic_relationship source:
+                (identifier) destination:
+                (identifier) description:
+                (string))
+              (dynamic_relationship source:
+                (identifier) destination:
+                (identifier) body:
+                (dynamic_relationship_block
+                  (url_statement value:
+                    (string))))
+              (properties_block
+                (property_entry name:
+                  (string) value:
+                  (string)))
+              (default_statement)))
+          (styles body:
+            (styles_block
+              (theme_statement value:
+                (bare_value))
+              (themes_statement value:
+                (bare_value) value:
+                (bare_value))))
+          (branding body:
+            (branding_block
+              (logo_statement value:
+                (identifier))
+              (font_statement name:
+                (string) url:
+                (bare_value))))
+          (terminology body:
+            (terminology_block
+              (terminology_entry kind:
+                (identifier) value:
+                (string))
+              (terminology_entry kind:
+                (identifier) value:
+                (string))
+              (terminology_entry kind:
+                (identifier) value:
+                (string))
+              (terminology_entry kind:
+                (identifier) value:
+                (string))
+              (terminology_entry kind:
+                (identifier) value:
+                (string))
+              (terminology_entry kind:
+                (identifier) value:
+                (string))
+              (terminology_entry kind:
+                (identifier) value:
+                (string))
+              (terminology_entry kind:
+                (identifier) value:
+                (string))))))
+      (configuration body:
+        (configuration_block
+          (users_block
+            (user_entry username:
+              (bare_value) role:
+              (identifier))))))))

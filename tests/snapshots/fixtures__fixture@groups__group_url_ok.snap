@@ -10,8 +10,5 @@ expression: "common::tree_sexp(&tree)"
           (group name:
             (string) body:
             (group_block
-              (archetype_instance kind:
-                (identifier) name:
-                (identifier))
-              (ERROR)
-              (comment))))))))
+              (url_statement value:
+                (bare_value)))))))))

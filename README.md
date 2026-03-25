@@ -23,21 +23,21 @@ The following syntax is implemented and covered by the local corpus and Rust tes
 - Core metadata and tokens: strings, numbers, identifiers, wildcard values, and comments (`//`, whitespace-prefixed `#`, and `/* ... */`).
 - Core model elements: `person`, `softwareSystem`, `container`, and `component`, including identifier assignment.
 - Deployment model constructs: `deploymentEnvironment` with or without a body, `deploymentGroup`, `deploymentNode`, `infrastructureNode`, `containerInstance`, `softwareSystemInstance`, and `instanceOf`, including instance bodies with relationships to `this`.
-- Relationships: basic `->`, `-/>`, tagged operators such as `--https->`, assigned relationships like `r = a -> b`, `this`, inline filtered-view tags, and relationship bodies used by the current fixtures.
-- Views: `systemLandscape`, `systemContext`, `container`, `component`, `filtered`, `dynamic`, `deployment`, `custom`, and `image`.
-- Common view statements: `include`, `exclude`, `animation`, `autoLayout`, `default`, `title`, and `description`.
-- Deployment/view helpers used by current fixtures: `animation`, `themes`, and lowercase `autolayout`.
-- Dynamic view coverage includes explicit relationship references such as `r2 "Async"` and nested parallel blocks.
-- Styles inside `views`: `styles`, `element`, `relationship`, and flat style settings like `background`, `shape`, `color`, and `opacity`.
-- Directives and configuration currently used by fixtures: `!include` at workspace and model level, `!const`, `!constant`, `!var`, `!identifiers`, `!impliedRelationships`, `!docs`, `!adrs`, workspace/model `properties`, plus `configuration { scope, visibility, users }`.
+- Relationships: basic `->`, `-/>`, tagged operators such as `--https->`, assigned relationships like `r = a -> b`, `this`, relationship bulk updates via `!relationships`, and relationship bodies used by the current fixtures.
+- Views: `systemLandscape`, `systemContext`, `container`, `component`, `filtered`, `dynamic`, `deployment`, `custom`, and `image`, plus `branding` and `terminology`.
+- Common view statements: `include`, `exclude`, `animation`, `autoLayout`, `default`, `title`, `description`, and per-view `properties`.
+- Deployment/view helpers used by current fixtures: `animation`, `theme`, `themes`, image `light`/`dark` source groups, and lowercase `autolayout`.
+- Dynamic view coverage includes explicit relationship references such as `r2 "Async"`, nested parallel blocks, and no-description relationship bodies for nested flows or metadata.
+- Styles inside `views`: `styles`, `element`, `relationship`, light/dark style modes, inline `theme`/`themes`, and flat style settings like `background`, `shape`, `color`, and `opacity`.
+- Directives and configuration currently used by fixtures: `!include` at workspace and model level, `!const`, `!constant`, `!var`, `!identifiers`, `!impliedRelationships`, `!docs`, `!adrs`, `!elements`, `!element`, `!relationships`, workspace/model `properties`, plus `configuration { scope, visibility, users }`.
 - Text features used by current fixtures: triple-quoted text blocks, multiline `\` continuations between tokens and inside quoted strings, and image/PlantUML sources fed from text blocks.
-- Expanded archetype/custom-element support: archetype defaults, nested `properties` and `perspectives` inside archetype bodies, relationship archetype extensions such as `sync = -> { ... }` / `--sync->`, custom elements, `!elements`, `!element`, hierarchical selectors like `a.b.c`, deployment-node selectors, and selector updates inside nested groups.
+- Expanded archetype/custom-element support: archetype defaults, nested `properties` and richer `perspectives` inside archetype bodies, relationship archetype extensions such as `sync = -> { ... }` / `--sync->`, custom elements, `!elements`, `!element`, hierarchical selectors like `a.b.c`, deployment-node selectors, and selector updates inside nested groups.
 
 ## Not yet implemented
 
 These areas are still in progress. Some parse partially, but they are not considered complete or stable yet:
 
-- Remaining broad umbrella samples from the upstream audit (`big-bank-plc.dsl`, `test.dsl`).
+- The remaining broad umbrella sample from the upstream audit: `big-bank-plc.dsl`.
 - Query authoring for highlighting/folding/indentation is still placeholder-only.
 
 ## Explicitly unsupported

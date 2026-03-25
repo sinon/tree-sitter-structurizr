@@ -30,6 +30,9 @@ This project is not trying to become a Structurizr runtime. It should preserve a
 - `https://github.com/structurizr/structurizr.github.io/blob/main/dsl/71-language.md` - the language reference for the `.dsl`
 - `https://github.com/structurizr/dsl/tree/master/src` - the upstream dsl parser written in Java
 - `https://github.com/structurizr/dsl/tree/master/src/test/dsl` - the corpus of test `.dsl` files used to test the Java parser
+- `https://github.com/structurizr/structurizr/blob/main/structurizr-core/src/main/java/com/structurizr/view/Shape.java` - the valid set of values for `shape`
+- `https://github.com/structurizr/structurizr/blob/main/structurizr-core/src/main/java/com/structurizr/view/Color.java` - the valid set of colour names that upsteam parser supports.
+- `https://github.com/structurizr/structurizr/tree/main/structurizr-core/src/main/java/com/structurizr/view` - holds a lot of static values (such as colour and shape others might be relevant for future gap filling) 
 
 ### General development notes
 - For ad-hoc debugging, create a temporary Rust example in examples/ and run it with cargo run --example <name>. Remove the example after use.

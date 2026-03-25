@@ -10,9 +10,7 @@ expression: "common::tree_sexp(&tree)"
           (group name:
             (string) body:
             (group_block
-              (archetype_instance kind:
-                (identifier)
-                (ERROR) name:
-                (string) metadata:
-                (string))))))))
-  (ERROR))
+              (properties_block
+                (property_entry name:
+                  (string) value:
+                  (string))))))))))

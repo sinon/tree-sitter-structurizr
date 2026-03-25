@@ -388,6 +388,16 @@ export default grammar({
       field("value", $._value),
     ),
 
+    url_statement: $ => seq(
+      "url",
+      field("value", $._directive_value),
+    ),
+
+    value_statement: $ => seq(
+      "value",
+      field("value", $._directive_value),
+    ),
+
     title_statement: $ => seq(
       "title",
       field("value", $._value),
@@ -395,6 +405,7 @@ export default grammar({
 
     _model_item: $ => choice(
       $.archetypes,
+      $.enterprise,
       $.group,
       $.person,
       $.software_system,
@@ -406,8 +417,10 @@ export default grammar({
       $.constant_directive,
       $.var_directive,
       $.elements_directive,
+      $.relationships_directive,
       $.element_directive,
       $.identifiers_directive,
+      $.implied_relationships_directive,
       $.properties_block,
       $.relationship,
     ),
@@ -418,6 +431,7 @@ export default grammar({
       $.custom_element,
       $.archetype_instance,
       $.elements_directive,
+      $.relationships_directive,
       $.element_directive,
       $.relationship,
       $.docs_directive,
@@ -426,6 +440,9 @@ export default grammar({
       $.tag_statement,
       $.tags_statement,
       $.metadata_statement,
+      $.url_statement,
+      $.properties_block,
+      $.perspectives_block,
     ),
 
     _container_item: $ => choice(
@@ -434,6 +451,7 @@ export default grammar({
       $.custom_element,
       $.archetype_instance,
       $.elements_directive,
+      $.relationships_directive,
       $.element_directive,
       $.relationship,
       $.docs_directive,
@@ -443,11 +461,15 @@ export default grammar({
       $.tag_statement,
       $.tags_statement,
       $.metadata_statement,
+      $.url_statement,
+      $.properties_block,
+      $.perspectives_block,
     ),
 
     _component_item: $ => choice(
       $.group,
       $.elements_directive,
+      $.relationships_directive,
       $.element_directive,
       $.relationship,
       $.description_statement,
@@ -455,6 +477,9 @@ export default grammar({
       $.tag_statement,
       $.tags_statement,
       $.metadata_statement,
+      $.url_statement,
+      $.properties_block,
+      $.perspectives_block,
     ),
 
     _deployment_item: $ => choice(
@@ -474,6 +499,9 @@ export default grammar({
       $.relationship,
       $.tag_statement,
       $.tags_statement,
+      $.url_statement,
+      $.properties_block,
+      $.perspectives_block,
     ),
 
     _custom_block_item: $ => choice(
@@ -485,6 +513,7 @@ export default grammar({
       $.custom_element,
       $.archetype_instance,
       $.elements_directive,
+      $.relationships_directive,
       $.element_directive,
       $.relationship,
       $.description_statement,
@@ -492,6 +521,9 @@ export default grammar({
       $.tag_statement,
       $.tags_statement,
       $.metadata_statement,
+      $.url_statement,
+      $.properties_block,
+      $.perspectives_block,
       $.docs_directive,
       $.adrs_directive,
     ),
@@ -509,6 +541,7 @@ export default grammar({
       $.container_instance,
       $.software_system_instance,
       $.elements_directive,
+      $.relationships_directive,
       $.element_directive,
       $.relationship,
       $.description_statement,
@@ -516,6 +549,24 @@ export default grammar({
       $.tag_statement,
       $.tags_statement,
       $.metadata_statement,
+      $.url_statement,
+      $.properties_block,
+      $.perspectives_block,
+      $.docs_directive,
+      $.adrs_directive,
+    ),
+
+    _enterprise_item: $ => choice(
+      $.group,
+      $.person,
+      $.software_system,
+      $.custom_element,
+      $.archetype_instance,
+      $.elements_directive,
+      $.relationships_directive,
+      $.element_directive,
+      $.relationship,
+      $.properties_block,
       $.docs_directive,
       $.adrs_directive,
     ),
@@ -572,6 +623,9 @@ export default grammar({
         $.tags_statement,
         $.relationship,
         $.metadata_statement,
+        $.url_statement,
+        $.properties_block,
+        $.perspectives_block,
       )),
       "}",
     ),
@@ -766,6 +820,18 @@ export default grammar({
       "}",
     ),
 
+    enterprise: $ => seq(
+      "enterprise",
+      field("name", $._value),
+      optional(field("body", $.enterprise_block)),
+    ),
+
+    enterprise_block: $ => seq(
+      "{",
+      repeat($._enterprise_item),
+      "}",
+    ),
+
     deployment_environment: $ => seq(
       optional(seq(
         field("identifier", $._assignment_identifier),
@@ -824,6 +890,10 @@ export default grammar({
         $.relationship,
         $.tag_statement,
         $.tags_statement,
+        $.url_statement,
+        $.properties_block,
+        $.perspectives_block,
+        $.health_check_statement,
       )),
       "}",
     ),
@@ -893,6 +963,7 @@ export default grammar({
       )),
       "instanceOf",
       field("target", $.identifier),
+      optional(field("body", $.deployment_instance_block)),
     ),
 
     // Relationships appear both as top-level model statements and nested inside
@@ -1011,6 +1082,7 @@ export default grammar({
         $.tags_statement,
         $.description_statement,
         $.technology_statement,
+        $.url_statement,
         $.properties_block,
         $.perspectives_block,
         $.nested_relationship,
@@ -1139,8 +1211,6 @@ export default grammar({
         $.infrastructure_node,
         $.container_instance,
         $.software_system_instance,
-        $.properties_block,
-        $.perspectives_block,
       )),
       "}",
     ),
@@ -1151,6 +1221,12 @@ export default grammar({
       field("body", $.elements_block),
     ),
 
+    relationships_directive: $ => seq(
+      "!relationships",
+      field("expression", $._directive_value),
+      field("body", $.relationships_block),
+    ),
+
     elements_block: $ => seq(
       "{",
       repeat(choice(
@@ -1159,6 +1235,23 @@ export default grammar({
         $.tags_statement,
         $.description_statement,
         $.technology_statement,
+        $.url_statement,
+        $.properties_block,
+        $.perspectives_block,
+      )),
+      "}",
+    ),
+
+    relationships_block: $ => seq(
+      "{",
+      repeat(choice(
+        $.tag_statement,
+        $.tags_statement,
+        $.description_statement,
+        $.technology_statement,
+        $.url_statement,
+        $.properties_block,
+        $.perspectives_block,
       )),
       "}",
     ),
@@ -1175,6 +1268,8 @@ export default grammar({
       $.deployment_view,
       $.custom_view,
       $.image_view,
+      $.branding,
+      $.terminology,
       $.properties_block,
       $.const_directive,
       $.constant_directive,
@@ -1200,12 +1295,14 @@ export default grammar({
       $.exclude_statement,
       $.animation_statement,
       $.auto_layout_statement,
+      $.properties_block,
       $.default_statement,
       $.title_statement,
       $.description_statement,
     ),
 
     _filtered_view_statement: $ => choice(
+      $.properties_block,
       $.default_statement,
       $.title_statement,
       $.description_statement,
@@ -1216,6 +1313,7 @@ export default grammar({
       $.dynamic_relationship_reference,
       $.dynamic_parallel_block,
       $.auto_layout_statement,
+      $.properties_block,
       $.default_statement,
       $.title_statement,
       $.description_statement,
@@ -1226,6 +1324,7 @@ export default grammar({
       $.exclude_statement,
       $.animation_statement,
       $.auto_layout_statement,
+      $.properties_block,
       $.default_statement,
       $.title_statement,
       $.description_statement,
@@ -1501,12 +1600,13 @@ export default grammar({
     order: _ => token(/[0-9]+(\.[0-9]+)*/),
 
     dynamic_relationship: $ => choice(
-      seq(
+      prec.right(seq(
         optional(seq(field("order", $.order), ":")),
         field("source", $.identifier),
         "->",
         field("destination", $.identifier),
-      ),
+        optional(field("body", $.dynamic_relationship_block)),
+      )),
       seq(
         optional(seq(field("order", $.order), ":")),
         field("source", $.identifier),
@@ -1533,6 +1633,18 @@ export default grammar({
     dynamic_parallel_block: $ => seq(
       "{",
       repeat1(choice(
+        $.dynamic_relationship,
+        $.dynamic_relationship_reference,
+        $.dynamic_parallel_block,
+      )),
+      "}",
+    ),
+
+    dynamic_relationship_block: $ => seq(
+      "{",
+      repeat1(choice(
+        $.url_statement,
+        $.properties_block,
         $.dynamic_relationship,
         $.dynamic_relationship_reference,
         $.dynamic_parallel_block,
@@ -1612,11 +1724,59 @@ export default grammar({
         $.mermaid_source,
         $.kroki_source,
         $.image_source,
+        $.light_image_sources,
+        $.dark_image_sources,
         $.default_statement,
         $.title_statement,
         $.description_statement,
       )),
       "}",
+    ),
+
+    light_image_sources: $ => seq(
+      "light",
+      field("body", $.image_source_block),
+    ),
+
+    dark_image_sources: $ => seq(
+      "dark",
+      field("body", $.image_source_block),
+    ),
+
+    image_source_block: $ => seq(
+      "{",
+      repeat1(choice(
+        $.plantuml_source,
+        $.mermaid_source,
+        $.kroki_source,
+        $.image_source,
+      )),
+      "}",
+    ),
+
+    branding: $ => seq(
+      "branding",
+      field("body", $.branding_block),
+    ),
+
+    branding_block: $ => seq(
+      "{",
+      repeat(choice(
+        $.logo_statement,
+        $.font_statement,
+      )),
+      "}",
+    ),
+
+    logo_statement: $ => seq(
+      "logo",
+      field("value", $._directive_value),
+    ),
+
+    font_statement: $ => seq(
+      "font",
+      field("name", $._directive_value),
+      field("url", $._directive_value),
     ),
 
     theme_statement: $ => seq(
@@ -1647,6 +1807,8 @@ export default grammar({
       $.relationship_style,
       $.light_styles,
       $.dark_styles,
+      $.theme_statement,
+      $.themes_statement,
     ),
 
     light_styles: $ => seq(
@@ -1727,13 +1889,59 @@ export default grammar({
     perspectives_block: $ => seq(
       "perspectives",
       "{",
-      repeat($.perspective_entry),
+      repeat(choice(
+        $.perspective_entry,
+        $.perspective_definition,
+      )),
       "}",
     ),
 
-    perspective_entry: $ => seq(
+    perspective_entry: $ => choice(
+      seq(
+        field("name", $._directive_value),
+        field("description", $._directive_value),
+      ),
+      prec(1, seq(
+        field("name", $._directive_value),
+        field("description", $._directive_value),
+        field("value", $._directive_value),
+      )),
+    ),
+
+    perspective_definition: $ => seq(
+      "perspective",
       field("name", $._directive_value),
-      field("description", $._directive_value),
+      field("body", $.perspective_block),
+    ),
+
+    perspective_block: $ => seq(
+      "{",
+      repeat1(choice(
+        $.value_statement,
+        $.description_statement,
+      )),
+      "}",
+    ),
+
+    health_check_statement: $ => choice(
+      seq(
+        "healthCheck",
+        field("name", $._directive_value),
+        field("url", $._directive_value),
+      ),
+      seq(
+        "healthCheck",
+        field("name", $._directive_value),
+        field("url", $._directive_value),
+        field("interval", $.number),
+      ),
+      seq(
+        "healthCheck",
+        field("name", $._directive_value),
+        field("url", $._directive_value),
+        field("interval", $.number),
+        field("timeout", $.number),
+      ),
     ),
 
     // Image views can point at several source syntaxes; these are modeled as small,
@@ -1756,6 +1964,32 @@ export default grammar({
 
     image_source: $ => seq(
       "image",
+      field("value", $._directive_value),
+    ),
+
+    terminology: $ => seq(
+      "terminology",
+      field("body", $.terminology_block),
+    ),
+
+    terminology_block: $ => seq(
+      "{",
+      repeat($.terminology_entry),
+      "}",
+    ),
+
+    terminology_entry: $ => seq(
+      field("kind", alias(choice(
+        "enterprise",
+        "person",
+        "softwareSystem",
+        "container",
+        "component",
+        "deploymentNode",
+        "infrastructureNode",
+        "relationship",
+        "metadata",
+      ), $.identifier)),
       field("value", $._directive_value),
     ),
 

@@ -293,6 +293,41 @@
     }
   },
   {
+    "type": "branding",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "branding_block",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "branding_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "font_statement",
+          "named": true
+        },
+        {
+          "type": "logo_statement",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "color_value",
     "named": true,
     "fields": {},
@@ -414,7 +449,19 @@
           "named": true
         },
         {
+          "type": "perspectives_block",
+          "named": true
+        },
+        {
+          "type": "properties_block",
+          "named": true
+        },
+        {
           "type": "relationship",
+          "named": true
+        },
+        {
+          "type": "relationships_directive",
           "named": true
         },
         {
@@ -427,6 +474,10 @@
         },
         {
           "type": "technology_statement",
+          "named": true
+        },
+        {
+          "type": "url_statement",
           "named": true
         }
       ]
@@ -512,6 +563,10 @@
         },
         {
           "type": "include_statement",
+          "named": true
+        },
+        {
+          "type": "properties_block",
           "named": true
         },
         {
@@ -783,7 +838,19 @@
           "named": true
         },
         {
+          "type": "perspectives_block",
+          "named": true
+        },
+        {
+          "type": "properties_block",
+          "named": true
+        },
+        {
           "type": "relationship",
+          "named": true
+        },
+        {
+          "type": "relationships_directive",
           "named": true
         },
         {
@@ -796,6 +863,10 @@
         },
         {
           "type": "technology_statement",
+          "named": true
+        },
+        {
+          "type": "url_statement",
           "named": true
         }
       ]
@@ -985,6 +1056,10 @@
           "named": true
         },
         {
+          "type": "properties_block",
+          "named": true
+        },
+        {
           "type": "title_statement",
           "named": true
         }
@@ -1098,7 +1173,19 @@
           "named": true
         },
         {
+          "type": "perspectives_block",
+          "named": true
+        },
+        {
+          "type": "properties_block",
+          "named": true
+        },
+        {
           "type": "relationship",
+          "named": true
+        },
+        {
+          "type": "relationships_directive",
           "named": true
         },
         {
@@ -1115,6 +1202,10 @@
         },
         {
           "type": "technology_statement",
+          "named": true
+        },
+        {
+          "type": "url_statement",
           "named": true
         }
       ]
@@ -1207,10 +1298,30 @@
           "named": true
         },
         {
+          "type": "properties_block",
+          "named": true
+        },
+        {
           "type": "title_statement",
           "named": true
         }
       ]
+    }
+  },
+  {
+    "type": "dark_image_sources",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "image_source_block",
+            "named": true
+          }
+        ]
+      }
     }
   },
   {
@@ -1335,6 +1446,18 @@
       "required": false,
       "types": [
         {
+          "type": "health_check_statement",
+          "named": true
+        },
+        {
+          "type": "perspectives_block",
+          "named": true
+        },
+        {
+          "type": "properties_block",
+          "named": true
+        },
+        {
           "type": "relationship",
           "named": true
         },
@@ -1344,6 +1467,10 @@
         },
         {
           "type": "tags_statement",
+          "named": true
+        },
+        {
+          "type": "url_statement",
           "named": true
         }
       ]
@@ -1432,6 +1559,14 @@
           "named": true
         },
         {
+          "type": "perspectives_block",
+          "named": true
+        },
+        {
+          "type": "properties_block",
+          "named": true
+        },
+        {
           "type": "relationship",
           "named": true
         },
@@ -1445,6 +1580,10 @@
         },
         {
           "type": "tags_statement",
+          "named": true
+        },
+        {
+          "type": "url_statement",
           "named": true
         }
       ]
@@ -1559,6 +1698,10 @@
           "named": true
         },
         {
+          "type": "properties_block",
+          "named": true
+        },
+        {
           "type": "title_statement",
           "named": true
         }
@@ -1640,6 +1783,16 @@
     "type": "dynamic_relationship",
     "named": true,
     "fields": {
+      "body": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "dynamic_relationship_block",
+            "named": true
+          }
+        ]
+      },
       "description": {
         "multiple": false,
         "required": false,
@@ -1690,6 +1843,37 @@
           }
         ]
       }
+    }
+  },
+  {
+    "type": "dynamic_relationship_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "dynamic_parallel_block",
+          "named": true
+        },
+        {
+          "type": "dynamic_relationship",
+          "named": true
+        },
+        {
+          "type": "dynamic_relationship_reference",
+          "named": true
+        },
+        {
+          "type": "properties_block",
+          "named": true
+        },
+        {
+          "type": "url_statement",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -1820,6 +2004,10 @@
         },
         {
           "type": "dynamic_relationship_reference",
+          "named": true
+        },
+        {
+          "type": "properties_block",
           "named": true
         },
         {
@@ -1958,6 +2146,10 @@
           "named": true
         },
         {
+          "type": "relationships_directive",
+          "named": true
+        },
+        {
           "type": "software_system",
           "named": true
         },
@@ -1975,6 +2167,10 @@
         },
         {
           "type": "technology_statement",
+          "named": true
+        },
+        {
+          "type": "url_statement",
           "named": true
         }
       ]
@@ -2023,6 +2219,14 @@
           "named": true
         },
         {
+          "type": "perspectives_block",
+          "named": true
+        },
+        {
+          "type": "properties_block",
+          "named": true
+        },
+        {
           "type": "relationship",
           "named": true
         },
@@ -2036,6 +2240,10 @@
         },
         {
           "type": "technology_statement",
+          "named": true
+        },
+        {
+          "type": "url_statement",
           "named": true
         }
       ]
@@ -2077,6 +2285,95 @@
           }
         ]
       }
+    }
+  },
+  {
+    "type": "enterprise",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "enterprise_block",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "enterprise_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "adrs_directive",
+          "named": true
+        },
+        {
+          "type": "archetype_instance",
+          "named": true
+        },
+        {
+          "type": "custom_element",
+          "named": true
+        },
+        {
+          "type": "docs_directive",
+          "named": true
+        },
+        {
+          "type": "element_directive",
+          "named": true
+        },
+        {
+          "type": "elements_directive",
+          "named": true
+        },
+        {
+          "type": "group",
+          "named": true
+        },
+        {
+          "type": "person",
+          "named": true
+        },
+        {
+          "type": "properties_block",
+          "named": true
+        },
+        {
+          "type": "relationship",
+          "named": true
+        },
+        {
+          "type": "relationships_directive",
+          "named": true
+        },
+        {
+          "type": "software_system",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -2202,10 +2499,64 @@
           "named": true
         },
         {
+          "type": "properties_block",
+          "named": true
+        },
+        {
           "type": "title_statement",
           "named": true
         }
       ]
+    }
+  },
+  {
+    "type": "font_statement",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "text_block_string",
+            "named": true
+          }
+        ]
+      },
+      "url": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "text_block_string",
+            "named": true
+          }
+        ]
+      }
     }
   },
   {
@@ -2317,7 +2668,19 @@
           "named": true
         },
         {
+          "type": "perspectives_block",
+          "named": true
+        },
+        {
+          "type": "properties_block",
+          "named": true
+        },
+        {
           "type": "relationship",
+          "named": true
+        },
+        {
+          "type": "relationships_directive",
           "named": true
         },
         {
@@ -2339,8 +2702,82 @@
         {
           "type": "technology_statement",
           "named": true
+        },
+        {
+          "type": "url_statement",
+          "named": true
         }
       ]
+    }
+  },
+  {
+    "type": "health_check_statement",
+    "named": true,
+    "fields": {
+      "interval": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "number",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "text_block_string",
+            "named": true
+          }
+        ]
+      },
+      "timeout": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "number",
+            "named": true
+          }
+        ]
+      },
+      "url": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "text_block_string",
+            "named": true
+          }
+        ]
+      }
     }
   },
   {
@@ -2397,6 +2834,33 @@
           }
         ]
       }
+    }
+  },
+  {
+    "type": "image_source_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "image_source",
+          "named": true
+        },
+        {
+          "type": "kroki_source",
+          "named": true
+        },
+        {
+          "type": "mermaid_source",
+          "named": true
+        },
+        {
+          "type": "plantuml_source",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -2460,6 +2924,10 @@
       "required": false,
       "types": [
         {
+          "type": "dark_image_sources",
+          "named": true
+        },
+        {
           "type": "default_statement",
           "named": true
         },
@@ -2473,6 +2941,10 @@
         },
         {
           "type": "kroki_source",
+          "named": true
+        },
+        {
+          "type": "light_image_sources",
           "named": true
         },
         {
@@ -2632,6 +3104,16 @@
     "type": "instance_of",
     "named": true,
     "fields": {
+      "body": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "deployment_instance_block",
+            "named": true
+          }
+        ]
+      },
       "identifier": {
         "multiple": false,
         "required": false,
@@ -2710,6 +3192,22 @@
     "fields": {}
   },
   {
+    "type": "light_image_sources",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "image_source_block",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "light_styles",
     "named": true,
     "fields": {
@@ -2719,6 +3217,34 @@
         "types": [
           {
             "type": "style_mode_block",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "logo_statement",
+    "named": true,
+    "fields": {
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "text_block_string",
             "named": true
           }
         ]
@@ -2830,11 +3356,19 @@
           "named": true
         },
         {
+          "type": "enterprise",
+          "named": true
+        },
+        {
           "type": "group",
           "named": true
         },
         {
           "type": "identifiers_directive",
+          "named": true
+        },
+        {
+          "type": "implied_relationships_directive",
           "named": true
         },
         {
@@ -2851,6 +3385,10 @@
         },
         {
           "type": "relationship",
+          "named": true
+        },
+        {
+          "type": "relationships_directive",
           "named": true
         },
         {
@@ -3019,6 +3557,14 @@
           "named": true
         },
         {
+          "type": "perspectives_block",
+          "named": true
+        },
+        {
+          "type": "properties_block",
+          "named": true
+        },
+        {
           "type": "relationship",
           "named": true
         },
@@ -3029,8 +3575,69 @@
         {
           "type": "tags_statement",
           "named": true
+        },
+        {
+          "type": "url_statement",
+          "named": true
         }
       ]
+    }
+  },
+  {
+    "type": "perspective_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "description_statement",
+          "named": true
+        },
+        {
+          "type": "value_statement",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "perspective_definition",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "perspective_block",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "text_block_string",
+            "named": true
+          }
+        ]
+      }
     }
   },
   {
@@ -3080,6 +3687,28 @@
             "named": true
           }
         ]
+      },
+      "value": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "text_block_string",
+            "named": true
+          }
+        ]
       }
     }
   },
@@ -3091,6 +3720,10 @@
       "multiple": true,
       "required": false,
       "types": [
+        {
+          "type": "perspective_definition",
+          "named": true
+        },
         {
           "type": "perspective_entry",
           "named": true
@@ -3304,6 +3937,10 @@
         {
           "type": "technology_statement",
           "named": true
+        },
+        {
+          "type": "url_statement",
+          "named": true
         }
       ]
     }
@@ -3348,6 +3985,83 @@
           },
           {
             "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "relationships_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "description_statement",
+          "named": true
+        },
+        {
+          "type": "perspectives_block",
+          "named": true
+        },
+        {
+          "type": "properties_block",
+          "named": true
+        },
+        {
+          "type": "tag_statement",
+          "named": true
+        },
+        {
+          "type": "tags_statement",
+          "named": true
+        },
+        {
+          "type": "technology_statement",
+          "named": true
+        },
+        {
+          "type": "url_statement",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "relationships_directive",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "relationships_block",
+            "named": true
+          }
+        ]
+      },
+      "expression": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "text_block_string",
             "named": true
           }
         ]
@@ -3495,7 +4209,19 @@
           "named": true
         },
         {
+          "type": "perspectives_block",
+          "named": true
+        },
+        {
+          "type": "properties_block",
+          "named": true
+        },
+        {
           "type": "relationship",
+          "named": true
+        },
+        {
+          "type": "relationships_directive",
           "named": true
         },
         {
@@ -3504,6 +4230,10 @@
         },
         {
           "type": "tags_statement",
+          "named": true
+        },
+        {
+          "type": "url_statement",
           "named": true
         }
       ]
@@ -3777,6 +4507,14 @@
         {
           "type": "relationship_style",
           "named": true
+        },
+        {
+          "type": "theme_statement",
+          "named": true
+        },
+        {
+          "type": "themes_statement",
+          "named": true
         }
       ]
     }
@@ -3864,6 +4602,10 @@
           "named": true
         },
         {
+          "type": "properties_block",
+          "named": true
+        },
+        {
           "type": "title_statement",
           "named": true
         }
@@ -3943,6 +4685,10 @@
           "named": true
         },
         {
+          "type": "properties_block",
+          "named": true
+        },
+        {
           "type": "title_statement",
           "named": true
         }
@@ -4003,6 +4749,75 @@
           },
           {
             "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "terminology",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "terminology_block",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "terminology_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "terminology_entry",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "terminology_entry",
+    "named": true,
+    "fields": {
+      "kind": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "text_block_string",
             "named": true
           }
         ]
@@ -4086,6 +4901,34 @@
     }
   },
   {
+    "type": "url_statement",
+    "named": true,
+    "fields": {
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "text_block_string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "user_entry",
     "named": true,
     "fields": {
@@ -4148,6 +4991,34 @@
           "named": true
         }
       ]
+    }
+  },
+  {
+    "type": "value_statement",
+    "named": true,
+    "fields": {
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "bare_value",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "text_block_string",
+            "named": true
+          }
+        ]
+      }
     }
   },
   {
@@ -4225,6 +5096,10 @@
       "required": false,
       "types": [
         {
+          "type": "branding",
+          "named": true
+        },
+        {
           "type": "component_view",
           "named": true
         },
@@ -4274,6 +5149,10 @@
         },
         {
           "type": "system_landscape_view",
+          "named": true
+        },
+        {
+          "type": "terminology",
           "named": true
         },
         {
@@ -4486,6 +5365,10 @@
     "named": false
   },
   {
+    "type": "!relationships",
+    "named": false
+  },
+  {
     "type": "!var",
     "named": false
   },
@@ -4536,6 +5419,10 @@
   {
     "type": "bare_value",
     "named": true
+  },
+  {
+    "type": "branding",
+    "named": false
   },
   {
     "type": "bt",
@@ -4603,6 +5490,10 @@
     "named": false
   },
   {
+    "type": "enterprise",
+    "named": false
+  },
+  {
     "type": "exclude",
     "named": false
   },
@@ -4615,7 +5506,15 @@
     "named": false
   },
   {
+    "type": "font",
+    "named": false
+  },
+  {
     "type": "group",
+    "named": false
+  },
+  {
+    "type": "healthCheck",
     "named": false
   },
   {
@@ -4648,6 +5547,10 @@
   },
   {
     "type": "light",
+    "named": false
+  },
+  {
+    "type": "logo",
     "named": false
   },
   {
@@ -4684,6 +5587,10 @@
   },
   {
     "type": "person",
+    "named": false
+  },
+  {
+    "type": "perspective",
     "named": false
   },
   {
@@ -4759,6 +5666,10 @@
     "named": false
   },
   {
+    "type": "terminology",
+    "named": false
+  },
+  {
     "type": "text_block_string",
     "named": true
   },
@@ -4779,7 +5690,15 @@
     "named": false
   },
   {
+    "type": "url",
+    "named": false
+  },
+  {
     "type": "users",
+    "named": false
+  },
+  {
+    "type": "value",
     "named": false
   },
   {
