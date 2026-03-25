@@ -22,6 +22,7 @@ workspace {
             element "Person" {
                 background #d46a6a
                 shape Person
+                color white
             }
 
             relationship "Future State" {

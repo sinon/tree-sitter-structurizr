@@ -52,6 +52,8 @@ export default grammar({
 
     number: _ => /\d+/,
 
+    hex_color: _ => token(prec(2, /#[A-Fa-f0-9]{6}/)),
+
     bare_value: _ => /[^\s{}"]+/,
 
     string: _ => token(seq(
@@ -1198,6 +1200,7 @@ export default grammar({
 
     _style_value: $ => choice(
       $.string,
+      $.hex_color,
       $.number,
       $.identifier,
       $.bare_value,

@@ -180,6 +180,17 @@
       "type": "PATTERN",
       "value": "\\d+"
     },
+    "hex_color": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 2,
+        "content": {
+          "type": "PATTERN",
+          "value": "#[A-Fa-f0-9]{6}"
+        }
+      }
+    },
     "bare_value": {
       "type": "PATTERN",
       "value": "[^\\s{}\"]+"
@@ -5320,6 +5331,10 @@
         {
           "type": "SYMBOL",
           "name": "string"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "hex_color"
         },
         {
           "type": "SYMBOL",

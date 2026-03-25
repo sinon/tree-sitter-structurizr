@@ -218,6 +218,7 @@ fn parses_block_comments_and_view_styles_without_errors() {
                     element "Person" {
                         background #d46a6a
                         shape Person
+                        color white
                     }
 
                     relationship "Future State" {

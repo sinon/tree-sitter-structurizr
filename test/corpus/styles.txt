@@ -25,6 +25,7 @@ workspace {
       element "Person" {
         background #d46a6a
         shape Person
+        color white
       }
       relationship "Future State" {
         opacity 30
@@ -56,13 +57,13 @@ workspace {
                 (style_rule_block
                   (style_setting
                     (identifier)
-                    (bare_value))
+                    (hex_color))
                   (style_setting
                     (identifier)
                     (identifier))
                   (style_setting
                     (identifier)
-                    (bare_value))
+                    (hex_color))
                   (style_setting
                     (identifier)
                     (number))))
@@ -71,7 +72,10 @@ workspace {
                 (style_rule_block
                   (style_setting
                     (identifier)
-                    (bare_value))
+                    (hex_color))
+                  (style_setting
+                    (identifier)
+                    (identifier))
                   (style_setting
                     (identifier)
                     (identifier))))

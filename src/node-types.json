@@ -2862,6 +2862,10 @@
             "named": true
           },
           {
+            "type": "hex_color",
+            "named": true
+          },
+          {
             "type": "identifier",
             "named": true
           },
@@ -3630,6 +3634,10 @@
   {
     "type": "group",
     "named": false
+  },
+  {
+    "type": "hex_color",
+    "named": true
   },
   {
     "type": "identifier",
