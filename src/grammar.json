@@ -191,6 +191,610 @@
         }
       }
     },
+    "named_color": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 2,
+        "content": {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "STRING",
+              "value": "aliceblue"
+            },
+            {
+              "type": "STRING",
+              "value": "antiquewhite"
+            },
+            {
+              "type": "STRING",
+              "value": "aqua"
+            },
+            {
+              "type": "STRING",
+              "value": "aquamarine"
+            },
+            {
+              "type": "STRING",
+              "value": "azure"
+            },
+            {
+              "type": "STRING",
+              "value": "beige"
+            },
+            {
+              "type": "STRING",
+              "value": "bisque"
+            },
+            {
+              "type": "STRING",
+              "value": "black"
+            },
+            {
+              "type": "STRING",
+              "value": "blanchedalmond"
+            },
+            {
+              "type": "STRING",
+              "value": "blue"
+            },
+            {
+              "type": "STRING",
+              "value": "blueviolet"
+            },
+            {
+              "type": "STRING",
+              "value": "brown"
+            },
+            {
+              "type": "STRING",
+              "value": "burlywood"
+            },
+            {
+              "type": "STRING",
+              "value": "cadetblue"
+            },
+            {
+              "type": "STRING",
+              "value": "chartreuse"
+            },
+            {
+              "type": "STRING",
+              "value": "chocolate"
+            },
+            {
+              "type": "STRING",
+              "value": "coral"
+            },
+            {
+              "type": "STRING",
+              "value": "cornflowerblue"
+            },
+            {
+              "type": "STRING",
+              "value": "cornsilk"
+            },
+            {
+              "type": "STRING",
+              "value": "crimson"
+            },
+            {
+              "type": "STRING",
+              "value": "cyan"
+            },
+            {
+              "type": "STRING",
+              "value": "darkblue"
+            },
+            {
+              "type": "STRING",
+              "value": "darkcyan"
+            },
+            {
+              "type": "STRING",
+              "value": "darkgoldenrod"
+            },
+            {
+              "type": "STRING",
+              "value": "darkgray"
+            },
+            {
+              "type": "STRING",
+              "value": "darkgreen"
+            },
+            {
+              "type": "STRING",
+              "value": "darkgrey"
+            },
+            {
+              "type": "STRING",
+              "value": "darkkhaki"
+            },
+            {
+              "type": "STRING",
+              "value": "darkmagenta"
+            },
+            {
+              "type": "STRING",
+              "value": "darkolivegreen"
+            },
+            {
+              "type": "STRING",
+              "value": "darkorange"
+            },
+            {
+              "type": "STRING",
+              "value": "darkorchid"
+            },
+            {
+              "type": "STRING",
+              "value": "darkred"
+            },
+            {
+              "type": "STRING",
+              "value": "darksalmon"
+            },
+            {
+              "type": "STRING",
+              "value": "darkseagreen"
+            },
+            {
+              "type": "STRING",
+              "value": "darkslateblue"
+            },
+            {
+              "type": "STRING",
+              "value": "darkslategray"
+            },
+            {
+              "type": "STRING",
+              "value": "darkslategrey"
+            },
+            {
+              "type": "STRING",
+              "value": "darkturquoise"
+            },
+            {
+              "type": "STRING",
+              "value": "darkviolet"
+            },
+            {
+              "type": "STRING",
+              "value": "deeppink"
+            },
+            {
+              "type": "STRING",
+              "value": "deepskyblue"
+            },
+            {
+              "type": "STRING",
+              "value": "dimgray"
+            },
+            {
+              "type": "STRING",
+              "value": "dimgrey"
+            },
+            {
+              "type": "STRING",
+              "value": "dodgerblue"
+            },
+            {
+              "type": "STRING",
+              "value": "firebrick"
+            },
+            {
+              "type": "STRING",
+              "value": "floralwhite"
+            },
+            {
+              "type": "STRING",
+              "value": "forestgreen"
+            },
+            {
+              "type": "STRING",
+              "value": "fuchsia"
+            },
+            {
+              "type": "STRING",
+              "value": "gainsboro"
+            },
+            {
+              "type": "STRING",
+              "value": "ghostwhite"
+            },
+            {
+              "type": "STRING",
+              "value": "gold"
+            },
+            {
+              "type": "STRING",
+              "value": "goldenrod"
+            },
+            {
+              "type": "STRING",
+              "value": "gray"
+            },
+            {
+              "type": "STRING",
+              "value": "green"
+            },
+            {
+              "type": "STRING",
+              "value": "greenyellow"
+            },
+            {
+              "type": "STRING",
+              "value": "grey"
+            },
+            {
+              "type": "STRING",
+              "value": "honeydew"
+            },
+            {
+              "type": "STRING",
+              "value": "hotpink"
+            },
+            {
+              "type": "STRING",
+              "value": "indianred"
+            },
+            {
+              "type": "STRING",
+              "value": "indigo"
+            },
+            {
+              "type": "STRING",
+              "value": "ivory"
+            },
+            {
+              "type": "STRING",
+              "value": "khaki"
+            },
+            {
+              "type": "STRING",
+              "value": "lavender"
+            },
+            {
+              "type": "STRING",
+              "value": "lavenderblush"
+            },
+            {
+              "type": "STRING",
+              "value": "lawngreen"
+            },
+            {
+              "type": "STRING",
+              "value": "lemonchiffon"
+            },
+            {
+              "type": "STRING",
+              "value": "lightblue"
+            },
+            {
+              "type": "STRING",
+              "value": "lightcoral"
+            },
+            {
+              "type": "STRING",
+              "value": "lightcyan"
+            },
+            {
+              "type": "STRING",
+              "value": "lightgoldenrodyellow"
+            },
+            {
+              "type": "STRING",
+              "value": "lightgray"
+            },
+            {
+              "type": "STRING",
+              "value": "lightgreen"
+            },
+            {
+              "type": "STRING",
+              "value": "lightgrey"
+            },
+            {
+              "type": "STRING",
+              "value": "lightpink"
+            },
+            {
+              "type": "STRING",
+              "value": "lightsalmon"
+            },
+            {
+              "type": "STRING",
+              "value": "lightseagreen"
+            },
+            {
+              "type": "STRING",
+              "value": "lightskyblue"
+            },
+            {
+              "type": "STRING",
+              "value": "lightslategray"
+            },
+            {
+              "type": "STRING",
+              "value": "lightslategrey"
+            },
+            {
+              "type": "STRING",
+              "value": "lightsteelblue"
+            },
+            {
+              "type": "STRING",
+              "value": "lightyellow"
+            },
+            {
+              "type": "STRING",
+              "value": "lime"
+            },
+            {
+              "type": "STRING",
+              "value": "limegreen"
+            },
+            {
+              "type": "STRING",
+              "value": "linen"
+            },
+            {
+              "type": "STRING",
+              "value": "magenta"
+            },
+            {
+              "type": "STRING",
+              "value": "maroon"
+            },
+            {
+              "type": "STRING",
+              "value": "mediumaquamarine"
+            },
+            {
+              "type": "STRING",
+              "value": "mediumblue"
+            },
+            {
+              "type": "STRING",
+              "value": "mediumorchid"
+            },
+            {
+              "type": "STRING",
+              "value": "mediumpurple"
+            },
+            {
+              "type": "STRING",
+              "value": "mediumseagreen"
+            },
+            {
+              "type": "STRING",
+              "value": "mediumslateblue"
+            },
+            {
+              "type": "STRING",
+              "value": "mediumspringgreen"
+            },
+            {
+              "type": "STRING",
+              "value": "mediumturquoise"
+            },
+            {
+              "type": "STRING",
+              "value": "mediumvioletred"
+            },
+            {
+              "type": "STRING",
+              "value": "midnightblue"
+            },
+            {
+              "type": "STRING",
+              "value": "mintcream"
+            },
+            {
+              "type": "STRING",
+              "value": "mistyrose"
+            },
+            {
+              "type": "STRING",
+              "value": "moccasin"
+            },
+            {
+              "type": "STRING",
+              "value": "navajowhite"
+            },
+            {
+              "type": "STRING",
+              "value": "navy"
+            },
+            {
+              "type": "STRING",
+              "value": "oldlace"
+            },
+            {
+              "type": "STRING",
+              "value": "olive"
+            },
+            {
+              "type": "STRING",
+              "value": "olivedrab"
+            },
+            {
+              "type": "STRING",
+              "value": "orange"
+            },
+            {
+              "type": "STRING",
+              "value": "orangered"
+            },
+            {
+              "type": "STRING",
+              "value": "orchid"
+            },
+            {
+              "type": "STRING",
+              "value": "palegoldenrod"
+            },
+            {
+              "type": "STRING",
+              "value": "palegreen"
+            },
+            {
+              "type": "STRING",
+              "value": "paleturquoise"
+            },
+            {
+              "type": "STRING",
+              "value": "palevioletred"
+            },
+            {
+              "type": "STRING",
+              "value": "papayawhip"
+            },
+            {
+              "type": "STRING",
+              "value": "peachpuff"
+            },
+            {
+              "type": "STRING",
+              "value": "peru"
+            },
+            {
+              "type": "STRING",
+              "value": "pink"
+            },
+            {
+              "type": "STRING",
+              "value": "plum"
+            },
+            {
+              "type": "STRING",
+              "value": "powderblue"
+            },
+            {
+              "type": "STRING",
+              "value": "purple"
+            },
+            {
+              "type": "STRING",
+              "value": "rebeccapurple"
+            },
+            {
+              "type": "STRING",
+              "value": "red"
+            },
+            {
+              "type": "STRING",
+              "value": "rosybrown"
+            },
+            {
+              "type": "STRING",
+              "value": "royalblue"
+            },
+            {
+              "type": "STRING",
+              "value": "saddlebrown"
+            },
+            {
+              "type": "STRING",
+              "value": "salmon"
+            },
+            {
+              "type": "STRING",
+              "value": "sandybrown"
+            },
+            {
+              "type": "STRING",
+              "value": "seagreen"
+            },
+            {
+              "type": "STRING",
+              "value": "seashell"
+            },
+            {
+              "type": "STRING",
+              "value": "sienna"
+            },
+            {
+              "type": "STRING",
+              "value": "silver"
+            },
+            {
+              "type": "STRING",
+              "value": "skyblue"
+            },
+            {
+              "type": "STRING",
+              "value": "slateblue"
+            },
+            {
+              "type": "STRING",
+              "value": "slategray"
+            },
+            {
+              "type": "STRING",
+              "value": "slategrey"
+            },
+            {
+              "type": "STRING",
+              "value": "snow"
+            },
+            {
+              "type": "STRING",
+              "value": "springgreen"
+            },
+            {
+              "type": "STRING",
+              "value": "steelblue"
+            },
+            {
+              "type": "STRING",
+              "value": "tan"
+            },
+            {
+              "type": "STRING",
+              "value": "teal"
+            },
+            {
+              "type": "STRING",
+              "value": "thistle"
+            },
+            {
+              "type": "STRING",
+              "value": "tomato"
+            },
+            {
+              "type": "STRING",
+              "value": "turquoise"
+            },
+            {
+              "type": "STRING",
+              "value": "violet"
+            },
+            {
+              "type": "STRING",
+              "value": "wheat"
+            },
+            {
+              "type": "STRING",
+              "value": "white"
+            },
+            {
+              "type": "STRING",
+              "value": "whitesmoke"
+            },
+            {
+              "type": "STRING",
+              "value": "yellow"
+            },
+            {
+              "type": "STRING",
+              "value": "yellowgreen"
+            }
+          ]
+        }
+      }
+    },
     "bare_value": {
       "type": "PATTERN",
       "value": "[^\\s{}\"]+"
@@ -5304,24 +5908,89 @@
         }
       ]
     },
-    "style_setting": {
-      "type": "SEQ",
+    "color_value": {
+      "type": "CHOICE",
       "members": [
         {
-          "type": "FIELD",
-          "name": "name",
+          "type": "SYMBOL",
+          "name": "hex_color"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "named_color"
+        }
+      ]
+    },
+    "style_setting": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "PREC",
+          "value": 1,
           "content": {
-            "type": "SYMBOL",
-            "name": "identifier"
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "FIELD",
+                "name": "name",
+                "content": {
+                  "type": "ALIAS",
+                  "content": {
+                    "type": "CHOICE",
+                    "members": [
+                      {
+                        "type": "STRING",
+                        "value": "background"
+                      },
+                      {
+                        "type": "STRING",
+                        "value": "color"
+                      },
+                      {
+                        "type": "STRING",
+                        "value": "colour"
+                      },
+                      {
+                        "type": "STRING",
+                        "value": "stroke"
+                      }
+                    ]
+                  },
+                  "named": true,
+                  "value": "identifier"
+                }
+              },
+              {
+                "type": "FIELD",
+                "name": "value",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "color_value"
+                }
+              }
+            ]
           }
         },
         {
-          "type": "FIELD",
-          "name": "value",
-          "content": {
-            "type": "SYMBOL",
-            "name": "_style_value"
-          }
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "FIELD",
+              "name": "name",
+              "content": {
+                "type": "SYMBOL",
+                "name": "identifier"
+              }
+            },
+            {
+              "type": "FIELD",
+              "name": "value",
+              "content": {
+                "type": "SYMBOL",
+                "name": "_style_value"
+              }
+            }
+          ]
         }
       ]
     },
@@ -5331,10 +6000,6 @@
         {
           "type": "SYMBOL",
           "name": "string"
-        },
-        {
-          "type": "SYMBOL",
-          "name": "hex_color"
         },
         {
           "type": "SYMBOL",

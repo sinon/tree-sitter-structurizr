@@ -16,16 +16,18 @@ workspace {
                 background #801515
                 shape RoundedBox
                 color #ffffff
+                stroke navy
                 opacity 30
             }
 
             element "Person" {
                 background #d46a6a
                 shape Person
-                color white
+                colour white
             }
 
             relationship "Future State" {
+                colour red
                 opacity 30
             }
         }
