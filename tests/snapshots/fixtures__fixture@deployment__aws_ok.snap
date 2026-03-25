@@ -78,10 +78,11 @@ expression: "common::tree_sexp(&tree)"
                             (string) attribute:
                             (string) body:
                             (deployment_node_block
-                              (container_instance identifier:
-                                (identifier) target:
-                                (identifier) deployment_group:
-                                (identifier))
+                              (container_instance
+                                (container_instance_grouped identifier:
+                                  (identifier) target:
+                                  (identifier) deployment_group:
+                                  (identifier)))
                               (relationship operator:
                                 (relationship_operator) destination:
                                 (identifier) attribute:
@@ -101,9 +102,10 @@ expression: "common::tree_sexp(&tree)"
                             (string) attribute:
                             (string) body:
                             (deployment_node_block
-                              (container_instance identifier:
-                                (identifier) target:
-                                (identifier))))))
+                              (container_instance
+                                (container_instance_simple identifier:
+                                  (identifier) target:
+                                  (identifier)))))))
                       (relationship source:
                         (identifier) operator:
                         (relationship_operator) destination:

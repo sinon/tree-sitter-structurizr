@@ -479,6 +479,10 @@
       "required": false,
       "types": [
         {
+          "type": "animation_statement",
+          "named": true
+        },
+        {
           "type": "auto_layout_statement",
           "named": true
         },
@@ -764,8 +768,37 @@
   {
     "type": "container_instance",
     "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "container_instance_grouped",
+          "named": true
+        },
+        {
+          "type": "container_instance_simple",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "container_instance_grouped",
+    "named": true,
     "fields": {
       "deployment_group": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "identifier": {
         "multiple": false,
         "required": false,
         "types": [
@@ -775,6 +808,22 @@
           }
         ]
       },
+      "target": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "container_instance_simple",
+    "named": true,
+    "fields": {
       "identifier": {
         "multiple": false,
         "required": false,
@@ -855,6 +904,10 @@
       "multiple": true,
       "required": false,
       "types": [
+        {
+          "type": "animation_statement",
+          "named": true
+        },
         {
           "type": "auto_layout_statement",
           "named": true
@@ -1462,6 +1515,29 @@
     }
   },
   {
+    "type": "dynamic_parallel_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "dynamic_parallel_block",
+          "named": true
+        },
+        {
+          "type": "dynamic_relationship",
+          "named": true
+        },
+        {
+          "type": "dynamic_relationship_reference",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "dynamic_relationship",
     "named": true,
     "fields": {
@@ -1511,6 +1587,42 @@
         "types": [
           {
             "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "dynamic_relationship_reference",
+    "named": true,
+    "fields": {
+      "description": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      },
+      "order": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "order",
+            "named": true
+          }
+        ]
+      },
+      "relationship": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
             "named": true
           }
         ]
@@ -1600,7 +1712,15 @@
           "named": true
         },
         {
+          "type": "dynamic_parallel_block",
+          "named": true
+        },
+        {
           "type": "dynamic_relationship",
+          "named": true
+        },
+        {
+          "type": "dynamic_relationship_reference",
           "named": true
         },
         {
@@ -2958,8 +3078,37 @@
   {
     "type": "software_system_instance",
     "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "software_system_instance_grouped",
+          "named": true
+        },
+        {
+          "type": "software_system_instance_simple",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "software_system_instance_grouped",
+    "named": true,
     "fields": {
       "deployment_group": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "identifier": {
         "multiple": false,
         "required": false,
         "types": [
@@ -2969,6 +3118,22 @@
           }
         ]
       },
+      "target": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "software_system_instance_simple",
+    "named": true,
+    "fields": {
       "identifier": {
         "multiple": false,
         "required": false,
@@ -3221,6 +3386,10 @@
       "required": false,
       "types": [
         {
+          "type": "animation_statement",
+          "named": true
+        },
+        {
           "type": "auto_layout_statement",
           "named": true
         },
@@ -3295,6 +3464,10 @@
       "multiple": true,
       "required": false,
       "types": [
+        {
+          "type": "animation_statement",
+          "named": true
+        },
         {
           "type": "auto_layout_statement",
           "named": true

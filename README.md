@@ -25,8 +25,9 @@ The following syntax is implemented and covered by the local corpus and Rust tes
 - Deployment model constructs: `deploymentEnvironment`, `deploymentGroup`, `deploymentNode`, `infrastructureNode`, `containerInstance`, and `softwareSystemInstance`.
 - Relationships: basic `->`, tagged operators such as `--https->`, assigned relationships like `r = a -> b`, `this`, and relationship bodies used by the current fixtures.
 - Views: `systemLandscape`, `systemContext`, `container`, `component`, `filtered`, `dynamic`, `deployment`, `custom`, and `image`.
-- Common view statements: `include`, `exclude`, `autoLayout`, `default`, `title`, and `description`.
+- Common view statements: `include`, `exclude`, `animation`, `autoLayout`, `default`, `title`, and `description`.
 - Deployment/view helpers used by current fixtures: `animation`, `themes`, and lowercase `autolayout`.
+- Dynamic view coverage includes explicit relationship references such as `r2 "Async"` and nested parallel blocks.
 - Styles inside `views`: `styles`, `element`, `relationship`, and flat style settings like `background`, `shape`, `color`, and `opacity`.
 - Directives and configuration currently used by fixtures: `!include` at workspace and model level, `!const`, `!constant`, `!var`, `!identifiers`, `!impliedRelationships`, `!docs`, `!adrs`, plus `configuration { scope, visibility, users }`.
 - Expanded archetype/custom-element support: archetype defaults, nested `properties` and `perspectives` inside archetype bodies, relationship archetype extensions such as `sync = -> { ... }` / `--sync->`, custom elements, `!elements`, and `!element`.
@@ -36,8 +37,7 @@ The following syntax is implemented and covered by the local corpus and Rust tes
 These areas are still in progress. Some parse partially, but they are not considered complete or stable yet:
 
 - Full group semantics and broader model-level metadata/property constructs.
-- Broader workspace extension/include coverage beyond the currently tested directive forms.
-- Remaining dynamic/deployment edge cases found in upstream fixtures.
+- Remaining deployment edge cases found in upstream fixtures.
 - Additional relationship/filter expression variants from upstream examples.
 - Text block and multiline constructs not covered by the current fixtures.
 - Query authoring for highlighting/folding/indentation is still placeholder-only.

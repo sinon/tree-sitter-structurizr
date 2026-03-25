@@ -173,6 +173,11 @@ export default grammar({
     $.comment,
   ],
 
+  conflicts: $ => [
+    [$.container_instance_simple, $.container_instance_grouped],
+    [$.software_system_instance_simple, $.software_system_instance_grouped],
+  ],
+
   rules: {
     // Structurizr files are mostly a sequence of top-level blocks and directives,
     // with `workspace { ... }` as the usual outer envelope.
@@ -739,25 +744,53 @@ export default grammar({
       "}",
     ),
 
-    container_instance: $ => prec.right(seq(
+    container_instance: $ => choice(
+      $.container_instance_simple,
+      $.container_instance_grouped,
+    ),
+
+    container_instance_simple: $ => seq(
       optional(seq(
         field("identifier", $._assignment_identifier),
         "=",
       )),
       "containerInstance",
       field("target", $.identifier),
-      optional(field("deployment_group", $.identifier)),
-    )),
+    ),
 
-    software_system_instance: $ => prec.right(seq(
+    container_instance_grouped: $ => seq(
+      optional(seq(
+        field("identifier", $._assignment_identifier),
+        "=",
+      )),
+      "containerInstance",
+      field("target", $.identifier),
+      field("deployment_group", $.identifier),
+    ),
+
+    software_system_instance: $ => choice(
+      $.software_system_instance_simple,
+      $.software_system_instance_grouped,
+    ),
+
+    software_system_instance_simple: $ => seq(
       optional(seq(
         field("identifier", $.identifier),
         "=",
       )),
       "softwareSystemInstance",
       field("target", $.identifier),
-      optional(field("deployment_group", $.identifier)),
-    )),
+    ),
+
+    software_system_instance_grouped: $ => seq(
+      optional(seq(
+        field("identifier", $.identifier),
+        "=",
+      )),
+      "softwareSystemInstance",
+      field("target", $.identifier),
+      field("deployment_group", $.identifier),
+    ),
 
     // Relationships appear both as top-level model statements and nested inside
     // element bodies. The grammar keeps them permissive enough to cover plain `->`
@@ -945,6 +978,7 @@ export default grammar({
     _static_view_statement: $ => choice(
       $.include_statement,
       $.exclude_statement,
+      $.animation_statement,
       $.auto_layout_statement,
       $.default_statement,
       $.title_statement,
@@ -959,6 +993,8 @@ export default grammar({
 
     _dynamic_view_statement: $ => choice(
       $.dynamic_relationship,
+      $.dynamic_relationship_reference,
+      $.dynamic_parallel_block,
       $.auto_layout_statement,
       $.default_statement,
       $.title_statement,
@@ -1245,6 +1281,22 @@ export default grammar({
         field("description", $._metadata_value),
         field("technology", $._metadata_value),
       ),
+    ),
+
+    dynamic_relationship_reference: $ => seq(
+      optional(seq(field("order", $.order), ":")),
+      field("relationship", $.identifier),
+      field("description", $._metadata_value),
+    ),
+
+    dynamic_parallel_block: $ => seq(
+      "{",
+      repeat1(choice(
+        $.dynamic_relationship,
+        $.dynamic_relationship_reference,
+        $.dynamic_parallel_block,
+      )),
+      "}",
     ),
 
     // `custom` and `image` views sit outside the core C4 view set but are important

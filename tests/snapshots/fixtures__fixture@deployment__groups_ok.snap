@@ -36,18 +36,22 @@ expression: "common::tree_sexp(&tree)"
               (deployment_node name:
                 (string) body:
                 (deployment_node_block
-                  (container_instance target:
-                    (identifier) deployment_group:
-                    (identifier))
-                  (container_instance target:
-                    (identifier) deployment_group:
-                    (identifier))))
+                  (container_instance
+                    (container_instance_grouped target:
+                      (identifier) deployment_group:
+                      (identifier)))
+                  (container_instance
+                    (container_instance_grouped target:
+                      (identifier) deployment_group:
+                      (identifier)))))
               (deployment_node name:
                 (string) body:
                 (deployment_node_block
-                  (container_instance target:
-                    (identifier) deployment_group:
-                    (identifier))
-                  (container_instance target:
-                    (identifier) deployment_group:
-                    (identifier)))))))))))
+                  (container_instance
+                    (container_instance_grouped target:
+                      (identifier) deployment_group:
+                      (identifier)))
+                  (container_instance
+                    (container_instance_grouped target:
+                      (identifier) deployment_group:
+                      (identifier))))))))))))

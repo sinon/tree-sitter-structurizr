@@ -25,11 +25,15 @@ This project is not trying to become a Structurizr runtime. It should preserve a
 - `queries/` — placeholder area for future highlighting/folding/indentation queries
 - `Justfile` — canonical command surface
 
-## Core upstream files
+## Specification references
 
 - `https://github.com/structurizr/structurizr.github.io/blob/main/dsl/71-language.md` - the language reference for the `.dsl`
 - `https://github.com/structurizr/dsl/tree/master/src` - the upstream dsl parser written in Java
 - `https://github.com/structurizr/dsl/tree/master/src/test/dsl` - the corpus of test `.dsl` files used to test the Java parser
+
+### General development notes
+- For ad-hoc debugging, create a temporary Rust example in examples/ and run it with cargo run --example <name>. Remove the example after use.
+- Use tmp/ (project-local) for intermediate files and comparison artifacts, not /tmp. This keeps outputs discoverable and project-scoped. The tmp/ directory is gitignored.
 
 ## Test harnesses and why they exist
 

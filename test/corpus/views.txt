@@ -102,3 +102,94 @@ workspace {
               (default_statement)
               (title_statement
                 (string)))))))))
+
+======================
+Static view animation
+======================
+
+workspace {
+  model {
+    a = softwareSystem "A"
+    b = softwareSystem "B"
+  }
+
+  views {
+    systemLandscape {
+      include *
+      animation {
+        a
+        a->
+      }
+    }
+  }
+}
+
+---
+
+(source_file
+  (workspace
+    (workspace_block
+      (model
+        (model_block
+          (software_system
+            (identifier)
+            (string))
+          (software_system
+            (identifier)
+            (string))))
+      (views
+        (views_block
+          (system_landscape_view
+            (system_landscape_view_block
+              (include_statement
+                (wildcard))
+              (animation_statement
+                (animation_block
+                  (identifier)
+                  (bare_value))))))))))
+
+============================
+Dynamic explicit references
+============================
+
+workspace {
+  model {
+    a = softwareSystem "A"
+    b = softwareSystem "B"
+    rel = a -> b "Async"
+  }
+
+  views {
+    dynamic * {
+      rel "Async"
+    }
+  }
+}
+
+---
+
+(source_file
+  (workspace
+    (workspace_block
+      (model
+        (model_block
+          (software_system
+            (identifier)
+            (string))
+          (software_system
+            (identifier)
+            (string))
+          (relationship
+            (identifier)
+            (identifier)
+            (relationship_operator)
+            (identifier)
+            (string))))
+      (views
+        (views_block
+          (dynamic_view
+            (wildcard)
+            (dynamic_view_block
+              (dynamic_relationship_reference
+                (identifier)
+                (string)))))))))
