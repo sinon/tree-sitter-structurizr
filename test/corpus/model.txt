@@ -207,3 +207,60 @@ workspace {
                 (relationship_operator)
                 (identifier)
                 (string)))))))))
+
+========================================
+Relationship before deployment statement
+========================================
+
+workspace {
+  model {
+    system = softwareSystem "System" {
+      app = container "App"
+      db = container "Database"
+    }
+
+    app -> db "Reads from and writes to" "JDBC/SSL"
+
+    live = deploymentEnvironment "Live" {
+      node = deploymentNode "Node" {
+        appInstance = containerInstance app
+      }
+    }
+  }
+}
+
+---
+
+(source_file
+  (workspace
+    (workspace_block
+      (model
+        (model_block
+          (software_system
+            (identifier)
+            (string)
+            (software_system_block
+              (container
+                (identifier)
+                (string))
+              (container
+                (identifier)
+                (string))))
+          (relationship
+            (identifier)
+            (relationship_operator)
+            (identifier)
+            (string)
+            (string))
+          (deployment_environment
+            (identifier)
+            (string)
+            (deployment_environment_block
+              (deployment_node
+                (identifier)
+                (string)
+                (deployment_node_block
+                  (container_instance
+                    (container_instance_simple
+                      (identifier)
+                      (identifier))))))))))))

@@ -261,6 +261,11 @@ export default grammar({
       $.identifier,
     ),
 
+    _relationship_tag_value: $ => choice(
+      $.string,
+      alias(choice("Current", "Future"), $.identifier),
+    ),
+
     _directive_value: $ => choice(
       $.string,
       $.text_block_string,
@@ -768,7 +773,7 @@ export default grammar({
       )),
       "deploymentEnvironment",
       field("name", $._value),
-      field("body", $.deployment_environment_block),
+      optional(field("body", $.deployment_environment_block)),
     ),
 
     deployment_environment_block: $ => seq(
@@ -923,7 +928,7 @@ export default grammar({
         field("destination", $._relationship_endpoint),
         field("attribute", $._metadata_value),
         field("attribute", $._metadata_value),
-        field("attribute", $._tag_value),
+        field("attribute", $._relationship_tag_value),
         optional(field("body", $.relationship_block)),
       ),
       seq(
@@ -965,7 +970,7 @@ export default grammar({
         field("destination", $._relationship_endpoint),
         field("attribute", $._metadata_value),
         field("attribute", $._metadata_value),
-        field("attribute", $._tag_value),
+        field("attribute", $._relationship_tag_value),
         optional(field("body", $.relationship_block)),
       ),
     )),
