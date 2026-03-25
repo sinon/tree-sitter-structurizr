@@ -13,4 +13,4 @@ expression: "common::tree_sexp(&tree)"
             (software_system_block
               (ERROR
                 (identifier)
-                (string)))))))))
+                (shape_value)))))))))

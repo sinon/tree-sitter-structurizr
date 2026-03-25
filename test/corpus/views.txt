@@ -95,7 +95,7 @@ workspace {
                 (string))))
            (filtered_view
              (string)
-             (identifier)
+             (filter_mode)
              (string)
              (string)
              (filtered_view_block
@@ -340,9 +340,9 @@ workspace {
             (system_landscape_view_block
               (include_statement
                 (wildcard))))
-          (filtered_view
-            (identifier)
-            (identifier)
-            (identifier)
-            (identifier)
-            (string)))))))
+           (filtered_view
+             (identifier)
+             (filter_mode)
+             (identifier)
+             (identifier)
+             (string)))))))

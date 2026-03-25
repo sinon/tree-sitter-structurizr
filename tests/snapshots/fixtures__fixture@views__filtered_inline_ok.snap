@@ -42,13 +42,13 @@ expression: "common::tree_sexp(&tree)"
                 (wildcard))))
           (filtered_view base_key:
             (identifier) mode:
-            (identifier) tags:
+            (filter_mode) tags:
             (identifier) key:
             (identifier) description:
             (string))
           (filtered_view base_key:
             (identifier) mode:
-            (identifier) tags:
+            (filter_mode) tags:
             (identifier) key:
             (identifier) description:
             (string)))))))

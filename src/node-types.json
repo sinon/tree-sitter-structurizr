@@ -2465,7 +2465,7 @@
         "required": true,
         "types": [
           {
-            "type": "identifier",
+            "type": "filter_mode",
             "named": true
           }
         ]
@@ -4457,7 +4457,19 @@
             "named": true
           },
           {
+            "type": "boolean_value",
+            "named": true
+          },
+          {
+            "type": "border_value",
+            "named": true
+          },
+          {
             "type": "color_value",
+            "named": true
+          },
+          {
+            "type": "icon_position_value",
             "named": true
           },
           {
@@ -4465,7 +4477,19 @@
             "named": true
           },
           {
+            "type": "line_style_value",
+            "named": true
+          },
+          {
             "type": "number",
+            "named": true
+          },
+          {
+            "type": "routing_value",
+            "named": true
+          },
+          {
+            "type": "shape_value",
             "named": true
           },
           {
@@ -5429,6 +5453,14 @@
     "named": true
   },
   {
+    "type": "boolean_value",
+    "named": true
+  },
+  {
+    "type": "border_value",
+    "named": true
+  },
+  {
     "type": "branding",
     "named": false
   },
@@ -5510,6 +5542,10 @@
     "named": false
   },
   {
+    "type": "filter_mode",
+    "named": true
+  },
+  {
     "type": "filtered",
     "named": false
   },
@@ -5527,6 +5563,10 @@
   },
   {
     "type": "hex_color",
+    "named": true
+  },
+  {
+    "type": "icon_position_value",
     "named": true
   },
   {
@@ -5556,6 +5596,10 @@
   {
     "type": "light",
     "named": false
+  },
+  {
+    "type": "line_style_value",
+    "named": true
   },
   {
     "type": "logo",
@@ -5626,8 +5670,16 @@
     "named": false
   },
   {
+    "type": "routing_value",
+    "named": true
+  },
+  {
     "type": "scope",
     "named": false
+  },
+  {
+    "type": "shape_value",
+    "named": true
   },
   {
     "type": "softwareSystem",

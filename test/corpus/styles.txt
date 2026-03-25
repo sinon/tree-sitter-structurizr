@@ -63,7 +63,7 @@ workspace {
                       (hex_color)))
                   (style_setting
                     (identifier)
-                    (identifier))
+                    (shape_value))
                   (style_setting
                     (identifier)
                     (color_value
@@ -84,7 +84,7 @@ workspace {
                       (hex_color)))
                   (style_setting
                     (identifier)
-                    (identifier))
+                    (shape_value))
                   (style_setting
                     (identifier)
                     (color_value
@@ -94,8 +94,84 @@ workspace {
                 (style_rule_block
                   (style_setting
                     (identifier)
-                    (color_value
+                   (color_value
                       (named_color)))
                   (style_setting
                     (identifier)
                     (number)))))))))))
+
+===================
+Finite style values
+===================
+
+workspace {
+  views {
+    styles {
+      element "Element" {
+        shape WebBrowser
+        border Dashed
+        iconPosition Top
+        metadata true
+        description false
+      }
+
+      relationship "Relationship" {
+        style Dotted
+        routing Orthogonal
+        dashed false
+        jump true
+        metadata false
+        description true
+      }
+    }
+  }
+}
+
+---
+
+(source_file
+  (workspace
+    (workspace_block
+      (views
+        (views_block
+          (styles
+            (styles_block
+              (element_style
+                (string)
+                (style_rule_block
+                  (style_setting
+                    (identifier)
+                    (shape_value))
+                  (style_setting
+                    (identifier)
+                    (border_value))
+                  (style_setting
+                    (identifier)
+                    (icon_position_value))
+                  (style_setting
+                    (identifier)
+                    (boolean_value))
+                  (style_setting
+                    (identifier)
+                    (boolean_value))))
+              (relationship_style
+                (string)
+                (style_rule_block
+                  (style_setting
+                    (identifier)
+                    (line_style_value))
+                  (style_setting
+                    (identifier)
+                    (routing_value))
+                  (style_setting
+                    (identifier)
+                    (boolean_value))
+                  (style_setting
+                    (identifier)
+                    (boolean_value))
+                  (style_setting
+                    (identifier)
+                    (boolean_value))
+                  (style_setting
+                    (identifier)
+                    (boolean_value)))))))))))

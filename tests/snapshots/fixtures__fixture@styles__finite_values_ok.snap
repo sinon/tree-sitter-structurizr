@@ -1,0 +1,269 @@
+---
+source: tests/fixtures.rs
+expression: "common::tree_sexp(&tree)"
+---
+(source_file
+  (workspace body:
+    (workspace_block
+      (views body:
+        (views_block
+          (styles body:
+            (styles_block
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (shape_value))))
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (shape_value))))
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (shape_value))))
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (shape_value))))
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (shape_value))))
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (shape_value))))
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (shape_value))))
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (shape_value))))
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (shape_value))))
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (shape_value))))
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (shape_value))))
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (shape_value))))
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (shape_value))))
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (shape_value))))
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (shape_value))))
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (shape_value))))
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (shape_value))))
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (shape_value))))
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (shape_value))))
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (border_value))))
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (border_value))))
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (border_value))))
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (icon_position_value))))
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (icon_position_value))))
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (icon_position_value))))
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (boolean_value))))
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (boolean_value))))
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (boolean_value))))
+              (element_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (boolean_value))))
+              (relationship_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (line_style_value))))
+              (relationship_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (line_style_value))))
+              (relationship_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (line_style_value))))
+              (relationship_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (routing_value))))
+              (relationship_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (routing_value))))
+              (relationship_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (routing_value))))
+              (relationship_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (boolean_value))))
+              (relationship_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (boolean_value))))
+              (relationship_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (boolean_value))))
+              (relationship_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (boolean_value))))
+              (relationship_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (boolean_value))))
+              (relationship_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (boolean_value))))
+              (relationship_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (boolean_value))))
+              (relationship_style tag:
+                (string) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (boolean_value)))))))))))

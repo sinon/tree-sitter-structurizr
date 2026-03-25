@@ -56,7 +56,7 @@ expression: "common::tree_sexp(&tree)"
                 (string))))
           (filtered_view base_key:
             (string) mode:
-            (identifier) tags:
+            (filter_mode) tags:
             (string) key:
             (string) body:
             (filtered_view_block

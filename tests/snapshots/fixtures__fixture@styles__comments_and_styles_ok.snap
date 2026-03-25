@@ -27,7 +27,7 @@ expression: "common::tree_sexp(&tree)"
                       (hex_color)))
                   (style_setting name:
                     (identifier) value:
-                    (identifier))
+                    (shape_value))
                   (style_setting name:
                     (identifier) value:
                     (color_value
@@ -48,7 +48,7 @@ expression: "common::tree_sexp(&tree)"
                       (hex_color)))
                   (style_setting name:
                     (identifier) value:
-                    (identifier))
+                    (shape_value))
                   (style_setting name:
                     (identifier) value:
                     (color_value

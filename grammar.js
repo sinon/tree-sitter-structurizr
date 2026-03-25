@@ -165,6 +165,84 @@ const COLOR_STYLE_PROPERTIES = [
   "stroke",
 ];
 
+const BOOLEAN_VALUES = [
+  "true",
+  "false",
+];
+
+const SHAPE_VALUES = [
+  "Box",
+  "RoundedBox",
+  "Circle",
+  "Ellipse",
+  "Hexagon",
+  "Diamond",
+  "Cylinder",
+  "Bucket",
+  "Pipe",
+  "Person",
+  "Robot",
+  "Folder",
+  "WebBrowser",
+  "Window",
+  "Terminal",
+  "Shell",
+  "MobileDevicePortrait",
+  "MobileDeviceLandscape",
+  "Component",
+];
+
+const BORDER_VALUES = [
+  "Solid",
+  "Dashed",
+  "Dotted",
+];
+
+const ICON_POSITION_VALUES = [
+  "Top",
+  "Bottom",
+  "Left",
+];
+
+const LINE_STYLE_VALUES = [
+  "Dashed",
+  "Dotted",
+  "Solid",
+];
+
+const ROUTING_VALUES = [
+  "Direct",
+  "Curved",
+  "Orthogonal",
+];
+
+const FILTER_MODES = [
+  "include",
+  "exclude",
+];
+
+function escapeRegexChar(char) {
+  return char.replace(/[|\\{}()[\]^$+*?.-]/g, "\\$&");
+}
+
+function caseInsensitivePattern(value) {
+  return value
+    .split("")
+    .map(char => /[A-Za-z]/.test(char)
+      ? `[${char.toLowerCase()}${char.toUpperCase()}]`
+      : escapeRegexChar(char))
+    .join("");
+}
+
+function enumValueChoices(values, { quoted = false } = {}) {
+  return values.flatMap(value => {
+    const pattern = caseInsensitivePattern(value);
+    return quoted
+      ? [new RegExp(pattern), new RegExp(`"${pattern}"`)]
+      : [new RegExp(pattern)];
+  });
+}
+
 export default grammar({
   name: "structurizr",
 
@@ -226,6 +304,20 @@ export default grammar({
     hex_color: _ => token(prec(2, /#[A-Fa-f0-9]{6}/)),
 
     named_color: _ => token(prec(2, choice(...NAMED_COLORS))),
+
+    boolean_value: _ => token(prec(2, choice(...BOOLEAN_VALUES))),
+
+    shape_value: _ => token(prec(2, choice(...enumValueChoices(SHAPE_VALUES, { quoted: true })))),
+
+    border_value: _ => token(prec(2, choice(...enumValueChoices(BORDER_VALUES, { quoted: true })))),
+
+    icon_position_value: _ => token(prec(2, choice(...enumValueChoices(ICON_POSITION_VALUES, { quoted: true })))),
+
+    line_style_value: _ => token(prec(2, choice(...enumValueChoices(LINE_STYLE_VALUES, { quoted: true })))),
+
+    routing_value: _ => token(prec(2, choice(...enumValueChoices(ROUTING_VALUES, { quoted: true })))),
+
+    filter_mode: _ => token(prec(2, choice(...FILTER_MODES))),
 
     bare_value: _ => /[^\s{}"]+/,
 
@@ -1520,20 +1612,20 @@ export default grammar({
       seq(
         "filtered",
         field("base_key", $._value),
-        field("mode", $.identifier),
+        field("mode", $.filter_mode),
         field("tags", $._tag_value),
       ),
       seq(
         "filtered",
         field("base_key", $._value),
-        field("mode", $.identifier),
+        field("mode", $.filter_mode),
         field("tags", $._tag_value),
         field("key", $._value),
       ),
       seq(
         "filtered",
         field("base_key", $._value),
-        field("mode", $.identifier),
+        field("mode", $.filter_mode),
         field("tags", $._tag_value),
         field("key", $._value),
         field("description", $._metadata_value),
@@ -1541,14 +1633,14 @@ export default grammar({
       seq(
         "filtered",
         field("base_key", $._value),
-        field("mode", $.identifier),
+        field("mode", $.filter_mode),
         field("tags", $._tag_value),
         field("body", $.filtered_view_block),
       ),
       seq(
         "filtered",
         field("base_key", $._value),
-        field("mode", $.identifier),
+        field("mode", $.filter_mode),
         field("tags", $._tag_value),
         field("key", $._value),
         field("body", $.filtered_view_block),
@@ -1556,7 +1648,7 @@ export default grammar({
       seq(
         "filtered",
         field("base_key", $._value),
-        field("mode", $.identifier),
+        field("mode", $.filter_mode),
         field("tags", $._tag_value),
         field("key", $._value),
         field("description", $._metadata_value),
@@ -1862,6 +1954,30 @@ export default grammar({
         field("value", $.color_value),
       )),
       seq(
+        field("name", alias("shape", $.identifier)),
+        field("value", $.shape_value),
+      ),
+      seq(
+        field("name", alias("border", $.identifier)),
+        field("value", $.border_value),
+      ),
+      seq(
+        field("name", alias("iconPosition", $.identifier)),
+        field("value", $.icon_position_value),
+      ),
+      seq(
+        field("name", alias("style", $.identifier)),
+        field("value", $.line_style_value),
+      ),
+      seq(
+        field("name", alias("routing", $.identifier)),
+        field("value", $.routing_value),
+      ),
+      seq(
+        field("name", alias(choice("metadata", "description", "dashed", "jump"), $.identifier)),
+        field("value", $.boolean_value),
+      ),
+      seq(
         field("name", $.identifier),
         field("value", $._style_value),
       ),
@@ -1870,6 +1986,7 @@ export default grammar({
     _style_value: $ => choice(
       $.string,
       $.number,
+      $.boolean_value,
       $.identifier,
       $.bare_value,
     ),
