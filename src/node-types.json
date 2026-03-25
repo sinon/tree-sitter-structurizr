@@ -824,6 +824,16 @@
     "type": "container_instance_grouped",
     "named": true,
     "fields": {
+      "body": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "deployment_instance_block",
+            "named": true
+          }
+        ]
+      },
       "deployment_group": {
         "multiple": false,
         "required": true,
@@ -860,6 +870,16 @@
     "type": "container_instance_simple",
     "named": true,
     "fields": {
+      "body": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "deployment_instance_block",
+            "named": true
+          }
+        ]
+      },
       "identifier": {
         "multiple": false,
         "required": false,
@@ -1304,6 +1324,29 @@
           }
         ]
       }
+    }
+  },
+  {
+    "type": "deployment_instance_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "relationship",
+          "named": true
+        },
+        {
+          "type": "tag_statement",
+          "named": true
+        },
+        {
+          "type": "tags_statement",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -3489,6 +3532,16 @@
     "type": "software_system_instance_grouped",
     "named": true,
     "fields": {
+      "body": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "deployment_instance_block",
+            "named": true
+          }
+        ]
+      },
       "deployment_group": {
         "multiple": false,
         "required": true,
@@ -3525,6 +3578,16 @@
     "type": "software_system_instance_simple",
     "named": true,
     "fields": {
+      "body": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "deployment_instance_block",
+            "named": true
+          }
+        ]
+      },
       "identifier": {
         "multiple": false,
         "required": false,

@@ -1,0 +1,58 @@
+---
+source: tests/fixtures.rs
+expression: "common::tree_sexp(&tree)"
+---
+(source_file
+  (workspace body:
+    (workspace_block
+      (model body:
+        (model_block
+          (custom_element identifier:
+            (identifier) name:
+            (string))
+          (software_system identifier:
+            (identifier) name:
+            (string) body:
+            (software_system_block
+              (container identifier:
+                (identifier) name:
+                (string))))
+          (deployment_environment identifier:
+            (identifier) name:
+            (string) body:
+            (deployment_environment_block
+              (deployment_node name:
+                (string) body:
+                (deployment_node_block
+                  (infrastructure_node identifier:
+                    (identifier) name:
+                    (string) body:
+                    (deployment_node_block
+                      (relationship source:
+                        (identifier) operator:
+                        (relationship_operator) destination:
+                        (this_keyword))))
+                  (deployment_node identifier:
+                    (identifier) name:
+                    (string) body:
+                    (deployment_node_block
+                      (relationship source:
+                        (identifier) operator:
+                        (relationship_operator) destination:
+                        (this_keyword))
+                      (software_system_instance
+                        (software_system_instance_simple target:
+                          (identifier) body:
+                          (deployment_instance_block
+                            (relationship source:
+                              (identifier) operator:
+                              (relationship_operator) destination:
+                              (this_keyword)))))
+                      (container_instance
+                        (container_instance_simple target:
+                          (identifier) body:
+                          (deployment_instance_block
+                            (relationship source:
+                              (identifier) operator:
+                              (relationship_operator) destination:
+                              (this_keyword))))))))))))))))

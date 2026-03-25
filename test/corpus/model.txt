@@ -264,3 +264,92 @@ workspace {
                     (container_instance_simple
                       (identifier)
                       (identifier))))))))))))
+
+==================================
+Deployment instance bodies and this
+==================================
+
+workspace {
+  model {
+    custom = element "Element"
+    system = softwareSystem "System" {
+      app = container "App"
+    }
+
+    live = deploymentEnvironment "Live" {
+      deploymentNode "Live" {
+        infra = infrastructureNode "Infrastructure Node" {
+          custom -> this
+        }
+
+        deploymentNode "Node" {
+          infra -> this
+
+          softwareSystemInstance system {
+            infra -> this
+          }
+
+          containerInstance app {
+            infra -> this
+          }
+        }
+      }
+    }
+  }
+}
+
+---
+
+(source_file
+  (workspace
+    (workspace_block
+      (model
+        (model_block
+          (custom_element
+            (identifier)
+            (string))
+          (software_system
+            (identifier)
+            (string)
+            (software_system_block
+              (container
+                (identifier)
+                (string))))
+          (deployment_environment
+            (identifier)
+            (string)
+            (deployment_environment_block
+              (deployment_node
+                (string)
+                (deployment_node_block
+                  (infrastructure_node
+                    (identifier)
+                    (string)
+                    (deployment_node_block
+                      (relationship
+                        (identifier)
+                        (relationship_operator)
+                        (this_keyword))))
+                  (deployment_node
+                    (string)
+                    (deployment_node_block
+                      (relationship
+                        (identifier)
+                        (relationship_operator)
+                        (this_keyword))
+                      (software_system_instance
+                        (software_system_instance_simple
+                          (identifier)
+                          (deployment_instance_block
+                            (relationship
+                              (identifier)
+                              (relationship_operator)
+                              (this_keyword)))))
+                      (container_instance
+                        (container_instance_simple
+                          (identifier)
+                          (deployment_instance_block
+                            (relationship
+                              (identifier)
+                              (relationship_operator)
+                              (this_keyword))))))))))))))))

@@ -818,6 +818,16 @@ export default grammar({
       $.number,
     ),
 
+    deployment_instance_block: $ => seq(
+      "{",
+      repeat(choice(
+        $.relationship,
+        $.tag_statement,
+        $.tags_statement,
+      )),
+      "}",
+    ),
+
     deployment_node_block: $ => seq(
       "{",
       repeat($._deployment_node_item),
@@ -836,6 +846,7 @@ export default grammar({
       )),
       "containerInstance",
       field("target", $.identifier),
+      optional(field("body", $.deployment_instance_block)),
     ),
 
     container_instance_grouped: $ => seq(
@@ -846,6 +857,7 @@ export default grammar({
       "containerInstance",
       field("target", $.identifier),
       field("deployment_group", $.identifier),
+      optional(field("body", $.deployment_instance_block)),
     ),
 
     software_system_instance: $ => choice(
@@ -860,6 +872,7 @@ export default grammar({
       )),
       "softwareSystemInstance",
       field("target", $.identifier),
+      optional(field("body", $.deployment_instance_block)),
     ),
 
     software_system_instance_grouped: $ => seq(
@@ -870,6 +883,7 @@ export default grammar({
       "softwareSystemInstance",
       field("target", $.identifier),
       field("deployment_group", $.identifier),
+      optional(field("body", $.deployment_instance_block)),
     ),
 
     instance_of: $ => seq(
