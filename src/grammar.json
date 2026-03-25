@@ -98,6 +98,15 @@
             "type": "ALIAS",
             "content": {
               "type": "STRING",
+              "value": "group"
+            },
+            "named": true,
+            "value": "identifier"
+          },
+          {
+            "type": "ALIAS",
+            "content": {
+              "type": "STRING",
               "value": "person"
             },
             "named": true,
@@ -1146,6 +1155,10 @@
               },
               {
                 "type": "SYMBOL",
+                "name": "properties_block"
+              },
+              {
+                "type": "SYMBOL",
                 "name": "model"
               },
               {
@@ -1367,6 +1380,10 @@
         },
         {
           "type": "SYMBOL",
+          "name": "group"
+        },
+        {
+          "type": "SYMBOL",
           "name": "person"
         },
         {
@@ -1415,6 +1432,10 @@
         },
         {
           "type": "SYMBOL",
+          "name": "properties_block"
+        },
+        {
+          "type": "SYMBOL",
           "name": "relationship"
         }
       ]
@@ -1422,6 +1443,10 @@
     "_software_system_item": {
       "type": "CHOICE",
       "members": [
+        {
+          "type": "SYMBOL",
+          "name": "group"
+        },
         {
           "type": "SYMBOL",
           "name": "container"
@@ -1475,6 +1500,10 @@
     "_container_item": {
       "type": "CHOICE",
       "members": [
+        {
+          "type": "SYMBOL",
+          "name": "group"
+        },
         {
           "type": "SYMBOL",
           "name": "component"
@@ -1534,6 +1563,10 @@
       "members": [
         {
           "type": "SYMBOL",
+          "name": "group"
+        },
+        {
+          "type": "SYMBOL",
           "name": "elements_directive"
         },
         {
@@ -1571,6 +1604,10 @@
       "members": [
         {
           "type": "SYMBOL",
+          "name": "group"
+        },
+        {
+          "type": "SYMBOL",
           "name": "deployment_group"
         },
         {
@@ -1586,6 +1623,10 @@
     "_deployment_node_item": {
       "type": "CHOICE",
       "members": [
+        {
+          "type": "SYMBOL",
+          "name": "group"
+        },
         {
           "type": "SYMBOL",
           "name": "deployment_node"
@@ -1621,6 +1662,10 @@
       "members": [
         {
           "type": "SYMBOL",
+          "name": "group"
+        },
+        {
+          "type": "SYMBOL",
           "name": "person"
         },
         {
@@ -1642,6 +1687,95 @@
         {
           "type": "SYMBOL",
           "name": "archetype_instance"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "elements_directive"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "element_directive"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "relationship"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "description_statement"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "technology_statement"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "tag_statement"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "tags_statement"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "metadata_statement"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "docs_directive"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "adrs_directive"
+        }
+      ]
+    },
+    "_group_item": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "group"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "person"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "software_system"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "container"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "component"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "custom_element"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "archetype_instance"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "deployment_node"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "infrastructure_node"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "container_instance"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "software_system_instance"
         },
         {
           "type": "SYMBOL",
@@ -2856,6 +2990,84 @@
         }
       ]
     },
+    "group": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SEQ",
+              "members": [
+                {
+                  "type": "FIELD",
+                  "name": "identifier",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "_assignment_identifier"
+                  }
+                },
+                {
+                  "type": "STRING",
+                  "value": "="
+                }
+              ]
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        },
+        {
+          "type": "STRING",
+          "value": "group"
+        },
+        {
+          "type": "FIELD",
+          "name": "name",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_value"
+          }
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "FIELD",
+              "name": "body",
+              "content": {
+                "type": "SYMBOL",
+                "name": "group_block"
+              }
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        }
+      ]
+    },
+    "group_block": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "{"
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_group_item"
+          }
+        },
+        {
+          "type": "STRING",
+          "value": "}"
+        }
+      ]
+    },
     "deployment_environment": {
       "type": "SEQ",
       "members": [
@@ -4012,8 +4224,37 @@
         {
           "type": "REPEAT",
           "content": {
-            "type": "SYMBOL",
-            "name": "_custom_block_item"
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_custom_block_item"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "deployment_node"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "infrastructure_node"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "container_instance"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "software_system_instance"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "properties_block"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "perspectives_block"
+              }
+            ]
           }
         },
         {

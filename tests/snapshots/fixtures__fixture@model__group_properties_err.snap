@@ -7,10 +7,9 @@ expression: "common::tree_sexp(&tree)"
     (workspace_block
       (model body:
         (model_block
-          (archetype_instance kind:
-            (identifier) name:
+          (group name:
             (string) body:
-            (custom_element_block
+            (group_block
               (archetype_instance kind:
                 (identifier)
                 (ERROR) name:

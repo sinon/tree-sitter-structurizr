@@ -402,6 +402,10 @@
           "named": true
         },
         {
+          "type": "group",
+          "named": true
+        },
+        {
           "type": "metadata_statement",
           "named": true
         },
@@ -763,6 +767,10 @@
           "named": true
         },
         {
+          "type": "group",
+          "named": true
+        },
+        {
           "type": "metadata_statement",
           "named": true
         },
@@ -1050,6 +1058,10 @@
           "named": true
         },
         {
+          "type": "group",
+          "named": true
+        },
+        {
           "type": "metadata_statement",
           "named": true
         },
@@ -1246,6 +1258,10 @@
           "named": true
         },
         {
+          "type": "group",
+          "named": true
+        },
+        {
           "type": "relationship",
           "named": true
         }
@@ -1350,6 +1366,10 @@
         },
         {
           "type": "deployment_node",
+          "named": true
+        },
+        {
+          "type": "group",
           "named": true
         },
         {
@@ -1827,7 +1847,15 @@
           "named": true
         },
         {
+          "type": "container_instance",
+          "named": true
+        },
+        {
           "type": "custom_element",
+          "named": true
+        },
+        {
+          "type": "deployment_node",
           "named": true
         },
         {
@@ -1847,6 +1875,14 @@
           "named": true
         },
         {
+          "type": "group",
+          "named": true
+        },
+        {
+          "type": "infrastructure_node",
+          "named": true
+        },
+        {
           "type": "metadata_statement",
           "named": true
         },
@@ -1855,11 +1891,23 @@
           "named": true
         },
         {
+          "type": "perspectives_block",
+          "named": true
+        },
+        {
+          "type": "properties_block",
+          "named": true
+        },
+        {
           "type": "relationship",
           "named": true
         },
         {
           "type": "software_system",
+          "named": true
+        },
+        {
+          "type": "software_system_instance",
           "named": true
         },
         {
@@ -2096,6 +2144,141 @@
         },
         {
           "type": "title_statement",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "group",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "group_block",
+            "named": true
+          }
+        ]
+      },
+      "identifier": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "group_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "adrs_directive",
+          "named": true
+        },
+        {
+          "type": "archetype_instance",
+          "named": true
+        },
+        {
+          "type": "component",
+          "named": true
+        },
+        {
+          "type": "container",
+          "named": true
+        },
+        {
+          "type": "container_instance",
+          "named": true
+        },
+        {
+          "type": "custom_element",
+          "named": true
+        },
+        {
+          "type": "deployment_node",
+          "named": true
+        },
+        {
+          "type": "description_statement",
+          "named": true
+        },
+        {
+          "type": "docs_directive",
+          "named": true
+        },
+        {
+          "type": "element_directive",
+          "named": true
+        },
+        {
+          "type": "elements_directive",
+          "named": true
+        },
+        {
+          "type": "group",
+          "named": true
+        },
+        {
+          "type": "infrastructure_node",
+          "named": true
+        },
+        {
+          "type": "metadata_statement",
+          "named": true
+        },
+        {
+          "type": "person",
+          "named": true
+        },
+        {
+          "type": "relationship",
+          "named": true
+        },
+        {
+          "type": "software_system",
+          "named": true
+        },
+        {
+          "type": "software_system_instance",
+          "named": true
+        },
+        {
+          "type": "tag_statement",
+          "named": true
+        },
+        {
+          "type": "tags_statement",
+          "named": true
+        },
+        {
+          "type": "technology_statement",
           "named": true
         }
       ]
@@ -2562,6 +2745,10 @@
           "named": true
         },
         {
+          "type": "group",
+          "named": true
+        },
+        {
           "type": "identifiers_directive",
           "named": true
         },
@@ -2571,6 +2758,10 @@
         },
         {
           "type": "person",
+          "named": true
+        },
+        {
+          "type": "properties_block",
           "named": true
         },
         {
@@ -3138,6 +3329,10 @@
         },
         {
           "type": "elements_directive",
+          "named": true
+        },
+        {
+          "type": "group",
           "named": true
         },
         {
@@ -4062,6 +4257,10 @@
         },
         {
           "type": "name_statement",
+          "named": true
+        },
+        {
+          "type": "properties_block",
           "named": true
         },
         {

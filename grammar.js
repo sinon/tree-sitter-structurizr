@@ -203,6 +203,7 @@ export default grammar({
 
     _assignment_identifier: $ => prec(1, choice(
       $.identifier,
+      alias("group", $.identifier),
       alias("person", $.identifier),
       alias("softwareSystem", $.identifier),
       alias("softwaresystem", $.identifier),
@@ -311,6 +312,7 @@ export default grammar({
         $.adrs_directive,
         $.name_statement,
         $.description_statement,
+        $.properties_block,
         $.model,
         $.views,
         $.configuration,
@@ -379,6 +381,7 @@ export default grammar({
 
     _model_item: $ => choice(
       $.archetypes,
+      $.group,
       $.person,
       $.software_system,
       $.custom_element,
@@ -391,10 +394,12 @@ export default grammar({
       $.elements_directive,
       $.element_directive,
       $.identifiers_directive,
+      $.properties_block,
       $.relationship,
     ),
 
     _software_system_item: $ => choice(
+      $.group,
       $.container,
       $.custom_element,
       $.archetype_instance,
@@ -410,6 +415,7 @@ export default grammar({
     ),
 
     _container_item: $ => choice(
+      $.group,
       $.component,
       $.custom_element,
       $.archetype_instance,
@@ -426,6 +432,7 @@ export default grammar({
     ),
 
     _component_item: $ => choice(
+      $.group,
       $.elements_directive,
       $.element_directive,
       $.relationship,
@@ -437,12 +444,14 @@ export default grammar({
     ),
 
     _deployment_item: $ => choice(
+      $.group,
       $.deployment_group,
       $.deployment_node,
       $.relationship,
     ),
 
     _deployment_node_item: $ => choice(
+      $.group,
       $.deployment_node,
       $.infrastructure_node,
       $.container_instance,
@@ -453,12 +462,37 @@ export default grammar({
     ),
 
     _custom_block_item: $ => choice(
+      $.group,
       $.person,
       $.software_system,
       $.container,
       $.component,
       $.custom_element,
       $.archetype_instance,
+      $.elements_directive,
+      $.element_directive,
+      $.relationship,
+      $.description_statement,
+      $.technology_statement,
+      $.tag_statement,
+      $.tags_statement,
+      $.metadata_statement,
+      $.docs_directive,
+      $.adrs_directive,
+    ),
+
+    _group_item: $ => choice(
+      $.group,
+      $.person,
+      $.software_system,
+      $.container,
+      $.component,
+      $.custom_element,
+      $.archetype_instance,
+      $.deployment_node,
+      $.infrastructure_node,
+      $.container_instance,
+      $.software_system_instance,
       $.elements_directive,
       $.element_directive,
       $.relationship,
@@ -701,6 +735,22 @@ export default grammar({
       "}",
     ),
 
+    group: $ => seq(
+      optional(seq(
+        field("identifier", $._assignment_identifier),
+        "=",
+      )),
+      "group",
+      field("name", $._value),
+      optional(field("body", $.group_block)),
+    ),
+
+    group_block: $ => seq(
+      "{",
+      repeat($._group_item),
+      "}",
+    ),
+
     deployment_environment: $ => seq(
       optional(seq(
         field("identifier", $._assignment_identifier),
@@ -940,7 +990,15 @@ export default grammar({
 
     element_directive_block: $ => seq(
       "{",
-      repeat($._custom_block_item),
+      repeat(choice(
+        $._custom_block_item,
+        $.deployment_node,
+        $.infrastructure_node,
+        $.container_instance,
+        $.software_system_instance,
+        $.properties_block,
+        $.perspectives_block,
+      )),
       "}",
     ),
 

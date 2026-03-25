@@ -1,0 +1,51 @@
+---
+source: tests/fixtures.rs
+expression: "common::tree_sexp(&tree)"
+---
+(source_file
+  (workspace body:
+    (workspace_block
+      (model body:
+        (model_block
+          (properties_block
+            (property_entry name:
+              (string) value:
+              (string)))
+          (person identifier:
+            (identifier) name:
+            (string))
+          (person identifier:
+            (identifier) name:
+            (string))
+          (group identifier:
+            (identifier) name:
+            (string) body:
+            (group_block
+              (group identifier:
+                (identifier) name:
+                (string) body:
+                (group_block
+                  (software_system name:
+                    (string))))
+              (group identifier:
+                (identifier) name:
+                (string) body:
+                (group_block
+                  (software_system name:
+                    (string))))))
+          (elements_directive expression:
+            (identifier) body:
+            (elements_block
+              (relationship source:
+                (identifier) operator:
+                (relationship_operator) destination:
+                (this_keyword) attribute:
+                (string))))
+          (elements_directive expression:
+            (identifier) body:
+            (elements_block
+              (relationship source:
+                (identifier) operator:
+                (relationship_operator) destination:
+                (this_keyword) attribute:
+                (string)))))))))

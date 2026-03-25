@@ -1,0 +1,15 @@
+---
+source: tests/fixtures.rs
+expression: "common::tree_sexp(&tree)"
+---
+(source_file
+  (workspace body:
+    (workspace_block
+      (model body:
+        (model_block
+          (properties_block
+            (property_entry name:
+              (string) value:
+              (string)))))
+      (views body:
+        (views_block)))))

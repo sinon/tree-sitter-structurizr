@@ -168,9 +168,127 @@ workspace {
           (software_system
             (identifier)
             (string))
-          (relationship
+           (relationship
+             (identifier)
+             (relationship_operator
+               (relationship_archetype_name))
+             (identifier)
+             (string)))))))
+
+=========================
+Element selectors and groups
+=========================
+
+workspace {
+  !identifiers hierarchical
+
+  model {
+    properties {
+      "structurizr.groupSeparator" "/"
+    }
+
+    team = group "Team" {
+      system = softwareSystem "System" {
+        api = container "API" {
+          worker = component "Worker"
+        }
+      }
+    }
+
+    !element system.api.worker {
+      properties {
+        "owner" "Team"
+      }
+    }
+
+    !elements team {
+      -> this "Uses"
+    }
+  }
+}
+
+---
+
+(source_file
+  (workspace
+    (workspace_block
+      (identifiers_directive
+        (identifier))
+      (model
+        (model_block
+          (properties_block
+            (property_entry
+              (string)
+              (string)))
+          (group
             (identifier)
-            (relationship_operator
-              (relationship_archetype_name))
+            (string)
+            (group_block
+              (software_system
+                (identifier)
+                (string)
+                (software_system_block
+                  (container
+                    (identifier)
+                    (string)
+                    (container_block
+                      (component
+                        (identifier)
+                        (string))))))))
+          (element_directive
             (identifier)
-            (string)))))))
+            (element_directive_block
+              (properties_block
+                (property_entry
+                  (string)
+                  (string)))))
+          (elements_directive
+            (identifier)
+            (elements_block
+              (relationship
+                (relationship_operator)
+                (this_keyword)
+                (string)))))))))
+
+=========================
+Keyword group identifier
+=========================
+
+workspace {
+  model {
+    user = person "User"
+
+    group = group "Group" {
+      softwareSystem "A"
+    }
+
+    !elements group {
+      user -> this "Uses"
+    }
+  }
+}
+
+---
+
+(source_file
+  (workspace
+    (workspace_block
+      (model
+        (model_block
+          (person
+            (identifier)
+            (string))
+          (group
+            (identifier)
+            (string)
+            (group_block
+              (software_system
+                (string))))
+          (elements_directive
+            (identifier)
+            (elements_block
+              (relationship
+                (identifier)
+                (relationship_operator)
+                (this_keyword)
+                (string)))))))))

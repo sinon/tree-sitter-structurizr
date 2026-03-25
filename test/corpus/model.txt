@@ -69,3 +69,44 @@ workspace {
           (software_system
             (identifier)
             (string)))))))
+
+==========================
+Model properties and groups
+==========================
+
+workspace {
+  model {
+    properties {
+      structurizr.groupSeparator /
+    }
+
+    department = group "Department" {
+      team = group "Team" {
+        system = softwareSystem "System"
+      }
+    }
+  }
+}
+
+---
+
+(source_file
+  (workspace
+    (workspace_block
+      (model
+        (model_block
+          (properties_block
+            (property_entry
+              (identifier)
+              (bare_value)))
+          (group
+            (identifier)
+            (string)
+            (group_block
+              (group
+                (identifier)
+                (string)
+                (group_block
+                  (software_system
+                    (identifier)
+                    (string)))))))))))
