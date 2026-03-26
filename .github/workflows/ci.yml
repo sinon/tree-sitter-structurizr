@@ -40,8 +40,6 @@ jobs:
       group: test-${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     env:
-      JUST_VERSION: 1.37.0
-      CARGO_NEXTEST_VERSION: 0.9.87
       TREE_SITTER_CLI_VERSION: 0.26.7
 
     steps:
@@ -56,11 +54,11 @@ jobs:
           rustc --version
           cargo --version
 
-      - name: Install just
-        run: cargo install just --version "${JUST_VERSION}" --locked
-
-      - name: Install cargo-nextest
-        run: cargo install cargo-nextest --version "${CARGO_NEXTEST_VERSION}" --locked
+      - name: Install just and cargo-nextest
+        uses: taiki-e/install-action@7627fb428e65e78e2ec9a24ae5c5bd5f8553f182 # v2.69.10
+        with:
+          tool: just@1.37.0,cargo-nextest@0.9.87
+          fallback: none
 
       - name: Install Tree-sitter CLI
         run: cargo install tree-sitter-cli --version "${TREE_SITTER_CLI_VERSION}" --locked
