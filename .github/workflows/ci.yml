@@ -54,6 +54,9 @@ jobs:
   test:
     name: Test grammar and bindings
     runs-on: ubuntu-latest
+    env:
+      TREE_SITTER_CLI_VERSION: v0.26.7
+      TREE_SITTER_CLI_SHA256: aebda62865fccd009b605102d37896421c353816eede1d0662ccbf6538b323b5
     permissions:
       contents: read # required for repository checkout
     concurrency:
@@ -72,14 +75,25 @@ jobs:
           rustc --version
           cargo --version
 
-      - name: Install just, cargo-nextest and tree-sitter-cli
+      - name: Install just and cargo-nextest
         uses: taiki-e/install-action@7627fb428e65e78e2ec9a24ae5c5bd5f8553f182 # v2.69.10
         with:
-          # NOTE: tree-sitter-cli does not currently support binstall so this will do a full build
+          # NOTE: tree-sitter-cli does not currently support binstall and isn't supported directly by `install-action`
           #       hopefully a future version will once relevant upstream cargo issue is resolved.
-          #       Retain this so if that day comes a version bump will get a faster build for free
-          tool: just@1.37.0,cargo-nextest@0.9.87,tree-sitter-cli@0.26.7
-          fallback: cargo-binstall
+          tool: just@1.37.0,cargo-nextest@0.9.87
+          fallback: none
+
+      - name: Install Tree-sitter CLI
+        run: |
+          set -euxo pipefail
+          archive="tree-sitter-cli-linux-x64.zip"
+          url="https://github.com/tree-sitter/tree-sitter/releases/download/${TREE_SITTER_CLI_VERSION}/${archive}"
+          temp_dir="$(mktemp -d)"
+          curl --fail --location --silent --show-error --output "${temp_dir}/${archive}" "${url}"
+          echo "${TREE_SITTER_CLI_SHA256}  ${temp_dir}/${archive}" | sha256sum --check
+          unzip -q "${temp_dir}/${archive}" -d "${temp_dir}/tree-sitter-cli"
+          install "${temp_dir}/tree-sitter-cli/tree-sitter" "${HOME}/.local/bin/tree-sitter"
+          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
 
       - name: Regenerate parser artifacts
         run: just generate
