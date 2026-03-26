@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      TREE_SITTER_CLI_VERSION: v0.26.7
+      TREE_SITTER_CLI_SHA256: aebda62865fccd009b605102d37896421c353816eede1d0662ccbf6538b323b5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install just
+        run: cargo install just --locked
+
+      - name: Install cargo-nextest
+        run: cargo install cargo-nextest --locked
+
+      - name: Install Tree-sitter CLI
+        run: |
+          set -euxo pipefail
+          archive="tree-sitter-cli-linux-x64.zip"
+          url="https://github.com/tree-sitter/tree-sitter/releases/download/${TREE_SITTER_CLI_VERSION}/${archive}"
+          temp_dir="$(mktemp -d)"
+          curl --fail --location --silent --show-error --output "${temp_dir}/${archive}" "${url}"
+          echo "${TREE_SITTER_CLI_SHA256}  ${temp_dir}/${archive}" | sha256sum --check
+          unzip -q "${temp_dir}/${archive}" -d "${temp_dir}/tree-sitter-cli"
+          install "${temp_dir}/tree-sitter-cli/tree-sitter" "${HOME}/.local/bin/tree-sitter"
+          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
+
+      - name: Regenerate parser artifacts
+        run: just generate
+
+      - name: Check generated files are in sync
+        run: git diff --exit-code -- src/parser.c src/grammar.json src/node-types.json
+
+      - name: Run grammar tests
+        run: just test-grammar
+
+      - name: Run Rust tests
+        run: just test-rust-fast
