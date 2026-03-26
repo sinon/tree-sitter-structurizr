@@ -39,8 +39,6 @@ jobs:
     concurrency:
       group: test-${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
-    env:
-      TREE_SITTER_CLI_VERSION: 0.26.7
 
     steps:
       - name: Check out repository
@@ -57,6 +55,9 @@ jobs:
       - name: Install just, cargo-nextest and tree-sitter-cli
         uses: taiki-e/install-action@7627fb428e65e78e2ec9a24ae5c5bd5f8553f182 # v2.69.10
         with:
+          # NOTE: tree-sitter-cli does not currently support binstall so this will do a full build
+          #       hopefully a future version will once relevant upstream cargo issue is resolved.
+          #       Retain this so if that day comes a version bump will get a faster build for free
           tool: just@1.37.0,cargo-nextest@0.9.87,tree-sitter-cli@0.26.7
           fallback: cargo-binstall
 
