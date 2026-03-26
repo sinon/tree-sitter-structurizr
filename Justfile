@@ -27,6 +27,9 @@ audit-upstream:
 audit-upstream-all:
     STRUCTURIZR_UPSTREAM_INCLUDE_UNSUPPORTED=1 cargo +nightly -Zscript tools/upstream_audit.rs
 
+zizmor:
+    zizmor --gh-token="$(gh auth token)" .github/ --persona pedantic
+
 test-grammar:
     tree-sitter test
 

@@ -4,7 +4,27 @@ on:
   push:
     branches:
       - main
+    paths:
+      - ".github/workflows/**"
+      - "Justfile"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "grammar.js"
+      - "bindings/rust/**"
+      - "src/**"
+      - "test/**"
+      - "tests/**"
   pull_request:
+    paths:
+      - ".github/workflows/**"
+      - "Justfile"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "grammar.js"
+      - "bindings/rust/**"
+      - "src/**"
+      - "test/**"
+      - "tests/**"
 
 permissions: {}
 
