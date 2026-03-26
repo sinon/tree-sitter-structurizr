@@ -54,14 +54,11 @@ jobs:
           rustc --version
           cargo --version
 
-      - name: Install just and cargo-nextest
+      - name: Install just, cargo-nextest and tree-sitter-cli
         uses: taiki-e/install-action@7627fb428e65e78e2ec9a24ae5c5bd5f8553f182 # v2.69.10
         with:
-          tool: just@1.37.0,cargo-nextest@0.9.87
-          fallback: none
-
-      - name: Install Tree-sitter CLI
-        run: cargo install tree-sitter-cli --version "${TREE_SITTER_CLI_VERSION}" --locked
+          tool: just@1.37.0,cargo-nextest@0.9.87,tree-sitter-cli@0.26.7
+          fallback: cargo-binstall
 
       - name: Regenerate parser artifacts
         run: just generate
