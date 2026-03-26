@@ -1,6 +1,6 @@
-==================
-Advanced workspace
-==================
+===============================
+Workspace directives and config
+===============================
 
 workspace {
   !identifiers hierarchical

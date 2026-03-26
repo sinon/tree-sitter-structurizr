@@ -16,7 +16,7 @@
   "metadata": {
     "version": "0.0.1",
     "license": "MIT OR Apache-2.0",
-    "description": "Grammar for Structurizr DSL for describing c4 models",
+    "description": "Grammar for the Structurizr DSL for describing C4 models",
     "authors": [
       {
         "name": "Rob Hand",

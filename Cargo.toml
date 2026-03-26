@@ -1,6 +1,6 @@
 [package]
 name = "tree-sitter-structurizr"
-description = "Grammar for Structurizr DSL for describing c4 models"
+description = "Grammar for the Structurizr DSL for describing C4 models"
 version = "0.0.1"
 authors = ["Rob Hand <146272+sinon@users.noreply.github.com>"]
 license = "MIT OR Apache-2.0"
@@ -13,7 +13,7 @@ autoexamples = false
 
 build = "bindings/rust/build.rs"
 include = [
-  "CONTRIBUTORS.md",
+  "CONTRIBUTING.md",
   "bindings/rust/*",
   "grammar.js",
   "queries/*",

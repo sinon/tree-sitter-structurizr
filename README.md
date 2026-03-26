@@ -2,11 +2,69 @@
 
 Tree-sitter grammar for the [Structurizr DSL](https://docs.structurizr.com/dsl/language).
 
-The project goal is editor tooling first: syntax highlighting, folding, indentation, and robust parsing for real-world `.dsl` files. It is not trying to execute Structurizr scripts or provide full semantic validation.
+This repository focuses on practical, test-backed coverage of the Structurizr DSL for Tree-sitter consumers. The scope is the grammar, queries, and bindings surface for real `.dsl` files rather than executable DSL extensions or full semantic validation.
 
 ## Status
 
-The grammar is usable today for a meaningful subset of the DSL and has a fixture-first Rust test harness plus an upstream audit harness.
+The grammar is already useful for a meaningful subset of the DSL, with:
+
+- checked-in generated parser artifacts
+- Tree-sitter corpus tests
+- Rust fixture and snapshot tests
+- an upstream audit harness for coverage hardening
+
+Current release status should be read as **early and iterating** rather than feature-complete. The parser is intentionally being expanded in slices, with coverage driven by local tests and upstream examples.
+
+## Shipped surface
+
+Today this repository ships:
+
+- the Tree-sitter grammar source in `grammar.js`
+- generated parser artifacts in `src/`
+- Rust bindings in `bindings/rust/`
+- checked-in query files in `queries/`
+
+Current binding availability from `tree-sitter.json`:
+
+- Rust: shipped
+- C, Go, Java, Node, Python, Swift, Zig: not currently shipped in this repository
+
+The query files are **real, checked-in editor-support artifacts**, not empty placeholders. They already cover highlighting, folding, and indentation for the syntax families implemented today, but they are still incomplete relative to the full Structurizr DSL.
+
+## Using from Rust
+
+Add the parser alongside `tree-sitter`:
+
+```toml
+[dependencies]
+tree-sitter = "0.26.7"
+tree-sitter-structurizr = "0.0.1"
+```
+
+Then load the language into a parser:
+
+```rust
+let code = r#"
+workspace {
+    model {
+    }
+
+    views {
+    }
+}
+"#;
+
+let mut parser = tree_sitter::Parser::new();
+let language = tree_sitter_structurizr::LANGUAGE;
+parser
+    .set_language(&language.into())
+    .expect("Error loading Structurizr parser");
+
+let tree = parser.parse(code, None).unwrap();
+assert!(!tree.root_node().has_error());
+```
+
+For deeper contributor workflow and development commands, start with [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ## Supported today
 
@@ -30,8 +88,7 @@ The following syntax is implemented and covered by the local corpus and Rust tes
 
 These areas are still in progress. Some parse partially, but they are not considered complete or stable yet:
 
-- The remaining broad umbrella sample from the upstream audit: `big-bank-plc.dsl`.
-- Query authoring for highlighting/folding/indentation is still placeholder-only.
+- broader grammar coverage beyond the syntax families already represented in the local tests
 
 ## Explicitly unsupported
 
@@ -46,4 +103,12 @@ Upstream fixtures whose names contain `unexpected-` are also ignored permanently
 
 The audit also ignores `multi-line-with-error.dsl` permanently because it is an intentional invalid multiline sample whose remaining failure is the nested invalid model shape rather than the line-continuation syntax itself.
 
-For local development commands, contributor-only audit workflow details, and repository layout notes, see [`CONTRIBUTORS.md`](./CONTRIBUTORS.md).
+## Contributing
+
+Start with [`CONTRIBUTING.md`](./CONTRIBUTING.md) for contributor setup, canonical commands, and how the corpus and fixtures are organized.
+
+## References
+
+- Structurizr DSL overview: <https://docs.structurizr.com/dsl>
+- Structurizr DSL language reference: <https://docs.structurizr.com/dsl/language>
+- Upstream Structurizr repository: <https://github.com/structurizr/structurizr>
