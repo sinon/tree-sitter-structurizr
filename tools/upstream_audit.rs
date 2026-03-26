@@ -1,12 +1,28 @@
-mod common;
+#!/usr/bin/env -S cargo +nightly -Zscript
+
+---cargo
+[package]
+edition = "2021"
+
+[dependencies]
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
+serde = { version = "1.0", features = ["derive"] }
+tree-sitter = "0.26.7"
+tree-sitter-structurizr = { path = ".." }
+---
+
+//! Contributor-only upstream audit for real Structurizr DSL samples.
 
 use std::collections::BTreeMap;
 use std::env;
 
 use serde::Deserialize;
+use tree_sitter::{Node, Parser, Point, Tree};
 
 const DEFAULT_UNSUPPORTED_FILTERS: &[&str] = &["script", "plugin"];
 const ALWAYS_IGNORED_FILTERS: &[&str] = &["unexpected-", "multi-line-with-error"];
+const UPSTREAM_DSL_LISTING_URL: &str =
+    "https://api.github.com/repos/structurizr/structurizr/contents/structurizr-dsl/src/test/resources/dsl";
 
 #[derive(Debug, Deserialize)]
 struct GitHubContent {
@@ -16,22 +32,29 @@ struct GitHubContent {
     download_url: Option<String>,
 }
 
+#[derive(Debug, Clone)]
+struct ParseIssue {
+    kind: &'static str,
+    node_kind: String,
+    start: Point,
+    end: Point,
+    text: String,
+}
+
 #[derive(Debug)]
 struct FileFailure {
     path: String,
-    issues: Vec<common::ParseIssue>,
+    issues: Vec<ParseIssue>,
 }
 
-#[test]
-#[ignore = "Downloads upstream Structurizr DSL samples and validates them against the local parser"]
-fn upstream_structurizr_samples_parse_without_errors() {
+fn main() {
     let client = reqwest::blocking::Client::builder()
         .user_agent("tree-sitter-structurizr-upstream-audit")
         .build()
         .expect("failed to build HTTP client");
 
     let mut entries: Vec<GitHubContent> = client
-        .get("https://api.github.com/repos/structurizr/structurizr/contents/structurizr-dsl/src/test/resources/dsl")
+        .get(UPSTREAM_DSL_LISTING_URL)
         .send()
         .expect("failed to fetch upstream DSL listing")
         .error_for_status()
@@ -73,8 +96,8 @@ fn upstream_structurizr_samples_parse_without_errors() {
             .text()
             .unwrap_or_else(|error| panic!("failed to read `{}`: {error}", entry.path));
 
-        let tree = common::parse(&source);
-        let issues = common::collect_parse_issues(&tree, &source);
+        let tree = parse(&source);
+        let issues = collect_parse_issues(&tree, &source);
 
         if issues.is_empty() {
             clean += 1;
@@ -152,6 +175,61 @@ fn upstream_structurizr_samples_parse_without_errors() {
         "upstream audit found {} failing DSL files",
         failures.len()
     );
+}
+
+fn parse(source: &str) -> Tree {
+    let mut parser = Parser::new();
+    parser
+        .set_language(&tree_sitter_structurizr::LANGUAGE.into())
+        .expect("Error loading Structurizr parser");
+    parser
+        .parse(source, None)
+        .expect("Parser returned no tree")
+}
+
+fn collect_parse_issues(tree: &Tree, source: &str) -> Vec<ParseIssue> {
+    let mut issues = Vec::new();
+    collect_node_issues(tree.root_node(), source, &mut issues);
+    issues
+}
+
+fn collect_node_issues(node: Node, source: &str, issues: &mut Vec<ParseIssue>) {
+    if node.is_error() || node.is_missing() {
+        issues.push(ParseIssue {
+            kind: if node.is_missing() { "MISSING" } else { "ERROR" },
+            node_kind: node.kind().to_string(),
+            start: node.start_position(),
+            end: node.end_position(),
+            text: issue_text(node, source),
+        });
+    }
+
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_node_issues(child, source, issues);
+    }
+}
+
+fn issue_text(node: Node, source: &str) -> String {
+    let bytes = source.as_bytes();
+    let raw = if node.start_byte() < node.end_byte() {
+        node.utf8_text(bytes).unwrap_or("")
+    } else {
+        context_excerpt(source, node.start_byte())
+    };
+
+    let squashed = raw.split_whitespace().collect::<Vec<_>>().join(" ");
+    if squashed.is_empty() {
+        "<empty>".to_string()
+    } else {
+        squashed
+    }
+}
+
+fn context_excerpt(source: &str, byte: usize) -> &str {
+    let start = byte.saturating_sub(30);
+    let end = (byte + 30).min(source.len());
+    &source[start..end]
 }
 
 fn feature_bucket(path: &str) -> &'static str {

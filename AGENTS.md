@@ -15,11 +15,11 @@ This project is not trying to become a Structurizr runtime. It should preserve a
 
 ## Core files and layout
 
+- `CONTRIBUTORS.md` — contributor-only local development and audit workflow guide
 - `grammar.js` — source of truth for the grammar
 - `src/parser.c`, `src/grammar.json`, `src/node-types.json` — generated artifacts
+- `tools/upstream_audit.rs` — contributor-only single-file Cargo script for downloading upstream Structurizr DSL fixtures and auditing parser coverage
 - `tests/fixtures.rs` — fixture-driven Rust tests with snapshots
-- `tests/common/mod.rs` — shared parser/test helpers and parse-issue extraction
-- `tests/upstream_audit.rs` — ignored integration test that downloads upstream Structurizr DSL fixtures and audits parser coverage
 - `test/corpus/` — Tree-sitter CLI corpus tests
 - `tests/fixtures/` — the main Rust fixture tree, organized by feature area
 - `queries/` — placeholder area for future highlighting/folding/indentation queries
@@ -28,8 +28,8 @@ This project is not trying to become a Structurizr runtime. It should preserve a
 ## Specification references
 
 - `https://github.com/structurizr/structurizr.github.io/blob/main/dsl/71-language.md` - the language reference for the `.dsl`
-- `https://github.com/structurizr/dsl/tree/master/src` - the upstream dsl parser written in Java
-- `https://github.com/structurizr/dsl/tree/master/src/test/dsl` - the corpus of test `.dsl` files used to test the Java parser
+- `https://github.com/structurizr/structurizr/tree/main/structurizr-dsl/src/main/java/com/structurizr/dsl` - the upstream dsl parser written in Java
+- `https://github.com/structurizr/structurizr/tree/main/structurizr-dsl/src/test/resources/dsl` - the corpus of test `.dsl` files used to test the Java parser
 - `https://github.com/structurizr/structurizr/blob/main/structurizr-core/src/main/java/com/structurizr/view/Shape.java` - the valid set of values for `shape`
 - `https://github.com/structurizr/structurizr/blob/main/structurizr-core/src/main/java/com/structurizr/view/Color.java` - the valid set of colour names that upsteam parser supports.
 - `https://github.com/structurizr/structurizr/tree/main/structurizr-core/src/main/java/com/structurizr/view` - holds a lot of static values (such as colour and shape others might be relevant for future gap filling) 
@@ -101,7 +101,9 @@ Command:
 just audit-upstream
 ```
 
-This runs the ignored Rust integration test in `tests/upstream_audit.rs`.
+This runs the contributor-only Rust audit script in `tools/upstream_audit.rs`.
+
+It currently relies on nightly Cargo's unstable `-Zscript` support, so it is development-only and should be documented as such in `CONTRIBUTORS.md`.
 
 It downloads upstream Structurizr DSL fixtures from the Structurizr repository, parses them with the local grammar, and reports:
 
@@ -125,8 +127,8 @@ just audit-upstream-all
 To narrow the audit to a slice:
 
 ```sh
-STRUCTURIZR_UPSTREAM_FILTER=deployment just audit-upstream
-STRUCTURIZR_UPSTREAM_FILTER=archetypes just audit-upstream
+    STRUCTURIZR_UPSTREAM_FILTER=deployment just audit-upstream
+    STRUCTURIZR_UPSTREAM_FILTER=archetypes just audit-upstream
 ```
 
 ## Expected workflow for an agent
@@ -163,6 +165,7 @@ just audit-upstream
 
 9. Update docs if support status changed:
    - `README.md`
+   - `CONTRIBUTORS.md`
    - this `AGENTS.md` if the workflow itself changed
 
 ## How to decide where a test belongs
@@ -230,7 +233,7 @@ Avoid trying to “solve the DSL” in one pass. The grammar is intentionally be
 - Prefer adding representative fixtures from upstream examples over inventing synthetic mega-tests.
 - If a grammar rule becomes too permissive, tighten it rather than silently reclassifying broken tests.
 - When support moves from pending to implemented, update `README.md`.
-- When the audit filtering policy changes, update both `tests/upstream_audit.rs` and `README.md`.
+- When the audit filtering policy changes, update `tools/upstream_audit.rs`, `CONTRIBUTORS.md`, `README.md`, and any affected command docs.
 - Before ending work, leave the repo in a validated state:
 
 ```sh
