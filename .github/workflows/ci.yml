@@ -89,11 +89,13 @@ jobs:
           archive="tree-sitter-cli-linux-x64.zip"
           url="https://github.com/tree-sitter/tree-sitter/releases/download/${TREE_SITTER_CLI_VERSION}/${archive}"
           temp_dir="$(mktemp -d)"
+          install_dir="${HOME}/.local/bin"
           curl --fail --location --silent --show-error --output "${temp_dir}/${archive}" "${url}"
           echo "${TREE_SITTER_CLI_SHA256}  ${temp_dir}/${archive}" | sha256sum --check
           unzip -q "${temp_dir}/${archive}" -d "${temp_dir}/tree-sitter-cli"
-          install "${temp_dir}/tree-sitter-cli/tree-sitter" "${HOME}/.local/bin/tree-sitter"
-          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
+          mkdir -p "${install_dir}"
+          install "${temp_dir}/tree-sitter-cli/tree-sitter" "${install_dir}/tree-sitter"
+          echo "${install_dir}" >> "${GITHUB_PATH}"
 
       - name: Regenerate parser artifacts
         run: just generate
