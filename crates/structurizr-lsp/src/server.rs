@@ -2,23 +2,25 @@
 
 use std::sync::Arc;
 
-use tower_lsp_server::ls_types::{
-    CompletionParams, CompletionResponse, DidChangeTextDocumentParams,
-    DidCloseTextDocumentParams, DidOpenTextDocumentParams, DocumentSymbolParams,
-    DocumentSymbolResponse, GotoDefinitionParams, GotoDefinitionResponse,
-    InitializeParams, InitializeResult, InitializedParams, Location, ReferenceParams,
-};
 use tokio::sync::RwLock;
+use tower_lsp_server::ls_types::{
+    CompletionParams, CompletionResponse, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
+    DidOpenTextDocumentParams, DocumentSymbolParams, DocumentSymbolResponse, GotoDefinitionParams,
+    GotoDefinitionResponse, InitializeParams, InitializeResult, InitializedParams, Location,
+    ReferenceParams,
+};
 use tower_lsp_server::{Client, LanguageServer};
 
 use crate::{handlers, state::ServerState};
 
+/// Thin `tower-lsp-server` backend that delegates protocol work to handlers.
 pub struct Backend {
     client: Client,
     state: Arc<RwLock<ServerState>>,
 }
 
 impl Backend {
+    /// Creates a backend with an empty shared server state.
     #[must_use]
     pub fn new(client: Client) -> Self {
         Self {
@@ -27,13 +29,15 @@ impl Backend {
         }
     }
 
+    /// Returns the LSP client handle used for server-to-client notifications.
     #[must_use]
     pub const fn client(&self) -> &Client {
         &self.client
     }
 
+    /// Returns the shared mutable server state for protocol handlers.
     #[must_use]
-    pub fn state(&self) -> &Arc<RwLock<ServerState>> {
+    pub const fn state(&self) -> &Arc<RwLock<ServerState>> {
         &self.state
     }
 }
@@ -47,11 +51,11 @@ impl LanguageServer for Backend {
     }
 
     async fn initialized(&self, params: InitializedParams) {
-        handlers::lifecycle::initialized(self, params).await;
+        handlers::lifecycle::initialized(self, params);
     }
 
     async fn shutdown(&self) -> tower_lsp_server::jsonrpc::Result<()> {
-        handlers::lifecycle::shutdown(self).await
+        handlers::lifecycle::shutdown(self)
     }
 
     async fn did_open(&self, params: DidOpenTextDocumentParams) {

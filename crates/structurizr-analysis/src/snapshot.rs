@@ -8,16 +8,19 @@ use crate::diagnostics::SyntaxDiagnostic;
 use crate::includes::IncludeDirective;
 use crate::symbols::{IdentifierModeFact, Reference, Symbol};
 
+/// Stable caller-provided identifier for a document across analysis runs.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct DocumentId(String);
 
 impl DocumentId {
     #[must_use]
+    /// Creates a document identifier from any owned or borrowed string input.
     pub fn new(value: impl Into<String>) -> Self {
         Self(value.into())
     }
 
     #[must_use]
+    /// Returns the identifier as a borrowed string slice.
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -35,6 +38,7 @@ impl From<String> for DocumentId {
     }
 }
 
+/// Filesystem location metadata attached to a document when available.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DocumentLocation {
     path: PathBuf,
@@ -42,11 +46,13 @@ pub struct DocumentLocation {
 
 impl DocumentLocation {
     #[must_use]
+    /// Creates a document location from a filesystem path.
     pub fn new(path: impl Into<PathBuf>) -> Self {
         Self { path: path.into() }
     }
 
     #[must_use]
+    /// Returns the path backing this location.
     pub fn path(&self) -> &Path {
         &self.path
     }
@@ -64,6 +70,7 @@ impl From<&Path> for DocumentLocation {
     }
 }
 
+/// Input required to analyze one Structurizr document.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DocumentInput {
     id: DocumentId,
@@ -73,6 +80,7 @@ pub struct DocumentInput {
 
 impl DocumentInput {
     #[must_use]
+    /// Creates a document input from a stable identifier and source text.
     pub fn new(id: impl Into<DocumentId>, source: impl Into<String>) -> Self {
         Self {
             id: id.into(),
@@ -82,22 +90,26 @@ impl DocumentInput {
     }
 
     #[must_use]
+    /// Attaches filesystem location metadata to this input.
     pub fn with_location(mut self, location: impl Into<DocumentLocation>) -> Self {
         self.location = Some(location.into());
         self
     }
 
     #[must_use]
+    /// Returns the caller-provided document identifier.
     pub const fn id(&self) -> &DocumentId {
         &self.id
     }
 
     #[must_use]
+    /// Returns the optional filesystem location for this input.
     pub const fn location(&self) -> Option<&DocumentLocation> {
         self.location.as_ref()
     }
 
     #[must_use]
+    /// Returns the full source text that will be analyzed.
     pub fn source(&self) -> &str {
         &self.source
     }
@@ -107,6 +119,11 @@ impl DocumentInput {
     }
 }
 
+/// Immutable snapshot produced by analyzing one Structurizr document.
+///
+/// A snapshot groups the original source, parse tree, and extracted facts so
+/// downstream tooling can answer syntax and navigation queries from one shared
+/// object.
 #[derive(Debug)]
 pub struct DocumentSnapshot {
     id: DocumentId,
@@ -147,51 +164,61 @@ impl DocumentSnapshot {
     }
 
     #[must_use]
+    /// Returns the document identifier carried through analysis.
     pub const fn id(&self) -> &DocumentId {
         &self.id
     }
 
     #[must_use]
+    /// Returns the optional filesystem location supplied with the input.
     pub const fn location(&self) -> Option<&DocumentLocation> {
         self.location.as_ref()
     }
 
     #[must_use]
+    /// Returns the exact source text that produced this snapshot.
     pub fn source(&self) -> &str {
         &self.source
     }
 
     #[must_use]
+    /// Returns the Tree-sitter parse tree for the analyzed source.
     pub const fn tree(&self) -> &Tree {
         &self.tree
     }
 
     #[must_use]
+    /// Returns whether any syntax diagnostics were extracted from the parse tree.
     pub const fn has_syntax_errors(&self) -> bool {
         !self.syntax_diagnostics.is_empty()
     }
 
     #[must_use]
+    /// Returns all syntax diagnostics found while traversing the parse tree.
     pub fn syntax_diagnostics(&self) -> &[SyntaxDiagnostic] {
         &self.syntax_diagnostics
     }
 
     #[must_use]
+    /// Returns all raw `!include` directives found in the document.
     pub fn include_directives(&self) -> &[IncludeDirective] {
         &self.include_directives
     }
 
     #[must_use]
+    /// Returns all extracted `!identifiers` mode directives in the document.
     pub fn identifier_modes(&self) -> &[IdentifierModeFact] {
         &self.identifier_modes
     }
 
     #[must_use]
+    /// Returns all declaration symbols extracted from the document.
     pub fn symbols(&self) -> &[Symbol] {
         &self.symbols
     }
 
     #[must_use]
+    /// Returns all symbol references extracted from the document.
     pub fn references(&self) -> &[Reference] {
         &self.references
     }

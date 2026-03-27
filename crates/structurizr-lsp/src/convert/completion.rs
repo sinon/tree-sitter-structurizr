@@ -2,10 +2,7 @@
 
 use tower_lsp_server::ls_types::{CompletionItem, CompletionItemKind, Position};
 
-use crate::{
-    convert::positions::position_to_byte_offset,
-    documents::DocumentState,
-};
+use crate::{convert::positions::position_to_byte_offset, documents::DocumentState};
 
 const COMPLETION_ITEMS: &[(&str, &str)] = &[
     ("workspace", "Workspace root"),
@@ -27,6 +24,7 @@ const COMPLETION_ITEMS: &[(&str, &str)] = &[
     ("description", "View statement"),
 ];
 
+/// Returns fixed-vocabulary completion items that match the current token prefix.
 #[must_use]
 pub fn completion_items(document: &DocumentState, position: Position) -> Vec<CompletionItem> {
     let Some(offset) = position_to_byte_offset(document.line_index(), position) else {

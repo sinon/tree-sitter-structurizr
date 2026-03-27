@@ -1,5 +1,4 @@
-// TODO: Enable warn on missing docs
-// #![warn(missing_docs)]
+#![warn(missing_docs)]
 //! Transport-agnostic analysis primitives for Structurizr DSL documents.
 //!
 //! This crate sits between the Tree-sitter grammar and a future LSP crate.

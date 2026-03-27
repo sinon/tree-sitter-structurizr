@@ -1,3 +1,4 @@
+#![warn(missing_docs)]
 //! Thin, testable LSP server scaffolding for Structurizr DSL editor features.
 
 pub mod capabilities;

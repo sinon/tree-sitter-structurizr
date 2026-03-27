@@ -5,6 +5,7 @@ use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity};
 
 use crate::{convert::positions::span_to_range, documents::DocumentState};
 
+/// Converts syntax diagnostics from one snapshot into publishable LSP diagnostics.
 #[must_use]
 pub fn syntax_diagnostics(
     document: &DocumentState,

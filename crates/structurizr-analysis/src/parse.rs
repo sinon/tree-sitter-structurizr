@@ -5,6 +5,7 @@ use tree_sitter::{Parser, Tree};
 use crate::extract;
 use crate::snapshot::{DocumentInput, DocumentSnapshot};
 
+/// Reusable parser-backed entrypoint for analyzing Structurizr documents.
 pub struct DocumentAnalyzer {
     parser: Parser,
 }
@@ -25,6 +26,13 @@ impl DocumentAnalyzer {
         Self { parser }
     }
 
+    /// Parses one document and returns an immutable snapshot of extracted facts.
+    ///
+    /// The resulting snapshot keeps the original source, parse tree, syntax
+    /// diagnostics, include directives, identifier-mode directives, symbols,
+    /// and references together so downstream tools can answer queries without
+    /// re-parsing immediately.
+    #[must_use]
     pub fn analyze(&mut self, input: DocumentInput) -> DocumentSnapshot {
         let (id, location, source) = input.into_parts();
         let tree = self.parse(&source);
@@ -61,6 +69,7 @@ impl Default for DocumentAnalyzer {
 }
 
 #[must_use]
+/// Convenience helper for analyzing a single document with a fresh parser.
 pub fn analyze_document(input: DocumentInput) -> DocumentSnapshot {
     DocumentAnalyzer::new().analyze(input)
 }

@@ -3,11 +3,10 @@
 use structurizr_analysis::{DocumentSnapshot, Reference, ReferenceTargetHint, Symbol, SymbolKind};
 
 pub fn target_symbol_at_offset(snapshot: &DocumentSnapshot, offset: usize) -> Option<&Symbol> {
-    if let Some(reference) = reference_at_offset(snapshot, offset) {
-        resolve_reference(snapshot, reference)
-    } else {
-        bindable_symbol_at_offset(snapshot, offset)
-    }
+    reference_at_offset(snapshot, offset).map_or_else(
+        || bindable_symbol_at_offset(snapshot, offset),
+        |reference| resolve_reference(snapshot, reference),
+    )
 }
 
 pub fn references_for_symbol<'a>(
@@ -25,7 +24,10 @@ fn bindable_symbol_at_offset(snapshot: &DocumentSnapshot, offset: usize) -> Opti
     snapshot
         .symbols()
         .iter()
-        .filter(|symbol| symbol.binding_name.is_some() && span_contains(symbol.span.start_byte, symbol.span.end_byte, offset))
+        .filter(|symbol| {
+            symbol.binding_name.is_some()
+                && span_contains(symbol.span.start_byte, symbol.span.end_byte, offset)
+        })
         .min_by_key(|symbol| symbol.span.end_byte - symbol.span.start_byte)
 }
 
@@ -69,7 +71,7 @@ fn symbol_matches_reference(symbol: &Symbol, reference: &Reference) -> bool {
     }
 }
 
-fn span_contains(start_byte: usize, end_byte: usize, offset: usize) -> bool {
+const fn span_contains(start_byte: usize, end_byte: usize, offset: usize) -> bool {
     if start_byte == end_byte {
         offset == start_byte
     } else {

@@ -7,6 +7,7 @@ use tower_lsp_server::ls_types::{DocumentSymbol, SymbolKind as LspSymbolKind};
 
 use crate::{convert::positions::span_to_range, documents::DocumentState};
 
+/// Converts analysis symbols into nested LSP document symbols.
 #[must_use]
 pub fn document_symbols(
     document: &DocumentState,
@@ -15,7 +16,10 @@ pub fn document_symbols(
     let mut children_by_parent: BTreeMap<Option<SymbolId>, Vec<&Symbol>> = BTreeMap::new();
 
     for symbol in snapshot.symbols() {
-        children_by_parent.entry(symbol.parent).or_default().push(symbol);
+        children_by_parent
+            .entry(symbol.parent)
+            .or_default()
+            .push(symbol);
     }
 
     children_by_parent

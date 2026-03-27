@@ -5,6 +5,7 @@ use tower_lsp_server::ls_types::Diagnostic;
 
 use crate::{convert, documents::DocumentState};
 
+/// Converts one analyzed document snapshot into publishable LSP diagnostics.
 #[must_use]
 pub fn syntax_diagnostics(
     document: &DocumentState,

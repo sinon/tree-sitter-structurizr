@@ -1,16 +1,13 @@
 //! Full-document sync handlers that keep the latest snapshot in server state.
 
+use structurizr_analysis::analyze_document;
 use tower_lsp_server::ls_types::{
     DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams,
 };
-use structurizr_analysis::analyze_document;
 
-use crate::{
-    documents::DocumentState,
-    handlers::diagnostics,
-    server::Backend,
-};
+use crate::{documents::DocumentState, handlers::diagnostics, server::Backend};
 
+/// Handles `textDocument/didOpen` by analyzing and publishing the initial snapshot.
 pub async fn did_open(backend: &Backend, params: DidOpenTextDocumentParams) {
     let document = DocumentState::new(
         params.text_document.uri,
@@ -21,6 +18,7 @@ pub async fn did_open(backend: &Backend, params: DidOpenTextDocumentParams) {
     publish_latest_snapshot(backend, document).await;
 }
 
+/// Handles `textDocument/didChange` using full-document synchronization.
 pub async fn did_change(backend: &Backend, params: DidChangeTextDocumentParams) {
     let Some(updated_text) = params
         .content_changes
@@ -33,26 +31,24 @@ pub async fn did_change(backend: &Backend, params: DidChangeTextDocumentParams) 
 
     let updated_document = {
         let mut state = backend.state().write().await;
-        match state.documents_mut().get_mut(&params.text_document.uri) {
-            Some(document) => {
-                document.replace_text(params.text_document.version, updated_text);
-                document.clone()
-            }
-            None => {
-                let document = DocumentState::new(
-                    params.text_document.uri.clone(),
-                    params.text_document.version,
-                    updated_text,
-                );
-                state.documents_mut().open(document.clone());
-                document
-            }
+        if let Some(document) = state.documents_mut().get_mut(&params.text_document.uri) {
+            document.replace_text(params.text_document.version, updated_text);
+            document.clone()
+        } else {
+            let document = DocumentState::new(
+                params.text_document.uri.clone(),
+                params.text_document.version,
+                updated_text,
+            );
+            state.documents_mut().open(document.clone());
+            document
         }
     };
 
     publish_latest_snapshot(backend, updated_document).await;
 }
 
+/// Handles `textDocument/didClose` by clearing cached state and diagnostics.
 pub async fn did_close(backend: &Backend, params: DidCloseTextDocumentParams) {
     {
         let mut state = backend.state().write().await;

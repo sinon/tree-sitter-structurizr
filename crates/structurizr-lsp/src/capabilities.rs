@@ -1,10 +1,11 @@
 //! Server capability advertisement kept separate from handler code.
 
 use tower_lsp_server::ls_types::{
-    CompletionOptions, OneOf, ServerCapabilities, TextDocumentSyncCapability,
-    TextDocumentSyncKind, TextDocumentSyncOptions,
+    CompletionOptions, OneOf, ServerCapabilities, TextDocumentSyncCapability, TextDocumentSyncKind,
+    TextDocumentSyncOptions,
 };
 
+/// Builds the server capabilities advertised during LSP initialization.
 #[must_use]
 pub fn server_capabilities() -> ServerCapabilities {
     ServerCapabilities {
