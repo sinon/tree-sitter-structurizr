@@ -13,6 +13,8 @@ build:
 # so keep that one clippy lint disabled in the shared dev flow.
 lint:
     cargo clippy --workspace --all-targets -- -D warnings -W clippy::pedantic -W clippy::nursery -A clippy::const_is_empty
+lint-fix:
+    cargo clippy --fix --workspace --all-targets -- -D warnings -W clippy::pedantic -W clippy::nursery -A clippy::const_is_empty
 
 build-wasm:
     tree-sitter build --wasm

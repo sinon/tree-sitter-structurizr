@@ -12,8 +12,8 @@ pub fn collect(tree: &Tree, source: &str) -> Vec<IncludeDirective> {
 }
 
 fn collect_from_node(node: Node<'_>, source: &str, directives: &mut Vec<IncludeDirective>) {
-    if node.kind() == "include_directive" {
-        if let Some(value_node) = node.child_by_field_name("value") {
+    if node.kind() == "include_directive"
+        && let Some(value_node) = node.child_by_field_name("value") {
             directives.push(IncludeDirective {
                 raw_value: node_text(value_node, source),
                 value_kind: DirectiveValueKind::from_node_kind(value_node.kind()),
@@ -22,7 +22,6 @@ fn collect_from_node(node: Node<'_>, source: &str, directives: &mut Vec<IncludeD
                 container: directive_container(node),
             });
         }
-    }
 
     for index in 0..node.child_count() {
         if let Some(child) = node.child(index.try_into().expect("child index should fit in u32")) {
