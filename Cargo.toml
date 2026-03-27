@@ -26,6 +26,10 @@ include = [
 [lib]
 path = "bindings/rust/lib.rs"
 
+[workspace]
+resolver = "2"
+members = ["crates/structurizr-analysis"]
+
 [dependencies]
 tree-sitter-language = "0.1"
 

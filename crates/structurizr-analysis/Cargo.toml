@@ -1,0 +1,13 @@
+[package]
+name = "structurizr-analysis"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tree-sitter = "0.26.7"
+tree-sitter-structurizr = { version = "0.0.1", path = "../.." }
+
+[dev-dependencies]
+indoc = "2.0"
+insta = "1.43"
+rstest = "0.25"

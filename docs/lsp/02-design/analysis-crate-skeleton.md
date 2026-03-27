@@ -125,7 +125,7 @@ The future LSP crate should own:
 
 This means the analysis crate should **not** depend on:
 
-- `tower-lsp`
+- `tower-lsp-server`
 - `lsp-types`
 - `tokio`
 - editor-specific query surfaces from `zed-structurizr`

@@ -1,0 +1,4 @@
+- Add one explicit `docs/lsp/` readiness note that states whether bounded-MVP analysis has any blocking grammar gaps; right now that conclusion must be inferred across several docs.
+- Decide whether `tests/fixtures/lsp/` should remain a shared grammar-plus-analysis fixture set or move/duplicate once the future LSP crate lands and fixture ownership becomes clearer.
+- The current syntax-diagnostic extractor can emit duplicate diagnostics for the same recovery region on some parse-error fixtures.
+- The bounded analysis extractor currently records only the first identifier in a multi-value view `include` statement.

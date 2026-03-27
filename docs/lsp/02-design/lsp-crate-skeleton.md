@@ -100,7 +100,7 @@ The exact filenames can change, but the role split should stay visible.
 
 - `main.rs` should be nearly empty and only bootstrap stdio transport
 - `lib.rs` should expose testable construction points
-- `server.rs` should define the `tower-lsp` backend type
+- `server.rs` should define the `tower-lsp-server` backend type
 - `state.rs` should own shared server state rather than scattering it across handlers
 - `documents.rs` should isolate open-document tracking and text/version logic
 - `capabilities.rs` should build advertised server capabilities in one place
@@ -129,7 +129,7 @@ edition = "2021"
 
 [dependencies]
 structurizr-analysis = { path = "../structurizr-analysis" }
-tower-lsp = "0.20"
+tower-lsp-server = "0.20"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "io-std", "sync"] }
 lsp-types = "0.97"
 line-index = "0.1"
@@ -152,7 +152,7 @@ That keeps the “semantic layer below protocol layer” boundary real.
 
 The first implementation should use:
 
-- `tower-lsp`
+- `tower-lsp-server`
 - stdio transport
 - a single binary launched by editors such as Zed
 
@@ -164,7 +164,7 @@ Why:
 
 This should remain the default unless later implementation proves a real need to drop lower-level.
 
-The crate skeleton should therefore optimize for `tower-lsp` ergonomics first rather than pre-optimizing around hypothetical transport pain.
+The crate skeleton should therefore optimize for `tower-lsp-server` ergonomics first rather than pre-optimizing around hypothetical transport pain.
 
 ## Core design rules
 
@@ -600,7 +600,7 @@ The first LSP crate should not:
 ## Recommended implementation sequence
 
 1. Add the workspace member for `crates/structurizr-lsp/`.
-2. Create the library + binary skeleton with `tower-lsp` stdio bootstrap.
+2. Create the library + binary skeleton with `tower-lsp-server` stdio bootstrap.
 3. Add state, capability, and text-sync scaffolding.
 4. Wire document open/change/close to whole-document analysis snapshots.
 5. Publish syntax diagnostics first.

@@ -9,7 +9,7 @@ It is intentionally more concrete than the surrounding overview docs so future s
 - Keep grammar + future analysis crate + future LSP crate in this repository.
 - Keep the current Zed extension as a separate downstream repo unless there is proven maintenance pain.
 - Reuse the existing Tree-sitter grammar and Rust bindings directly.
-- Use `tower-lsp` first, with `lsp-types` as a direct dependency in the LSP crate.
+- Use `tower-lsp-server` first, with `lsp-types` as a direct dependency in the LSP crate.
 - Keep the analysis crate free of LSP types.
 - Let Tree-sitter queries continue to power editor-native syntax features where Zed already handles them well.
 - Focus the LSP on diagnostics, symbols, navigation, references, and completion before semantic tokens or runtime-style validation.
@@ -370,7 +370,7 @@ The LSP state should be organized around:
 - workspace facts/indexes
 - client capabilities that matter for feature behavior
 
-This is where `ropey`, `line-index`, and `tower-lsp` start earning their keep.
+This is where `ropey`, `line-index`, and `tower-lsp-server` start earning their keep.
 
 ### 4.3 Implement the protocol skeleton
 
@@ -416,7 +416,7 @@ Recommended test approach:
 
 ### 4.7 Run the transport checkpoint
 
-After the MVP server works in practice, decide whether `tower-lsp` still feels like the right transport layer.
+After the MVP server works in practice, decide whether `tower-lsp-server` still feels like the right transport layer.
 
 Do **not** optimize away from it prematurely, but do review:
 

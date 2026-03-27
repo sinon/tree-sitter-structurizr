@@ -1,0 +1,66 @@
+//! Parser orchestration and the snapshot-producing analysis entrypoints.
+
+use tree_sitter::{Parser, Tree};
+
+use crate::extract;
+use crate::snapshot::{DocumentInput, DocumentSnapshot};
+
+pub struct DocumentAnalyzer {
+    parser: Parser,
+}
+
+impl DocumentAnalyzer {
+    /// Creates a parser-backed analyzer for repeated Structurizr document analysis.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the checked-in Structurizr Tree-sitter language cannot be loaded.
+    #[must_use]
+    pub fn new() -> Self {
+        let mut parser = Parser::new();
+        parser
+            .set_language(&tree_sitter_structurizr::LANGUAGE.into())
+            .expect("Structurizr language should load");
+
+        Self { parser }
+    }
+
+    pub fn analyze(&mut self, input: DocumentInput) -> DocumentSnapshot {
+        let (id, location, source) = input.into_parts();
+        let tree = self.parse(&source);
+        let syntax_diagnostics = extract::diagnostics::collect(&tree);
+        let include_directives = extract::includes::collect(&tree, &source);
+        let identifier_modes = extract::symbols::collect_identifier_modes(&tree, &source);
+        let (symbols, references) =
+            extract::symbols::collect_symbols_and_references(&tree, &source);
+
+        DocumentSnapshot::new(
+            id,
+            location,
+            source,
+            tree,
+            syntax_diagnostics,
+            include_directives,
+            identifier_modes,
+            symbols,
+            references,
+        )
+    }
+
+    fn parse(&mut self, source: &str) -> Tree {
+        self.parser
+            .parse(source, None)
+            .expect("Parser should return a tree")
+    }
+}
+
+impl Default for DocumentAnalyzer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[must_use]
+pub fn analyze_document(input: DocumentInput) -> DocumentSnapshot {
+    DocumentAnalyzer::new().analyze(input)
+}

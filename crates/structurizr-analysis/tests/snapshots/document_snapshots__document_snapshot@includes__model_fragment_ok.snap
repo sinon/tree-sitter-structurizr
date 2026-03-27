@@ -1,0 +1,128 @@
+---
+source: crates/structurizr-analysis/tests/document_snapshots.rs
+expression: "SnapshotView::from(&snapshot)"
+---
+SnapshotView {
+    has_syntax_errors: false,
+    diagnostics: [],
+    include_directives: [],
+    identifier_modes: [],
+    symbols: [
+        Symbol {
+            id: SymbolId(
+                0,
+            ),
+            kind: Person,
+            display_name: "User",
+            binding_name: Some(
+                "user",
+            ),
+            span: TextSpan {
+                start_byte: 12,
+                end_byte: 32,
+                start_point: TextPoint {
+                    row: 1,
+                    column: 4,
+                },
+                end_point: TextPoint {
+                    row: 1,
+                    column: 24,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "person",
+        },
+        Symbol {
+            id: SymbolId(
+                1,
+            ),
+            kind: SoftwareSystem,
+            display_name: "System",
+            binding_name: Some(
+                "system",
+            ),
+            span: TextSpan {
+                start_byte: 37,
+                end_byte: 107,
+                start_point: TextPoint {
+                    row: 2,
+                    column: 4,
+                },
+                end_point: TextPoint {
+                    row: 4,
+                    column: 5,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "software_system",
+        },
+        Symbol {
+            id: SymbolId(
+                2,
+            ),
+            kind: Container,
+            display_name: "API",
+            binding_name: Some(
+                "api",
+            ),
+            span: TextSpan {
+                start_byte: 80,
+                end_byte: 101,
+                start_point: TextPoint {
+                    row: 3,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 3,
+                    column: 29,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    1,
+                ),
+            ),
+            syntax_node_kind: "container",
+        },
+    ],
+    references: [
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "user",
+            span: TextSpan {
+                start_byte: 113,
+                end_byte: 117,
+                start_point: TextPoint {
+                    row: 6,
+                    column: 4,
+                },
+                end_point: TextPoint {
+                    row: 6,
+                    column: 8,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "api",
+            span: TextSpan {
+                start_byte: 121,
+                end_byte: 124,
+                start_point: TextPoint {
+                    row: 6,
+                    column: 12,
+                },
+                end_point: TextPoint {
+                    row: 6,
+                    column: 15,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+    ],
+}

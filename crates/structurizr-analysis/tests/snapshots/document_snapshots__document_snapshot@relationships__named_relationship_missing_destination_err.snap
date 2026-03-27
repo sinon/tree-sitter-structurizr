@@ -1,0 +1,98 @@
+---
+source: crates/structurizr-analysis/tests/document_snapshots.rs
+expression: "SnapshotView::from(&snapshot)"
+---
+SnapshotView {
+    has_syntax_errors: true,
+    diagnostics: [
+        SyntaxDiagnostic {
+            kind: ErrorNode,
+            message: "unexpected syntax",
+            span: TextSpan {
+                start_byte: 103,
+                end_byte: 123,
+                start_point: TextPoint {
+                    row: 5,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 5,
+                    column: 28,
+                },
+            },
+        },
+    ],
+    include_directives: [],
+    identifier_modes: [],
+    symbols: [
+        Symbol {
+            id: SymbolId(
+                0,
+            ),
+            kind: Person,
+            display_name: "User",
+            binding_name: Some(
+                "user",
+            ),
+            span: TextSpan {
+                start_byte: 32,
+                end_byte: 52,
+                start_point: TextPoint {
+                    row: 2,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 2,
+                    column: 28,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "person",
+        },
+        Symbol {
+            id: SymbolId(
+                1,
+            ),
+            kind: SoftwareSystem,
+            display_name: "System",
+            binding_name: Some(
+                "system",
+            ),
+            span: TextSpan {
+                start_byte: 61,
+                end_byte: 93,
+                start_point: TextPoint {
+                    row: 3,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 3,
+                    column: 40,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "software_system",
+        },
+    ],
+    references: [
+        Reference {
+            kind: ViewInclude,
+            raw_text: "rel",
+            span: TextSpan {
+                start_byte: 189,
+                end_byte: 192,
+                start_point: TextPoint {
+                    row: 10,
+                    column: 20,
+                },
+                end_point: TextPoint {
+                    row: 10,
+                    column: 23,
+                },
+            },
+            target_hint: ElementOrRelationship,
+            container_node_kind: "system_landscape_view",
+            containing_symbol: None,
+        },
+    ],
+}

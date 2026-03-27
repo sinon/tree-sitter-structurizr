@@ -27,9 +27,7 @@ enum FixtureExpectation {
 }
 
 #[rstest]
-fn fixtures_match_expected_parse_outcomes(
-    #[files("tests/fixtures/**/*.dsl")] path: PathBuf,
-) {
+fn fixtures_match_expected_parse_outcomes(#[files("tests/fixtures/**/*.dsl")] path: PathBuf) {
     let fixture = load_fixture(&path);
     let tree = parse(&fixture.source);
 
@@ -87,7 +85,12 @@ fn relative_fixture_name(path: &Path) -> String {
     let relative = path
         .strip_prefix(&fixture_root)
         .or_else(|_| path.strip_prefix("tests/fixtures"))
-        .unwrap_or_else(|_| panic!("fixture path should live under tests/fixtures: {}", path.display()))
+        .unwrap_or_else(|_| {
+            panic!(
+                "fixture path should live under tests/fixtures: {}",
+                path.display()
+            )
+        })
         .with_extension("");
 
     relative
@@ -98,13 +101,15 @@ fn relative_fixture_name(path: &Path) -> String {
 }
 
 fn fixture_name_component(component: &str) -> String {
-    if let Some(base) = component.strip_suffix("-ok") {
-        format!("{}_ok", normalize_fixture_component(base))
-    } else if let Some(base) = component.strip_suffix("-err") {
-        format!("{}_err", normalize_fixture_component(base))
-    } else {
-        normalize_fixture_component(component)
-    }
+    component.strip_suffix("-ok").map_or_else(
+        || {
+            component.strip_suffix("-err").map_or_else(
+                || normalize_fixture_component(component),
+                |base| format!("{}_err", normalize_fixture_component(base)),
+            )
+        },
+        |base| format!("{}_ok", normalize_fixture_component(base)),
+    )
 }
 
 fn normalize_fixture_component(component: &str) -> String {
@@ -115,7 +120,12 @@ fn fixture_expectation(path: &Path) -> FixtureExpectation {
     let stem = path
         .file_stem()
         .and_then(|stem| stem.to_str())
-        .unwrap_or_else(|| panic!("fixture path should have valid utf-8 stem: {}", path.display()));
+        .unwrap_or_else(|| {
+            panic!(
+                "fixture path should have valid utf-8 stem: {}",
+                path.display()
+            )
+        });
 
     if stem.ends_with("-ok") {
         FixtureExpectation::ParseOk

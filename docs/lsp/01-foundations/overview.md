@@ -126,7 +126,7 @@ This keeps the parser and semantic layers separate:
 
 Recommended first choice:
 
-- `tower-lsp`
+- `tower-lsp-server`
 
 Why:
 
@@ -144,7 +144,7 @@ Why you might choose it later:
 - more manual control
 - closer to the style used by lower-level Rust tools such as `rust-analyzer`
 
-Recommendation: begin with `tower-lsp`, and only drop lower-level if future performance or control needs justify it.
+Recommendation: begin with `tower-lsp-server`, and only drop lower-level if future performance or control needs justify it.
 
 ## Core analysis/runtime
 
@@ -152,7 +152,7 @@ Recommended building blocks:
 
 - `tree-sitter` for incremental parsing and queries
 - existing `tree-sitter-structurizr` crate from this repository
-- `tokio` for async runtime if using `tower-lsp`
+- `tokio` for async runtime if using `tower-lsp-server`
 - `lsp-types` directly in the LSP crate for protocol data types
 - `ropey` for efficient document text updates
 - `line-index` for byte/line/UTF-16 position conversions
@@ -339,6 +339,6 @@ This keeps the early server helpful without pretending it can fully validate bro
 - Repository source of truth: `README.md`, `CONTRIBUTING.md`, `grammar.js`, `bindings/rust/lib.rs`, `bindings/rust/build.rs`, `queries/`
 - Existing Zed extension context: `/Users/rob/dev/zed-structurizr`
 - Zed language support docs: <https://zed.dev/docs/extensions/languages>
-- `tower-lsp`: <https://docs.rs/tower-lsp/latest/tower_lsp/>
+- `tower-lsp-server`: <https://docs.rs/tower-lsp-server/latest/tower_lsp_server/>
 - `lsp-server`: <https://docs.rs/lsp-server/latest/lsp_server/>
 - `tree-sitter` Rust bindings: <https://docs.rs/tree-sitter/latest/tree_sitter/>
