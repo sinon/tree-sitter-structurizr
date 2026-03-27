@@ -19,6 +19,9 @@ lint-fix:
 build-wasm:
     tree-sitter build --wasm
 
+build-lsp:
+    cargo build -p structurizr-lsp --bin structurizr-lsp --release
+
 test: test-rust test-grammar
 
 test-analysis:
