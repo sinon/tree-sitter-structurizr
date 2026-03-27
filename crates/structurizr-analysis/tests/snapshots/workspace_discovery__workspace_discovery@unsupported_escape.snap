@@ -9,7 +9,7 @@ WorkspaceView {
             kind: Entry,
             discovered_by_scan: true,
             include_targets: [
-                "\"https://example.com/base.dsl\"",
+                "\"../shared.dsl\"",
             ],
             symbol_bindings: [],
         },
@@ -17,10 +17,10 @@ WorkspaceView {
     includes: [
         WorkspaceIncludeView {
             including_document: "workspace.dsl",
-            raw_value: "\"https://example.com/base.dsl\"",
-            target_text: "https://example.com/base.dsl",
-            target: RemoteUrl {
-                url: "https://example.com/base.dsl",
+            raw_value: "\"../shared.dsl\"",
+            target_text: "../shared.dsl",
+            target: UnsupportedLocalPath {
+                path: "../shared.dsl",
             },
             discovered_documents: [],
         },
@@ -28,31 +28,31 @@ WorkspaceView {
     diagnostics: [
         WorkspaceDiagnosticView {
             document: "workspace.dsl",
-            kind: UnsupportedRemoteTarget,
-            message: "remote includes are not resolved in the MVP: https://example.com/base.dsl",
-            target_text: "https://example.com/base.dsl",
+            kind: EscapesAllowedSubtree,
+            message: "included path escapes the allowed subtree: ../shared.dsl",
+            target_text: "../shared.dsl",
             span: TextSpan {
                 start_byte: 16,
-                end_byte: 55,
+                end_byte: 40,
                 start_point: TextPoint {
                     row: 1,
                     column: 4,
                 },
                 end_point: TextPoint {
                     row: 1,
-                    column: 43,
+                    column: 28,
                 },
             },
             value_span: TextSpan {
                 start_byte: 25,
-                end_byte: 55,
+                end_byte: 40,
                 start_point: TextPoint {
                     row: 1,
                     column: 13,
                 },
                 end_point: TextPoint {
                     row: 1,
-                    column: 43,
+                    column: 28,
                 },
             },
         },

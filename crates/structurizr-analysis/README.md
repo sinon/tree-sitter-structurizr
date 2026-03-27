@@ -36,6 +36,8 @@ Today the crate owns:
 - initial workspace discovery for `.dsl` roots plus explicit include-following
 - normalized include target facts for local files, local directories, and remote
   URLs
+- file-level include diagnostics for missing targets, subtree escapes, cycles, and
+  unresolved remote includes
 
 The public API intentionally exposes owned facts rather than borrowed
 Tree-sitter nodes so snapshots are easy to store, test, and pass across layers.
@@ -56,8 +58,9 @@ In practice that means it does not own:
   validation
 
 The current workspace layer is still intentionally lighter than a full semantic
-workspace index. It discovers files and follows explicit includes, but it does
-not yet build instance-scoped symbol tables or emit include diagnostics.
+workspace index. It discovers files, follows explicit includes, and emits
+file-level include diagnostics, but it does not yet build instance-scoped symbol
+tables or cross-file semantic resolution.
 
 ## Crate layout
 

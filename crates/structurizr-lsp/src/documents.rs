@@ -103,4 +103,9 @@ impl DocumentStore {
     pub fn get_mut(&mut self, uri: &Uri) -> Option<&mut DocumentState> {
         self.open_documents.get_mut(uri)
     }
+
+    /// Iterates over the currently open documents.
+    pub fn iter(&self) -> impl Iterator<Item = &DocumentState> {
+        self.open_documents.values()
+    }
 }

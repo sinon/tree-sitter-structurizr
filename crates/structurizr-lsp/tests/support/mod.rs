@@ -1,6 +1,9 @@
 #![allow(dead_code)]
 
-use std::str::FromStr;
+use std::{
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 
 use futures::StreamExt;
 use line_index::{LineIndex, TextSize, WideEncoding};
@@ -20,10 +23,23 @@ pub fn new_service() -> (TestService, ClientSocket) {
 }
 
 pub async fn initialize(service: &mut TestService) -> Value {
+    initialize_with_workspace_folders(service, &[]).await
+}
+
+pub async fn initialize_with_workspace_folders(
+    service: &mut TestService,
+    workspace_folders: &[Uri],
+) -> Value {
     let response = call_request(
         service,
         Request::build("initialize")
-            .params(json!({ "capabilities": {} }))
+            .params(json!({
+                "capabilities": {},
+                "workspaceFolders": workspace_folders
+                    .iter()
+                    .map(|uri| json!({ "uri": uri.as_str(), "name": "test-workspace" }))
+                    .collect::<Vec<_>>(),
+            }))
             .id(1)
             .finish(),
     )
@@ -76,6 +92,18 @@ pub async fn next_server_notification(socket: &mut ClientSocket) -> Value {
 
 pub fn file_uri(name: &str) -> Uri {
     Uri::from_str(&format!("file:///{name}")).expect("test URI should parse")
+}
+
+pub fn file_uri_from_path(path: &Path) -> Uri {
+    Uri::from_str(&format!("file://{}", path.to_string_lossy())).expect("file path URI should parse")
+}
+
+pub fn workspace_fixture_path(name: &str) -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/lsp/workspaces")
+        .join(name)
+        .canonicalize()
+        .expect("workspace fixture should exist")
 }
 
 pub fn position_in(text: &str, needle: &str, byte_offset_within_needle: usize) -> Position {

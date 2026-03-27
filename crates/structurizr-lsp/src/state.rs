@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use structurizr_analysis::DocumentSnapshot;
+use structurizr_analysis::{DocumentSnapshot, WorkspaceFacts};
 use tower_lsp_server::ls_types::{ClientCapabilities, Uri};
 
 use crate::documents::DocumentStore;
@@ -14,6 +14,7 @@ pub struct ServerState {
     workspace_roots: Vec<Uri>,
     documents: DocumentStore,
     snapshots: HashMap<Uri, DocumentSnapshot>,
+    workspace_facts: Option<WorkspaceFacts>,
 }
 
 impl ServerState {
@@ -25,6 +26,12 @@ impl ServerState {
     /// Stores the workspace roots reported during initialization.
     pub fn set_workspace_roots(&mut self, workspace_roots: Vec<Uri>) {
         self.workspace_roots = workspace_roots;
+    }
+
+    /// Returns the workspace roots reported during initialization.
+    #[must_use]
+    pub fn workspace_roots(&self) -> &[Uri] {
+        &self.workspace_roots
     }
 
     /// Returns the open-document store.
@@ -52,5 +59,16 @@ impl ServerState {
     /// Removes the cached analyzed snapshot for a document URI.
     pub fn remove_snapshot(&mut self, uri: &Uri) {
         self.snapshots.remove(uri);
+    }
+
+    /// Replaces the cached workspace discovery facts for the current session.
+    pub fn set_workspace_facts(&mut self, workspace_facts: Option<WorkspaceFacts>) {
+        self.workspace_facts = workspace_facts;
+    }
+
+    /// Returns the latest cached workspace discovery facts, if any.
+    #[must_use]
+    pub const fn workspace_facts(&self) -> Option<&WorkspaceFacts> {
+        self.workspace_facts.as_ref()
     }
 }

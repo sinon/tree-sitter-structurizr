@@ -3,3 +3,4 @@
 - The current syntax-diagnostic extractor can emit duplicate diagnostics for the same recovery region on some parse-error fixtures.
 - The bounded analysis extractor currently records only the first identifier in a multi-value view `include` statement.
 - The current `tower-lsp-server` fork uses `ls-types` rather than a directly interoperable `lsp-types` surface, so the LSP crate should standardize on `tower_lsp_server::ls_types` unless a deliberate conversion layer is introduced.
+- The LSP's new include-diagnostic path currently recomputes workspace discovery for all open-buffer updates; that is acceptable for the bounded MVP, but future workspace indexing should replace it with cached invalidation rather than whole-workspace reloads.

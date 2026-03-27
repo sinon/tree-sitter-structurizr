@@ -2,7 +2,8 @@ use std::path::{Path, PathBuf};
 
 use rstest::rstest;
 use structurizr_analysis::{
-    WorkspaceDocumentKind, WorkspaceFacts, WorkspaceIncludeTarget, load_workspace,
+    IncludeDiagnosticKind, TextSpan, WorkspaceDocumentKind, WorkspaceFacts, WorkspaceIncludeTarget,
+    load_workspace,
 };
 
 macro_rules! set_snapshot_suffix {
@@ -18,6 +19,7 @@ macro_rules! set_snapshot_suffix {
 struct WorkspaceView {
     documents: Vec<WorkspaceDocumentView>,
     includes: Vec<WorkspaceIncludeView>,
+    diagnostics: Vec<WorkspaceDiagnosticView>,
 }
 
 #[allow(dead_code)]
@@ -38,6 +40,17 @@ struct WorkspaceIncludeView {
     target_text: String,
     target: WorkspaceIncludeTargetView,
     discovered_documents: Vec<String>,
+}
+
+#[allow(dead_code)]
+#[derive(Debug)]
+struct WorkspaceDiagnosticView {
+    document: String,
+    kind: IncludeDiagnosticKind,
+    message: String,
+    target_text: String,
+    span: TextSpan,
+    value_span: TextSpan,
 }
 
 #[allow(dead_code)]
@@ -97,7 +110,24 @@ impl WorkspaceView {
             })
             .collect();
 
-        Self { documents, includes }
+        let diagnostics = facts
+            .include_diagnostics()
+            .iter()
+            .map(|diagnostic| WorkspaceDiagnosticView {
+                document: display_document_id(diagnostic.document.as_str(), root),
+                kind: diagnostic.kind,
+                message: diagnostic.message.clone(),
+                target_text: diagnostic.target_text.clone(),
+                span: diagnostic.span,
+                value_span: diagnostic.value_span,
+            })
+            .collect();
+
+        Self {
+            documents,
+            includes,
+            diagnostics,
+        }
     }
 }
 
@@ -128,6 +158,9 @@ impl WorkspaceIncludeTargetView {
 #[case("ignored-explicit")]
 #[case("directory-include")]
 #[case("remote-include")]
+#[case("missing-include")]
+#[case("unsupported-escape")]
+#[case("cycle")]
 fn workspace_fixtures_produce_stable_discovery_views(#[case] fixture_name: &str) {
     let fixture_root = workspace_fixture_root().join(fixture_name);
     let facts = load_workspace([fixture_root.as_path()])
@@ -149,8 +182,21 @@ fn display_document_id(document_id: &str, root: &Path) -> String {
 }
 
 fn display_path(path: &Path, root: &Path) -> String {
-    path.strip_prefix(root).map_or_else(
-        |_| path.display().to_string(),
-        |relative| relative.display().to_string(),
-    )
+    let mut candidate_root = Some(root);
+    let mut parent_prefix_count = 0usize;
+
+    while let Some(candidate) = candidate_root {
+        if let Ok(relative) = path.strip_prefix(candidate) {
+            return format!(
+                "{}{}",
+                "../".repeat(parent_prefix_count),
+                relative.display()
+            );
+        }
+
+        candidate_root = candidate.parent();
+        parent_prefix_count += 1;
+    }
+
+    path.display().to_string()
 }

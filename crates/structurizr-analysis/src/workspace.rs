@@ -1,7 +1,7 @@
-//! Workspace discovery and explicit include-following for multi-file analysis.
+//! Workspace discovery, include-following, and file-level include diagnostics.
 
 use std::{
-    collections::{BTreeMap, VecDeque},
+    collections::{BTreeMap, BTreeSet, VecDeque},
     fs, io,
     path::{Component, Path, PathBuf},
 };
@@ -10,7 +10,7 @@ use ignore::WalkBuilder;
 
 use crate::{
     DirectiveValueKind, DocumentAnalyzer, DocumentId, DocumentInput, DocumentSnapshot,
-    IncludeDirective, TextSpan,
+    IncludeDiagnostic, IncludeDirective, TextSpan,
 };
 
 /// Classifies whether a discovered document can act as a workspace entry point.
@@ -155,6 +155,7 @@ impl ResolvedInclude {
 pub struct WorkspaceFacts {
     documents: Vec<WorkspaceDocument>,
     resolved_includes: Vec<ResolvedInclude>,
+    include_diagnostics: Vec<IncludeDiagnostic>,
 }
 
 impl WorkspaceFacts {
@@ -168,6 +169,23 @@ impl WorkspaceFacts {
     #[must_use]
     pub fn includes(&self) -> &[ResolvedInclude] {
         &self.resolved_includes
+    }
+
+    /// Returns include-resolution diagnostics in deterministic order.
+    #[must_use]
+    pub fn include_diagnostics(&self) -> &[IncludeDiagnostic] {
+        &self.include_diagnostics
+    }
+
+    /// Returns include-resolution diagnostics for one document.
+    pub fn include_diagnostics_for(
+        &self,
+        id: &DocumentId,
+    ) -> impl Iterator<Item = &IncludeDiagnostic> + '_ {
+        let id = id.clone();
+        self.include_diagnostics
+            .iter()
+            .filter(move |diagnostic| diagnostic.document == id)
     }
 
     /// Returns the subset of discovered documents that can act as entry roots.
@@ -188,6 +206,7 @@ impl WorkspaceFacts {
 #[derive(Default)]
 pub struct WorkspaceLoader {
     analyzer: DocumentAnalyzer,
+    document_overrides: BTreeMap<PathBuf, String>,
 }
 
 impl WorkspaceLoader {
@@ -195,6 +214,14 @@ impl WorkspaceLoader {
     #[must_use]
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Registers an in-memory source override for one canonical file path.
+    ///
+    /// This is useful for editor integrations that need workspace loading to
+    /// observe unsaved buffer contents instead of only on-disk text.
+    pub fn set_document_override(&mut self, path: PathBuf, source: String) {
+        self.document_overrides.insert(path, source);
     }
 
     /// Scans one or more workspace roots for `.dsl` files and follows explicit
@@ -247,7 +274,11 @@ impl WorkspaceLoader {
                 continue;
             }
 
-            let source = fs::read_to_string(&path)?;
+            let source = self
+                .document_overrides
+                .get(&path)
+                .cloned()
+                .unwrap_or(fs::read_to_string(&path)?);
             let snapshot = self.analyzer.analyze(
                 DocumentInput::new(document_id_from_path(&path), source).with_location(path.clone()),
             );
@@ -289,10 +320,12 @@ impl WorkspaceLoader {
                 .then_with(|| left.span().start_byte.cmp(&right.span().start_byte))
                 .then_with(|| left.target_text().cmp(right.target_text()))
         });
+        let include_diagnostics = include_diagnostics(&resolved_includes);
 
         Ok(WorkspaceFacts {
             documents: loaded_documents.into_values().collect(),
             resolved_includes,
+            include_diagnostics,
         })
     }
 }
@@ -565,4 +598,134 @@ fn collect_directory_include_paths(
     paths.sort();
     paths.dedup();
     Ok(paths)
+}
+
+fn include_diagnostics(resolved_includes: &[ResolvedInclude]) -> Vec<IncludeDiagnostic> {
+    let cycle_include_indices = cycle_include_indices(resolved_includes);
+    let mut diagnostics = Vec::new();
+
+    for (index, include) in resolved_includes.iter().enumerate() {
+        match include.target() {
+            WorkspaceIncludeTarget::MissingLocalPath { .. } => {
+                diagnostics.push(IncludeDiagnostic::missing_local_target(
+                    include.including_document(),
+                    include.target_text(),
+                    include.span(),
+                    include.value_span(),
+                ));
+            }
+            WorkspaceIncludeTarget::UnsupportedLocalPath { .. } => {
+                diagnostics.push(IncludeDiagnostic::escapes_allowed_subtree(
+                    include.including_document(),
+                    include.target_text(),
+                    include.span(),
+                    include.value_span(),
+                ));
+            }
+            WorkspaceIncludeTarget::RemoteUrl { .. } => {
+                diagnostics.push(IncludeDiagnostic::unsupported_remote_target(
+                    include.including_document(),
+                    include.target_text(),
+                    include.span(),
+                    include.value_span(),
+                ));
+            }
+            WorkspaceIncludeTarget::LocalFile { .. } | WorkspaceIncludeTarget::LocalDirectory { .. } => {}
+        }
+
+        if cycle_include_indices.contains(&index) {
+            diagnostics.push(IncludeDiagnostic::include_cycle(
+                include.including_document(),
+                include.target_text(),
+                include.span(),
+                include.value_span(),
+            ));
+        }
+    }
+
+    diagnostics.sort_by(|left, right| {
+        left.document
+            .cmp(&right.document)
+            .then_with(|| left.span.start_byte.cmp(&right.span.start_byte))
+            .then_with(|| left.kind.cmp(&right.kind))
+            .then_with(|| left.target_text.cmp(&right.target_text))
+    });
+    diagnostics
+}
+
+fn cycle_include_indices(resolved_includes: &[ResolvedInclude]) -> BTreeSet<usize> {
+    let mut adjacency = BTreeMap::<DocumentId, Vec<(usize, DocumentId)>>::new();
+
+    for (index, include) in resolved_includes.iter().enumerate() {
+        for discovered_document in include.discovered_documents() {
+            adjacency
+                .entry(include.including_document().clone())
+                .or_default()
+                .push((index, discovered_document.clone()));
+        }
+    }
+
+    let mut cycle_indices = BTreeSet::new();
+    let mut visited = BTreeSet::new();
+    let mut stack_documents = Vec::new();
+    let mut stack_edges = Vec::new();
+
+    for document in adjacency.keys() {
+        collect_cycle_include_indices(
+            document,
+            &adjacency,
+            &mut visited,
+            &mut stack_documents,
+            &mut stack_edges,
+            &mut cycle_indices,
+        );
+    }
+
+    cycle_indices
+}
+
+fn collect_cycle_include_indices(
+    document: &DocumentId,
+    adjacency: &BTreeMap<DocumentId, Vec<(usize, DocumentId)>>,
+    visited: &mut BTreeSet<DocumentId>,
+    stack_documents: &mut Vec<DocumentId>,
+    stack_edges: &mut Vec<usize>,
+    cycle_indices: &mut BTreeSet<usize>,
+) {
+    if visited.contains(document) {
+        return;
+    }
+
+    stack_documents.push(document.clone());
+
+    if let Some(edges) = adjacency.get(document) {
+        for (edge_index, child) in edges {
+            if let Some(stack_index) = stack_documents.iter().position(|candidate| candidate == child)
+            {
+                for cycle_edge in stack_edges.iter().skip(stack_index) {
+                    cycle_indices.insert(*cycle_edge);
+                }
+                cycle_indices.insert(*edge_index);
+                continue;
+            }
+
+            if visited.contains(child) {
+                continue;
+            }
+
+            stack_edges.push(*edge_index);
+            collect_cycle_include_indices(
+                child,
+                adjacency,
+                visited,
+                stack_documents,
+                stack_edges,
+                cycle_indices,
+            );
+            let _ = stack_edges.pop();
+        }
+    }
+
+    let _ = stack_documents.pop();
+    visited.insert(document.clone());
 }

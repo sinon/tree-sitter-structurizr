@@ -56,4 +56,5 @@ WorkspaceView {
             ],
         },
     ],
+    diagnostics: [],
 }
