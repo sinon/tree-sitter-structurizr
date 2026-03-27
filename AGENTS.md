@@ -13,6 +13,14 @@ The main goal is editor support rather than DSL execution:
 
 This project is not trying to become a Structurizr runtime. It should preserve and expose syntax structure faithfully enough for editor features, tests, and iterative grammar hardening.
 
+## Planned LSP work
+
+- `docs/lsp/README.md` is the entry point for the future Structurizr DSL LSP design.
+- The intended implementation shape is a future analysis crate plus a future `structurizr-lsp` crate in this repo, reusing the grammar and Rust bindings.
+- Keep `/Users/rob/dev/zed-structurizr` as a separate downstream editor integration repo.
+- Treat the grammar as the syntax layer and the LSP as a separate semantic layer; do not distort grammar rules just to model runtime semantics.
+- If implementation starts, prefer transport-agnostic analysis logic and keep protocol/editor glue thin.
+
 ## Core files and layout
 
 - `CONTRIBUTORS.md` — contributor-only local development and audit workflow guide
