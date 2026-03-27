@@ -33,6 +33,9 @@ Today the crate owns:
 - raw `!identifiers` facts with declared mode and source ranges
 - bounded-MVP symbol extraction for core Structurizr declarations
 - bounded-MVP reference extraction for obvious single-document reference sites
+- initial workspace discovery for `.dsl` roots plus explicit include-following
+- normalized include target facts for local files, local directories, and remote
+  URLs
 
 The public API intentionally exposes owned facts rather than borrowed
 Tree-sitter nodes so snapshots are easy to store, test, and pass across layers.
@@ -49,11 +52,12 @@ In practice that means it does not own:
 
 - grammar generation, `LANGUAGE`, `NODE_TYPES`, or query packaging
 - `lsp-types`, `tower-lsp-server`, editor glue, or async orchestration
-- include resolution, workspace graph construction, or runtime-style model
+- workspace indexing, cross-file semantic resolution, or runtime-style model
   validation
 
-Multi-file and workspace-aware analysis will layer on later. The current
-`WorkspaceFacts` type is only a placeholder for that future work.
+The current workspace layer is still intentionally lighter than a full semantic
+workspace index. It discovers files and follows explicit includes, but it does
+not yet build instance-scoped symbol tables or emit include diagnostics.
 
 ## Crate layout
 
@@ -66,7 +70,7 @@ extractors:
 - `src/diagnostics.rs` - syntax-diagnostic facts
 - `src/includes.rs` - raw directive facts for `!include`
 - `src/symbols.rs` - symbol, reference, and `!identifiers` facts
-- `src/workspace.rs` - placeholder workspace-level types
+- `src/workspace.rs` - workspace discovery and include-following
 - `src/extract/` - private Tree-sitter walks that populate the public facts
 
 ## Typical usage
@@ -111,6 +115,10 @@ The main snapshot test currently exercises:
 - symbols
 - references
 
+Workspace discovery has its own integration tests under
+`crates/structurizr-analysis/tests/workspace_discovery.rs`, using shared
+workspace fixtures under `tests/lsp/workspaces/`.
+
 Useful commands from the repository root:
 
 ```sh
@@ -132,4 +140,4 @@ That keeps the layering clean:
 
 As the editor tooling grows, this crate is the intended home for later
 workspace-aware indexing and include-resolution logic, but only after the
-single-document analysis surface is stable.
+single-document analysis and discovery surface are stable.

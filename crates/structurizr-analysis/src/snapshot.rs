@@ -188,6 +188,16 @@ impl DocumentSnapshot {
     }
 
     #[must_use]
+    /// Returns whether the document contains a top-level `workspace` block.
+    pub fn is_workspace_entry(&self) -> bool {
+        let root = self.tree.root_node();
+        let mut cursor = root.walk();
+
+        root.named_children(&mut cursor)
+            .any(|child| matches!(child.kind(), "workspace" | "workspace_block"))
+    }
+
+    #[must_use]
     /// Returns whether any syntax diagnostics were extracted from the parse tree.
     pub const fn has_syntax_errors(&self) -> bool {
         !self.syntax_diagnostics.is_empty()

@@ -22,4 +22,7 @@ pub use symbols::{
     IdentifierMode, IdentifierModeFact, Reference, ReferenceKind, ReferenceTargetHint, Symbol,
     SymbolId, SymbolKind,
 };
-pub use workspace::WorkspaceFacts;
+pub use workspace::{
+    ResolvedInclude, WorkspaceDocument, WorkspaceDocumentKind, WorkspaceFacts,
+    WorkspaceIncludeTarget, WorkspaceLoader, load_workspace,
+};

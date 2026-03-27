@@ -1,0 +1,3 @@
+model {
+    user = person "User"
+}

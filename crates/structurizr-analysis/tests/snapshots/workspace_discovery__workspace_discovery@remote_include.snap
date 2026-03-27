@@ -1,0 +1,28 @@
+---
+source: crates/structurizr-analysis/tests/workspace_discovery.rs
+expression: "WorkspaceView::from_facts(&facts, &fixture_root)"
+---
+WorkspaceView {
+    documents: [
+        WorkspaceDocumentView {
+            path: "workspace.dsl",
+            kind: Entry,
+            discovered_by_scan: true,
+            include_targets: [
+                "\"https://example.com/base.dsl\"",
+            ],
+            symbol_bindings: [],
+        },
+    ],
+    includes: [
+        WorkspaceIncludeView {
+            including_document: "workspace.dsl",
+            raw_value: "\"https://example.com/base.dsl\"",
+            target_text: "https://example.com/base.dsl",
+            target: RemoteUrl {
+                url: "https://example.com/base.dsl",
+            },
+            discovered_documents: [],
+        },
+    ],
+}
