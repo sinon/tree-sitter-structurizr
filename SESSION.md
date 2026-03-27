@@ -2,3 +2,4 @@
 - Decide whether `tests/fixtures/lsp/` should remain a shared grammar-plus-analysis fixture set or move/duplicate once the future LSP crate lands and fixture ownership becomes clearer.
 - The current syntax-diagnostic extractor can emit duplicate diagnostics for the same recovery region on some parse-error fixtures.
 - The bounded analysis extractor currently records only the first identifier in a multi-value view `include` statement.
+- The current `tower-lsp-server` fork uses `ls-types` rather than a directly interoperable `lsp-types` surface, so the LSP crate should standardize on `tower_lsp_server::ls_types` unless a deliberate conversion layer is introduced.

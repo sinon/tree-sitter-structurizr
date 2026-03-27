@@ -56,7 +56,8 @@ The near-term model should be:
    - downloads or locates the LSP binary
 5. keep local development fast with:
    - `file://` grammar overrides
-   - `STRUCTURIZR_LSP_BIN` local binary overrides
+   - `lsp.structurizr-lsp.binary.path` local binary overrides
+   - optional `STRUCTURIZR_LSP_BIN` terminal overrides
 
 This preserves fast iteration while keeping published installs reproducible.
 
@@ -140,13 +141,15 @@ The LSP should be acquirable in three modes, ordered from most local to most pub
 
 Use:
 
-- `STRUCTURIZR_LSP_BIN=/absolute/path/to/structurizr-lsp`
+- `lsp.structurizr-lsp.binary.path = "/absolute/path/to/structurizr-lsp"`
+- or, for one-shot terminal launches, `STRUCTURIZR_LSP_BIN=/absolute/path/to/structurizr-lsp`
 
 This is the preferred contributor loop because it:
 
 - avoids editing extension code for local experiments
 - keeps binary choice explicit
 - works even when the extension has download logic
+- maps cleanly to Zed's native binary override model
 
 This mode is for:
 
@@ -329,10 +332,15 @@ When a change spans:
 use the integrated dev loop:
 
 1. build the local `structurizr-lsp` binary in this repo
-2. set `STRUCTURIZR_LSP_BIN` to that binary
+2. set `lsp.structurizr-lsp.binary.path` to that binary
 3. point the Zed dev extension at the local grammar repo with `file://`
 4. run Zed in foreground mode
 5. smoke-test both editor-native and LSP-provided behavior
+
+For one-off terminal launches, step 2 can temporarily use
+`STRUCTURIZR_LSP_BIN=... zed --foreground` instead, but only when starting a
+fresh Zed instance. If Zed is already running, prefer
+`lsp.structurizr-lsp.binary.path`.
 
 This is the slowest loop, so it should be reserved for:
 
@@ -350,7 +358,7 @@ Recommended rehearsal:
 
 1. create or identify the intended `structurizr-lsp` release assets
 2. ensure the extension is pinned to the intended LSP tag
-3. remove `STRUCTURIZR_LSP_BIN` overrides
+3. remove `lsp.structurizr-lsp.binary.path` and `STRUCTURIZR_LSP_BIN` overrides
 4. ensure the result works via:
    - downloaded asset path
    - or, when explicitly testing it, `PATH` fallback

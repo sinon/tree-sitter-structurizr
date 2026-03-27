@@ -59,6 +59,7 @@ pub enum IdentifierMode {
 }
 
 impl IdentifierMode {
+    // TODO: Could this be replaced with a From/Into trait implementation instead?
     pub(crate) fn from_raw(raw_value: &str) -> Self {
         match raw_value.to_ascii_lowercase().as_str() {
             "flat" => Self::Flat,

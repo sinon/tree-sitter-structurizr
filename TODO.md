@@ -1,3 +1,4 @@
 - link checker lychee to verify docs interlinking
 - codspeed / benchmarking of LSP to catch performance regressions
 - investigate salsa
+- examine moving some selection of `/bindings/rust` and the C `/src` into `crates/structurizr-grammar`

@@ -185,17 +185,45 @@ The extension should resolve the `structurizr-lsp` binary using a clear priority
 
 ## Resolution order
 
-### 1. Explicit local override
+### 1. Explicit local Zed override
 
-First, look for an explicit shell-environment override, for example:
+First, look for Zed's native binary override setting:
 
-- `STRUCTURIZR_LSP_BIN`
+- `lsp.structurizr-lsp.binary.path`
 
 This is the cleanest local-development hook because it:
 
+- uses Zed's documented binary-override surface
 - avoids editing extension source for every local experiment
 - allows the contributor to point at `target/debug/structurizr-lsp`
 - keeps local server selection deterministic even if another binary exists on `PATH`
+
+Recommended local use:
+
+```json
+{
+  "lsp": {
+    "structurizr-lsp": {
+      "binary": {
+        "path": "/Users/rob/dev/tree-sitter-structurizr/target/debug/structurizr-lsp"
+      }
+    }
+  }
+}
+```
+
+The extension should treat this override as intentionally highest priority.
+
+### 2. One-shot shell override
+
+For terminal-launched local experiments, also honor:
+
+- `STRUCTURIZR_LSP_BIN` from `worktree.shell_env()`
+
+This keeps one-off smoke tests convenient without requiring a settings edit.
+Because the override comes from Zed's shell environment, it is most reliable
+when launching a fresh Zed instance rather than handing off to one that is
+already running.
 
 Recommended local use:
 
@@ -203,9 +231,7 @@ Recommended local use:
 STRUCTURIZR_LSP_BIN=/Users/rob/dev/tree-sitter-structurizr/target/debug/structurizr-lsp zed --foreground
 ```
 
-The extension should treat this override as dev-only and intentionally highest priority.
-
-### 2. User-installed binary on `PATH`
+### 3. User-installed binary on `PATH`
 
 If no explicit override exists, check:
 
@@ -219,7 +245,7 @@ This supports:
 
 This should be the first published fallback because it is transparent and easy to reason about.
 
-### 3. Downloaded release asset
+### 4. Downloaded release asset
 
 If no override exists and the binary is not on `PATH`, the published extension should download a platform-specific release artifact.
 
@@ -382,7 +408,7 @@ The local workflow should optimize for changing grammar and server code together
 
 1. build the local server binary in this repository
 2. point the Zed extension at the local grammar repo with a `file://` grammar URL
-3. launch Zed with `STRUCTURIZR_LSP_BIN` pointing at the local server binary
+3. configure `lsp.structurizr-lsp.binary.path` to point at the local server binary
 4. install `zed-structurizr` as a dev extension
 5. open representative `.dsl` files and inspect logs in foreground mode
 
@@ -397,13 +423,36 @@ repository = "file:///Users/rob/dev/tree-sitter-structurizr"
 rev = "<local-commit-sha>"
 ```
 
-3. launch:
+3. in Zed user settings or the target worktree's `.zed/settings.json`, add:
+
+```json
+{
+  "lsp": {
+    "structurizr-lsp": {
+      "binary": {
+        "path": "/Users/rob/dev/tree-sitter-structurizr/target/debug/structurizr-lsp"
+      }
+    }
+  }
+}
+```
+
+4. launch:
+
+```sh
+zed --foreground
+```
+
+5. install the dev extension from `/Users/rob/dev/zed-structurizr`
+
+For one-shot terminal launches, step 3 can be replaced with:
 
 ```sh
 STRUCTURIZR_LSP_BIN=/Users/rob/dev/tree-sitter-structurizr/target/debug/structurizr-lsp zed --foreground
 ```
 
-4. install the dev extension from `/Users/rob/dev/zed-structurizr`
+If Zed is already running, prefer the settings-based override instead of the
+shell-based one.
 
 Important rule:
 
@@ -488,7 +537,7 @@ The first concrete Zed implementation should stop once these are true:
 
 - the extension can launch `structurizr-lsp`
 - grammar loading still works from the pinned grammar repo
-- local dev can use `file://` + `STRUCTURIZR_LSP_BIN`
+- local dev can use `file://` plus a local binary override
 - Zed continues to use extension-owned queries for outline/brackets/textobjects
 - the bounded MVP LSP features work without broader protocol polish
 

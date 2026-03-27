@@ -1,0 +1,35 @@
+//! Position conversion stays in the LSP crate because UTF-16 is a protocol concern.
+
+use line_index::{LineIndex, TextSize, WideEncoding, WideLineCol};
+use structurizr_analysis::TextSpan;
+use tower_lsp_server::ls_types::{Position, Range};
+
+fn byte_offset_to_position(line_index: &LineIndex, byte_offset: usize) -> Option<Position> {
+    let offset = TextSize::from(u32::try_from(byte_offset).ok()?);
+    let utf8 = line_index.try_line_col(offset)?;
+    let wide = line_index.to_wide(WideEncoding::Utf16, utf8)?;
+
+    Some(Position::new(wide.line, wide.col))
+}
+
+#[must_use]
+pub fn position_to_byte_offset(line_index: &LineIndex, position: Position) -> Option<usize> {
+    let utf8 = line_index.to_utf8(
+        WideEncoding::Utf16,
+        WideLineCol {
+            line: position.line,
+            col: position.character,
+        },
+    )?;
+    let offset = line_index.offset(utf8)?;
+
+    usize::try_from(u32::from(offset)).ok()
+}
+
+#[must_use]
+pub fn span_to_range(line_index: &LineIndex, span: TextSpan) -> Option<Range> {
+    Some(Range::new(
+        byte_offset_to_position(line_index, span.start_byte)?,
+        byte_offset_to_position(line_index, span.end_byte)?,
+    ))
+}
