@@ -72,6 +72,17 @@ fn check_json_reports_missing_include() {
 }
 
 #[test]
+fn check_json_big_bank_plc_reports_current_golden_record_diagnostics() {
+    assert_cmd_snapshot!(
+        command()
+            .arg("--output-format")
+            .arg("json")
+            .arg("check")
+            .arg("tests/lsp/workspaces/big-bank-plc")
+    );
+}
+
+#[test]
 fn dump_document_text_reports_symbols_and_references() {
     assert_cmd_snapshot!(
         command()
