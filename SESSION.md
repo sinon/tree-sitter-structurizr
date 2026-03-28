@@ -9,3 +9,4 @@
 - The LSP's workspace recomputation path currently drops `WorkspaceLoader` errors with `.ok()`, so filesystem failures silently suppress include diagnostics instead of surfacing actionable feedback.
 - The LSP delivery docs under `docs/lsp/03-delivery/` still assume a dedicated `structurizr-lsp` executable and release asset naming, so they now lag behind the unified `strz server` entrypoint.
 - `docs/lsp/03-delivery/roadmap.md` still frames the analysis and LSP crates as future additions even though those crates already exist in the workspace.
+- Property tests showed malformed generated inputs can yield a root `ERROR` node whose byte range does not start at 0, so robustness invariants should avoid assuming every parse root is `source_file` or begins at the first byte.
