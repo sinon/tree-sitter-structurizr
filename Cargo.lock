@@ -1334,7 +1334,6 @@ dependencies = [
  "proptest",
  "rstest",
  "tempfile",
- "tracing",
  "tree-sitter",
  "tree-sitter-structurizr",
 ]
