@@ -6,34 +6,18 @@ SnapshotView {
     has_syntax_errors: true,
     diagnostics: [
         SyntaxDiagnostic {
-            kind: ErrorNode,
-            message: "unexpected syntax",
+            kind: MissingNode,
+            message: "missing ->",
             span: TextSpan {
-                start_byte: 89,
-                end_byte: 100,
+                start_byte: 94,
+                end_byte: 94,
                 start_point: TextPoint {
                     row: 5,
-                    column: 0,
+                    column: 5,
                 },
                 end_point: TextPoint {
                     row: 5,
-                    column: 11,
-                },
-            },
-        },
-        SyntaxDiagnostic {
-            kind: ErrorNode,
-            message: "unexpected syntax",
-            span: TextSpan {
-                start_byte: 95,
-                end_byte: 100,
-                start_point: TextPoint {
-                    row: 5,
-                    column: 6,
-                },
-                end_point: TextPoint {
-                    row: 5,
-                    column: 11,
+                    column: 5,
                 },
             },
         },
@@ -100,5 +84,44 @@ SnapshotView {
     ],
     identifier_modes: [],
     symbols: [],
-    references: [],
+    references: [
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "hello",
+            span: TextSpan {
+                start_byte: 89,
+                end_byte: 94,
+                start_point: TextPoint {
+                    row: 5,
+                    column: 0,
+                },
+                end_point: TextPoint {
+                    row: 5,
+                    column: 5,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "world",
+            span: TextSpan {
+                start_byte: 95,
+                end_byte: 100,
+                start_point: TextPoint {
+                    row: 5,
+                    column: 6,
+                },
+                end_point: TextPoint {
+                    row: 5,
+                    column: 11,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+    ],
 }

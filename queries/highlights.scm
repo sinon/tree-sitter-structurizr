@@ -53,6 +53,7 @@
   "tag"
   "tags"
   "metadata"
+  "url"
   "name"
   "title"
   "include"
@@ -82,6 +83,14 @@
   "visibility"
   "users"
 ] @keyword
+
+; Unquoted `url https://...` values parse as `bare_value`, so capture the value
+; explicitly to keep URL statements visually coherent in editors.
+(url_statement
+  value: [
+    (bare_value)
+    (string)
+  ] @string.special.url)
 
 [
   "{"

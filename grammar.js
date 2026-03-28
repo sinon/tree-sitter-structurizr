@@ -220,6 +220,10 @@ export default grammar({
 
   extras: ($) => [/\s/, $.comment, $._line_continuation],
 
+  // Give downstream highlighters a canonical word token so literal keyword
+  // patterns do not bleed into longer identifiers like `securityComponent`.
+  word: ($) => $.identifier,
+
   conflicts: ($) => [
     [$.container_instance_simple, $.container_instance_grouped],
     [$.software_system_instance_simple, $.software_system_instance_grouped],

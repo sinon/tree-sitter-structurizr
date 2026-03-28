@@ -21,22 +21,6 @@ SnapshotView {
                 },
             },
         },
-        SyntaxDiagnostic {
-            kind: ErrorNode,
-            message: "unexpected syntax",
-            span: TextSpan {
-                start_byte: 39,
-                end_byte: 50,
-                start_point: TextPoint {
-                    row: 3,
-                    column: 4,
-                },
-                end_point: TextPoint {
-                    row: 3,
-                    column: 15,
-                },
-            },
-        },
     ],
     include_directives: [],
     identifier_modes: [

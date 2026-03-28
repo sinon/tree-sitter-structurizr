@@ -3,8 +3,10 @@ source: tests/fixtures.rs
 expression: tree_sexp(&tree)
 ---
 (source_file
-  (workspace body:
-    (workspace_block
-      (ERROR
-        (UNEXPECTED 'p'))))
+  (workspace
+    (ERROR
+      (UNEXPECTED 'p')) name:
+    (identifier) description:
+    (identifier) body:
+    (workspace_block))
   (ERROR))
