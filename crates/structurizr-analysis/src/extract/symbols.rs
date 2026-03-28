@@ -16,6 +16,8 @@ pub fn collect_identifier_modes(tree: &Tree, source: &str) -> Vec<IdentifierMode
 }
 
 pub fn collect_symbols_and_references(tree: &Tree, source: &str) -> (Vec<Symbol>, Vec<Reference>) {
+    // Keep symbol and reference extraction in one pass so snapshots see a
+    // consistent view of declaration hierarchy and cross-reference sites.
     let mut extractor = SymbolExtractor::new(source);
     extractor.visit(tree.root_node(), None);
     (extractor.symbols, extractor.references)
@@ -40,10 +42,9 @@ fn collect_identifier_mode_from_node(
         });
     }
 
-    for index in 0..node.child_count() {
-        if let Some(child) = node.child(index.try_into().expect("child index should fit in u32")) {
-            collect_identifier_mode_from_node(child, source, facts);
-        }
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_identifier_mode_from_node(child, source, facts);
     }
 }
 
@@ -63,6 +64,8 @@ impl<'a> SymbolExtractor<'a> {
     }
 
     fn visit(&mut self, node: Node<'_>, parent_symbol: Option<SymbolId>) {
+        // Declaration nodes build the hierarchical symbol tree, while
+        // relationships and views contribute reference edges into that tree.
         match node.kind() {
             "person" => {
                 let symbol_id =
@@ -109,12 +112,9 @@ impl<'a> SymbolExtractor<'a> {
     }
 
     fn visit_children(&mut self, node: Node<'_>, parent_symbol: Option<SymbolId>) {
-        for index in 0..node.named_child_count() {
-            if let Some(child) =
-                node.named_child(index.try_into().expect("child index should fit in u32"))
-            {
-                self.visit(child, parent_symbol);
-            }
+        let mut cursor = node.walk();
+        for child in node.named_children(&mut cursor) {
+            self.visit(child, parent_symbol);
         }
     }
 
@@ -249,12 +249,9 @@ impl<'a> SymbolExtractor<'a> {
             return;
         }
 
-        for index in 0..node.named_child_count() {
-            if let Some(child) =
-                node.named_child(index.try_into().expect("child index should fit in u32"))
-            {
-                self.collect_view_include_references(child, view_kind, parent_symbol);
-            }
+        let mut cursor = node.walk();
+        for child in node.named_children(&mut cursor) {
+            self.collect_view_include_references(child, view_kind, parent_symbol);
         }
     }
 }

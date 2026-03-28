@@ -26,7 +26,10 @@ fn collect_from_node(node: Node<'_>, source: &str, constants: &mut Vec<ConstantD
 
         constants.push(ConstantDefinition {
             name: raw_name,
-            value: normalized_directive_value(&raw_value, &crate::DirectiveValueKind::from_node_kind(value_node.kind())),
+            value: normalized_directive_value(
+                &raw_value,
+                &crate::DirectiveValueKind::from_node_kind(value_node.kind()),
+            ),
             span: TextSpan::from_node(node),
             name_span: TextSpan::from_node(name_node),
             value_span: TextSpan::from_node(value_node),
@@ -34,10 +37,9 @@ fn collect_from_node(node: Node<'_>, source: &str, constants: &mut Vec<ConstantD
         });
     }
 
-    for index in 0..node.child_count() {
-        if let Some(child) = node.child(index.try_into().expect("child index should fit in u32")) {
-            collect_from_node(child, source, constants);
-        }
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_from_node(child, source, constants);
     }
 }
 

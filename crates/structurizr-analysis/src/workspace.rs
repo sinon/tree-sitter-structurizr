@@ -240,6 +240,8 @@ impl WorkspaceLoader {
         I: IntoIterator<Item = P>,
         P: AsRef<Path>,
     {
+        // Phase 1: Normalize and scan the requested roots so broad workspace
+        // discovery respects ignore rules before include traversal begins.
         let mut normalized_roots = roots
             .into_iter()
             .map(|root| normalize_existing_path(root.as_ref()))
@@ -254,6 +256,9 @@ impl WorkspaceLoader {
             }
         }
 
+        // Phase 2: Re-process the discovered documents in directive order so
+        // constants, includes, and cycle detection follow the DSL's imperative
+        // execution model.
         let mut processed_contexts =
             BTreeMap::<DocumentContextKey, ProcessedDocumentContext>::new();
         let mut active_stack = Vec::new();
@@ -267,6 +272,8 @@ impl WorkspaceLoader {
             )?;
         }
 
+        // Phase 3: Flatten the per-document include results into one stable
+        // view for downstream diagnostics and editor features.
         let mut resolved_includes = processed_contexts
             .into_values()
             .flat_map(|context| context.direct_includes)
@@ -303,6 +310,7 @@ impl WorkspaceLoader {
 
         // Prefer unsaved editor text when one has been registered for this
         // document, and only hit the filesystem when discovery has no override.
+        // This keeps workspace discovery aligned with live editor buffers.
         let source = if let Some(source) = self.document_overrides.get(&path).cloned() {
             source
         } else {
@@ -335,6 +343,8 @@ impl WorkspaceLoader {
         processed_contexts: &mut BTreeMap<DocumentContextKey, ProcessedDocumentContext>,
         active_stack: &mut Vec<PathBuf>,
     ) -> io::Result<ConstantEnvironment> {
+        // Memoize by `(path, inherited constants)` so repeated includes can
+        // share the same processed result without rewalking the document.
         if let Some(processed_context) = processed_contexts.get(&context.key) {
             return Ok(processed_context.exported_constants.clone());
         }
@@ -416,6 +426,8 @@ impl WorkspaceLoader {
 }
 
 /// Convenience helper for scanning workspace roots with a fresh loader.
+///
+/// Equivalent to `WorkspaceLoader::new().load_paths(roots)`.
 ///
 /// # Errors
 ///

@@ -41,6 +41,7 @@ impl ServerState {
     }
 
     /// Returns the open-document store mutably.
+    #[must_use]
     pub const fn documents_mut(&mut self) -> &mut DocumentStore {
         &mut self.documents
     }
