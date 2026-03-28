@@ -1,0 +1,170 @@
+---
+source: crates/structurizr-analysis/tests/workspace_index.rs
+expression: "WorkspaceIndexSetView::from_facts(&facts, &fixture_root)"
+---
+WorkspaceIndexSetView {
+    document_instances: [
+        DocumentInstanceView {
+            document: "alpha.dsl",
+            instance_ids: [
+                0,
+            ],
+        },
+        DocumentInstanceView {
+            document: "beta.dsl",
+            instance_ids: [
+                0,
+            ],
+        },
+        DocumentInstanceView {
+            document: "workspace.dsl",
+            instance_ids: [
+                0,
+            ],
+        },
+    ],
+    merged_semantic_diagnostics: [
+        DiagnosticView {
+            document: "alpha.dsl",
+            kind: DuplicateBinding,
+            message: "duplicate element binding: api",
+            span: TextSpan {
+                start_byte: 12,
+                end_byte: 44,
+                start_point: TextPoint {
+                    row: 1,
+                    column: 4,
+                },
+                end_point: TextPoint {
+                    row: 1,
+                    column: 36,
+                },
+            },
+        },
+        DiagnosticView {
+            document: "beta.dsl",
+            kind: DuplicateBinding,
+            message: "duplicate element binding: api",
+            span: TextSpan {
+                start_byte: 12,
+                end_byte: 43,
+                start_point: TextPoint {
+                    row: 1,
+                    column: 4,
+                },
+                end_point: TextPoint {
+                    row: 1,
+                    column: 35,
+                },
+            },
+        },
+        DiagnosticView {
+            document: "workspace.dsl",
+            kind: AmbiguousReference,
+            message: "ambiguous identifier reference: api",
+            span: TextSpan {
+                start_byte: 119,
+                end_byte: 122,
+                start_point: TextPoint {
+                    row: 6,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 6,
+                    column: 19,
+                },
+            },
+        },
+    ],
+    instances: [
+        WorkspaceIndexView {
+            id: 0,
+            root_document: "workspace.dsl",
+            documents: [
+                "workspace.dsl",
+                "alpha.dsl",
+                "beta.dsl",
+            ],
+            unique_element_bindings: [
+                (
+                    "user",
+                    "workspace.dsl::user",
+                ),
+            ],
+            duplicate_element_bindings: [
+                (
+                    "api",
+                    [
+                        "alpha.dsl::api",
+                        "beta.dsl::api",
+                    ],
+                ),
+            ],
+            unique_relationship_bindings: [],
+            duplicate_relationship_bindings: [],
+            reference_resolutions: [
+                ReferenceResolutionView {
+                    reference: "workspace.dsl::user@6:8",
+                    status: "resolved workspace.dsl::user",
+                },
+                ReferenceResolutionView {
+                    reference: "workspace.dsl::api@6:16",
+                    status: "ambiguous-duplicate",
+                },
+            ],
+            semantic_diagnostics: [
+                DiagnosticView {
+                    document: "alpha.dsl",
+                    kind: DuplicateBinding,
+                    message: "duplicate element binding: api",
+                    span: TextSpan {
+                        start_byte: 12,
+                        end_byte: 44,
+                        start_point: TextPoint {
+                            row: 1,
+                            column: 4,
+                        },
+                        end_point: TextPoint {
+                            row: 1,
+                            column: 36,
+                        },
+                    },
+                },
+                DiagnosticView {
+                    document: "beta.dsl",
+                    kind: DuplicateBinding,
+                    message: "duplicate element binding: api",
+                    span: TextSpan {
+                        start_byte: 12,
+                        end_byte: 43,
+                        start_point: TextPoint {
+                            row: 1,
+                            column: 4,
+                        },
+                        end_point: TextPoint {
+                            row: 1,
+                            column: 35,
+                        },
+                    },
+                },
+                DiagnosticView {
+                    document: "workspace.dsl",
+                    kind: AmbiguousReference,
+                    message: "ambiguous identifier reference: api",
+                    span: TextSpan {
+                        start_byte: 119,
+                        end_byte: 122,
+                        start_point: TextPoint {
+                            row: 6,
+                            column: 16,
+                        },
+                        end_point: TextPoint {
+                            row: 6,
+                            column: 19,
+                        },
+                    },
+                },
+            ],
+        },
+    ],
+}
