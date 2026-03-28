@@ -245,6 +245,10 @@ fn symbol_kind_name(kind: SymbolKind) -> String {
         SymbolKind::SoftwareSystem => "software_system".to_owned(),
         SymbolKind::Container => "container".to_owned(),
         SymbolKind::Component => "component".to_owned(),
+        SymbolKind::DeploymentNode => "deployment_node".to_owned(),
+        SymbolKind::InfrastructureNode => "infrastructure_node".to_owned(),
+        SymbolKind::ContainerInstance => "container_instance".to_owned(),
+        SymbolKind::SoftwareSystemInstance => "software_system_instance".to_owned(),
         SymbolKind::Relationship => "relationship".to_owned(),
     }
 }
@@ -253,6 +257,11 @@ fn reference_kind_name(kind: ReferenceKind) -> String {
     match kind {
         ReferenceKind::RelationshipSource => "relationship_source".to_owned(),
         ReferenceKind::RelationshipDestination => "relationship_destination".to_owned(),
+        ReferenceKind::InstanceTarget => "instance_target".to_owned(),
+        ReferenceKind::DeploymentRelationshipSource => "deployment_relationship_source".to_owned(),
+        ReferenceKind::DeploymentRelationshipDestination => {
+            "deployment_relationship_destination".to_owned()
+        }
         ReferenceKind::ViewScope => "view_scope".to_owned(),
         ReferenceKind::ViewInclude => "view_include".to_owned(),
     }
@@ -261,6 +270,7 @@ fn reference_kind_name(kind: ReferenceKind) -> String {
 fn target_hint_name(hint: ReferenceTargetHint) -> String {
     match hint {
         ReferenceTargetHint::Element => "element".to_owned(),
+        ReferenceTargetHint::Deployment => "deployment".to_owned(),
         ReferenceTargetHint::Relationship => "relationship".to_owned(),
         ReferenceTargetHint::ElementOrRelationship => "element_or_relationship".to_owned(),
     }

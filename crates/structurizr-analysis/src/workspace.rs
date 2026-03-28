@@ -247,6 +247,8 @@ pub struct WorkspaceIndex {
     documents: Vec<DocumentId>,
     unique_element_bindings: BTreeMap<String, SymbolHandle>,
     duplicate_element_bindings: BTreeMap<String, Vec<SymbolHandle>>,
+    unique_deployment_bindings: BTreeMap<String, SymbolHandle>,
+    duplicate_deployment_bindings: BTreeMap<String, Vec<SymbolHandle>>,
     unique_relationship_bindings: BTreeMap<String, SymbolHandle>,
     duplicate_relationship_bindings: BTreeMap<String, Vec<SymbolHandle>>,
     reference_resolutions: BTreeMap<ReferenceHandle, ReferenceResolutionStatus>,
@@ -283,6 +285,18 @@ impl WorkspaceIndex {
     #[must_use]
     pub const fn duplicate_element_bindings(&self) -> &BTreeMap<String, Vec<SymbolHandle>> {
         &self.duplicate_element_bindings
+    }
+
+    /// Returns the unique deployment-binding table keyed by binding identifier.
+    #[must_use]
+    pub const fn unique_deployment_bindings(&self) -> &BTreeMap<String, SymbolHandle> {
+        &self.unique_deployment_bindings
+    }
+
+    /// Returns the duplicate deployment-binding sets keyed by binding identifier.
+    #[must_use]
+    pub const fn duplicate_deployment_bindings(&self) -> &BTreeMap<String, Vec<SymbolHandle>> {
+        &self.duplicate_deployment_bindings
     }
 
     /// Returns the unique relationship-binding table keyed by canonical binding key.
@@ -1342,6 +1356,8 @@ fn build_workspace_index(
         documents: documents.to_vec(),
         unique_element_bindings: bindings.unique_elements,
         duplicate_element_bindings: bindings.duplicate_elements,
+        unique_deployment_bindings: bindings.unique_deployments,
+        duplicate_deployment_bindings: bindings.duplicate_deployments,
         unique_relationship_bindings: bindings.unique_relationships,
         duplicate_relationship_bindings: bindings.duplicate_relationships,
         reference_resolutions: reference_tables.resolutions,
@@ -1353,6 +1369,8 @@ fn build_workspace_index(
 struct WorkspaceBindingTables {
     unique_elements: BTreeMap<String, SymbolHandle>,
     duplicate_elements: BTreeMap<String, Vec<SymbolHandle>>,
+    unique_deployments: BTreeMap<String, SymbolHandle>,
+    duplicate_deployments: BTreeMap<String, Vec<SymbolHandle>>,
     unique_relationships: BTreeMap<String, SymbolHandle>,
     duplicate_relationships: BTreeMap<String, Vec<SymbolHandle>>,
     semantic_diagnostics: Vec<SemanticDiagnostic>,
@@ -1364,6 +1382,7 @@ fn build_binding_tables(
     inherited_workspace_mode: Option<&IdentifierMode>,
 ) -> WorkspaceBindingTables {
     let mut element_bindings = BTreeMap::<String, Vec<SymbolHandle>>::new();
+    let mut deployment_bindings = BTreeMap::<String, Vec<SymbolHandle>>::new();
     let mut relationship_bindings = BTreeMap::<String, Vec<SymbolHandle>>::new();
 
     for document_id in documents {
@@ -1405,12 +1424,23 @@ fn build_binding_tables(
                         .or_default()
                         .push(handle);
                 }
+                SymbolKind::DeploymentNode
+                | SymbolKind::InfrastructureNode
+                | SymbolKind::ContainerInstance
+                | SymbolKind::SoftwareSystemInstance => {
+                    deployment_bindings
+                        .entry(binding_name.to_owned())
+                        .or_default()
+                        .push(handle);
+                }
             }
         }
     }
 
     let (unique_element_bindings, duplicate_element_bindings) =
         split_binding_table(element_bindings);
+    let (unique_deployment_bindings, duplicate_deployment_bindings) =
+        split_binding_table(deployment_bindings);
     let (unique_relationship_bindings, duplicate_relationship_bindings) =
         split_binding_table(relationship_bindings);
 
@@ -1418,6 +1448,12 @@ fn build_binding_tables(
     push_duplicate_binding_diagnostics(
         "element",
         &duplicate_element_bindings,
+        documents_by_id,
+        &mut semantic_diagnostics,
+    );
+    push_duplicate_binding_diagnostics(
+        "deployment",
+        &duplicate_deployment_bindings,
         documents_by_id,
         &mut semantic_diagnostics,
     );
@@ -1431,6 +1467,8 @@ fn build_binding_tables(
     WorkspaceBindingTables {
         unique_elements: unique_element_bindings,
         duplicate_elements: duplicate_element_bindings,
+        unique_deployments: unique_deployment_bindings,
+        duplicate_deployments: duplicate_deployment_bindings,
         unique_relationships: unique_relationship_bindings,
         duplicate_relationships: duplicate_relationship_bindings,
         semantic_diagnostics,
@@ -1463,14 +1501,7 @@ fn build_reference_resolution_tables(
                 document: document_id.clone(),
                 reference_index,
             };
-            let status = resolve_reference_status(
-                reference.kind,
-                &reference.raw_text,
-                &bindings.unique_elements,
-                &bindings.duplicate_elements,
-                &bindings.unique_relationships,
-                &bindings.duplicate_relationships,
-            );
+            let status = resolve_reference_status(reference.kind, &reference.raw_text, bindings);
 
             if !snapshot.has_syntax_errors() {
                 match status {
@@ -1568,25 +1599,31 @@ fn push_duplicate_binding_diagnostics(
 fn resolve_reference_status(
     kind: ReferenceKind,
     raw_text: &str,
-    unique_element_bindings: &BTreeMap<String, SymbolHandle>,
-    duplicate_element_bindings: &BTreeMap<String, Vec<SymbolHandle>>,
-    unique_relationship_bindings: &BTreeMap<String, SymbolHandle>,
-    duplicate_relationship_bindings: &BTreeMap<String, Vec<SymbolHandle>>,
+    bindings: &WorkspaceBindingTables,
 ) -> ReferenceResolutionStatus {
     match kind {
         ReferenceKind::RelationshipSource
         | ReferenceKind::RelationshipDestination
+        | ReferenceKind::InstanceTarget
         | ReferenceKind::ViewScope => resolve_reference_against_element_table(
             raw_text,
-            unique_element_bindings,
-            duplicate_element_bindings,
+            &bindings.unique_elements,
+            &bindings.duplicate_elements,
         ),
+        ReferenceKind::DeploymentRelationshipSource
+        | ReferenceKind::DeploymentRelationshipDestination => {
+            resolve_reference_against_binding_table(
+                raw_text,
+                &bindings.unique_deployments,
+                &bindings.duplicate_deployments,
+            )
+        }
         ReferenceKind::ViewInclude => resolve_view_include_reference(
             raw_text,
-            unique_element_bindings,
-            duplicate_element_bindings,
-            unique_relationship_bindings,
-            duplicate_relationship_bindings,
+            &bindings.unique_elements,
+            &bindings.duplicate_elements,
+            &bindings.unique_relationships,
+            &bindings.duplicate_relationships,
         ),
     }
 }
@@ -1596,11 +1633,23 @@ fn resolve_reference_against_element_table(
     unique_element_bindings: &BTreeMap<String, SymbolHandle>,
     duplicate_element_bindings: &BTreeMap<String, Vec<SymbolHandle>>,
 ) -> ReferenceResolutionStatus {
-    if duplicate_element_bindings.contains_key(raw_text) {
+    resolve_reference_against_binding_table(
+        raw_text,
+        unique_element_bindings,
+        duplicate_element_bindings,
+    )
+}
+
+fn resolve_reference_against_binding_table(
+    raw_text: &str,
+    unique_bindings: &BTreeMap<String, SymbolHandle>,
+    duplicate_bindings: &BTreeMap<String, Vec<SymbolHandle>>,
+) -> ReferenceResolutionStatus {
+    if duplicate_bindings.contains_key(raw_text) {
         return ReferenceResolutionStatus::AmbiguousDuplicateBinding;
     }
 
-    unique_element_bindings.get(raw_text).cloned().map_or(
+    unique_bindings.get(raw_text).cloned().map_or(
         ReferenceResolutionStatus::UnresolvedNoMatch,
         ReferenceResolutionStatus::Resolved,
     )

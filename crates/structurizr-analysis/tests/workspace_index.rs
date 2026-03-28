@@ -191,6 +191,7 @@ impl DiagnosticView {
 
 #[rstest]
 #[case("cross-file-navigation")]
+#[case("deployment-navigation")]
 #[case("duplicate-bindings")]
 #[case("hierarchical-identifiers")]
 #[case("inherited-constants")]
