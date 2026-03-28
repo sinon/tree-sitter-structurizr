@@ -1,8 +1,11 @@
+use std::env;
 use std::fmt::Write as _;
+use std::fs;
+use std::path::PathBuf;
 
 use proptest::collection::vec;
 use proptest::prelude::any;
-use proptest::strategy::Strategy;
+use proptest::strategy::{Just, Strategy};
 use proptest::string::string_regex;
 use proptest::test_runner::Config;
 use tree_sitter::Parser;
@@ -16,6 +19,13 @@ struct GeneratedWorkspace {
     relationship_label: String,
     include_relationship: bool,
     include_views: bool,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum WorkspaceMutation {
+    RemoveFinalBrace,
+    AppendDanglingQuote,
+    AppendDanglingBrace,
 }
 
 impl GeneratedWorkspace {
@@ -108,15 +118,56 @@ fn valid_workspace_source() -> impl Strategy<Value = String> {
     generated_workspace().prop_map(|workspace| workspace.render())
 }
 
+fn workspace_mutation() -> impl Strategy<Value = WorkspaceMutation> {
+    proptest::prop_oneof![
+        Just(WorkspaceMutation::RemoveFinalBrace),
+        Just(WorkspaceMutation::AppendDanglingQuote),
+        Just(WorkspaceMutation::AppendDanglingBrace),
+    ]
+}
+
+fn invalid_workspace_source() -> impl Strategy<Value = String> {
+    (valid_workspace_source(), workspace_mutation())
+        .prop_map(|(source, mutation)| mutate_workspace_source(&source, mutation))
+}
+
+fn mutate_workspace_source(source: &str, mutation: WorkspaceMutation) -> String {
+    match mutation {
+        WorkspaceMutation::RemoveFinalBrace => source
+            .strip_suffix("}\n")
+            .map_or_else(|| source.to_owned(), |prefix| format!("{prefix}\n")),
+        WorkspaceMutation::AppendDanglingQuote => format!("{source}\""),
+        WorkspaceMutation::AppendDanglingBrace => format!("{source}{{"),
+    }
+}
+
+fn proptest_config() -> Config {
+    let mut config = Config::default();
+
+    if env::var_os("PROPTEST_CASES").is_none() {
+        config.cases = 64;
+    }
+
+    config
+}
+
+fn maybe_capture_source(test_name: &str, source: &str) {
+    let Some(capture_dir) = env::var_os("STRUCTURIZR_PROPTEST_CAPTURE_DIR").map(PathBuf::from)
+    else {
+        return;
+    };
+
+    fs::create_dir_all(&capture_dir).expect("capture directory should create");
+    fs::write(capture_dir.join(format!("{test_name}.dsl")), source)
+        .expect("captured source should write");
+}
+
 proptest::proptest! {
-    #![proptest_config(Config {
-        cases: 64,
-        failure_persistence: None,
-        ..Config::default()
-    })]
+    #![proptest_config(proptest_config())]
 
     #[test]
     fn parser_handles_generated_utf8_without_panicking(source in arbitrary_utf8_source()) {
+        maybe_capture_source("parser_handles_generated_utf8_without_panicking", &source);
         let tree = parser()
             .parse(&source, None)
             .expect("generated source should always produce a tree");
@@ -129,6 +180,7 @@ proptest::proptest! {
 
     #[test]
     fn valid_generated_workspaces_parse_without_error_nodes(source in valid_workspace_source()) {
+        maybe_capture_source("valid_generated_workspaces_parse_without_error_nodes", &source);
         let tree = parser()
             .parse(&source, None)
             .expect("generated workspace should always produce a tree");
@@ -139,5 +191,19 @@ proptest::proptest! {
             tree.root_node().to_sexp(),
         );
         proptest::prop_assert_eq!(tree.root_node().end_byte(), source.len());
+    }
+
+    #[test]
+    fn mutated_generated_workspaces_produce_error_nodes(source in invalid_workspace_source()) {
+        maybe_capture_source("mutated_generated_workspaces_produce_error_nodes", &source);
+        let tree = parser()
+            .parse(&source, None)
+            .expect("mutated workspace should always produce a tree");
+
+        proptest::prop_assert!(
+            tree.root_node().has_error(),
+            "expected mutated workspace to produce parse errors\nsource:\n{source}\n\nsexp:\n{}",
+            tree.root_node().to_sexp(),
+        );
     }
 }

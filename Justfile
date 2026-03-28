@@ -62,6 +62,21 @@ test-rust:
 test-rust-fast:
     cargo nextest run --workspace
 
+test-proptest *args:
+    cargo test --workspace {{args}}
+
+test-proptest-stress cases *args:
+    PROPTEST_CASES="{{cases}}" cargo test --workspace {{args}}
+
+rerun-proptest seed *args:
+    PROPTEST_CASES=1 PROPTEST_RNG_SEED="{{seed}}" cargo test --workspace {{args}}
+
+capture-proptest capture_dir *args:
+    STRUCTURIZR_PROPTEST_CAPTURE_DIR="$PWD/{{capture_dir}}" cargo test --workspace {{args}}
+
+rerun-and-capture-proptest seed capture_dir *args:
+    PROPTEST_CASES=1 PROPTEST_RNG_SEED="{{seed}}" STRUCTURIZR_PROPTEST_CAPTURE_DIR="$PWD/{{capture_dir}}" cargo test --workspace {{args}}
+
 audit-upstream:
     cargo +nightly -Zscript tools/upstream_audit.rs
 

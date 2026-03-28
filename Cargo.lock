@@ -1306,6 +1306,7 @@ dependencies = [
  "insta",
  "proptest",
  "rstest",
+ "tempfile",
  "tree-sitter",
  "tree-sitter-structurizr",
 ]

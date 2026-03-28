@@ -1,8 +1,11 @@
+use std::env;
 use std::fmt::Write as _;
+use std::fs;
+use std::path::PathBuf;
 
 use proptest::collection::vec;
 use proptest::prelude::any;
-use proptest::strategy::{BoxedStrategy, Strategy};
+use proptest::strategy::{BoxedStrategy, Just, Strategy};
 use proptest::string::string_regex;
 use proptest::test_runner::{Config, TestCaseError};
 use structurizr_analysis::{DocumentInput, DocumentSnapshot, TextSpan, analyze_document};
@@ -16,6 +19,13 @@ struct GeneratedWorkspace {
     relationship_label: String,
     include_relationship: bool,
     include_views: bool,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum WorkspaceMutation {
+    RemoveFinalBrace,
+    AppendDanglingQuote,
+    AppendDanglingBrace,
 }
 
 impl GeneratedWorkspace {
@@ -100,6 +110,29 @@ fn valid_workspace_source() -> impl Strategy<Value = String> {
     generated_workspace().prop_map(|workspace| workspace.render())
 }
 
+fn workspace_mutation() -> impl Strategy<Value = WorkspaceMutation> {
+    proptest::prop_oneof![
+        Just(WorkspaceMutation::RemoveFinalBrace),
+        Just(WorkspaceMutation::AppendDanglingQuote),
+        Just(WorkspaceMutation::AppendDanglingBrace),
+    ]
+}
+
+fn invalid_workspace_source() -> impl Strategy<Value = String> {
+    (valid_workspace_source(), workspace_mutation())
+        .prop_map(|(source, mutation)| mutate_workspace_source(&source, mutation))
+}
+
+fn mutate_workspace_source(source: &str, mutation: WorkspaceMutation) -> String {
+    match mutation {
+        WorkspaceMutation::RemoveFinalBrace => source
+            .strip_suffix("}\n")
+            .map_or_else(|| source.to_owned(), |prefix| format!("{prefix}\n")),
+        WorkspaceMutation::AppendDanglingQuote => format!("{source}\""),
+        WorkspaceMutation::AppendDanglingBrace => format!("{source}{{"),
+    }
+}
+
 fn analysis_source() -> BoxedStrategy<String> {
     proptest::prop_oneof![
         3 => arbitrary_utf8_source(),
@@ -110,6 +143,27 @@ fn analysis_source() -> BoxedStrategy<String> {
 
 fn analyze_source(source: &str) -> DocumentSnapshot {
     analyze_document(DocumentInput::new("generated.dsl", source))
+}
+
+fn proptest_config() -> Config {
+    let mut config = Config::default();
+
+    if env::var_os("PROPTEST_CASES").is_none() {
+        config.cases = 64;
+    }
+
+    config
+}
+
+fn maybe_capture_source(test_name: &str, source: &str) {
+    let Some(capture_dir) = env::var_os("STRUCTURIZR_PROPTEST_CAPTURE_DIR").map(PathBuf::from)
+    else {
+        return;
+    };
+
+    fs::create_dir_all(&capture_dir).expect("capture directory should create");
+    fs::write(capture_dir.join(format!("{test_name}.dsl")), source)
+        .expect("captured source should write");
 }
 
 fn assert_span_within_source(
@@ -209,14 +263,11 @@ fn assert_snapshot_spans_within_source(snapshot: &DocumentSnapshot) -> Result<()
 }
 
 proptest::proptest! {
-    #![proptest_config(Config {
-        cases: 64,
-        failure_persistence: None,
-        ..Config::default()
-    })]
+    #![proptest_config(proptest_config())]
 
     #[test]
     fn analysis_handles_generated_sources_without_panicking(source in analysis_source()) {
+        maybe_capture_source("analysis_handles_generated_sources_without_panicking", &source);
         let snapshot = analyze_source(&source);
 
         proptest::prop_assert_eq!(snapshot.source(), source.as_str());
@@ -232,6 +283,7 @@ proptest::proptest! {
 
     #[test]
     fn repeated_analysis_is_deterministic(source in analysis_source()) {
+        maybe_capture_source("repeated_analysis_is_deterministic", &source);
         let first = analyze_source(&source);
         let second = analyze_source(&source);
 
@@ -251,12 +303,14 @@ proptest::proptest! {
 
     #[test]
     fn extracted_spans_stay_within_source_bounds(source in analysis_source()) {
+        maybe_capture_source("extracted_spans_stay_within_source_bounds", &source);
         let snapshot = analyze_source(&source);
         assert_snapshot_spans_within_source(&snapshot)?;
     }
 
     #[test]
     fn generated_valid_workspaces_analyze_without_syntax_errors(source in valid_workspace_source()) {
+        maybe_capture_source("generated_valid_workspaces_analyze_without_syntax_errors", &source);
         let snapshot = analyze_source(&source);
 
         proptest::prop_assert!(
@@ -264,5 +318,18 @@ proptest::proptest! {
             "expected generated workspace to analyze without syntax errors\nsource:\n{source}\n\nsexp:\n{}",
             snapshot.tree().root_node().to_sexp(),
         );
+    }
+
+    #[test]
+    fn mutated_generated_workspaces_report_syntax_errors(source in invalid_workspace_source()) {
+        maybe_capture_source("mutated_generated_workspaces_report_syntax_errors", &source);
+        let snapshot = analyze_source(&source);
+
+        proptest::prop_assert!(
+            snapshot.has_syntax_errors(),
+            "expected mutated workspace to report syntax errors\nsource:\n{source}\n\nsexp:\n{}",
+            snapshot.tree().root_node().to_sexp(),
+        );
+        assert_snapshot_spans_within_source(&snapshot)?;
     }
 }
