@@ -89,6 +89,12 @@ zizmor:
 test-grammar:
     tree-sitter test
 
+fuzz-grammar iterations="10" edits="3":
+    tree-sitter fuzz --iterations {{iterations}} --edits {{edits}}
+
+fuzz-grammar-stress iterations="100" edits="5":
+    tree-sitter fuzz --iterations {{iterations}} --edits {{edits}}
+
 check: generate test
     @just lint
 

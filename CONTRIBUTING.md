@@ -205,6 +205,20 @@ Promotion notes:
 - If the minimized case is worth keeping, promote it into `tests/fixtures/`, `tests/lsp/workspaces/`, or `test/corpus/` depending on whether it is best represented as a realistic fixture, a workspace discovery regression, or a small syntax teaching example.
 - Commit any useful `proptest-regressions/` updates alongside the curated fixture or corpus promotion when they still add value.
 
+## Grammar fuzzing
+
+Use `tree-sitter fuzz` as the current complementary fuzzing layer for the
+grammar. It mutates the checked-in corpus inputs with random edits and checks
+that incremental parse behavior stays consistent.
+
+Useful wrappers from the repository root:
+
+```sh
+just fuzz-grammar
+just fuzz-grammar 25 4
+just fuzz-grammar-stress
+```
+
 ### `test/corpus/`
 
 This is the cleanest place to see the DSL built up by concept. Prefer adding small, concept-focused grammar regressions here.
