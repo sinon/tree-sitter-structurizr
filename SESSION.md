@@ -7,3 +7,4 @@
 - Workspace include resolution now expands inherited `!const`/`!constant` values in `!include` targets, but it still does not substitute environment variables documented by the DSL.
 - `tools/upstream_audit.rs` currently slices excerpt strings by raw byte windows around parse issues, which can still panic if an excerpt boundary lands inside a multibyte UTF-8 codepoint.
 - The LSP's workspace recomputation path currently drops `WorkspaceLoader` errors with `.ok()`, so filesystem failures silently suppress include diagnostics instead of surfacing actionable feedback.
+- The LSP delivery docs under `docs/lsp/03-delivery/` still assume a dedicated `structurizr-lsp` executable and release asset naming, so they now lag behind the unified `strz server` entrypoint.

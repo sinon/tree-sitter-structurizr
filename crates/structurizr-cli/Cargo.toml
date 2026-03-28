@@ -1,7 +1,12 @@
 [package]
-name = "structurizr-check"
+name = "structurizr-cli"
 version = "0.1.0"
 edition = "2024"
+autobins = false
+
+[[bin]]
+name = "strz"
+path = "src/main.rs"
 
 [dependencies]
 anstream = "1.0.0"
@@ -11,6 +16,8 @@ clap = { version = "4.6.0", features = ["derive", "wrap_help"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 structurizr-analysis = { version = "0.1.0", path = "../structurizr-analysis" }
+structurizr-lsp = { version = "0.1.0", path = "../structurizr-lsp" }
+tokio = { version = "1.50.0", features = ["macros", "rt-multi-thread"] }
 
 [dev-dependencies]
 insta = "1.47.0"

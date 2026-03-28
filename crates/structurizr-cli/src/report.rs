@@ -141,7 +141,7 @@ impl SummaryView {
     }
 }
 
-/// Structured output emitted by `structurizr-check check`.
+/// Structured output emitted by `strz check`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct CheckReport {
     pub summary: SummaryView,

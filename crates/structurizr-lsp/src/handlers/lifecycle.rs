@@ -29,7 +29,7 @@ pub async fn initialize(
     Ok(InitializeResult {
         capabilities: capabilities::server_capabilities(),
         server_info: Some(ServerInfo {
-            name: "structurizr-lsp".to_owned(),
+            name: "strz".to_owned(),
             version: Some(env!("CARGO_PKG_VERSION").to_owned()),
         }),
         ..InitializeResult::default()

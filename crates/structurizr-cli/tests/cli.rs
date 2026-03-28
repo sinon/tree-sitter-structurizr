@@ -5,7 +5,30 @@ use std::{
 
 use insta_cmd::{assert_cmd_snapshot, get_cargo_bin};
 
-const BIN_NAME: &str = "structurizr-check";
+const BIN_NAME: &str = "strz";
+
+#[test]
+fn root_help_lists_server_subcommand() {
+    let output = command()
+        .arg("--help")
+        .output()
+        .expect("help command should run");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    assert!(output.status.success(), "help should exit successfully");
+    assert!(
+        stdout.contains("Usage: strz [OPTIONS] <COMMAND>"),
+        "root help should advertise the strz binary name"
+    );
+    assert!(
+        stdout.contains("server  Run the Structurizr LSP server over stdio"),
+        "root help should list the server subcommand"
+    );
+    assert!(
+        stdout.contains("check   Check one or more files or directories"),
+        "root help should preserve the check subcommand"
+    );
+}
 
 #[test]
 fn check_text_reports_missing_include() {
