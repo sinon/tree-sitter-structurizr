@@ -120,6 +120,9 @@ and a replayed `strz server` session against the checked-in fixtures. Use
 `just bench-perf` or `just bench-perf-stable` when you want the combined flow
 plus environment capture written to `tmp/benchmark-results/`.
 
+For a more detailed workflow with targeted `cargo bench` filters, CodSpeed
+parity commands, and profiler examples, see `docs/performance-testing.md`.
+
 The stable mode is still best-effort rather than perfectly reproducible. On
 Linux, you can set `STRZ_BENCH_CPUSET=2` (or another CPU set) before running
 `just bench-perf-stable` to request CPU pinning via `taskset`. On macOS, the
