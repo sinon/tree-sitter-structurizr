@@ -16,3 +16,4 @@
 - The current bounded LSP surface does not yet define ownership or protocol support for top-level include-path navigation, document links for `!docs` / `!adrs`, or type-definition-style navigation from deployment and instance references.
 - The analysis crate still walks the Tree-sitter tree through several separate extractor passes per document analysis run, so `analysis/document` likely still has room for a fused-extractor optimization pass.
 - Workspace loading and LSP request translation still canonicalize, clone, and sort aggressively enough that future performance work should focus on cached path identities, precomputed directive ordering, and incremental workspace invalidation.
+- The checked-in `big-bank-plc` workspace now passes an in-repo `gotoDefinition` regression test for both endpoints of `customer -> webApplication`, so any remaining Cmd-click failure there appears to be downstream `zed-structurizr` integration rather than repository LSP resolution.

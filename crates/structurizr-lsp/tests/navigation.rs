@@ -180,6 +180,60 @@ async fn goto_definition_resolves_cross_file_view_scope_references() {
 }
 
 #[tokio::test(flavor = "current_thread")]
+async fn goto_definition_resolves_cross_file_big_bank_relationship_endpoints() {
+    let (mut service, _socket) = new_service();
+    let workspace_root = workspace_fixture_path("big-bank-plc");
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
+    initialized(&mut service).await;
+
+    let document_path = workspace_root.join("internet-banking-system.dsl");
+    let document_source = read_workspace_file(&document_path);
+    let document_uri = file_uri_from_path(&document_path);
+    open_document(&mut service, &document_uri, &document_source).await;
+
+    let customer_position = position_in(&document_source, "customer -> webApplication", 1);
+    let customer_response = request_json(
+        &mut service,
+        "textDocument/definition",
+        json!({
+            "textDocument": { "uri": document_uri.as_str() },
+            "position": customer_position,
+        }),
+        10,
+    )
+    .await;
+
+    let customer_uri =
+        file_uri_from_path(&workspace_root.join("model/people-and-software-systems.dsl"));
+    assert_eq!(customer_response["result"]["uri"], customer_uri.as_str());
+    assert_eq!(customer_response["result"]["range"]["start"]["line"], 0);
+
+    let web_application_position = position_in(&document_source, "customer -> webApplication", 13);
+    let web_application_response = request_json(
+        &mut service,
+        "textDocument/definition",
+        json!({
+            "textDocument": { "uri": document_uri.as_str() },
+            "position": web_application_position,
+        }),
+        11,
+    )
+    .await;
+
+    let web_application_uri =
+        file_uri_from_path(&workspace_root.join("model/internet-banking-system/details.dsl"));
+    assert_eq!(
+        web_application_response["result"]["uri"],
+        web_application_uri.as_str()
+    );
+    assert_eq!(
+        web_application_response["result"]["range"]["start"]["line"],
+        2
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
 async fn references_follow_cross_file_bindings_from_model_declarations() {
     let (mut service, _socket) = new_service();
     let workspace_root = workspace_fixture_path("cross-file-navigation");

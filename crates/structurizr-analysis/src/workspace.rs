@@ -11,7 +11,8 @@ use ignore::WalkBuilder;
 use crate::{
     ConstantDefinition, DocumentAnalyzer, DocumentId, DocumentInput, IdentifierMode,
     IncludeDiagnostic, IncludeDirective, ReferenceKind, SemanticDiagnostic, SymbolId, SymbolKind,
-    TextSpan, includes::{DirectiveContainer, normalized_directive_value},
+    TextSpan,
+    includes::{DirectiveContainer, normalized_directive_value},
 };
 
 /// Classifies whether a discovered document can act as a workspace entry point.
@@ -310,10 +311,7 @@ impl WorkspaceIndex {
         &self,
         handle: &SymbolHandle,
     ) -> impl Iterator<Item = &ReferenceHandle> + '_ {
-        self.references_by_target
-            .get(handle)
-            .into_iter()
-            .flatten()
+        self.references_by_target.get(handle).into_iter().flatten()
     }
 
     /// Returns the semantic diagnostics derived for this workspace instance.
@@ -620,8 +618,10 @@ impl WorkspaceLoader {
                                 continue;
                             }
 
-                            let child_context =
-                                DocumentContext::new(included_path.clone(), current_constants.clone());
+                            let child_context = DocumentContext::new(
+                                included_path.clone(),
+                                current_constants.clone(),
+                            );
                             included_contexts.push(child_context.key.clone());
                             current_constants = self.process_document_context(
                                 child_context,
@@ -1320,10 +1320,13 @@ fn build_workspace_index(
         .expect("BUG: workspace-index root document should exist")
         .snapshot();
     let inherited_workspace_mode = document_workspace_identifier_mode(root_snapshot);
-    let bindings = build_binding_tables(documents, documents_by_id, inherited_workspace_mode.as_ref());
+    let bindings = build_binding_tables(
+        documents,
+        documents_by_id,
+        inherited_workspace_mode.as_ref(),
+    );
     let mut semantic_diagnostics = bindings.semantic_diagnostics.clone();
-    let reference_tables =
-        build_reference_resolution_tables(documents, documents_by_id, &bindings);
+    let reference_tables = build_reference_resolution_tables(documents, documents_by_id, &bindings);
     semantic_diagnostics.extend(reference_tables.semantic_diagnostics);
 
     let mut references_by_target = reference_tables.references_by_target;
@@ -1368,8 +1371,7 @@ fn build_binding_tables(
             .get(document_id)
             .expect("BUG: workspace-index document should exist");
         let snapshot = document.snapshot();
-        let element_mode =
-            effective_element_identifier_mode(snapshot, inherited_workspace_mode);
+        let element_mode = effective_element_identifier_mode(snapshot, inherited_workspace_mode);
 
         for symbol in snapshot.symbols() {
             let Some(binding_name) = symbol.binding_name.as_deref() else {
@@ -1398,7 +1400,10 @@ fn build_binding_tables(
                         continue;
                     };
 
-                    element_bindings.entry(binding_key).or_default().push(handle);
+                    element_bindings
+                        .entry(binding_key)
+                        .or_default()
+                        .push(handle);
                 }
             }
         }
@@ -1509,7 +1514,10 @@ fn build_reference_resolution_tables(
 
 fn split_binding_table(
     bindings: BTreeMap<String, Vec<SymbolHandle>>,
-) -> (BTreeMap<String, SymbolHandle>, BTreeMap<String, Vec<SymbolHandle>>) {
+) -> (
+    BTreeMap<String, SymbolHandle>,
+    BTreeMap<String, Vec<SymbolHandle>>,
+) {
     let mut unique = BTreeMap::new();
     let mut duplicates = BTreeMap::new();
 
@@ -1641,7 +1649,9 @@ fn document_model_identifier_mode(snapshot: &crate::DocumentSnapshot) -> Option<
     last_identifier_mode_for_container(snapshot, &DirectiveContainer::Model)
 }
 
-fn document_workspace_identifier_mode(snapshot: &crate::DocumentSnapshot) -> Option<IdentifierMode> {
+fn document_workspace_identifier_mode(
+    snapshot: &crate::DocumentSnapshot,
+) -> Option<IdentifierMode> {
     last_identifier_mode_for_container(snapshot, &DirectiveContainer::Workspace)
 }
 
@@ -1699,8 +1709,7 @@ fn merge_semantic_diagnostics(
     workspace_indexes: &[WorkspaceIndex],
     document_instances: &BTreeMap<DocumentId, Vec<WorkspaceInstanceId>>,
 ) -> Vec<SemanticDiagnostic> {
-    let mut diagnostic_counts =
-        BTreeMap::<DocumentId, BTreeMap<SemanticDiagnostic, usize>>::new();
+    let mut diagnostic_counts = BTreeMap::<DocumentId, BTreeMap<SemanticDiagnostic, usize>>::new();
 
     for workspace_index in workspace_indexes {
         let mut per_document = BTreeMap::<DocumentId, BTreeSet<SemanticDiagnostic>>::new();
