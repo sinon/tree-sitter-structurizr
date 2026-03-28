@@ -3,6 +3,7 @@
 mod check;
 mod cli;
 mod dump;
+mod observability;
 mod render;
 mod report;
 
@@ -30,6 +31,8 @@ pub async fn main() -> ExitCode {
 }
 
 async fn run(cli: &Cli) -> Result<ExitCode> {
+    observability::init_from_env().context("while attempting to initialize observability")?;
+
     match &cli.command {
         Command::Check(arguments) => {
             let result =

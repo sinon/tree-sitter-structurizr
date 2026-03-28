@@ -1,11 +1,12 @@
 //! Full-document sync handlers that keep the latest snapshot in server state.
 
-use std::{fs, path::PathBuf};
+use std::{fs, path::PathBuf, time::Instant};
 
 use structurizr_analysis::analyze_document;
 use tower_lsp_server::ls_types::{
     DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams,
 };
+use tracing::{debug, info, warn};
 
 use structurizr_analysis::{WorkspaceFacts, WorkspaceLoader};
 
@@ -13,6 +14,12 @@ use crate::{documents::DocumentState, handlers::diagnostics, server::Backend};
 
 /// Handles `textDocument/didOpen` by analyzing and publishing the initial snapshot.
 pub async fn did_open(backend: &Backend, params: DidOpenTextDocumentParams) {
+    info!(
+        uri = params.text_document.uri.as_str(),
+        version = params.text_document.version,
+        text_bytes = params.text_document.text.len(),
+        "handling didOpen"
+    );
     let document = DocumentState::new(
         params.text_document.uri,
         params.text_document.version,
@@ -30,8 +37,18 @@ pub async fn did_change(backend: &Backend, params: DidChangeTextDocumentParams) 
         .last()
         .map(|change| change.text)
     else {
+        debug!(
+            uri = params.text_document.uri.as_str(),
+            "ignoring didChange without a full-text payload"
+        );
         return;
     };
+    info!(
+        uri = params.text_document.uri.as_str(),
+        version = params.text_document.version,
+        text_bytes = updated_text.len(),
+        "handling didChange"
+    );
 
     let updated_document = {
         let mut state = backend.state().write().await;
@@ -54,10 +71,15 @@ pub async fn did_change(backend: &Backend, params: DidChangeTextDocumentParams) 
 
 /// Handles `textDocument/didClose` by clearing cached state and diagnostics.
 pub async fn did_close(backend: &Backend, params: DidCloseTextDocumentParams) {
+    info!(uri = params.text_document.uri.as_str(), "handling didClose");
     {
         let mut state = backend.state().write().await;
         state.documents_mut().close(&params.text_document.uri);
         state.remove_snapshot(&params.text_document.uri);
+        debug!(
+            open_document_count = state.documents().len(),
+            "removed closed document from server state"
+        );
     }
 
     let workspace_facts = recompute_workspace_facts(backend, None).await;
@@ -71,6 +93,11 @@ pub async fn did_close(backend: &Backend, params: DidCloseTextDocumentParams) {
         .client()
         .publish_diagnostics(params.text_document.uri, Vec::new(), None)
         .await;
+    info!(
+        diagnostic_count = 0,
+        clear_on_close = true,
+        "published clear-diagnostics notification for closed document"
+    );
 
     publish_open_document_diagnostics(backend).await;
 }
@@ -78,6 +105,13 @@ pub async fn did_close(backend: &Backend, params: DidCloseTextDocumentParams) {
 async fn publish_latest_snapshot(backend: &Backend, document: DocumentState) {
     let uri = document.uri().clone();
     let snapshot = analyze_document(document.to_input());
+    debug!(
+        uri = uri.as_str(),
+        syntax_diagnostic_count = snapshot.syntax_diagnostics().len(),
+        symbol_count = snapshot.symbols().len(),
+        reference_count = snapshot.references().len(),
+        "analyzed latest document snapshot"
+    );
     let workspace_facts = recompute_workspace_facts(backend, Some(&document)).await;
 
     {
@@ -85,6 +119,11 @@ async fn publish_latest_snapshot(backend: &Backend, document: DocumentState) {
         state.documents_mut().open(document);
         state.set_snapshot(uri.clone(), snapshot);
         state.set_workspace_facts(workspace_facts);
+        debug!(
+            uri = uri.as_str(),
+            open_document_count = state.documents().len(),
+            "stored latest snapshot and workspace facts"
+        );
     }
 
     publish_open_document_diagnostics(backend).await;
@@ -111,6 +150,14 @@ async fn publish_open_document_diagnostics(backend: &Backend) {
     };
 
     for (uri, version, publishable_diagnostics) in publish_jobs {
+        let diagnostic_count = publishable_diagnostics.len();
+        info!(
+            uri = uri.as_str(),
+            version,
+            diagnostic_count,
+            clear_on_close = false,
+            "publishing diagnostics"
+        );
         backend
             .client()
             .publish_diagnostics(uri, publishable_diagnostics, Some(version))
@@ -134,6 +181,7 @@ async fn recompute_workspace_facts(
             state.documents().iter().cloned().collect::<Vec<_>>(),
         )
     };
+    let current_uri = current_document.map(|document| document.uri().to_string());
 
     // Without configured workspace roots, anchor discovery from the current
     // document first and then any other open document so include diagnostics
@@ -151,6 +199,14 @@ async fn recompute_workspace_facts(
     } else {
         Some(workspace_roots)
     }?;
+    let start = Instant::now();
+    debug!(
+        current_document_uri = current_uri.as_deref(),
+        workspace_root_count = load_paths.len(),
+        open_document_count = open_documents.len(),
+        load_paths = ?load_paths,
+        "recomputing workspace facts"
+    );
 
     let mut loader = WorkspaceLoader::new();
 
@@ -162,7 +218,29 @@ async fn recompute_workspace_facts(
         add_document_override(&mut loader, current_document);
     }
 
-    loader.load_paths(load_paths).ok()
+    match loader.load_paths(load_paths) {
+        Ok(workspace_facts) => {
+            info!(
+                current_document_uri = current_uri.as_deref(),
+                document_count = workspace_facts.documents().len(),
+                include_count = workspace_facts.includes().len(),
+                workspace_instance_count = workspace_facts.workspace_indexes().len(),
+                semantic_diagnostic_count = workspace_facts.semantic_diagnostics().len(),
+                elapsed_ms = start.elapsed().as_millis(),
+                "recomputed workspace facts"
+            );
+            Some(workspace_facts)
+        }
+        Err(error) => {
+            warn!(
+                current_document_uri = current_uri.as_deref(),
+                elapsed_ms = start.elapsed().as_millis(),
+                error = %error,
+                "failed to recompute workspace facts"
+            );
+            None
+        }
+    }
 }
 
 fn add_document_override(loader: &mut WorkspaceLoader, document: &DocumentState) {

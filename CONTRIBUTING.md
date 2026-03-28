@@ -70,6 +70,26 @@ the extracted analysis facts that sit underneath the LSP. Use `server` when you
 want to run the same stdio language server entrypoint that editor integrations
 should launch.
 
+### Observability for local debugging
+
+The CLI and LSP test harness now support opt-in tracing so deadlocks or
+unexpected `null` results are easier to inspect without temporary `println!`
+debugging.
+
+Useful patterns from the repository root:
+
+```sh
+RUST_LOG=info just run-strz server
+RUST_LOG=debug STRZ_LOG_FORMAT=json STRZ_LOG_FILE=tmp/strz-server.log just run-strz server
+STRZ_TEST_LOG=1 RUST_LOG=info cargo test -p structurizr-lsp --test navigation goto_definition_returns_no_result_for_multi_instance_open_fragments
+```
+
+Use `RUST_LOG` to control verbosity, `STRZ_LOG_FORMAT=compact|json` to pick
+human-readable versus machine-friendly output, and `STRZ_LOG_FILE=...` to write
+logs to a file under `tmp/` instead of stderr. The `STRZ_TEST_LOG=1` helper
+gives the LSP integration tests a deterministic `tmp/structurizr-lsp-tests.log`
+artifact when you need to debug one hanging case.
+
 ## Performance benchmarking
 
 The benchmark surface deliberately tracks a small fixed matrix so performance
@@ -99,6 +119,9 @@ when you want Hyperfine measurements for `strz check`, `strz dump workspace`,
 and a replayed `strz server` session against the checked-in fixtures. Use
 `just bench-perf` or `just bench-perf-stable` when you want the combined flow
 plus environment capture written to `tmp/benchmark-results/`.
+
+For a more detailed workflow with targeted `cargo bench` filters, CodSpeed
+parity commands, and profiler examples, see `docs/performance-testing.md`.
 
 The stable mode is still best-effort rather than perfectly reproducible. On
 Linux, you can set `STRZ_BENCH_CPUSET=2` (or another CPU set) before running

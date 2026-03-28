@@ -14,3 +14,5 @@
 - Property-test capture paths need to be absolute at the command-wrapper layer because `cargo test` runs each integration test from its package root, so relative capture directories can otherwise land in different crates.
 - Keyword highlighting still appears to lack safe word-boundary behavior, so identifiers like `customer` and `securityComponent` can pick up `custom` / `component` keyword highlighting in editor testing.
 - The current bounded LSP surface does not yet define ownership or protocol support for top-level include-path navigation, document links for `!docs` / `!adrs`, or type-definition-style navigation from deployment and instance references.
+- The analysis crate still walks the Tree-sitter tree through several separate extractor passes per document analysis run, so `analysis/document` likely still has room for a fused-extractor optimization pass.
+- Workspace loading and LSP request translation still canonicalize, clone, and sort aggressively enough that future performance work should focus on cached path identities, precomputed directive ordering, and incremental workspace invalidation.

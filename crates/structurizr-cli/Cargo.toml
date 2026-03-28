@@ -18,6 +18,8 @@ serde_json = "1.0.149"
 structurizr-analysis = { version = "0.1.0", path = "../structurizr-analysis" }
 structurizr-lsp = { version = "0.1.0", path = "../structurizr-lsp" }
 tokio = { version = "1.50.0", features = ["macros", "rt-multi-thread"] }
+tracing-log = "0.2.0"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "json"] }
 
 [dev-dependencies]
 insta = "1.47.0"
