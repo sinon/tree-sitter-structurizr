@@ -90,18 +90,53 @@ impl<'a> SymbolExtractor<'a> {
             "relationship" => {
                 let relationship_symbol = self.push_relationship_symbol(node, parent_symbol);
                 let containing_symbol = relationship_symbol.or(parent_symbol);
+                let (source_kind, destination_kind, target_hint) =
+                    relationship_reference_surface(node);
                 self.push_relationship_reference(
                     node,
                     "source",
-                    ReferenceKind::RelationshipSource,
+                    source_kind,
+                    target_hint,
                     containing_symbol,
                 );
                 self.push_relationship_reference(
                     node,
                     "destination",
-                    ReferenceKind::RelationshipDestination,
+                    destination_kind,
+                    target_hint,
                     containing_symbol,
                 );
+            }
+            "deployment_node" => {
+                let symbol_id = self.push_named_deployment_symbol(
+                    node,
+                    SymbolKind::DeploymentNode,
+                    parent_symbol,
+                );
+                self.visit_children(node, symbol_id.or(parent_symbol));
+            }
+            "infrastructure_node" => {
+                let symbol_id = self.push_named_deployment_symbol(
+                    node,
+                    SymbolKind::InfrastructureNode,
+                    parent_symbol,
+                );
+                self.visit_children(node, symbol_id.or(parent_symbol));
+            }
+            "container_instance" => {
+                let symbol_id =
+                    self.push_instance_symbol(node, SymbolKind::ContainerInstance, parent_symbol);
+                self.push_instance_target_reference(node, symbol_id.or(parent_symbol));
+                self.visit_children(node, symbol_id.or(parent_symbol));
+            }
+            "software_system_instance" => {
+                let symbol_id = self.push_instance_symbol(
+                    node,
+                    SymbolKind::SoftwareSystemInstance,
+                    parent_symbol,
+                );
+                self.push_instance_target_reference(node, symbol_id.or(parent_symbol));
+                self.visit_children(node, symbol_id.or(parent_symbol));
             }
             "system_landscape_view" => self.extract_view(node, false, parent_symbol),
             "system_context_view" | "container_view" | "component_view" => {
@@ -182,6 +217,7 @@ impl<'a> SymbolExtractor<'a> {
         relationship: Node<'_>,
         field_name: &str,
         kind: ReferenceKind,
+        target_hint: ReferenceTargetHint,
         containing_symbol: Option<SymbolId>,
     ) {
         let Some(endpoint) = relationship.child_by_field_name(field_name) else {
@@ -196,8 +232,91 @@ impl<'a> SymbolExtractor<'a> {
             kind,
             raw_text: node_text(endpoint, self.source),
             span: TextSpan::from_node(endpoint),
-            target_hint: ReferenceTargetHint::Element,
+            target_hint,
             container_node_kind: relationship.kind().to_owned(),
+            containing_symbol,
+        });
+    }
+
+    fn push_named_deployment_symbol(
+        &mut self,
+        node: Node<'_>,
+        kind: SymbolKind,
+        parent_symbol: Option<SymbolId>,
+    ) -> Option<SymbolId> {
+        let identifier = node.child_by_field_name("identifier")?;
+        if identifier.kind() != "identifier" {
+            return None;
+        }
+
+        let symbol_id = SymbolId(self.symbols.len());
+        let display_name = node.child_by_field_name("name").map_or_else(
+            || node.kind().to_owned(),
+            |name| normalized_text(name, self.source),
+        );
+
+        self.symbols.push(Symbol {
+            id: symbol_id,
+            kind,
+            display_name,
+            binding_name: Some(node_text(identifier, self.source)),
+            span: TextSpan::from_node(node),
+            parent: parent_symbol,
+            syntax_node_kind: node.kind().to_owned(),
+        });
+
+        Some(symbol_id)
+    }
+
+    fn push_instance_symbol(
+        &mut self,
+        node: Node<'_>,
+        kind: SymbolKind,
+        parent_symbol: Option<SymbolId>,
+    ) -> Option<SymbolId> {
+        let shape = instance_shape(node);
+        let identifier = shape.child_by_field_name("identifier")?;
+        if identifier.kind() != "identifier" {
+            return None;
+        }
+
+        let symbol_id = SymbolId(self.symbols.len());
+        let binding_name = node_text(identifier, self.source);
+        let display_name = binding_name.clone();
+
+        self.symbols.push(Symbol {
+            id: symbol_id,
+            kind,
+            display_name,
+            binding_name: Some(binding_name),
+            span: TextSpan::from_node(node),
+            parent: parent_symbol,
+            syntax_node_kind: node.kind().to_owned(),
+        });
+
+        Some(symbol_id)
+    }
+
+    fn push_instance_target_reference(
+        &mut self,
+        instance: Node<'_>,
+        containing_symbol: Option<SymbolId>,
+    ) {
+        let shape = instance_shape(instance);
+        let Some(target) = shape.child_by_field_name("target") else {
+            return;
+        };
+
+        if target.kind() != "identifier" {
+            return;
+        }
+
+        self.references.push(Reference {
+            kind: ReferenceKind::InstanceTarget,
+            raw_text: node_text(target, self.source),
+            span: TextSpan::from_node(target),
+            target_hint: ReferenceTargetHint::Element,
+            container_node_kind: instance.kind().to_owned(),
             containing_symbol,
         });
     }
@@ -254,6 +373,60 @@ impl<'a> SymbolExtractor<'a> {
             self.collect_view_include_references(child, view_kind, parent_symbol);
         }
     }
+}
+
+fn relationship_reference_surface(
+    relationship: Node<'_>,
+) -> (ReferenceKind, ReferenceKind, ReferenceTargetHint) {
+    if is_deployment_relationship(relationship) {
+        (
+            ReferenceKind::DeploymentRelationshipSource,
+            ReferenceKind::DeploymentRelationshipDestination,
+            ReferenceTargetHint::Deployment,
+        )
+    } else {
+        (
+            ReferenceKind::RelationshipSource,
+            ReferenceKind::RelationshipDestination,
+            ReferenceTargetHint::Element,
+        )
+    }
+}
+
+fn is_deployment_relationship(node: Node<'_>) -> bool {
+    let mut current = node;
+
+    while let Some(parent) = current.parent() {
+        match parent.kind() {
+            "deployment_environment"
+            | "deployment_environment_block"
+            | "deployment_node"
+            | "deployment_node_block"
+            | "infrastructure_node"
+            | "container_instance"
+            | "software_system_instance"
+            | "deployment_instance_block" => return true,
+            _ => current = parent,
+        }
+    }
+
+    false
+}
+
+fn instance_shape(node: Node<'_>) -> Node<'_> {
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor)
+        .next()
+        .filter(|child| {
+            matches!(
+                child.kind(),
+                "container_instance_simple"
+                    | "container_instance_grouped"
+                    | "software_system_instance_simple"
+                    | "software_system_instance_grouped"
+            )
+        })
+        .unwrap_or(node)
 }
 
 fn directive_container(node: Node<'_>) -> DirectiveContainer {

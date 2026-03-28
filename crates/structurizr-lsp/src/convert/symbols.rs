@@ -64,7 +64,11 @@ const fn to_lsp_symbol_kind(kind: SymbolKind) -> LspSymbolKind {
         SymbolKind::Person
         | SymbolKind::SoftwareSystem
         | SymbolKind::Container
-        | SymbolKind::Component => LspSymbolKind::OBJECT,
+        | SymbolKind::Component
+        | SymbolKind::DeploymentNode
+        | SymbolKind::InfrastructureNode
+        | SymbolKind::ContainerInstance
+        | SymbolKind::SoftwareSystemInstance => LspSymbolKind::OBJECT,
         SymbolKind::Relationship => LspSymbolKind::EVENT,
     }
 }

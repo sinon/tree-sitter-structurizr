@@ -2,7 +2,7 @@
 
 use tower_lsp_server::ls_types::{
     CompletionOptions, OneOf, ServerCapabilities, TextDocumentSyncCapability, TextDocumentSyncKind,
-    TextDocumentSyncOptions,
+    TextDocumentSyncOptions, TypeDefinitionProviderCapability,
 };
 
 /// Builds the server capabilities advertised during LSP initialization.
@@ -25,6 +25,7 @@ pub fn server_capabilities() -> ServerCapabilities {
             ..CompletionOptions::default()
         }),
         definition_provider: Some(OneOf::Left(true)),
+        type_definition_provider: Some(TypeDefinitionProviderCapability::Simple(true)),
         references_provider: Some(OneOf::Left(true)),
         ..ServerCapabilities::default()
     }

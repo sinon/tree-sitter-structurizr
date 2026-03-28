@@ -18,6 +18,14 @@ pub enum SymbolKind {
     Container,
     /// A `component` declaration.
     Component,
+    /// A `deploymentNode` declaration with a binding identifier.
+    DeploymentNode,
+    /// An `infrastructureNode` declaration with a binding identifier.
+    InfrastructureNode,
+    /// A `containerInstance` declaration with a binding identifier.
+    ContainerInstance,
+    /// A `softwareSystemInstance` declaration with a binding identifier.
+    SoftwareSystemInstance,
     /// A relationship declaration with its own identifier.
     Relationship,
 }
@@ -48,6 +56,12 @@ pub enum ReferenceKind {
     RelationshipSource,
     /// Relationship destination endpoint reference.
     RelationshipDestination,
+    /// Instance target reference inside `containerInstance` / `softwareSystemInstance`.
+    InstanceTarget,
+    /// Deployment-layer relationship source endpoint reference.
+    DeploymentRelationshipSource,
+    /// Deployment-layer relationship destination endpoint reference.
+    DeploymentRelationshipDestination,
     /// View scope reference for scoped views.
     ViewScope,
     /// `include` reference nested inside a view body.
@@ -59,6 +73,8 @@ pub enum ReferenceKind {
 pub enum ReferenceTargetHint {
     /// The reference should resolve to an element symbol.
     Element,
+    /// The reference should resolve to a deployment-layer symbol.
+    Deployment,
     /// The reference should resolve to a relationship symbol.
     Relationship,
     /// The reference may resolve to either an element or relationship symbol.

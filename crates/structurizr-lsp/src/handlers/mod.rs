@@ -8,3 +8,4 @@ mod navigation;
 pub mod references;
 pub mod symbols;
 pub mod text_sync;
+pub mod type_definition;

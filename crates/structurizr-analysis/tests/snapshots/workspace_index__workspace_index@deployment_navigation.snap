@@ -1,0 +1,69 @@
+---
+source: crates/structurizr-analysis/tests/workspace_index.rs
+assertion_line: 206
+expression: "WorkspaceIndexSetView::from_facts(&facts, &fixture_root)"
+---
+WorkspaceIndexSetView {
+    document_instances: [
+        DocumentInstanceView {
+            document: "workspace.dsl",
+            instance_ids: [
+                0,
+            ],
+        },
+    ],
+    merged_semantic_diagnostics: [],
+    instances: [
+        WorkspaceIndexView {
+            id: 0,
+            root_document: "workspace.dsl",
+            documents: [
+                "workspace.dsl",
+            ],
+            unique_element_bindings: [
+                (
+                    "api",
+                    "workspace.dsl::api",
+                ),
+                (
+                    "system",
+                    "workspace.dsl::system",
+                ),
+            ],
+            duplicate_element_bindings: [],
+            unique_relationship_bindings: [],
+            duplicate_relationship_bindings: [],
+            reference_resolutions: [
+                ReferenceResolutionView {
+                    reference: "workspace.dsl::api@9:48",
+                    status: "resolved workspace.dsl::api",
+                },
+                ReferenceResolutionView {
+                    reference: "workspace.dsl::gateway@10:20",
+                    status: "resolved workspace.dsl::gateway",
+                },
+                ReferenceResolutionView {
+                    reference: "workspace.dsl::system@12:39",
+                    status: "resolved workspace.dsl::system",
+                },
+                ReferenceResolutionView {
+                    reference: "workspace.dsl::primary@15:12",
+                    status: "resolved workspace.dsl::primary",
+                },
+                ReferenceResolutionView {
+                    reference: "workspace.dsl::gateway@15:23",
+                    status: "resolved workspace.dsl::gateway",
+                },
+                ReferenceResolutionView {
+                    reference: "workspace.dsl::gateway@16:12",
+                    status: "resolved workspace.dsl::gateway",
+                },
+                ReferenceResolutionView {
+                    reference: "workspace.dsl::apiInstance@16:23",
+                    status: "resolved workspace.dsl::apiInstance",
+                },
+            ],
+            semantic_diagnostics: [],
+        },
+    ],
+}

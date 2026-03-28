@@ -4,8 +4,9 @@ use std::{fs, str::FromStr};
 
 use line_index::LineIndex;
 use structurizr_analysis::{
-    DocumentId, DocumentSnapshot, Reference, ReferenceHandle, ReferenceResolutionStatus, Symbol,
-    SymbolHandle, SymbolKind, WorkspaceFacts, WorkspaceInstanceId,
+    DocumentId, DocumentSnapshot, Reference, ReferenceHandle, ReferenceKind,
+    ReferenceResolutionStatus, Symbol, SymbolHandle, SymbolId, SymbolKind, WorkspaceFacts,
+    WorkspaceInstanceId,
 };
 use tower_lsp_server::ls_types::{Location, Uri};
 use tracing::debug;
@@ -26,7 +27,10 @@ pub fn navigation_site_at_offset(
     offset: usize,
 ) -> Option<NavigationSite<'_>> {
     reference_at_offset(snapshot, offset).map_or_else(
-        || bindable_symbol_at_offset(snapshot, offset).map(NavigationSite::Symbol),
+        || {
+            bindable_symbol_at_offset(snapshot, snapshot.source(), offset)
+                .map(NavigationSite::Symbol)
+        },
         |(index, reference)| Some(NavigationSite::Reference { index, reference }),
     )
 }
@@ -99,6 +103,47 @@ pub fn definition_location(
             );
             resolve_reference(snapshot, reference)
                 .and_then(|symbol| same_document_symbol_location(document, symbol))
+        }
+    }
+}
+
+pub fn type_definition_location(
+    state: &ServerState,
+    document: &DocumentState,
+    snapshot: &DocumentSnapshot,
+    offset: usize,
+) -> Option<Location> {
+    match navigation_site_at_offset(snapshot, offset)? {
+        NavigationSite::Symbol(symbol) => {
+            if let Some((workspace_facts, document_id)) = workspace_context(state, document) {
+                let candidate_instances = candidate_instances(workspace_facts, &document_id);
+                if !candidate_instances.is_empty() {
+                    let symbol_handle = SymbolHandle::new(document_id, symbol.id);
+                    let target = instance_type_symbol_handle(workspace_facts, &symbol_handle)?;
+                    return symbol_location(state, workspace_facts, &target);
+                }
+            }
+
+            instance_type_symbol(snapshot, symbol)
+                .and_then(|target| same_document_symbol_location(document, target))
+        }
+        NavigationSite::Reference { index, reference } => {
+            if let Some((workspace_facts, document_id)) = workspace_context(state, document) {
+                let candidate_instances = candidate_instances(workspace_facts, &document_id);
+                if !candidate_instances.is_empty() {
+                    let reference_handle = ReferenceHandle::new(document_id, index);
+                    let target = instance_type_symbol_handle_for_reference(
+                        workspace_facts,
+                        &candidate_instances,
+                        &reference_handle,
+                        reference,
+                    )?;
+                    return symbol_location(state, workspace_facts, &target);
+                }
+            }
+
+            instance_type_symbol_for_reference(snapshot, reference)
+                .and_then(|target| same_document_symbol_location(document, target))
         }
     }
 }
@@ -199,6 +244,43 @@ pub fn reference_locations(
             .filter_map(|reference| same_document_reference_location(document, reference)),
     );
     locations
+}
+
+fn instance_type_symbol_handle(
+    workspace_facts: &WorkspaceFacts,
+    symbol_handle: &SymbolHandle,
+) -> Option<SymbolHandle> {
+    let snapshot = workspace_facts
+        .document(symbol_handle.document())?
+        .snapshot();
+    let symbol = snapshot.symbols().get(symbol_handle.symbol_id().0)?;
+    if !is_instance_symbol(symbol) {
+        return None;
+    }
+
+    let (reference_index, _) = instance_target_reference(snapshot, symbol.id)?;
+    let candidate_instances = candidate_instances(workspace_facts, symbol_handle.document());
+    if candidate_instances.is_empty() {
+        return None;
+    }
+
+    let reference_handle = ReferenceHandle::new(symbol_handle.document().clone(), reference_index);
+    unanimous_resolved_symbol(workspace_facts, &candidate_instances, &reference_handle)
+}
+
+fn instance_type_symbol_handle_for_reference(
+    workspace_facts: &WorkspaceFacts,
+    candidate_instances: &[WorkspaceInstanceId],
+    reference_handle: &ReferenceHandle,
+    reference: &Reference,
+) -> Option<SymbolHandle> {
+    if reference.kind == ReferenceKind::InstanceTarget {
+        return unanimous_resolved_symbol(workspace_facts, candidate_instances, reference_handle);
+    }
+
+    let symbol_handle =
+        unanimous_resolved_symbol(workspace_facts, candidate_instances, reference_handle)?;
+    instance_type_symbol_handle(workspace_facts, &symbol_handle)
 }
 
 fn candidate_instances(
@@ -411,15 +493,23 @@ fn file_uri_from_document_id(document_id: &DocumentId) -> Option<Uri> {
     Uri::from_str(&format!("file://{}", document_id.as_str())).ok()
 }
 
-fn bindable_symbol_at_offset(snapshot: &DocumentSnapshot, offset: usize) -> Option<&Symbol> {
+fn bindable_symbol_at_offset<'a>(
+    snapshot: &'a DocumentSnapshot,
+    source: &str,
+    offset: usize,
+) -> Option<&'a Symbol> {
     snapshot
         .symbols()
         .iter()
         .filter(|symbol| {
-            symbol.binding_name.is_some()
-                && span_contains(symbol.span.start_byte, symbol.span.end_byte, offset)
+            binding_span(symbol, source)
+                .is_some_and(|(start_byte, end_byte)| span_contains(start_byte, end_byte, offset))
         })
-        .min_by_key(|symbol| symbol.span.end_byte - symbol.span.start_byte)
+        .min_by_key(|symbol| {
+            let (start_byte, end_byte) = binding_span(symbol, source)
+                .expect("binding span should exist for bindable symbol");
+            end_byte - start_byte
+        })
 }
 
 fn reference_at_offset(snapshot: &DocumentSnapshot, offset: usize) -> Option<(usize, &Reference)> {
@@ -452,6 +542,55 @@ fn resolve_reference<'a>(
     }
 }
 
+fn instance_type_symbol_for_reference<'a>(
+    snapshot: &'a DocumentSnapshot,
+    reference: &Reference,
+) -> Option<&'a Symbol> {
+    if reference.kind == ReferenceKind::InstanceTarget {
+        return resolve_reference(snapshot, reference);
+    }
+
+    let symbol = resolve_reference(snapshot, reference)?;
+    instance_type_symbol(snapshot, symbol)
+}
+
+fn instance_type_symbol<'a>(snapshot: &'a DocumentSnapshot, symbol: &Symbol) -> Option<&'a Symbol> {
+    if !is_instance_symbol(symbol) {
+        return None;
+    }
+
+    let (_, reference) = instance_target_reference(snapshot, symbol.id)?;
+    resolve_reference(snapshot, reference)
+}
+
+fn instance_target_reference(
+    snapshot: &DocumentSnapshot,
+    symbol_id: SymbolId,
+) -> Option<(usize, &Reference)> {
+    let mut matches = snapshot
+        .references()
+        .iter()
+        .enumerate()
+        .filter(|(_, reference)| {
+            reference.kind == ReferenceKind::InstanceTarget
+                && reference.containing_symbol == Some(symbol_id)
+        });
+    let first = matches.next()?;
+
+    if matches.next().is_some() {
+        return None;
+    }
+
+    Some(first)
+}
+
+const fn is_instance_symbol(symbol: &Symbol) -> bool {
+    matches!(
+        symbol.kind,
+        SymbolKind::ContainerInstance | SymbolKind::SoftwareSystemInstance
+    )
+}
+
 fn symbol_matches_reference(symbol: &Symbol, reference: &Reference) -> bool {
     let Some(binding_name) = symbol.binding_name.as_deref() else {
         return false;
@@ -463,13 +602,37 @@ fn symbol_matches_reference(symbol: &Symbol, reference: &Reference) -> bool {
 
     match reference.target_hint {
         structurizr_analysis::ReferenceTargetHint::Element => {
-            symbol.kind != SymbolKind::Relationship
+            matches!(
+                symbol.kind,
+                SymbolKind::Person
+                    | SymbolKind::SoftwareSystem
+                    | SymbolKind::Container
+                    | SymbolKind::Component
+            )
+        }
+        structurizr_analysis::ReferenceTargetHint::Deployment => {
+            matches!(
+                symbol.kind,
+                SymbolKind::DeploymentNode
+                    | SymbolKind::InfrastructureNode
+                    | SymbolKind::ContainerInstance
+                    | SymbolKind::SoftwareSystemInstance
+            )
         }
         structurizr_analysis::ReferenceTargetHint::Relationship => {
             symbol.kind == SymbolKind::Relationship
         }
         structurizr_analysis::ReferenceTargetHint::ElementOrRelationship => true,
     }
+}
+
+fn binding_span(symbol: &Symbol, source: &str) -> Option<(usize, usize)> {
+    let binding_name = symbol.binding_name.as_deref()?;
+    let declaration_source = source.get(symbol.span.start_byte..symbol.span.end_byte)?;
+    let relative_start = declaration_source.find(binding_name)?;
+    let start_byte = symbol.span.start_byte + relative_start;
+    let end_byte = start_byte + binding_name.len();
+    Some((start_byte, end_byte))
 }
 
 const fn span_contains(start_byte: usize, end_byte: usize, offset: usize) -> bool {
