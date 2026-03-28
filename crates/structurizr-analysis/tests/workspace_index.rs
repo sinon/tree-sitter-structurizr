@@ -224,10 +224,7 @@ fn display_symbol_handle(facts: &WorkspaceFacts, handle: &SymbolHandle, root: &P
         .symbols()
         .get(handle.symbol_id().0)
         .expect("symbol-handle symbol should exist");
-    let label = symbol
-        .binding_name
-        .as_deref()
-        .unwrap_or(&symbol.display_name);
+    let label = symbol.binding_name.as_deref().unwrap_or(&symbol.display_name);
 
     format!(
         "{}::{label}",
@@ -235,11 +232,7 @@ fn display_symbol_handle(facts: &WorkspaceFacts, handle: &SymbolHandle, root: &P
     )
 }
 
-fn display_reference_handle(
-    facts: &WorkspaceFacts,
-    handle: &ReferenceHandle,
-    root: &Path,
-) -> String {
+fn display_reference_handle(facts: &WorkspaceFacts, handle: &ReferenceHandle, root: &Path) -> String {
     let snapshot = facts
         .document(handle.document())
         .expect("reference-handle document should exist")

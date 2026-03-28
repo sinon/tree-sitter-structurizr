@@ -176,11 +176,7 @@ impl SemanticDiagnostic {
         }
     }
 
-    pub(crate) fn unresolved_reference(
-        document: &DocumentId,
-        raw_text: &str,
-        span: TextSpan,
-    ) -> Self {
+    pub(crate) fn unresolved_reference(document: &DocumentId, raw_text: &str, span: TextSpan) -> Self {
         Self {
             document: document.clone(),
             kind: SemanticDiagnosticKind::UnresolvedReference,
@@ -189,11 +185,7 @@ impl SemanticDiagnostic {
         }
     }
 
-    pub(crate) fn ambiguous_reference(
-        document: &DocumentId,
-        raw_text: &str,
-        span: TextSpan,
-    ) -> Self {
+    pub(crate) fn ambiguous_reference(document: &DocumentId, raw_text: &str, span: TextSpan) -> Self {
         Self {
             document: document.clone(),
             kind: SemanticDiagnosticKind::AmbiguousReference,
