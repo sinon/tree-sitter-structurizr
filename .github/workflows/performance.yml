@@ -63,7 +63,7 @@ jobs:
         uses: taiki-e/install-action@7627fb428e65e78e2ec9a24ae5c5bd5f8553f182 # v2.69.10
         with:
           tool: cargo-codspeed
-          fallback: none
+          fallback: cargo-binstall
 
       - name: Build CodSpeed benchmarks
         run: cargo codspeed build -p structurizr-analysis -p structurizr-lsp
