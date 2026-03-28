@@ -8,7 +8,7 @@ mod report;
 
 use std::process::ExitCode;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::Parser;
 
 use crate::cli::{Cli, Command};
@@ -32,13 +32,17 @@ pub fn main() -> ExitCode {
 fn run(cli: &Cli) -> Result<ExitCode> {
     match &cli.command {
         Command::Check(arguments) => {
-            let result = check::run(arguments)?;
-            render::write_check(&result.report, &cli.global)?;
+            let result =
+                check::run(arguments).context("while attempting to execute the check command")?;
+            render::write_check(&result.report, &cli.global)
+                .context("while attempting to render check output")?;
             Ok(result.exit_code)
         }
         Command::Dump(arguments) => {
-            let result = dump::run(arguments)?;
-            render::write_dump(&result, &cli.global)?;
+            let result =
+                dump::run(arguments).context("while attempting to execute the dump command")?;
+            render::write_dump(&result, &cli.global)
+                .context("while attempting to render dump output")?;
             Ok(ExitCode::SUCCESS)
         }
     }

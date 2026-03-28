@@ -135,6 +135,9 @@ async fn recompute_workspace_facts(
         )
     };
 
+    // Without configured workspace roots, anchor discovery from the current
+    // document first and then any other open document so include diagnostics
+    // still have a local workspace to resolve against.
     let load_paths = if workspace_roots.is_empty() {
         current_document
             .and_then(canonical_document_path)
