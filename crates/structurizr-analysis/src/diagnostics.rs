@@ -136,3 +136,61 @@ impl IncludeDiagnostic {
         }
     }
 }
+
+/// Categorizes bounded semantic diagnostics derived from workspace indexing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum SemanticDiagnosticKind {
+    /// More than one definition claimed the same canonical binding key.
+    DuplicateBinding,
+    /// A supported identifier reference resolved to no known target.
+    UnresolvedReference,
+    /// A supported identifier reference could not be resolved confidently.
+    AmbiguousReference,
+}
+
+/// Describes one semantic problem attached to a definition or reference site.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct SemanticDiagnostic {
+    /// The document that should surface this diagnostic.
+    pub document: DocumentId,
+    /// The semantic-diagnostic category.
+    pub kind: SemanticDiagnosticKind,
+    /// Human-readable summary of the semantic problem.
+    pub message: String,
+    /// Span of the affected symbol or reference.
+    pub span: TextSpan,
+}
+
+impl SemanticDiagnostic {
+    pub(crate) fn duplicate_binding(
+        document: &DocumentId,
+        binding_kind: &str,
+        key: &str,
+        span: TextSpan,
+    ) -> Self {
+        Self {
+            document: document.clone(),
+            kind: SemanticDiagnosticKind::DuplicateBinding,
+            message: format!("duplicate {binding_kind} binding: {key}"),
+            span,
+        }
+    }
+
+    pub(crate) fn unresolved_reference(document: &DocumentId, raw_text: &str, span: TextSpan) -> Self {
+        Self {
+            document: document.clone(),
+            kind: SemanticDiagnosticKind::UnresolvedReference,
+            message: format!("unresolved identifier reference: {raw_text}"),
+            span,
+        }
+    }
+
+    pub(crate) fn ambiguous_reference(document: &DocumentId, raw_text: &str, span: TextSpan) -> Self {
+        Self {
+            document: document.clone(),
+            kind: SemanticDiagnosticKind::AmbiguousReference,
+            message: format!("ambiguous identifier reference: {raw_text}"),
+            span,
+        }
+    }
+}

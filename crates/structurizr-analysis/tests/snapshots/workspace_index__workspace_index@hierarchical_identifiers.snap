@@ -1,0 +1,103 @@
+---
+source: crates/structurizr-analysis/tests/workspace_index.rs
+expression: "WorkspaceIndexSetView::from_facts(&facts, &fixture_root)"
+---
+WorkspaceIndexSetView {
+    document_instances: [
+        DocumentInstanceView {
+            document: "model.dsl",
+            instance_ids: [
+                0,
+            ],
+        },
+        DocumentInstanceView {
+            document: "workspace.dsl",
+            instance_ids: [
+                0,
+            ],
+        },
+    ],
+    merged_semantic_diagnostics: [
+        DiagnosticView {
+            document: "workspace.dsl",
+            kind: UnresolvedReference,
+            message: "unresolved identifier reference: api",
+            span: TextSpan {
+                start_byte: 160,
+                end_byte: 163,
+                start_point: TextPoint {
+                    row: 8,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 8,
+                    column: 19,
+                },
+            },
+        },
+    ],
+    instances: [
+        WorkspaceIndexView {
+            id: 0,
+            root_document: "workspace.dsl",
+            documents: [
+                "workspace.dsl",
+                "model.dsl",
+            ],
+            unique_element_bindings: [
+                (
+                    "system",
+                    "model.dsl::system",
+                ),
+                (
+                    "system.api",
+                    "model.dsl::api",
+                ),
+                (
+                    "user",
+                    "workspace.dsl::user",
+                ),
+            ],
+            duplicate_element_bindings: [],
+            unique_relationship_bindings: [],
+            duplicate_relationship_bindings: [],
+            reference_resolutions: [
+                ReferenceResolutionView {
+                    reference: "workspace.dsl::user@7:8",
+                    status: "resolved workspace.dsl::user",
+                },
+                ReferenceResolutionView {
+                    reference: "workspace.dsl::system@7:16",
+                    status: "resolved model.dsl::system",
+                },
+                ReferenceResolutionView {
+                    reference: "workspace.dsl::user@8:8",
+                    status: "resolved workspace.dsl::user",
+                },
+                ReferenceResolutionView {
+                    reference: "workspace.dsl::api@8:16",
+                    status: "unresolved",
+                },
+            ],
+            semantic_diagnostics: [
+                DiagnosticView {
+                    document: "workspace.dsl",
+                    kind: UnresolvedReference,
+                    message: "unresolved identifier reference: api",
+                    span: TextSpan {
+                        start_byte: 160,
+                        end_byte: 163,
+                        start_point: TextPoint {
+                            row: 8,
+                            column: 16,
+                        },
+                        end_point: TextPoint {
+                            row: 8,
+                            column: 19,
+                        },
+                    },
+                },
+            ],
+        },
+    ],
+}

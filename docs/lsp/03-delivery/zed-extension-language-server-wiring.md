@@ -5,7 +5,7 @@ This note turns Phase 5 of `docs/lsp/03-delivery/roadmap.md` into a concrete int
 Its job is to answer:
 
 - what has to change in the existing Zed extension repo
-- how the extension should launch the future `structurizr-lsp` binary
+- how the extension should launch the `strz` binary with the `server` subcommand
 - how local development should work without slowing grammar/LSP iteration
 - how published extension packaging should work without bundling the server into the extension repository
 
@@ -56,7 +56,7 @@ It should:
 
 1. keep consuming this repository as its pinned grammar source
 2. add one registered language server for **Structurizr DSL**
-3. add the minimum extension-side Rust/Wasm code needed to resolve and launch `structurizr-lsp`
+3. add the minimum extension-side Rust/Wasm code needed to resolve and launch `strz server`
 4. keep Tree-sitter-native editor features in Zed query files
 5. treat the server binary as an external artifact that is either:
    - explicitly overridden for local development
@@ -75,9 +75,9 @@ Owns:
 
 - grammar source and generated parser artifacts
 - Rust parser crate
-- future `structurizr-analysis`
-- future `structurizr-lsp`
-- release assets for the LSP binary
+- `structurizr-analysis`
+- `structurizr-lsp`
+- release assets for the `strz` binary
 
 ### `/Users/rob/dev/zed-structurizr`
 
@@ -93,7 +93,7 @@ This keeps the semantic logic close to the grammar while keeping editor-distribu
 
 ## What should change in the Zed extension repo
 
-The future extension repo should gain exactly three new pieces:
+The extension repo should gain exactly three new pieces:
 
 1. a language-server registration in `extension.toml`
 2. a small Rust extension crate (`Cargo.toml` + `src/lib.rs`)
@@ -129,6 +129,7 @@ Important details:
 
 - `languages` must match the `name` in `languages/structurizr/config.toml`
 - the language-server ID should stay stable and predictable
+- the language-server ID can remain `structurizr-lsp` even though the launched executable is `strz`
 - no second “syntax-only” language registration is needed
 
 ## Extension crate shape
@@ -181,7 +182,7 @@ This crate should not contain Structurizr semantic logic.
 
 ## Recommended launcher behavior
 
-The extension should resolve the `structurizr-lsp` binary using a clear priority order.
+The extension should resolve the `strz` binary using a clear priority order.
 
 ## Resolution order
 
@@ -195,7 +196,7 @@ This is the cleanest local-development hook because it:
 
 - uses Zed's documented binary-override surface
 - avoids editing extension source for every local experiment
-- allows the contributor to point at `target/debug/structurizr-lsp`
+- allows the contributor to point at `target/debug/strz`
 - keeps local server selection deterministic even if another binary exists on `PATH`
 
 Recommended local use:
@@ -205,7 +206,7 @@ Recommended local use:
   "lsp": {
     "structurizr-lsp": {
       "binary": {
-        "path": "/Users/rob/dev/tree-sitter-structurizr/target/debug/structurizr-lsp"
+        "path": "/Users/rob/dev/tree-sitter-structurizr/target/debug/strz"
       }
     }
   }
@@ -228,14 +229,14 @@ already running.
 Recommended local use:
 
 ```sh
-STRUCTURIZR_LSP_BIN=/Users/rob/dev/tree-sitter-structurizr/target/debug/structurizr-lsp zed --foreground
+STRUCTURIZR_LSP_BIN=/Users/rob/dev/tree-sitter-structurizr/target/debug/strz zed --foreground
 ```
 
 ### 3. User-installed binary on `PATH`
 
 If no explicit override exists, check:
 
-- `worktree.which("structurizr-lsp")`
+- `worktree.which("strz")`
 
 This supports:
 
@@ -299,7 +300,7 @@ Why pinned is better than latest:
 
 ## Recommended release-asset source
 
-Because the future `structurizr-lsp` crate is planned to live in this repository, the extension should download release assets from:
+Because the `strz` launcher is built from this repository, the extension should download release assets from:
 
 - the same GitHub repository as the grammar/LSP source
 
@@ -315,15 +316,15 @@ Pick one stable naming convention and keep it boring.
 
 For example:
 
-- `structurizr-lsp-macos-aarch64.tar.gz`
-- `structurizr-lsp-macos-x86_64.tar.gz`
-- `structurizr-lsp-linux-x86_64.tar.gz`
-- `structurizr-lsp-windows-x86_64.zip`
+- `strz-macos-aarch64.tar.gz`
+- `strz-macos-x86_64.tar.gz`
+- `strz-linux-x86_64.tar.gz`
+- `strz-windows-x86_64.zip`
 
 The extracted executable should be:
 
-- `structurizr-lsp` on macOS/Linux
-- `structurizr-lsp.exe` on Windows
+- `strz` on macOS/Linux
+- `strz.exe` on Windows
 
 The extension launcher should map Zed’s `Os` and `Architecture` values onto this asset naming scheme directly.
 
@@ -358,7 +359,7 @@ The first extension-side Rust code should stay narrow.
 - semantic-token customization
 - any assistant-specific annotation behavior
 
-The extension should launch the server first before trying to add protocol-result presentation polish.
+The extension should launch `strz` with `server` first before trying to add protocol-result presentation polish.
 
 ## Workspace configuration policy
 
@@ -408,13 +409,13 @@ The local workflow should optimize for changing grammar and server code together
 
 1. build the local server binary in this repository
 2. point the Zed extension at the local grammar repo with a `file://` grammar URL
-3. configure `lsp.structurizr-lsp.binary.path` to point at the local server binary
+3. configure `lsp.structurizr-lsp.binary.path` to point at the local `strz` binary
 4. install `zed-structurizr` as a dev extension
 5. open representative `.dsl` files and inspect logs in foreground mode
 
 Concrete example:
 
-1. in `/Users/rob/dev/tree-sitter-structurizr`, build `target/debug/structurizr-lsp`
+1. in `/Users/rob/dev/tree-sitter-structurizr`, build `target/debug/strz`
 2. in `/Users/rob/dev/zed-structurizr/extension.toml`, temporarily use:
 
 ```toml
@@ -430,7 +431,7 @@ rev = "<local-commit-sha>"
   "lsp": {
     "structurizr-lsp": {
       "binary": {
-        "path": "/Users/rob/dev/tree-sitter-structurizr/target/debug/structurizr-lsp"
+        "path": "/Users/rob/dev/tree-sitter-structurizr/target/debug/strz"
       }
     }
   }
@@ -448,7 +449,7 @@ zed --foreground
 For one-shot terminal launches, step 3 can be replaced with:
 
 ```sh
-STRUCTURIZR_LSP_BIN=/Users/rob/dev/tree-sitter-structurizr/target/debug/structurizr-lsp zed --foreground
+STRUCTURIZR_LSP_BIN=/Users/rob/dev/tree-sitter-structurizr/target/debug/strz zed --foreground
 ```
 
 If Zed is already running, prefer the settings-based override instead of the
@@ -535,7 +536,7 @@ without forcing needless lockstep churn in every case.
 
 The first concrete Zed implementation should stop once these are true:
 
-- the extension can launch `structurizr-lsp`
+- the extension can launch `strz server`
 - grammar loading still works from the pinned grammar repo
 - local dev can use `file://` plus a local binary override
 - Zed continues to use extension-owned queries for outline/brackets/textobjects
@@ -553,7 +554,7 @@ Do not block this milestone on:
 
 Once this wiring note is followed:
 
-- the future LSP has a concrete downstream editor target
+- the LSP has a concrete downstream editor target
 - local grammar/LSP/editor iteration remains fast
 - published extension packaging has a clear path that matches Zed’s extension model
 - the grammar repo and Zed repo can stay loosely coupled without becoming disconnected

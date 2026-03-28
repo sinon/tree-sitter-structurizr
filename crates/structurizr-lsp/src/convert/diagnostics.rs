@@ -3,14 +3,14 @@
 use std::fs;
 
 use structurizr_analysis::{
-    DocumentId, DocumentSnapshot, IncludeDiagnostic, IncludeDiagnosticKind, SyntaxDiagnostic,
-    WorkspaceFacts,
+    DocumentId, DocumentSnapshot, IncludeDiagnostic, IncludeDiagnosticKind, SemanticDiagnostic,
+    SyntaxDiagnostic, WorkspaceFacts,
 };
 use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity};
 
 use crate::{convert::positions::span_to_range, documents::DocumentState};
 
-/// Converts syntax and include diagnostics into publishable LSP diagnostics.
+/// Converts syntax, include, and bounded semantic diagnostics into publishable LSP diagnostics.
 #[must_use]
 pub fn document_diagnostics(
     document: &DocumentState,
@@ -25,6 +25,7 @@ pub fn document_diagnostics(
 
     if let Some(workspace_facts) = workspace_facts {
         diagnostics.extend(include_diagnostics(document, workspace_facts));
+        diagnostics.extend(semantic_diagnostics(document, workspace_facts));
     }
 
     diagnostics
@@ -57,6 +58,20 @@ fn include_diagnostics(
         .collect()
 }
 
+fn semantic_diagnostics(
+    document: &DocumentState,
+    workspace_facts: &WorkspaceFacts,
+) -> Vec<Diagnostic> {
+    let Some(document_id) = workspace_document_id(document) else {
+        return Vec::new();
+    };
+
+    workspace_facts
+        .semantic_diagnostics_for(&document_id)
+        .filter_map(|diagnostic| semantic_diagnostic(document, diagnostic))
+        .collect()
+}
+
 fn include_diagnostic(
     document: &DocumentState,
     diagnostic: &IncludeDiagnostic,
@@ -69,6 +84,19 @@ fn include_diagnostic(
             | IncludeDiagnosticKind::EscapesAllowedSubtree
             | IncludeDiagnosticKind::IncludeCycle => DiagnosticSeverity::ERROR,
         }),
+        source: Some("strz".to_owned()),
+        message: diagnostic.message.clone(),
+        ..Diagnostic::default()
+    })
+}
+
+fn semantic_diagnostic(
+    document: &DocumentState,
+    diagnostic: &SemanticDiagnostic,
+) -> Option<Diagnostic> {
+    Some(Diagnostic {
+        range: span_to_range(document.line_index(), diagnostic.span)?,
+        severity: Some(DiagnosticSeverity::ERROR),
         source: Some("strz".to_owned()),
         message: diagnostic.message.clone(),
         ..Diagnostic::default()

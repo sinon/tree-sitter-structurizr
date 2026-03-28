@@ -1,0 +1,129 @@
+---
+source: crates/structurizr-analysis/tests/workspace_index.rs
+expression: "WorkspaceIndexSetView::from_facts(&facts, &fixture_root)"
+---
+WorkspaceIndexSetView {
+    document_instances: [
+        DocumentInstanceView {
+            document: "alpha.dsl",
+            instance_ids: [
+                0,
+            ],
+        },
+        DocumentInstanceView {
+            document: "beta.dsl",
+            instance_ids: [
+                1,
+            ],
+        },
+        DocumentInstanceView {
+            document: "shared/model.dsl",
+            instance_ids: [
+                0,
+                1,
+            ],
+        },
+        DocumentInstanceView {
+            document: "shared/view.dsl",
+            instance_ids: [
+                0,
+                1,
+            ],
+        },
+    ],
+    merged_semantic_diagnostics: [],
+    instances: [
+        WorkspaceIndexView {
+            id: 0,
+            root_document: "alpha.dsl",
+            documents: [
+                "alpha.dsl",
+                "shared/model.dsl",
+                "shared/view.dsl",
+            ],
+            unique_element_bindings: [
+                (
+                    "api",
+                    "shared/model.dsl::api",
+                ),
+                (
+                    "system",
+                    "shared/model.dsl::system",
+                ),
+                (
+                    "user",
+                    "alpha.dsl::user",
+                ),
+            ],
+            duplicate_element_bindings: [],
+            unique_relationship_bindings: [],
+            duplicate_relationship_bindings: [],
+            reference_resolutions: [
+                ReferenceResolutionView {
+                    reference: "shared/view.dsl::system@1:14",
+                    status: "resolved shared/model.dsl::system",
+                },
+                ReferenceResolutionView {
+                    reference: "shared/view.dsl::api@2:16",
+                    status: "resolved shared/model.dsl::api",
+                },
+            ],
+            semantic_diagnostics: [],
+        },
+        WorkspaceIndexView {
+            id: 1,
+            root_document: "beta.dsl",
+            documents: [
+                "beta.dsl",
+                "shared/model.dsl",
+                "shared/view.dsl",
+            ],
+            unique_element_bindings: [
+                (
+                    "system",
+                    "shared/model.dsl::system",
+                ),
+                (
+                    "system.api",
+                    "shared/model.dsl::api",
+                ),
+                (
+                    "user",
+                    "beta.dsl::user",
+                ),
+            ],
+            duplicate_element_bindings: [],
+            unique_relationship_bindings: [],
+            duplicate_relationship_bindings: [],
+            reference_resolutions: [
+                ReferenceResolutionView {
+                    reference: "shared/view.dsl::system@1:14",
+                    status: "resolved shared/model.dsl::system",
+                },
+                ReferenceResolutionView {
+                    reference: "shared/view.dsl::api@2:16",
+                    status: "unresolved",
+                },
+            ],
+            semantic_diagnostics: [
+                DiagnosticView {
+                    document: "shared/view.dsl",
+                    kind: UnresolvedReference,
+                    message: "unresolved identifier reference: api",
+                    span: TextSpan {
+                        start_byte: 60,
+                        end_byte: 63,
+                        start_point: TextPoint {
+                            row: 2,
+                            column: 16,
+                        },
+                        end_point: TextPoint {
+                            row: 2,
+                            column: 19,
+                        },
+                    },
+                },
+            ],
+        },
+    ],
+}

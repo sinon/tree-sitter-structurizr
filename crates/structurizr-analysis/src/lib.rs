@@ -16,7 +16,8 @@ mod workspace;
 
 pub use constants::ConstantDefinition;
 pub use diagnostics::{
-    IncludeDiagnostic, IncludeDiagnosticKind, SyntaxDiagnostic, SyntaxDiagnosticKind,
+    IncludeDiagnostic, IncludeDiagnosticKind, SemanticDiagnostic, SemanticDiagnosticKind,
+    SyntaxDiagnostic, SyntaxDiagnosticKind,
 };
 pub use includes::{DirectiveContainer, DirectiveValueKind, IncludeDirective};
 pub use parse::{DocumentAnalyzer, analyze_document};
@@ -27,6 +28,7 @@ pub use symbols::{
     SymbolId, SymbolKind,
 };
 pub use workspace::{
-    ResolvedInclude, WorkspaceDocument, WorkspaceDocumentKind, WorkspaceFacts,
-    WorkspaceIncludeTarget, WorkspaceLoader, load_workspace,
+    ReferenceHandle, ReferenceResolutionStatus, ResolvedInclude, SymbolHandle, WorkspaceDocument,
+    WorkspaceDocumentKind, WorkspaceFacts, WorkspaceIncludeTarget, WorkspaceIndex,
+    WorkspaceInstanceId, WorkspaceLoader, load_workspace,
 };

@@ -7,8 +7,8 @@
 - Workspace include resolution now expands inherited `!const`/`!constant` values in `!include` targets, but it still does not substitute environment variables documented by the DSL.
 - `tools/upstream_audit.rs` currently slices excerpt strings by raw byte windows around parse issues, which can still panic if an excerpt boundary lands inside a multibyte UTF-8 codepoint.
 - The LSP's workspace recomputation path currently drops `WorkspaceLoader` errors with `.ok()`, so filesystem failures silently suppress include diagnostics instead of surfacing actionable feedback.
-- The LSP delivery docs under `docs/lsp/03-delivery/` still assume a dedicated `structurizr-lsp` executable and release asset naming, so they now lag behind the unified `strz server` entrypoint.
-- `docs/lsp/03-delivery/roadmap.md` still frames the analysis and LSP crates as future additions even though those crates already exist in the workspace.
+- The LSP integration-test harness can deadlock if `publishDiagnostics` notifications are left unread between `didOpen`/`didClose` calls, so multi-document tests should explicitly drain diagnostics before the next document transition.
+- Bare root-level view syntax in included fragments still does not behave like a supported "views fragment"; fixtures currently need `views { ... }` wrappers for view references to participate in bounded workspace analysis.
 - Property tests showed malformed generated inputs can yield a root `ERROR` node whose byte range does not start at 0, so robustness invariants should avoid assuming every parse root is `source_file` or begins at the first byte.
 - Property tests for generated include graphs showed a simple two-file include loop emits two `IncludeCycle` diagnostics, so cycle-related invariants should not assume a single diagnostic per loop.
 - Property-test capture paths need to be absolute at the command-wrapper layer because `cargo test` runs each integration test from its package root, so relative capture directories can otherwise land in different crates.

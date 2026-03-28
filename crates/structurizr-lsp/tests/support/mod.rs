@@ -9,6 +9,7 @@ use futures::StreamExt;
 use line_index::{LineIndex, TextSize, WideEncoding};
 use serde_json::{Value, json};
 use structurizr_lsp::Backend;
+use tokio::time::{Duration, timeout};
 use tower::{Service, ServiceExt};
 use tower_lsp_server::{
     ClientSocket, LspService,
@@ -73,6 +74,20 @@ pub async fn open_document(service: &mut TestService, uri: &Uri, text: &str) {
     .await;
 }
 
+pub async fn close_document(service: &mut TestService, uri: &Uri) {
+    call_notification(
+        service,
+        Request::build("textDocument/didClose")
+            .params(json!({
+                "textDocument": {
+                    "uri": uri.as_str(),
+                }
+            }))
+            .finish(),
+    )
+    .await;
+}
+
 pub async fn request_json(
     service: &mut TestService,
     method: &'static str,
@@ -93,6 +108,33 @@ pub async fn next_server_notification(socket: &mut ClientSocket) -> Value {
         .await
         .expect("server should send a notification");
     serde_json::to_value(request).expect("server request should serialize")
+}
+
+pub async fn next_server_notification_with_timeout(
+    socket: &mut ClientSocket,
+    wait: Duration,
+) -> Value {
+    timeout(wait, next_server_notification(socket))
+        .await
+        .expect("server notification should arrive before timeout")
+}
+
+pub async fn next_publish_diagnostics_for_uri(
+    socket: &mut ClientSocket,
+    expected_uri: &str,
+) -> Value {
+    for _ in 0..8 {
+        let notification =
+            next_server_notification_with_timeout(socket, Duration::from_secs(2)).await;
+
+        if notification["method"] == "textDocument/publishDiagnostics"
+            && notification["params"]["uri"] == expected_uri
+        {
+            return notification;
+        }
+    }
+
+    panic!("did not receive diagnostics for `{expected_uri}`");
 }
 
 pub fn file_uri(name: &str) -> Uri {

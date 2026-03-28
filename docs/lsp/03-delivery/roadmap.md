@@ -1,22 +1,39 @@
 # Structurizr DSL LSP roadmap
 
-This roadmap assumes the language server is a future addition built on top of the current Tree-sitter parser crate, not a replacement for it.
+This roadmap assumes the language server remains an editor-oriented layer built on top of the current Tree-sitter parser crate, not a replacement for it.
 
 It is intentionally more concrete than the surrounding overview docs so future sessions can pick up implementation work without having to rediscover the basic delivery sequence.
 
+## Current repository status
+
+The workspace now already contains:
+
+- `crates/structurizr-analysis/` for transport-agnostic document and workspace analysis
+- `crates/structurizr-lsp/` for the bounded MVP language server
+- `crates/structurizr-cli/` for the unified `strz` binary, including `strz server`
+
+That means the roadmap's early phases are no longer speculative crate-creation work.
+They are useful as boundary and sequencing references, but the current delivery focus
+starts after the in-repo bounded MVP:
+
+- workspace-aware bounded semantics are implemented in-repo
+- cross-file definition and references for the bounded identifier set are implemented
+- bounded semantic diagnostics now sit alongside syntax and include diagnostics
+- the next delivery step starts at downstream editor wiring and release choreography
+
 ## Recommended baseline decisions
 
-- Keep grammar + future analysis crate + future LSP crate in this repository.
+- Keep grammar + analysis crate + LSP crate in this repository.
 - Keep the current Zed extension as a separate downstream repo unless there is proven maintenance pain.
 - Reuse the existing Tree-sitter grammar and Rust bindings directly.
-- Use `tower-lsp-server` first, with `lsp-types` as a direct dependency in the LSP crate.
+- Use `tower-lsp-server` first, with `tower_lsp_server::ls_types` as the protocol type surface inside the LSP crate.
 - Keep the analysis crate free of LSP types.
 - Let Tree-sitter queries continue to power editor-native syntax features where Zed already handles them well.
 - Focus the LSP on diagnostics, symbols, navigation, references, and completion before semantic tokens or runtime-style validation.
 
-## End-state shape to work toward
+## Current layout
 
-One plausible future layout:
+The repository now already has this broad shape:
 
 ```text
 bindings/rust/                  existing parser crate surface
@@ -26,7 +43,7 @@ docs/lsp/                       architecture and roadmap docs
 tests/                          parser + analysis + protocol fixtures
 ```
 
-With the current Zed extension remaining a separate downstream repository that pins this grammar repo and launches the released or locally built LSP.
+With the current Zed extension remaining a separate downstream repository that pins this grammar repo and launches the released or locally built `strz server`.
 
 ## Phase 0: lock the boundaries and development loop
 
@@ -63,7 +80,7 @@ Concrete outputs:
 
 Document how contributors iterate quickly across the two repos:
 
-- edit grammar and future LSP in this repo
+- edit grammar and LSP in this repo
 - point the dev extension at `file:///Users/rob/dev/tree-sitter-structurizr` for grammar changes
 - point the dev extension at a local LSP binary for server changes
 - pin commit SHAs and package binaries only when preparing an extension release
@@ -175,7 +192,7 @@ Before moving on, confirm the grammar cleanly represents:
 
 ## Phase 2: create the analysis crate skeleton
 
-This phase builds the reusable semantic layer without any LSP transport code.
+This phase built the reusable semantic layer without any LSP transport code.
 
 ### 2.1 Introduce the workspace/crate structure
 
@@ -548,14 +565,24 @@ These should be treated as polish, not as proof that the server is viable.
 - duplicating features Zed already gets from Tree-sitter queries
 - delaying delivery by chasing semantic tokens too early
 
-## First implementation milestone to aim for
+## First in-repo implementation milestone
 
-The first milestone should prove this chain works end-to-end:
+The first in-repo milestone was to prove this chain works end-to-end:
 
 1. parse a `.dsl` file with the existing grammar
 2. extract basic definitions/references for the bounded identifier set
 3. surface syntax diagnostics
-4. answer go-to-definition in the editor
-5. run through the existing Zed extension using the same grammar/query assets
+4. answer go-to-definition and find-references from the language server
+5. validate the same bounded semantic model over realistic multi-file workspaces
 
-If that milestone is solid, the rest of the LSP can grow incrementally rather than as one large speculative build.
+That milestone is now landed in this repository.
+
+## Next delivery milestone
+
+The next piece of delivery work is:
+
+1. wire the existing bounded MVP into the downstream Zed extension
+2. point the extension at released or locally built `strz` binaries
+3. smoke-test the release-binary flow against representative workspaces
+
+If that milestone is solid, the rest of the editor integration can grow incrementally rather than as one large speculative build.

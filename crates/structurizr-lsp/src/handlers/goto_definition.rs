@@ -1,17 +1,10 @@
-//! Same-document definition handler for the bounded first navigation slice.
+//! Definition handler for bounded same-document and cross-file navigation.
 
-use tower_lsp_server::ls_types::{GotoDefinitionParams, GotoDefinitionResponse, Location};
+use tower_lsp_server::ls_types::{GotoDefinitionParams, GotoDefinitionResponse};
 
-use crate::{
-    convert::positions::{position_to_byte_offset, span_to_range},
-    server::Backend,
-};
+use crate::{convert::positions::position_to_byte_offset, server::Backend};
 
-/// Handles `textDocument/definition` within the current open document set.
-///
-/// This bounded MVP resolves definitions only within the current analyzed
-/// document. Missing targets are reported as `Ok(None)` instead of JSON-RPC
-/// errors so the handler behaves like a normal LSP query with no result.
+/// Handles `textDocument/definition` for the bounded navigation slice.
 ///
 /// # Errors
 ///
@@ -36,14 +29,10 @@ pub async fn goto_definition(
         ) else {
             return Ok(None);
         };
-        let Some(symbol) = super::navigation::target_symbol_at_offset(snapshot, offset) else {
+        let Some(location) = super::navigation::definition_location(&state, document, snapshot, offset)
+        else {
             return Ok(None);
         };
-        let Some(range) = span_to_range(document.line_index(), symbol.span) else {
-            return Ok(None);
-        };
-
-        let location = Location::new(document.uri().clone(), range);
         drop(state);
         location
     };

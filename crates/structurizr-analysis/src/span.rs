@@ -3,7 +3,7 @@
 use tree_sitter::{Node, Point, Range};
 
 /// Zero-based text coordinates derived from Tree-sitter points.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TextPoint {
     /// Zero-based line index.
     pub row: usize,
@@ -21,7 +21,7 @@ impl From<Point> for TextPoint {
 }
 
 /// Byte and point range derived from a Tree-sitter node or range.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TextSpan {
     /// Inclusive start byte offset.
     pub start_byte: usize,
