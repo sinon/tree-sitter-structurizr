@@ -1,0 +1,60 @@
+---
+source: crates/structurizr-analysis/tests/workspace_discovery.rs
+expression: "WorkspaceView::from_facts(&facts, &fixture_root)"
+---
+WorkspaceView {
+    documents: [
+        WorkspaceDocumentView {
+            path: "workspace.dsl",
+            kind: Entry,
+            discovered_by_scan: true,
+            include_targets: [
+                "\"missing/model.dsl\"",
+            ],
+            symbol_bindings: [],
+        },
+    ],
+    includes: [
+        WorkspaceIncludeView {
+            including_document: "workspace.dsl",
+            raw_value: "\"missing/model.dsl\"",
+            target_text: "missing/model.dsl",
+            target: MissingLocalPath {
+                path: "missing/model.dsl",
+            },
+            discovered_documents: [],
+        },
+    ],
+    diagnostics: [
+        WorkspaceDiagnosticView {
+            document: "workspace.dsl",
+            kind: MissingLocalTarget,
+            message: "included path does not exist: missing/model.dsl",
+            target_text: "missing/model.dsl",
+            span: TextSpan {
+                start_byte: 16,
+                end_byte: 44,
+                start_point: TextPoint {
+                    row: 1,
+                    column: 4,
+                },
+                end_point: TextPoint {
+                    row: 1,
+                    column: 32,
+                },
+            },
+            value_span: TextSpan {
+                start_byte: 25,
+                end_byte: 44,
+                start_point: TextPoint {
+                    row: 1,
+                    column: 13,
+                },
+                end_point: TextPoint {
+                    row: 1,
+                    column: 32,
+                },
+            },
+        },
+    ],
+}

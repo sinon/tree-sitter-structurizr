@@ -1,0 +1,11 @@
+---
+source: tests/fixtures.rs
+expression: tree_sexp(&tree)
+---
+(source_file
+  (workspace body:
+    (workspace_block
+      (include_directive value:
+        (string))
+      (include_directive value:
+        (string)))))

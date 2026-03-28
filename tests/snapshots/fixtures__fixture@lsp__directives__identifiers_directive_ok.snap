@@ -1,0 +1,31 @@
+---
+source: tests/fixtures.rs
+expression: tree_sexp(&tree)
+---
+(source_file
+  (workspace body:
+    (workspace_block
+      (identifiers_directive value:
+        (identifier))
+      (model body:
+        (model_block
+          (identifiers_directive value:
+            (identifier))
+          (software_system identifier:
+            (identifier) name:
+            (string) body:
+            (software_system_block
+              (container identifier:
+                (identifier) name:
+                (string) body:
+                (container_block
+                  (component identifier:
+                    (identifier) name:
+                    (string))))))
+          (element_directive target:
+            (identifier) body:
+            (element_directive_block
+              (properties_block
+                (property_entry name:
+                  (string) value:
+                  (string))))))))))

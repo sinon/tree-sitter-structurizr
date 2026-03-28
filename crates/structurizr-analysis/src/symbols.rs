@@ -1,0 +1,122 @@
+//! Bounded-MVP symbol, reference, and identifier-mode facts.
+
+use crate::includes::{DirectiveContainer, DirectiveValueKind};
+use crate::span::TextSpan;
+
+/// Stable index assigned to an extracted symbol within one document snapshot.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct SymbolId(pub usize);
+
+/// High-level declaration kinds extracted from Structurizr DSL nodes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SymbolKind {
+    /// A `person` declaration.
+    Person,
+    /// A `softwareSystem` declaration.
+    SoftwareSystem,
+    /// A `container` declaration.
+    Container,
+    /// A `component` declaration.
+    Component,
+    /// A relationship declaration with its own identifier.
+    Relationship,
+}
+
+/// Describes one declaration symbol extracted from a document.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Symbol {
+    /// Snapshot-local identifier assigned during extraction.
+    pub id: SymbolId,
+    /// High-level kind of declaration that produced the symbol.
+    pub kind: SymbolKind,
+    /// User-facing display label inferred from the declaration.
+    pub display_name: String,
+    /// Bound identifier, if the declaration introduces one.
+    pub binding_name: Option<String>,
+    /// Span of the full declaration node.
+    pub span: TextSpan,
+    /// Nearest enclosing declaration symbol, if one exists.
+    pub parent: Option<SymbolId>,
+    /// Exact Tree-sitter node kind that produced the symbol.
+    pub syntax_node_kind: String,
+}
+
+/// Categorizes how a reference is used at its source site.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReferenceKind {
+    /// Relationship source endpoint reference.
+    RelationshipSource,
+    /// Relationship destination endpoint reference.
+    RelationshipDestination,
+    /// View scope reference for scoped views.
+    ViewScope,
+    /// `include` reference nested inside a view body.
+    ViewInclude,
+}
+
+/// Narrows which symbol kinds are valid targets for a reference.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReferenceTargetHint {
+    /// The reference should resolve to an element symbol.
+    Element,
+    /// The reference should resolve to a relationship symbol.
+    Relationship,
+    /// The reference may resolve to either an element or relationship symbol.
+    ElementOrRelationship,
+}
+
+/// Describes one raw symbol reference extracted from a document.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Reference {
+    /// The syntactic role the reference plays at its source site.
+    pub kind: ReferenceKind,
+    /// Original identifier text for the reference.
+    pub raw_text: String,
+    /// Span of the referenced identifier token.
+    pub span: TextSpan,
+    /// Expected category of symbol the reference should target.
+    pub target_hint: ReferenceTargetHint,
+    /// Exact Tree-sitter node kind that contains the reference.
+    pub container_node_kind: String,
+    /// Nearest extracted symbol that lexically contains this reference.
+    pub containing_symbol: Option<SymbolId>,
+}
+
+/// Supported `!identifiers` directive modes.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum IdentifierMode {
+    /// Flat identifiers such as `system`.
+    Flat,
+    /// Hierarchical identifiers such as `model.system`.
+    Hierarchical,
+    /// Any unrecognized raw mode string.
+    Other(String),
+}
+
+impl IdentifierMode {
+    // TODO: Could this be replaced with a From/Into trait implementation instead?
+    pub(crate) fn from_raw(raw_value: &str) -> Self {
+        match raw_value.to_ascii_lowercase().as_str() {
+            "flat" => Self::Flat,
+            "hierarchical" => Self::Hierarchical,
+            _ => Self::Other(raw_value.to_owned()),
+        }
+    }
+}
+
+/// Captures one `!identifiers` directive and its parsed mode.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IdentifierModeFact {
+    /// Normalized mode classification for the directive value.
+    pub mode: IdentifierMode,
+    /// Original directive value text, including any surrounding quotes.
+    pub raw_value: String,
+    /// Concrete syntax form used for the directive value.
+    pub value_kind: DirectiveValueKind,
+    /// Span of the full `!identifiers` directive.
+    pub span: TextSpan,
+    /// Span of just the directive value node.
+    pub value_span: TextSpan,
+    /// Nearest supported enclosing block for the directive.
+    pub container: DirectiveContainer,
+}

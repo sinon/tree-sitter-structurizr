@@ -1,0 +1,15 @@
+---
+source: tests/fixtures.rs
+expression: tree_sexp(&tree)
+---
+(source_file
+  (views body:
+    (views_block
+      (container_view scope:
+        (identifier) key:
+        (string) body:
+        (container_view_block
+          (include_statement value:
+            (wildcard))
+          (auto_layout_statement direction:
+            (layout_direction)))))))

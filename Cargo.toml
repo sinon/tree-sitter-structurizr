@@ -8,7 +8,7 @@ readme = "README.md"
 keywords = ["incremental", "parsing", "tree-sitter", "structurizr"]
 categories = ["parser-implementations", "parsing", "text-editors"]
 repository = "https://github.com/sinon/tree-sitter-structurizr"
-edition = "2021"
+edition = "2024"
 autoexamples = false
 
 build = "bindings/rust/build.rs"
@@ -25,6 +25,10 @@ include = [
 
 [lib]
 path = "bindings/rust/lib.rs"
+
+[workspace]
+resolver = "2"
+members = ["crates/structurizr-analysis", "crates/structurizr-check", "crates/structurizr-lsp"]
 
 [dependencies]
 tree-sitter-language = "0.1"

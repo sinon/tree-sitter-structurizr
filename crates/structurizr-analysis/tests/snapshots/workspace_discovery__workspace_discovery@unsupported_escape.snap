@@ -1,0 +1,60 @@
+---
+source: crates/structurizr-analysis/tests/workspace_discovery.rs
+expression: "WorkspaceView::from_facts(&facts, &fixture_root)"
+---
+WorkspaceView {
+    documents: [
+        WorkspaceDocumentView {
+            path: "workspace.dsl",
+            kind: Entry,
+            discovered_by_scan: true,
+            include_targets: [
+                "\"../shared.dsl\"",
+            ],
+            symbol_bindings: [],
+        },
+    ],
+    includes: [
+        WorkspaceIncludeView {
+            including_document: "workspace.dsl",
+            raw_value: "\"../shared.dsl\"",
+            target_text: "../shared.dsl",
+            target: UnsupportedLocalPath {
+                path: "../shared.dsl",
+            },
+            discovered_documents: [],
+        },
+    ],
+    diagnostics: [
+        WorkspaceDiagnosticView {
+            document: "workspace.dsl",
+            kind: EscapesAllowedSubtree,
+            message: "included path escapes the allowed subtree: ../shared.dsl",
+            target_text: "../shared.dsl",
+            span: TextSpan {
+                start_byte: 16,
+                end_byte: 40,
+                start_point: TextPoint {
+                    row: 1,
+                    column: 4,
+                },
+                end_point: TextPoint {
+                    row: 1,
+                    column: 28,
+                },
+            },
+            value_span: TextSpan {
+                start_byte: 25,
+                end_byte: 40,
+                start_point: TextPoint {
+                    row: 1,
+                    column: 13,
+                },
+                end_point: TextPoint {
+                    row: 1,
+                    column: 28,
+                },
+            },
+        },
+    ],
+}

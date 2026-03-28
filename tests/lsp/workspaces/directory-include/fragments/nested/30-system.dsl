@@ -1,0 +1,3 @@
+model {
+    system = softwareSystem "System"
+}

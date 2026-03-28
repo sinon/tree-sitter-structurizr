@@ -9,17 +9,39 @@ generate:
 build:
     cargo build
 
+# The generated Rust build script currently emits constant string emptiness checks,
+# so keep that one clippy lint disabled in the shared dev flow.
+lint:
+    cargo clippy --workspace --all-targets -- -D warnings -W clippy::pedantic -W clippy::nursery -A clippy::const_is_empty
+lint-fix:
+    cargo clippy --fix --workspace --all-targets -- -D warnings -W clippy::pedantic -W clippy::nursery -A clippy::const_is_empty
+
 build-wasm:
     tree-sitter build --wasm
 
+build-lsp:
+    cargo build -p structurizr-lsp --bin structurizr-lsp --release
+
+build-check:
+    cargo build -p structurizr-check --bin structurizr-check --release
+
 test: test-rust test-grammar
 
+test-analysis:
+    cargo test -p structurizr-analysis
+
+test-analysis-fast:
+    cargo nextest run --workspace -p structurizr-analysis
+
+test-check:
+    cargo test -p structurizr-check
+
 test-rust:
-    cargo nextest run --no-fail-fast
-    cargo test --doc
+    cargo nextest run --workspace --no-fail-fast
+    cargo test --workspace --doc
 
 test-rust-fast:
-    cargo nextest run
+    cargo nextest run --workspace
 
 audit-upstream:
     cargo +nightly -Zscript tools/upstream_audit.rs
@@ -34,6 +56,10 @@ test-grammar:
     tree-sitter test
 
 check: generate test
+    @just lint
+
+run-check *args:
+    cargo run -p structurizr-check -- {{args}}
 
 playground:
     tree-sitter build --wasm

@@ -1,0 +1,24 @@
+---
+source: crates/structurizr-check/tests/cli.rs
+info:
+  program: structurizr-check
+  args:
+    - "--output-format"
+    - json
+    - check
+    - tests/lsp/workspaces/big-bank-plc
+---
+success: true
+exit_code: 0
+----- stdout -----
+{
+  "summary": {
+    "documents_checked": 6,
+    "diagnostics": 0,
+    "errors": 0,
+    "warnings": 0
+  },
+  "diagnostics": []
+}
+
+----- stderr -----

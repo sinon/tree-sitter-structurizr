@@ -175,3 +175,63 @@ workspace {
                   (style_setting
                     (identifier)
                     (boolean_value)))))))))))
+
+================================
+Standalone style body fragments
+================================
+
+element "Person" {
+  shape Person
+}
+
+relationship "Async" {
+  color #ffffff
+}
+
+---
+
+(source_file
+  (element_style
+    (string)
+    (style_rule_block
+      (style_setting
+        (identifier)
+        (shape_value))))
+  (relationship_style
+    (string)
+    (style_rule_block
+      (style_setting
+        (identifier)
+        (color_value
+          (hex_color))))))
+
+=====================
+Styles block includes
+=====================
+
+workspace {
+  views {
+    styles {
+      !include "styles/common.dsl"
+      light {
+        !include "styles/light.dsl"
+      }
+    }
+  }
+}
+
+---
+
+(source_file
+  (workspace
+    (workspace_block
+      (views
+        (views_block
+          (styles
+            (styles_block
+              (include_directive
+                (string))
+              (light_styles
+                (style_mode_block
+                  (include_directive
+                    (string)))))))))))

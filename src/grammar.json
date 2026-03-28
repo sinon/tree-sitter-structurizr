@@ -6,7 +6,7 @@
       "type": "REPEAT",
       "content": {
         "type": "SYMBOL",
-        "name": "_definition"
+        "name": "_source_item"
       }
     },
     "comment": {
@@ -1380,6 +1380,138 @@
         }
       ]
     },
+    "_source_item": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "_definition"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_source_model_fragment_item"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_source_software_system_fragment_item"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_source_style_fragment_item"
+        }
+      ]
+    },
+    "_source_model_fragment_item": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "group"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "person"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "software_system"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "deployment_environment"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "relationship"
+        }
+      ]
+    },
+    "_source_software_system_fragment_item": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "group"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "container"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "deployment_environment"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "relationship"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "docs_directive"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "adrs_directive"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "description_statement"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "tag_statement"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "tags_statement"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "metadata_statement"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "url_statement"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "properties_block"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "perspectives_block"
+        }
+      ]
+    },
+    "_source_style_fragment_item": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "element_style"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "relationship_style"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "light_styles"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "dark_styles"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "theme_statement"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "themes_statement"
+        }
+      ]
+    },
     "workspace": {
       "type": "CHOICE",
       "members": [
@@ -1895,6 +2027,14 @@
         },
         {
           "type": "SYMBOL",
+          "name": "include_directive"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "deployment_environment"
+        },
+        {
+          "type": "SYMBOL",
           "name": "elements_directive"
         },
         {
@@ -1968,6 +2108,10 @@
         },
         {
           "type": "SYMBOL",
+          "name": "include_directive"
+        },
+        {
+          "type": "SYMBOL",
           "name": "elements_directive"
         },
         {
@@ -2033,6 +2177,10 @@
         },
         {
           "type": "SYMBOL",
+          "name": "include_directive"
+        },
+        {
+          "type": "SYMBOL",
           "name": "elements_directive"
         },
         {
@@ -2090,6 +2238,10 @@
         },
         {
           "type": "SYMBOL",
+          "name": "include_directive"
+        },
+        {
+          "type": "SYMBOL",
           "name": "deployment_group"
         },
         {
@@ -2108,6 +2260,10 @@
         {
           "type": "SYMBOL",
           "name": "group"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "include_directive"
         },
         {
           "type": "SYMBOL",
@@ -2293,6 +2449,10 @@
         },
         {
           "type": "SYMBOL",
+          "name": "include_directive"
+        },
+        {
+          "type": "SYMBOL",
           "name": "elements_directive"
         },
         {
@@ -2371,6 +2531,10 @@
         {
           "type": "SYMBOL",
           "name": "archetype_instance"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "include_directive"
         },
         {
           "type": "SYMBOL",
@@ -5928,6 +6092,10 @@
       "members": [
         {
           "type": "SYMBOL",
+          "name": "include_directive"
+        },
+        {
+          "type": "SYMBOL",
           "name": "system_landscape_view"
         },
         {
@@ -8430,24 +8598,28 @@
       ]
     },
     "themes_statement": {
-      "type": "SEQ",
-      "members": [
-        {
-          "type": "STRING",
-          "value": "themes"
-        },
-        {
-          "type": "REPEAT1",
-          "content": {
-            "type": "FIELD",
-            "name": "value",
+      "type": "PREC_RIGHT",
+      "value": 0,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "STRING",
+            "value": "themes"
+          },
+          {
+            "type": "REPEAT1",
             "content": {
-              "type": "SYMBOL",
-              "name": "_directive_value"
+              "type": "FIELD",
+              "name": "value",
+              "content": {
+                "type": "SYMBOL",
+                "name": "_directive_value"
+              }
             }
           }
-        }
-      ]
+        ]
+      }
     },
     "styles": {
       "type": "SEQ",
@@ -8489,6 +8661,10 @@
     "_style_item": {
       "type": "CHOICE",
       "members": [
+        {
+          "type": "SYMBOL",
+          "name": "include_directive"
+        },
         {
           "type": "SYMBOL",
           "name": "element_style"
@@ -8561,6 +8737,10 @@
           "content": {
             "type": "CHOICE",
             "members": [
+              {
+                "type": "SYMBOL",
+                "name": "include_directive"
+              },
               {
                 "type": "SYMBOL",
                 "name": "element_style"
@@ -9576,6 +9756,10 @@
     ],
     [
       "component"
+    ],
+    [
+      "_source_model_fragment_item",
+      "_source_software_system_fragment_item"
     ]
   ],
   "precedences": [],

@@ -1,0 +1,27 @@
+---
+source: tests/fixtures.rs
+expression: tree_sexp(&tree)
+---
+(source_file
+  (workspace body:
+    (workspace_block
+      (model body:
+        (model_block
+          (person identifier:
+            (identifier) name:
+            (string))
+          (software_system identifier:
+            (identifier) name:
+            (string))
+          (relationship identifier:
+            (identifier) source:
+            (identifier) operator:
+            (relationship_operator) destination:
+            (identifier) attribute:
+            (string))))
+      (views body:
+        (views_block
+          (system_landscape_view body:
+            (system_landscape_view_block
+              (include_statement value:
+                (identifier)))))))))

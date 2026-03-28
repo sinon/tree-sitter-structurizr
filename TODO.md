@@ -1,0 +1,4 @@
+- link checker lychee to verify docs interlinking
+- codspeed / benchmarking of LSP to catch performance regressions
+- investigate salsa
+- run clippy/fmt in CI

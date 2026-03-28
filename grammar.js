@@ -227,12 +227,15 @@ export default grammar({
     [$.software_system],
     [$.container],
     [$.component],
+    [$._source_model_fragment_item, $._source_software_system_fragment_item],
   ],
 
   rules: {
-    // Structurizr files are mostly a sequence of top-level blocks and directives,
-    // with `workspace { ... }` as the usual outer envelope.
-    source_file: ($) => repeat($._definition),
+    // Real-world DSL projects often split large models into include fragments that
+    // start directly with block-body content rather than a wrapped `workspace`,
+    // `model`, or `views` envelope. Accept those structural fragment forms at the
+    // file root so editor tooling can parse included files on their own.
+    source_file: ($) => repeat($._source_item),
 
     // The DSL accepts line comments and C-style block comments. Hash comments are
     // only treated as comments when followed by whitespace so color values such as
@@ -350,6 +353,50 @@ export default grammar({
         $.implied_relationships_directive,
       ),
 
+    _source_item: ($) =>
+      choice(
+        $._definition,
+        $._source_model_fragment_item,
+        $._source_software_system_fragment_item,
+        $._source_style_fragment_item,
+      ),
+
+    _source_model_fragment_item: ($) =>
+      choice(
+        $.group,
+        $.person,
+        $.software_system,
+        $.deployment_environment,
+        $.relationship,
+      ),
+
+    _source_software_system_fragment_item: ($) =>
+      choice(
+        $.group,
+        $.container,
+        $.deployment_environment,
+        $.relationship,
+        $.docs_directive,
+        $.adrs_directive,
+        $.description_statement,
+        $.tag_statement,
+        $.tags_statement,
+        $.metadata_statement,
+        $.url_statement,
+        $.properties_block,
+        $.perspectives_block,
+      ),
+
+    _source_style_fragment_item: ($) =>
+      choice(
+        $.element_style,
+        $.relationship_style,
+        $.light_styles,
+        $.dark_styles,
+        $.theme_statement,
+        $.themes_statement,
+      ),
+
     // A workspace can be declared bare, named/described inline, or extend another
     // workspace. Most of the rest of the language hangs off this envelope.
     workspace: ($) =>
@@ -457,6 +504,8 @@ export default grammar({
         $.container,
         $.custom_element,
         $.archetype_instance,
+        $.include_directive,
+        $.deployment_environment,
         $.elements_directive,
         $.relationships_directive,
         $.element_directive,
@@ -478,6 +527,7 @@ export default grammar({
         $.component,
         $.custom_element,
         $.archetype_instance,
+        $.include_directive,
         $.elements_directive,
         $.relationships_directive,
         $.element_directive,
@@ -497,6 +547,7 @@ export default grammar({
     _component_item: ($) =>
       choice(
         $.group,
+        $.include_directive,
         $.elements_directive,
         $.relationships_directive,
         $.element_directive,
@@ -512,11 +563,18 @@ export default grammar({
       ),
 
     _deployment_item: ($) =>
-      choice($.group, $.deployment_group, $.deployment_node, $.relationship),
+      choice(
+        $.group,
+        $.include_directive,
+        $.deployment_group,
+        $.deployment_node,
+        $.relationship,
+      ),
 
     _deployment_node_item: ($) =>
       choice(
         $.group,
+        $.include_directive,
         $.deployment_node,
         $.infrastructure_node,
         $.container_instance,
@@ -568,6 +626,7 @@ export default grammar({
         $.infrastructure_node,
         $.container_instance,
         $.software_system_instance,
+        $.include_directive,
         $.elements_directive,
         $.relationships_directive,
         $.element_directive,
@@ -591,6 +650,7 @@ export default grammar({
         $.software_system,
         $.custom_element,
         $.archetype_instance,
+        $.include_directive,
         $.elements_directive,
         $.relationships_directive,
         $.element_directive,
@@ -1212,6 +1272,7 @@ export default grammar({
     // mostly differ by their header fields while sharing a common set of statements.
     _view_item: ($) =>
       choice(
+        $.include_directive,
         $.system_landscape_view,
         $.system_context_view,
         $.container_view,
@@ -1720,7 +1781,7 @@ export default grammar({
     theme_statement: ($) => seq("theme", field("value", $._directive_value)),
 
     themes_statement: ($) =>
-      seq("themes", repeat1(field("value", $._directive_value))),
+      prec.right(seq("themes", repeat1(field("value", $._directive_value)))),
 
     // Style rules are effectively key/value bags scoped by tag, so the grammar keeps
     // them deliberately generic instead of trying to encode every allowed property.
@@ -1730,6 +1791,7 @@ export default grammar({
 
     _style_item: ($) =>
       choice(
+        $.include_directive,
         $.element_style,
         $.relationship_style,
         $.light_styles,
@@ -1743,7 +1805,13 @@ export default grammar({
     dark_styles: ($) => seq("dark", field("body", $.style_mode_block)),
 
     style_mode_block: ($) =>
-      seq("{", repeat(choice($.element_style, $.relationship_style)), "}"),
+      seq(
+        "{",
+        repeat(
+          choice($.include_directive, $.element_style, $.relationship_style),
+        ),
+        "}",
+      ),
 
     element_style: ($) =>
       seq("element", field("tag", $._value), field("body", $.style_rule_block)),

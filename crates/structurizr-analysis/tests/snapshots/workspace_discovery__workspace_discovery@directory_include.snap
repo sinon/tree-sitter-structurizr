@@ -1,0 +1,58 @@
+---
+source: crates/structurizr-analysis/tests/workspace_discovery.rs
+expression: "WorkspaceView::from_facts(&facts, &fixture_root)"
+---
+WorkspaceView {
+    documents: [
+        WorkspaceDocumentView {
+            path: "fragments/10-model.dsl",
+            kind: Fragment,
+            discovered_by_scan: true,
+            include_targets: [],
+            symbol_bindings: [
+                "user",
+            ],
+        },
+        WorkspaceDocumentView {
+            path: "fragments/20-views.dsl",
+            kind: Fragment,
+            discovered_by_scan: true,
+            include_targets: [],
+            symbol_bindings: [],
+        },
+        WorkspaceDocumentView {
+            path: "fragments/nested/30-system.dsl",
+            kind: Fragment,
+            discovered_by_scan: true,
+            include_targets: [],
+            symbol_bindings: [
+                "system",
+            ],
+        },
+        WorkspaceDocumentView {
+            path: "workspace.dsl",
+            kind: Entry,
+            discovered_by_scan: true,
+            include_targets: [
+                "\"fragments\"",
+            ],
+            symbol_bindings: [],
+        },
+    ],
+    includes: [
+        WorkspaceIncludeView {
+            including_document: "workspace.dsl",
+            raw_value: "\"fragments\"",
+            target_text: "fragments",
+            target: LocalDirectory {
+                path: "fragments",
+            },
+            discovered_documents: [
+                "fragments/10-model.dsl",
+                "fragments/20-views.dsl",
+                "fragments/nested/30-system.dsl",
+            ],
+        },
+    ],
+    diagnostics: [],
+}

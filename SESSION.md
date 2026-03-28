@@ -1,0 +1,7 @@
+- Add one explicit `docs/lsp/` readiness note that states whether bounded-MVP analysis has any blocking grammar gaps; right now that conclusion must be inferred across several docs.
+- Decide whether `tests/fixtures/lsp/` should remain a shared grammar-plus-analysis fixture set or move/duplicate once the future LSP crate lands and fixture ownership becomes clearer.
+- The current syntax-diagnostic extractor can emit duplicate diagnostics for the same recovery region on some parse-error fixtures.
+- The bounded analysis extractor currently records only the first identifier in a multi-value view `include` statement.
+- The current `tower-lsp-server` fork uses `ls-types` rather than a directly interoperable `lsp-types` surface, so the LSP crate should standardize on `tower_lsp_server::ls_types` unless a deliberate conversion layer is introduced.
+- The LSP's new include-diagnostic path currently recomputes workspace discovery for all open-buffer updates; that is acceptable for the bounded MVP, but future workspace indexing should replace it with cached invalidation rather than whole-workspace reloads.
+- Workspace include resolution now expands inherited `!const`/`!constant` values in `!include` targets, but it still does not substitute environment variables documented by the DSL.

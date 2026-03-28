@@ -24,6 +24,8 @@ just generate
 just test-grammar
 just test-rust
 just test-rust-fast
+just build-check
+just test-check
 just audit-upstream
 ```
 
@@ -36,6 +38,25 @@ INSTA_UPDATE=always just test-rust
 ```
 
 Use `just audit-upstream` when you are hardening coverage against upstream Structurizr examples. It is useful for maintainers and focused grammar work, but it is not required for every consumer-facing change.
+
+## Analysis CLI workflow
+
+The workspace now includes `structurizr-check`, a contributor-facing CLI that
+hosts `structurizr-analysis` without requiring the LSP or an editor loop.
+
+Useful commands from the repository root:
+
+```sh
+just build-check
+just test-check
+just run-check check
+just run-check dump workspace tests/lsp/workspaces/directory-include
+just run-check dump document tests/fixtures/lsp/identifiers/direct-references-ok.dsl
+```
+
+Use `check` when you want aggregated syntax and include diagnostics for a file
+or workspace. Use `dump document` and `dump workspace` when you want to inspect
+the extracted analysis facts that sit underneath the LSP.
 
 ## Upstream audit workflow
 
