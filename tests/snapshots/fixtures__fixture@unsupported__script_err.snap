@@ -1,10 +1,15 @@
 ---
 source: tests/fixtures.rs
-expression: "common::tree_sexp(&tree)"
+expression: tree_sexp(&tree)
 ---
 (source_file
-  (ERROR
+  (workspace
     (ERROR
-      (UNEXPECTED 's')
-      (UNEXPECTED 'i'))
-    (string)))
+      (UNEXPECTED 's')) name:
+    (identifier) description:
+    (identifier) body:
+    (workspace_block
+      (ERROR
+        (identifier)
+        (string))))
+  (ERROR))

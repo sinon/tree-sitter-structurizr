@@ -8,7 +8,8 @@ expression: tree_sexp(&tree)
       (identifiers_directive value:
         (identifier))
       (ERROR
-        (UNEXPECTED 'l'))
+        (identifier)
+        (identifier))
       (model body:
         (model_block
           (software_system identifier:

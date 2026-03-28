@@ -9,6 +9,8 @@ expression: tree_sexp(&tree)
         (string))
       (include_directive value:
         (string))))
-  (ERROR
-    (identifier)
-    (UNEXPECTED 'l')))
+  (relationship source:
+    (identifier) operator:
+    (relationship_operator
+      (MISSING "->")) destination:
+    (identifier)))
