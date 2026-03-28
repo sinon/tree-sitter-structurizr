@@ -27,17 +27,18 @@ fn collect_identifier_mode_from_node(
     facts: &mut Vec<IdentifierModeFact>,
 ) {
     if node.kind() == "identifiers_directive"
-        && let Some(value_node) = node.child_by_field_name("value") {
-            let raw_value = node_text(value_node, source);
-            facts.push(IdentifierModeFact {
-                mode: IdentifierMode::from_raw(&normalized_text(value_node, source)),
-                raw_value,
-                value_kind: DirectiveValueKind::from_node_kind(value_node.kind()),
-                span: TextSpan::from_node(node),
-                value_span: TextSpan::from_node(value_node),
-                container: directive_container(node),
-            });
-        }
+        && let Some(value_node) = node.child_by_field_name("value")
+    {
+        let raw_value = node_text(value_node, source);
+        facts.push(IdentifierModeFact {
+            mode: IdentifierMode::from_raw(&normalized_text(value_node, source)),
+            raw_value,
+            value_kind: DirectiveValueKind::from_node_kind(value_node.kind()),
+            span: TextSpan::from_node(node),
+            value_span: TextSpan::from_node(value_node),
+            container: directive_container(node),
+        });
+    }
 
     for index in 0..node.child_count() {
         if let Some(child) = node.child(index.try_into().expect("child index should fit in u32")) {
@@ -209,16 +210,17 @@ impl<'a> SymbolExtractor<'a> {
     ) {
         if supports_scope
             && let Some(scope) = view.child_by_field_name("scope")
-                && scope.kind() == "identifier" {
-                    self.references.push(Reference {
-                        kind: ReferenceKind::ViewScope,
-                        raw_text: node_text(scope, self.source),
-                        span: TextSpan::from_node(scope),
-                        target_hint: ReferenceTargetHint::Element,
-                        container_node_kind: view.kind().to_owned(),
-                        containing_symbol: parent_symbol,
-                    });
-                }
+            && scope.kind() == "identifier"
+        {
+            self.references.push(Reference {
+                kind: ReferenceKind::ViewScope,
+                raw_text: node_text(scope, self.source),
+                span: TextSpan::from_node(scope),
+                target_hint: ReferenceTargetHint::Element,
+                container_node_kind: view.kind().to_owned(),
+                containing_symbol: parent_symbol,
+            });
+        }
 
         if let Some(body) = view.child_by_field_name("body") {
             self.collect_view_include_references(body, view.kind(), parent_symbol);
@@ -233,16 +235,17 @@ impl<'a> SymbolExtractor<'a> {
     ) {
         if node.kind() == "include_statement" {
             if let Some(value) = node.child_by_field_name("value")
-                && value.kind() == "identifier" {
-                    self.references.push(Reference {
-                        kind: ReferenceKind::ViewInclude,
-                        raw_text: node_text(value, self.source),
-                        span: TextSpan::from_node(value),
-                        target_hint: ReferenceTargetHint::ElementOrRelationship,
-                        container_node_kind: view_kind.to_owned(),
-                        containing_symbol: parent_symbol,
-                    });
-                }
+                && value.kind() == "identifier"
+            {
+                self.references.push(Reference {
+                    kind: ReferenceKind::ViewInclude,
+                    raw_text: node_text(value, self.source),
+                    span: TextSpan::from_node(value),
+                    target_hint: ReferenceTargetHint::ElementOrRelationship,
+                    container_node_kind: view_kind.to_owned(),
+                    containing_symbol: parent_symbol,
+                });
+            }
             return;
         }
 

@@ -28,7 +28,7 @@ path = "bindings/rust/lib.rs"
 
 [workspace]
 resolver = "2"
-members = ["crates/structurizr-analysis", "crates/structurizr-lsp"]
+members = ["crates/structurizr-analysis", "crates/structurizr-check", "crates/structurizr-lsp"]
 
 [dependencies]
 tree-sitter-language = "0.1"

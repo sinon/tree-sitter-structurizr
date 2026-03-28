@@ -43,7 +43,10 @@ fn syntax_diagnostic(
     })
 }
 
-fn include_diagnostics(document: &DocumentState, workspace_facts: &WorkspaceFacts) -> Vec<Diagnostic> {
+fn include_diagnostics(
+    document: &DocumentState,
+    workspace_facts: &WorkspaceFacts,
+) -> Vec<Diagnostic> {
     let Some(document_id) = workspace_document_id(document) else {
         return Vec::new();
     };
@@ -75,5 +78,7 @@ fn include_diagnostic(
 fn workspace_document_id(document: &DocumentState) -> Option<DocumentId> {
     let path = document.uri().to_file_path()?;
     let canonical_path = fs::canonicalize(&path).ok()?;
-    Some(DocumentId::new(canonical_path.to_string_lossy().into_owned()))
+    Some(DocumentId::new(
+        canonical_path.to_string_lossy().into_owned(),
+    ))
 }

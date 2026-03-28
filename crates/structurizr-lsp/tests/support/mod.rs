@@ -51,9 +51,7 @@ pub async fn initialize_with_workspace_folders(
 pub async fn initialized(service: &mut TestService) {
     call_notification(
         service,
-        Request::build("initialized")
-            .params(json!({}))
-            .finish(),
+        Request::build("initialized").params(json!({})).finish(),
     )
     .await;
 }
@@ -81,12 +79,19 @@ pub async fn request_json(
     params: Value,
     id: i64,
 ) -> Value {
-    let response = call_request(service, Request::build(method).params(params).id(id).finish()).await;
+    let response = call_request(
+        service,
+        Request::build(method).params(params).id(id).finish(),
+    )
+    .await;
     response_json(response)
 }
 
 pub async fn next_server_notification(socket: &mut ClientSocket) -> Value {
-    let request = socket.next().await.expect("server should send a notification");
+    let request = socket
+        .next()
+        .await
+        .expect("server should send a notification");
     serde_json::to_value(request).expect("server request should serialize")
 }
 
@@ -95,7 +100,8 @@ pub fn file_uri(name: &str) -> Uri {
 }
 
 pub fn file_uri_from_path(path: &Path) -> Uri {
-    Uri::from_str(&format!("file://{}", path.to_string_lossy())).expect("file path URI should parse")
+    Uri::from_str(&format!("file://{}", path.to_string_lossy()))
+        .expect("file path URI should parse")
 }
 
 pub fn workspace_fixture_path(name: &str) -> PathBuf {
@@ -111,7 +117,9 @@ pub fn position_in(text: &str, needle: &str, byte_offset_within_needle: usize) -
     let offset = start + byte_offset_within_needle;
     let index = LineIndex::new(text);
     let utf8 = index
-        .try_line_col(TextSize::from(u32::try_from(offset).expect("offset should fit in u32")))
+        .try_line_col(TextSize::from(
+            u32::try_from(offset).expect("offset should fit in u32"),
+        ))
         .expect("offset should point at a valid boundary");
     let wide = index
         .to_wide(WideEncoding::Utf16, utf8)
@@ -140,7 +148,10 @@ async fn call_notification(service: &mut TestService, request: Request) {
         .await
         .expect("notification call should succeed");
 
-    assert!(response.is_none(), "notifications should not return a response");
+    assert!(
+        response.is_none(),
+        "notifications should not return a response"
+    );
 }
 
 fn response_json(response: Response) -> Value {

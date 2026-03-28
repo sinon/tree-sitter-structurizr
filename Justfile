@@ -22,6 +22,9 @@ build-wasm:
 build-lsp:
     cargo build -p structurizr-lsp --bin structurizr-lsp --release
 
+build-check:
+    cargo build -p structurizr-check --bin structurizr-check --release
+
 test: test-rust test-grammar
 
 test-analysis:
@@ -29,6 +32,9 @@ test-analysis:
 
 test-analysis-fast:
     cargo nextest run --workspace -p structurizr-analysis
+
+test-check:
+    cargo test -p structurizr-check
 
 test-rust:
     cargo nextest run --workspace --no-fail-fast
@@ -51,6 +57,9 @@ test-grammar:
 
 check: generate test
     @just lint
+
+run-check *args:
+    cargo run -p structurizr-check -- {{args}}
 
 playground:
     tree-sitter build --wasm

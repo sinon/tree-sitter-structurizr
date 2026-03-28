@@ -280,7 +280,8 @@ impl WorkspaceLoader {
                 .cloned()
                 .unwrap_or(fs::read_to_string(&path)?);
             let snapshot = self.analyzer.analyze(
-                DocumentInput::new(document_id_from_path(&path), source).with_location(path.clone()),
+                DocumentInput::new(document_id_from_path(&path), source)
+                    .with_location(path.clone()),
             );
             let kind = if snapshot.is_workspace_entry() {
                 WorkspaceDocumentKind::Entry
@@ -379,11 +380,7 @@ fn normalize_existing_path(path: &Path) -> io::Result<PathBuf> {
 
 fn scan_workspace_root(root: &Path) -> io::Result<Vec<PathBuf>> {
     if root.is_file() {
-        return Ok(if has_dsl_extension(root) {
-            vec![root.to_path_buf()]
-        } else {
-            Vec::new()
-        });
+        return Ok(vec![root.to_path_buf()]);
     }
 
     let mut builder = WalkBuilder::new(root);
@@ -394,7 +391,9 @@ fn scan_workspace_root(root: &Path) -> io::Result<Vec<PathBuf>> {
     for entry in builder.build() {
         let entry = entry.map_err(io::Error::other)?;
         let entry_path = entry.path();
-        let is_file = entry.file_type().is_some_and(|file_type| file_type.is_file());
+        let is_file = entry
+            .file_type()
+            .is_some_and(|file_type| file_type.is_file());
 
         if is_file && has_dsl_extension(entry_path) {
             paths.push(normalize_existing_path(entry_path)?);
@@ -474,7 +473,9 @@ fn resolve_include(
 
     if !is_supported_local_include_path(&relative_target) {
         return Ok(base_include(
-            WorkspaceIncludeTarget::UnsupportedLocalPath { path: joined_target },
+            WorkspaceIncludeTarget::UnsupportedLocalPath {
+                path: joined_target,
+            },
             Vec::new(),
         ));
     }
@@ -522,11 +523,15 @@ fn resolve_include(
             ))
         }
         Ok(_) => Ok(base_include(
-            WorkspaceIncludeTarget::UnsupportedLocalPath { path: joined_target },
+            WorkspaceIncludeTarget::UnsupportedLocalPath {
+                path: joined_target,
+            },
             Vec::new(),
         )),
         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(base_include(
-            WorkspaceIncludeTarget::MissingLocalPath { path: joined_target },
+            WorkspaceIncludeTarget::MissingLocalPath {
+                path: joined_target,
+            },
             Vec::new(),
         )),
         Err(error) => Err(error),
@@ -583,7 +588,9 @@ fn collect_directory_include_paths(
     for entry in builder.build() {
         let entry = entry.map_err(io::Error::other)?;
         let entry_path = entry.path();
-        let is_file = entry.file_type().is_some_and(|file_type| file_type.is_file());
+        let is_file = entry
+            .file_type()
+            .is_some_and(|file_type| file_type.is_file());
 
         if !is_file {
             continue;
@@ -630,7 +637,8 @@ fn include_diagnostics(resolved_includes: &[ResolvedInclude]) -> Vec<IncludeDiag
                     include.value_span(),
                 ));
             }
-            WorkspaceIncludeTarget::LocalFile { .. } | WorkspaceIncludeTarget::LocalDirectory { .. } => {}
+            WorkspaceIncludeTarget::LocalFile { .. }
+            | WorkspaceIncludeTarget::LocalDirectory { .. } => {}
         }
 
         if cycle_include_indices.contains(&index) {
@@ -700,7 +708,9 @@ fn collect_cycle_include_indices(
 
     if let Some(edges) = adjacency.get(document) {
         for (edge_index, child) in edges {
-            if let Some(stack_index) = stack_documents.iter().position(|candidate| candidate == child)
+            if let Some(stack_index) = stack_documents
+                .iter()
+                .position(|candidate| candidate == child)
             {
                 for cycle_edge in stack_edges.iter().skip(stack_index) {
                     cycle_indices.insert(*cycle_edge);

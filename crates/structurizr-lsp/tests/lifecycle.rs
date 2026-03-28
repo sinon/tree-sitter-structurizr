@@ -40,7 +40,10 @@ async fn did_open_publishes_syntax_diagnostics() {
 
     assert_eq!(notification["method"], "textDocument/publishDiagnostics");
     assert_eq!(notification["params"]["uri"], uri.as_str());
-    assert!(!diagnostics.is_empty(), "invalid source should publish syntax diagnostics");
+    assert!(
+        !diagnostics.is_empty(),
+        "invalid source should publish syntax diagnostics"
+    );
 }
 
 #[tokio::test(flavor = "current_thread")]

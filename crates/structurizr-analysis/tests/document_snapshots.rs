@@ -2,7 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use rstest::rstest;
-use structurizr_analysis::{analyze_document, DocumentInput, DocumentSnapshot};
+use structurizr_analysis::{DocumentInput, DocumentSnapshot, analyze_document};
 
 macro_rules! set_snapshot_suffix {
     ($($expr:expr),* $(,)?) => {

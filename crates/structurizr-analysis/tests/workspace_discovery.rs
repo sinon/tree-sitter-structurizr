@@ -98,7 +98,10 @@ impl WorkspaceView {
             .includes()
             .iter()
             .map(|include| WorkspaceIncludeView {
-                including_document: display_document_id(include.including_document().as_str(), root),
+                including_document: display_document_id(
+                    include.including_document().as_str(),
+                    root,
+                ),
                 raw_value: include.raw_value().to_owned(),
                 target_text: include.target_text().to_owned(),
                 target: WorkspaceIncludeTargetView::from(include.target(), root),
@@ -144,11 +147,9 @@ impl WorkspaceIncludeTargetView {
             WorkspaceIncludeTarget::MissingLocalPath { path } => Self::MissingLocalPath {
                 path: display_path(path, root),
             },
-            WorkspaceIncludeTarget::UnsupportedLocalPath { path } => {
-                Self::UnsupportedLocalPath {
-                    path: display_path(path, root),
-                }
-            }
+            WorkspaceIncludeTarget::UnsupportedLocalPath { path } => Self::UnsupportedLocalPath {
+                path: display_path(path, root),
+            },
         }
     }
 }
@@ -163,11 +164,38 @@ impl WorkspaceIncludeTargetView {
 #[case("cycle")]
 fn workspace_fixtures_produce_stable_discovery_views(#[case] fixture_name: &str) {
     let fixture_root = workspace_fixture_root().join(fixture_name);
-    let facts = load_workspace([fixture_root.as_path()])
-        .unwrap_or_else(|error| panic!("failed to load workspace fixture `{fixture_name}`: {error}"));
+    let facts = load_workspace([fixture_root.as_path()]).unwrap_or_else(|error| {
+        panic!("failed to load workspace fixture `{fixture_name}`: {error}")
+    });
 
     set_snapshot_suffix!("{}", fixture_name.replace('-', "_"));
-    insta::assert_debug_snapshot!("workspace_discovery", WorkspaceView::from_facts(&facts, &fixture_root));
+    insta::assert_debug_snapshot!(
+        "workspace_discovery",
+        WorkspaceView::from_facts(&facts, &fixture_root)
+    );
+}
+
+#[test]
+fn explicit_file_roots_are_loaded_even_without_dsl_extensions() {
+    let explicit_file = workspace_fixture_root().join("ignored-explicit/ignored/model.inc");
+    let facts = load_workspace([explicit_file.as_path()])
+        .expect("explicit non-.dsl file roots should still load");
+
+    assert_eq!(facts.documents().len(), 1);
+    let document = facts
+        .documents()
+        .first()
+        .expect("explicit file root should produce one workspace document");
+    assert_eq!(document.kind(), WorkspaceDocumentKind::Fragment);
+    assert_eq!(
+        document
+            .snapshot()
+            .symbols()
+            .iter()
+            .filter_map(|symbol| symbol.binding_name.as_deref())
+            .collect::<Vec<_>>(),
+        vec!["user"]
+    );
 }
 
 fn workspace_fixture_root() -> PathBuf {

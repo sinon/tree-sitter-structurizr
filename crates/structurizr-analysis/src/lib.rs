@@ -17,7 +17,7 @@ pub use diagnostics::{
     IncludeDiagnostic, IncludeDiagnosticKind, SyntaxDiagnostic, SyntaxDiagnosticKind,
 };
 pub use includes::{DirectiveContainer, DirectiveValueKind, IncludeDirective};
-pub use parse::{analyze_document, DocumentAnalyzer};
+pub use parse::{DocumentAnalyzer, analyze_document};
 pub use snapshot::{DocumentId, DocumentInput, DocumentLocation, DocumentSnapshot};
 pub use span::{TextPoint, TextSpan};
 pub use symbols::{

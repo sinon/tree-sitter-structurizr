@@ -139,7 +139,12 @@ async fn recompute_workspace_facts(
         current_document
             .and_then(canonical_document_path)
             .map(|path| vec![path])
-            .or_else(|| open_documents.iter().find_map(canonical_document_path).map(|path| vec![path]))
+            .or_else(|| {
+                open_documents
+                    .iter()
+                    .find_map(canonical_document_path)
+                    .map(|path| vec![path])
+            })
     } else {
         Some(workspace_roots)
     }?;

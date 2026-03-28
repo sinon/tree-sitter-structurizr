@@ -4,9 +4,10 @@
 DSL documents.
 
 It sits between the checked-in Tree-sitter grammar in this repository and the
-future language server. Its job is to turn source text into stable,
-owned, editor-oriented facts without pulling in LSP types, async runtime
-concerns, or runtime-style Structurizr semantics.
+tools that consume semantic facts, such as the `structurizr-check`
+contributor CLI and the future language server. Its job is to turn source text
+into stable, owned, editor-oriented facts without pulling in LSP types, async
+runtime concerns, or runtime-style Structurizr semantics.
 
 ## Purpose
 
@@ -16,6 +17,8 @@ This crate exists so that semantic extraction has a clear home that is neither:
   `LANGUAGE`, `NODE_TYPES`, and queries
 - the future LSP crate, which should stay focused on protocol handling,
   workspace coordination, and editor integration
+- the `structurizr-check` CLI, which should stay focused on rendering and
+  command-line UX rather than owning semantic extraction
 
 The main exchange object is `DocumentSnapshot`, an immutable result of parsing
 and analyzing one document.
@@ -139,6 +142,7 @@ That keeps the layering clean:
 
 - `tree-sitter-structurizr` owns syntax
 - `structurizr-analysis` owns extracted document facts
+- `structurizr-check` owns contributor and CI-oriented CLI presentation
 - the future LSP crate will own protocol and workspace orchestration
 
 As the editor tooling grows, this crate is the intended home for later

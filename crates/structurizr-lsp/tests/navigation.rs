@@ -36,7 +36,11 @@ async fn document_symbols_follow_analysis_symbols() {
         .expect("document symbols should be returned as an array");
     let names = symbols
         .iter()
-        .map(|symbol| symbol["name"].as_str().expect("symbol name should be a string"))
+        .map(|symbol| {
+            symbol["name"]
+                .as_str()
+                .expect("symbol name should be a string")
+        })
         .collect::<Vec<_>>();
 
     assert_eq!(names, vec!["User", "System", "Uses"]);
@@ -69,7 +73,11 @@ async fn completion_returns_directive_keywords_for_prefixes() {
         .as_array()
         .expect("completion should return an item array")
         .iter()
-        .map(|item| item["label"].as_str().expect("completion label should be a string"))
+        .map(|item| {
+            item["label"]
+                .as_str()
+                .expect("completion label should be a string")
+        })
         .collect::<Vec<_>>();
 
     assert!(labels.contains(&"!include"));
