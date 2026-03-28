@@ -12,3 +12,5 @@
 - Property tests showed malformed generated inputs can yield a root `ERROR` node whose byte range does not start at 0, so robustness invariants should avoid assuming every parse root is `source_file` or begins at the first byte.
 - Property tests for generated include graphs showed a simple two-file include loop emits two `IncludeCycle` diagnostics, so cycle-related invariants should not assume a single diagnostic per loop.
 - Property-test capture paths need to be absolute at the command-wrapper layer because `cargo test` runs each integration test from its package root, so relative capture directories can otherwise land in different crates.
+- Keyword highlighting still appears to lack safe word-boundary behavior, so identifiers like `customer` and `securityComponent` can pick up `custom` / `component` keyword highlighting in editor testing.
+- The current bounded LSP surface does not yet define ownership or protocol support for top-level include-path navigation, document links for `!docs` / `!adrs`, or type-definition-style navigation from deployment and instance references.
