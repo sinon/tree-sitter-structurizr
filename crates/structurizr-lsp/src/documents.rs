@@ -108,4 +108,16 @@ impl DocumentStore {
     pub fn iter(&self) -> impl Iterator<Item = &DocumentState> {
         self.open_documents.values()
     }
+
+    /// Returns how many documents are currently open.
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.open_documents.len()
+    }
+
+    /// Returns whether there are no currently open documents.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.open_documents.is_empty()
+    }
 }

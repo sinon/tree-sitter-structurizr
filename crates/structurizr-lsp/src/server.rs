@@ -10,6 +10,7 @@ use tower_lsp_server::ls_types::{
     ReferenceParams,
 };
 use tower_lsp_server::{Client, LanguageServer};
+use tracing::trace;
 
 use crate::{handlers, state::ServerState};
 
@@ -47,26 +48,44 @@ impl LanguageServer for Backend {
         &self,
         params: InitializeParams,
     ) -> tower_lsp_server::jsonrpc::Result<InitializeResult> {
+        trace!(method = "initialize", "dispatching request");
         handlers::lifecycle::initialize(self, params).await
     }
 
     async fn initialized(&self, params: InitializedParams) {
+        trace!(method = "initialized", "dispatching notification");
         handlers::lifecycle::initialized(self, params);
     }
 
     async fn shutdown(&self) -> tower_lsp_server::jsonrpc::Result<()> {
+        trace!(method = "shutdown", "dispatching request");
         handlers::lifecycle::shutdown(self)
     }
 
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
+        trace!(
+            method = "textDocument/didOpen",
+            uri = params.text_document.uri.as_str(),
+            "dispatching notification"
+        );
         handlers::text_sync::did_open(self, params).await;
     }
 
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
+        trace!(
+            method = "textDocument/didChange",
+            uri = params.text_document.uri.as_str(),
+            "dispatching notification"
+        );
         handlers::text_sync::did_change(self, params).await;
     }
 
     async fn did_close(&self, params: DidCloseTextDocumentParams) {
+        trace!(
+            method = "textDocument/didClose",
+            uri = params.text_document.uri.as_str(),
+            "dispatching notification"
+        );
         handlers::text_sync::did_close(self, params).await;
     }
 
@@ -74,6 +93,11 @@ impl LanguageServer for Backend {
         &self,
         params: DocumentSymbolParams,
     ) -> tower_lsp_server::jsonrpc::Result<Option<DocumentSymbolResponse>> {
+        trace!(
+            method = "textDocument/documentSymbol",
+            uri = params.text_document.uri.as_str(),
+            "dispatching request"
+        );
         handlers::symbols::document_symbol(self, params).await
     }
 
@@ -81,6 +105,11 @@ impl LanguageServer for Backend {
         &self,
         params: CompletionParams,
     ) -> tower_lsp_server::jsonrpc::Result<Option<CompletionResponse>> {
+        trace!(
+            method = "textDocument/completion",
+            uri = params.text_document_position.text_document.uri.as_str(),
+            "dispatching request"
+        );
         handlers::completion::completion(self, params).await
     }
 
@@ -88,6 +117,15 @@ impl LanguageServer for Backend {
         &self,
         params: GotoDefinitionParams,
     ) -> tower_lsp_server::jsonrpc::Result<Option<GotoDefinitionResponse>> {
+        trace!(
+            method = "textDocument/definition",
+            uri = params
+                .text_document_position_params
+                .text_document
+                .uri
+                .as_str(),
+            "dispatching request"
+        );
         handlers::goto_definition::goto_definition(self, params).await
     }
 
@@ -95,6 +133,11 @@ impl LanguageServer for Backend {
         &self,
         params: ReferenceParams,
     ) -> tower_lsp_server::jsonrpc::Result<Option<Vec<Location>>> {
+        trace!(
+            method = "textDocument/references",
+            uri = params.text_document_position.text_document.uri.as_str(),
+            "dispatching request"
+        );
         handlers::references::references(self, params).await
     }
 }

@@ -4,14 +4,17 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fs, io,
     path::{Component, Path, PathBuf},
+    time::Instant,
 };
 
 use ignore::WalkBuilder;
+use tracing::{debug, info, trace};
 
 use crate::{
     ConstantDefinition, DocumentAnalyzer, DocumentId, DocumentInput, IdentifierMode,
     IncludeDiagnostic, IncludeDirective, ReferenceKind, SemanticDiagnostic, SymbolId, SymbolKind,
-    TextSpan, includes::{DirectiveContainer, normalized_directive_value},
+    TextSpan,
+    includes::{DirectiveContainer, normalized_directive_value},
 };
 
 /// Classifies whether a discovered document can act as a workspace entry point.
@@ -310,10 +313,7 @@ impl WorkspaceIndex {
         &self,
         handle: &SymbolHandle,
     ) -> impl Iterator<Item = &ReferenceHandle> + '_ {
-        self.references_by_target
-            .get(handle)
-            .into_iter()
-            .flatten()
+        self.references_by_target.get(handle).into_iter().flatten()
     }
 
     /// Returns the semantic diagnostics derived for this workspace instance.
@@ -459,6 +459,7 @@ impl WorkspaceLoader {
         I: IntoIterator<Item = P>,
         P: AsRef<Path>,
     {
+        let start = Instant::now();
         // Phase 1: Normalize and scan the requested roots so broad workspace
         // discovery respects ignore rules before include traversal begins.
         let mut normalized_roots = roots
@@ -467,6 +468,11 @@ impl WorkspaceLoader {
             .collect::<io::Result<Vec<_>>>()?;
         normalized_roots.sort();
         normalized_roots.dedup();
+        debug!(
+            root_count = normalized_roots.len(),
+            roots = ?normalized_roots,
+            "loading workspace roots"
+        );
 
         let mut loaded_documents = BTreeMap::<PathBuf, WorkspaceDocument>::new();
         for root in &normalized_roots {
@@ -510,6 +516,16 @@ impl WorkspaceLoader {
         let include_diagnostics = include_diagnostics(&resolved_includes);
         let (workspace_indexes, document_instances, semantic_diagnostics) =
             build_workspace_indexes(&loaded_documents, &start_contexts, &processed_contexts);
+        info!(
+            root_count = normalized_roots.len(),
+            document_count = loaded_documents.len(),
+            include_count = resolved_includes.len(),
+            include_diagnostic_count = include_diagnostics.len(),
+            workspace_instance_count = workspace_indexes.len(),
+            semantic_diagnostic_count = semantic_diagnostics.len(),
+            elapsed_ms = start.elapsed().as_millis(),
+            "loaded workspace facts"
+        );
 
         Ok(WorkspaceFacts {
             documents: loaded_documents.into_values().collect(),
@@ -531,6 +547,11 @@ impl WorkspaceLoader {
             if discovered_by_scan {
                 document.mark_discovered_by_scan();
             }
+            trace!(
+                path = %path.display(),
+                discovered_by_scan,
+                "reused cached workspace document"
+            );
             return Ok(());
         }
 
@@ -542,6 +563,11 @@ impl WorkspaceLoader {
         } else {
             fs::read_to_string(&path)?
         };
+        let source_origin = if self.document_overrides.contains_key(&path) {
+            "override"
+        } else {
+            "filesystem"
+        };
         let snapshot = self.analyzer.analyze(
             DocumentInput::new(document_id_from_path(&path), source).with_location(path.clone()),
         );
@@ -550,6 +576,13 @@ impl WorkspaceLoader {
         } else {
             WorkspaceDocumentKind::Fragment
         };
+        debug!(
+            path = %path.display(),
+            discovered_by_scan,
+            source_origin,
+            kind = ?kind,
+            "loaded workspace document"
+        );
 
         loaded_documents.insert(
             path,
@@ -572,6 +605,11 @@ impl WorkspaceLoader {
         // Memoize by `(path, inherited constants)` so repeated includes can
         // share the same processed result without rewalking the document.
         if let Some(processed_context) = processed_contexts.get(&context.key) {
+            trace!(
+                path = %context.path.display(),
+                inherited_constant_count = context.inherited_constants.bindings.len(),
+                "reused memoized document context"
+            );
             return Ok(processed_context.exported_constants.clone());
         }
 
@@ -588,6 +626,13 @@ impl WorkspaceLoader {
                 document.snapshot().include_directives().to_vec(),
             )
         };
+        debug!(
+            path = %context.path.display(),
+            inherited_constant_count = context.inherited_constants.bindings.len(),
+            constant_definition_count = constant_definitions.len(),
+            include_directive_count = include_directives.len(),
+            "processing workspace document context"
+        );
 
         active_stack.push(context.path.clone());
         let processed = (|| -> io::Result<ProcessedDocumentContext> {
@@ -610,6 +655,14 @@ impl WorkspaceLoader {
                             directive,
                             &current_constants,
                         )?;
+                        debug!(
+                            including_document = document_id.as_str(),
+                            path = %context.path.display(),
+                            target_text = resolved_include.include.target_text(),
+                            target_kind = include_target_kind(resolved_include.include.target()),
+                            discovered_document_count = resolved_include.discovered_paths.len(),
+                            "resolved include while processing workspace document"
+                        );
 
                         for included_path in &resolved_include.discovered_paths {
                             self.load_document(included_path.clone(), false, loaded_documents)?;
@@ -620,8 +673,10 @@ impl WorkspaceLoader {
                                 continue;
                             }
 
-                            let child_context =
-                                DocumentContext::new(included_path.clone(), current_constants.clone());
+                            let child_context = DocumentContext::new(
+                                included_path.clone(),
+                                current_constants.clone(),
+                            );
                             included_contexts.push(child_context.key.clone());
                             current_constants = self.process_document_context(
                                 child_context,
@@ -647,6 +702,13 @@ impl WorkspaceLoader {
 
         let processed = processed?;
         let exported_constants = processed.exported_constants.clone();
+        debug!(
+            path = %context.path.display(),
+            direct_include_count = processed.direct_includes.len(),
+            child_context_count = processed.included_contexts.len(),
+            exported_constant_count = exported_constants.bindings.len(),
+            "finished processing workspace document context"
+        );
         processed_contexts.insert(context.key, processed);
         Ok(exported_constants)
     }
@@ -887,28 +949,18 @@ fn resolve_include(
     constants: &ConstantEnvironment,
 ) -> io::Result<ResolvedIncludeWork> {
     let target_text = expand_string_substitutions(&normalized_include_value(directive), constants);
-    let base_include = |target: WorkspaceIncludeTarget, discovered_paths: Vec<PathBuf>| {
-        let discovered_documents = discovered_paths
-            .iter()
-            .map(|path| document_id_from_path(path))
-            .collect();
-
-        ResolvedIncludeWork {
-            include: ResolvedInclude {
-                including_document: including_document.clone(),
-                raw_value: directive.raw_value.clone(),
-                target_text: target_text.clone(),
-                span: directive.span,
-                value_span: directive.value_span,
-                target,
-                discovered_documents,
-            },
-            discovered_paths,
-        }
-    };
+    trace!(
+        including_document = including_document.as_str(),
+        target_text = %target_text,
+        constant_count = constants.bindings.len(),
+        "resolving include target"
+    );
 
     if is_remote_include(&target_text) {
-        return Ok(base_include(
+        return Ok(build_resolved_include(
+            including_document,
+            directive,
+            &target_text,
             WorkspaceIncludeTarget::RemoteUrl {
                 url: target_text.clone(),
             },
@@ -916,6 +968,46 @@ fn resolve_include(
         ));
     }
 
+    resolve_local_include(
+        including_document,
+        including_document_path,
+        directive,
+        &target_text,
+    )
+}
+
+fn build_resolved_include(
+    including_document: &DocumentId,
+    directive: &IncludeDirective,
+    target_text: &str,
+    target: WorkspaceIncludeTarget,
+    discovered_paths: Vec<PathBuf>,
+) -> ResolvedIncludeWork {
+    let discovered_documents = discovered_paths
+        .iter()
+        .map(|path| document_id_from_path(path))
+        .collect();
+
+    ResolvedIncludeWork {
+        include: ResolvedInclude {
+            including_document: including_document.clone(),
+            raw_value: directive.raw_value.clone(),
+            target_text: target_text.to_owned(),
+            span: directive.span,
+            value_span: directive.value_span,
+            target,
+            discovered_documents,
+        },
+        discovered_paths,
+    }
+}
+
+fn resolve_local_include(
+    including_document: &DocumentId,
+    including_document_path: &Path,
+    directive: &IncludeDirective,
+    target_text: &str,
+) -> io::Result<ResolvedIncludeWork> {
     let Some(parent_directory) = including_document_path.parent() else {
         return Err(io::Error::other(format!(
             "document path has no parent directory: {}",
@@ -923,11 +1015,14 @@ fn resolve_include(
         )));
     };
     let canonical_parent_directory = normalize_existing_path(parent_directory)?;
-    let relative_target = PathBuf::from(&target_text);
+    let relative_target = PathBuf::from(target_text);
     let joined_target = parent_directory.join(&relative_target);
 
     if !is_supported_local_include_path(&relative_target) {
-        return Ok(base_include(
+        return Ok(build_resolved_include(
+            including_document,
+            directive,
+            target_text,
             WorkspaceIncludeTarget::UnsupportedLocalPath {
                 path: joined_target,
             },
@@ -940,7 +1035,10 @@ fn resolve_include(
             let canonical_file = normalize_existing_path(&joined_target)?;
 
             if !canonical_file.starts_with(&canonical_parent_directory) {
-                return Ok(base_include(
+                return Ok(build_resolved_include(
+                    including_document,
+                    directive,
+                    target_text,
                     WorkspaceIncludeTarget::UnsupportedLocalPath {
                         path: canonical_file,
                     },
@@ -948,7 +1046,10 @@ fn resolve_include(
                 ));
             }
 
-            Ok(base_include(
+            Ok(build_resolved_include(
+                including_document,
+                directive,
+                target_text,
                 WorkspaceIncludeTarget::LocalFile {
                     path: canonical_file.clone(),
                 },
@@ -959,7 +1060,10 @@ fn resolve_include(
             let canonical_directory = normalize_existing_path(&joined_target)?;
 
             if !canonical_directory.starts_with(&canonical_parent_directory) {
-                return Ok(base_include(
+                return Ok(build_resolved_include(
+                    including_document,
+                    directive,
+                    target_text,
                     WorkspaceIncludeTarget::UnsupportedLocalPath {
                         path: canonical_directory,
                     },
@@ -970,20 +1074,29 @@ fn resolve_include(
             let discovered_paths =
                 collect_directory_include_paths(&canonical_directory, &canonical_parent_directory)?;
 
-            Ok(base_include(
+            Ok(build_resolved_include(
+                including_document,
+                directive,
+                target_text,
                 WorkspaceIncludeTarget::LocalDirectory {
                     path: canonical_directory,
                 },
                 discovered_paths,
             ))
         }
-        Ok(_) => Ok(base_include(
+        Ok(_) => Ok(build_resolved_include(
+            including_document,
+            directive,
+            target_text,
             WorkspaceIncludeTarget::UnsupportedLocalPath {
                 path: joined_target,
             },
             Vec::new(),
         )),
-        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(base_include(
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(build_resolved_include(
+            including_document,
+            directive,
+            target_text,
             WorkspaceIncludeTarget::MissingLocalPath {
                 path: joined_target,
             },
@@ -1238,6 +1351,11 @@ fn build_workspace_indexes(
         .values()
         .map(|document| (document.id().clone(), document))
         .collect::<BTreeMap<_, _>>();
+    debug!(
+        document_count = loaded_documents.len(),
+        start_context_count = start_contexts.len(),
+        "building workspace indexes"
+    );
 
     let mut workspace_indexes = Vec::new();
     let mut document_instances = BTreeMap::<DocumentId, Vec<WorkspaceInstanceId>>::new();
@@ -1274,6 +1392,12 @@ fn build_workspace_indexes(
     }
 
     let semantic_diagnostics = merge_semantic_diagnostics(&workspace_indexes, &document_instances);
+    debug!(
+        workspace_instance_count = workspace_indexes.len(),
+        instance_document_count = document_instances.len(),
+        semantic_diagnostic_count = semantic_diagnostics.len(),
+        "finished building workspace indexes"
+    );
 
     (workspace_indexes, document_instances, semantic_diagnostics)
 }
@@ -1320,10 +1444,13 @@ fn build_workspace_index(
         .expect("BUG: workspace-index root document should exist")
         .snapshot();
     let inherited_workspace_mode = document_workspace_identifier_mode(root_snapshot);
-    let bindings = build_binding_tables(documents, documents_by_id, inherited_workspace_mode.as_ref());
+    let bindings = build_binding_tables(
+        documents,
+        documents_by_id,
+        inherited_workspace_mode.as_ref(),
+    );
     let mut semantic_diagnostics = bindings.semantic_diagnostics.clone();
-    let reference_tables =
-        build_reference_resolution_tables(documents, documents_by_id, &bindings);
+    let reference_tables = build_reference_resolution_tables(documents, documents_by_id, &bindings);
     semantic_diagnostics.extend(reference_tables.semantic_diagnostics);
 
     let mut references_by_target = reference_tables.references_by_target;
@@ -1332,6 +1459,18 @@ fn build_workspace_index(
         references.dedup();
     }
     sort_semantic_diagnostics(&mut semantic_diagnostics);
+    debug!(
+        instance_id = id.as_usize(),
+        root_document = root_document.as_str(),
+        document_count = documents.len(),
+        unique_element_binding_count = bindings.unique_elements.len(),
+        duplicate_element_binding_count = bindings.duplicate_elements.len(),
+        unique_relationship_binding_count = bindings.unique_relationships.len(),
+        duplicate_relationship_binding_count = bindings.duplicate_relationships.len(),
+        resolved_reference_count = reference_tables.resolutions.len(),
+        semantic_diagnostic_count = semantic_diagnostics.len(),
+        "built one workspace index"
+    );
 
     WorkspaceIndex {
         id,
@@ -1344,6 +1483,16 @@ fn build_workspace_index(
         reference_resolutions: reference_tables.resolutions,
         references_by_target,
         semantic_diagnostics,
+    }
+}
+
+const fn include_target_kind(target: &WorkspaceIncludeTarget) -> &'static str {
+    match target {
+        WorkspaceIncludeTarget::RemoteUrl { .. } => "remote_url",
+        WorkspaceIncludeTarget::LocalFile { .. } => "local_file",
+        WorkspaceIncludeTarget::LocalDirectory { .. } => "local_directory",
+        WorkspaceIncludeTarget::MissingLocalPath { .. } => "missing_local_path",
+        WorkspaceIncludeTarget::UnsupportedLocalPath { .. } => "unsupported_local_path",
     }
 }
 
@@ -1368,8 +1517,7 @@ fn build_binding_tables(
             .get(document_id)
             .expect("BUG: workspace-index document should exist");
         let snapshot = document.snapshot();
-        let element_mode =
-            effective_element_identifier_mode(snapshot, inherited_workspace_mode);
+        let element_mode = effective_element_identifier_mode(snapshot, inherited_workspace_mode);
 
         for symbol in snapshot.symbols() {
             let Some(binding_name) = symbol.binding_name.as_deref() else {
@@ -1398,7 +1546,10 @@ fn build_binding_tables(
                         continue;
                     };
 
-                    element_bindings.entry(binding_key).or_default().push(handle);
+                    element_bindings
+                        .entry(binding_key)
+                        .or_default()
+                        .push(handle);
                 }
             }
         }
@@ -1509,7 +1660,10 @@ fn build_reference_resolution_tables(
 
 fn split_binding_table(
     bindings: BTreeMap<String, Vec<SymbolHandle>>,
-) -> (BTreeMap<String, SymbolHandle>, BTreeMap<String, Vec<SymbolHandle>>) {
+) -> (
+    BTreeMap<String, SymbolHandle>,
+    BTreeMap<String, Vec<SymbolHandle>>,
+) {
     let mut unique = BTreeMap::new();
     let mut duplicates = BTreeMap::new();
 
@@ -1641,7 +1795,9 @@ fn document_model_identifier_mode(snapshot: &crate::DocumentSnapshot) -> Option<
     last_identifier_mode_for_container(snapshot, &DirectiveContainer::Model)
 }
 
-fn document_workspace_identifier_mode(snapshot: &crate::DocumentSnapshot) -> Option<IdentifierMode> {
+fn document_workspace_identifier_mode(
+    snapshot: &crate::DocumentSnapshot,
+) -> Option<IdentifierMode> {
     last_identifier_mode_for_container(snapshot, &DirectiveContainer::Workspace)
 }
 
@@ -1699,8 +1855,7 @@ fn merge_semantic_diagnostics(
     workspace_indexes: &[WorkspaceIndex],
     document_instances: &BTreeMap<DocumentId, Vec<WorkspaceInstanceId>>,
 ) -> Vec<SemanticDiagnostic> {
-    let mut diagnostic_counts =
-        BTreeMap::<DocumentId, BTreeMap<SemanticDiagnostic, usize>>::new();
+    let mut diagnostic_counts = BTreeMap::<DocumentId, BTreeMap<SemanticDiagnostic, usize>>::new();
 
     for workspace_index in workspace_indexes {
         let mut per_document = BTreeMap::<DocumentId, BTreeSet<SemanticDiagnostic>>::new();

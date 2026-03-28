@@ -1,8 +1,12 @@
 #![allow(dead_code)]
 
 use std::{
+    env,
+    fs::{self, File, OpenOptions},
+    io::{self, Write},
     path::{Path, PathBuf},
     str::FromStr,
+    sync::{Arc, Mutex, OnceLock},
 };
 
 use futures::StreamExt;
@@ -16,10 +20,63 @@ use tower_lsp_server::{
     jsonrpc::{Request, Response},
     ls_types::{Position, Uri},
 };
+use tracing_subscriber::{
+    EnvFilter,
+    fmt::{self, writer::BoxMakeWriter},
+    prelude::*,
+};
 
 pub type TestService = LspService<Backend>;
 
+const LOG_FORMAT_ENV: &str = "STRZ_LOG_FORMAT";
+const LOG_FILE_ENV: &str = "STRZ_LOG_FILE";
+const TEST_LOG_ENV: &str = "STRZ_TEST_LOG";
+
+static TEST_TRACING_INITIALIZED: OnceLock<()> = OnceLock::new();
+
+#[derive(Clone)]
+struct SharedFileWriter {
+    file: Arc<Mutex<File>>,
+}
+
+impl Write for SharedFileWriter {
+    fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
+        self.file
+            .lock()
+            .map_err(|_| io::Error::other("test log file lock should not be poisoned"))?
+            .write(buffer)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.file
+            .lock()
+            .map_err(|_| io::Error::other("test log file lock should not be poisoned"))?
+            .flush()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum LogFormat {
+    Compact,
+    Json,
+}
+
+impl LogFormat {
+    fn from_env() -> Self {
+        match env::var(LOG_FORMAT_ENV) {
+            Ok(value) if value.eq_ignore_ascii_case("json") => Self::Json,
+            _ => Self::Compact,
+        }
+    }
+}
+
+struct OutputWriter {
+    make_writer: BoxMakeWriter,
+    supports_ansi: bool,
+}
+
 pub fn new_service() -> (TestService, ClientSocket) {
+    init_test_tracing("structurizr-lsp-tests");
     LspService::new(Backend::new)
 }
 
@@ -198,4 +255,96 @@ async fn call_notification(service: &mut TestService, request: Request) {
 
 fn response_json(response: Response) -> Value {
     serde_json::to_value(response).expect("response should serialize")
+}
+
+fn init_test_tracing(test_name: &str) {
+    if TEST_TRACING_INITIALIZED.get().is_some() || !test_observability_requested() {
+        return;
+    }
+
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+    let format = LogFormat::from_env();
+    let output = output_writer_for_tests(test_name);
+
+    let _ = install_test_subscriber(filter, format, output);
+    let _ = TEST_TRACING_INITIALIZED.set(());
+}
+
+fn test_observability_requested() -> bool {
+    env::var_os(EnvFilter::DEFAULT_ENV).is_some()
+        || env::var_os(LOG_FORMAT_ENV).is_some()
+        || env::var_os(LOG_FILE_ENV).is_some()
+        || env::var_os(TEST_LOG_ENV).is_some()
+}
+
+fn output_writer_for_tests(test_name: &str) -> OutputWriter {
+    if let Some(path) = env::var_os(LOG_FILE_ENV) {
+        return file_output_writer(Path::new(&path));
+    }
+
+    if env::var_os(TEST_LOG_ENV).is_some() {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../tmp")
+            .join(format!("{test_name}.log"));
+        return file_output_writer(&path);
+    }
+
+    OutputWriter {
+        make_writer: BoxMakeWriter::new(io::stderr),
+        supports_ansi: true,
+    }
+}
+
+fn file_output_writer(path: &Path) -> OutputWriter {
+    if let Some(parent) = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+    {
+        fs::create_dir_all(parent).expect("test log directory should be creatable");
+    }
+
+    let file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(true)
+        .open(path)
+        .expect("test log file should be creatable");
+    let shared_writer = SharedFileWriter {
+        file: Arc::new(Mutex::new(file)),
+    };
+
+    OutputWriter {
+        make_writer: BoxMakeWriter::new(move || shared_writer.clone()),
+        supports_ansi: false,
+    }
+}
+
+fn install_test_subscriber(
+    filter: EnvFilter,
+    format: LogFormat,
+    output: OutputWriter,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let OutputWriter {
+        make_writer,
+        supports_ansi,
+    } = output;
+    let base_layer = fmt::layer()
+        .with_target(true)
+        .with_thread_ids(true)
+        .with_thread_names(true)
+        .with_ansi(supports_ansi)
+        .with_writer(make_writer);
+
+    match format {
+        LogFormat::Compact => tracing_subscriber::registry()
+            .with(filter)
+            .with(base_layer.compact())
+            .try_init()
+            .map_err(Into::into),
+        LogFormat::Json => tracing_subscriber::registry()
+            .with(filter)
+            .with(base_layer.json())
+            .try_init()
+            .map_err(Into::into),
+    }
 }

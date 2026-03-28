@@ -12,9 +12,12 @@ line-index = "0.1.2"
 structurizr-analysis = { version = "0.1.0", path = "../structurizr-analysis" }
 tokio = { version = "1.50.0", features = ["macros", "rt-multi-thread", "io-std", "sync", "time"] }
 tower-lsp-server = "0.23.0"
+tracing = "0.1.44"
 
 [dev-dependencies]
 criterion = { version = "4.4.1", package = "codspeed-criterion-compat" }
 futures = "0.3"
 serde_json = "1"
 tower = { version = "0.5", features = ["util"] }
+tracing-log = "0.2.0"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "json"] }

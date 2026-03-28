@@ -8,12 +8,9 @@ use structurizr_analysis::{
     SymbolHandle, SymbolKind, WorkspaceFacts, WorkspaceInstanceId,
 };
 use tower_lsp_server::ls_types::{Location, Uri};
+use tracing::debug;
 
-use crate::{
-    convert::positions::span_to_range,
-    documents::DocumentState,
-    state::ServerState,
-};
+use crate::{convert::positions::span_to_range, documents::DocumentState, state::ServerState};
 
 pub enum NavigationSite<'a> {
     Symbol(&'a Symbol),
@@ -70,6 +67,13 @@ pub fn definition_location(
             if let Some((workspace_facts, document_id)) = workspace_context(state, document) {
                 let candidate_instances = candidate_instances(workspace_facts, &document_id);
                 if !candidate_instances.is_empty() {
+                    debug!(
+                        uri = document.uri().as_str(),
+                        offset,
+                        reference = %reference.raw_text,
+                        candidate_instance_count = candidate_instances.len(),
+                        "attempting workspace-aware gotoDefinition resolution"
+                    );
                     let reference_handle = ReferenceHandle::new(document_id, index);
                     let target = unanimous_resolved_symbol(
                         workspace_facts,
@@ -77,10 +81,22 @@ pub fn definition_location(
                         &reference_handle,
                     )?;
 
+                    debug!(
+                        uri = document.uri().as_str(),
+                        offset,
+                        ?target,
+                        "gotoDefinition resolved through workspace index"
+                    );
                     return symbol_location(state, workspace_facts, &target);
                 }
             }
 
+            debug!(
+                uri = document.uri().as_str(),
+                offset,
+                reference = %reference.raw_text,
+                "falling back to same-document gotoDefinition resolution"
+            );
             resolve_reference(snapshot, reference)
                 .and_then(|symbol| same_document_symbol_location(document, symbol))
         }
@@ -102,11 +118,21 @@ pub fn reference_locations(
     if let Some((workspace_facts, document_id)) = workspace_context(state, document) {
         let candidate_instances = candidate_instances(workspace_facts, &document_id);
         if !candidate_instances.is_empty() {
+            debug!(
+                uri = document.uri().as_str(),
+                offset,
+                include_declaration,
+                candidate_instance_count = candidate_instances.len(),
+                "attempting workspace-aware references resolution"
+            );
             let workspace_locations = match site {
                 NavigationSite::Symbol(symbol) => {
                     let symbol_handle = SymbolHandle::new(document_id, symbol.id);
-                    let reference_handles =
-                        unanimous_reference_handles(workspace_facts, &candidate_instances, &symbol_handle);
+                    let reference_handles = unanimous_reference_handles(
+                        workspace_facts,
+                        &candidate_instances,
+                        &symbol_handle,
+                    );
 
                     reference_handles.map(|reference_handles| {
                         materialize_reference_locations(
@@ -126,21 +152,34 @@ pub fn reference_locations(
                         &reference_handle,
                     );
                     let reference_handles = symbol_handle.as_ref().and_then(|symbol_handle| {
-                        unanimous_reference_handles(workspace_facts, &candidate_instances, symbol_handle)
+                        unanimous_reference_handles(
+                            workspace_facts,
+                            &candidate_instances,
+                            symbol_handle,
+                        )
                     });
 
-                    symbol_handle.zip(reference_handles).map(|(symbol_handle, reference_handles)| {
-                        materialize_reference_locations(
-                            state,
-                            workspace_facts,
-                            include_declaration,
-                            &symbol_handle,
-                            &reference_handles,
-                        )
-                    })
+                    symbol_handle.zip(reference_handles).map(
+                        |(symbol_handle, reference_handles)| {
+                            materialize_reference_locations(
+                                state,
+                                workspace_facts,
+                                include_declaration,
+                                &symbol_handle,
+                                &reference_handles,
+                            )
+                        },
+                    )
                 }
             };
 
+            debug!(
+                uri = document.uri().as_str(),
+                offset,
+                include_declaration,
+                location_count = workspace_locations.as_ref().map_or(0, Vec::len),
+                "workspace-aware references resolution completed"
+            );
             return workspace_locations.unwrap_or_default();
         }
     }
@@ -150,9 +189,7 @@ pub fn reference_locations(
     };
 
     let mut locations = Vec::new();
-    if include_declaration
-        && let Some(location) = same_document_symbol_location(document, symbol)
-    {
+    if include_declaration && let Some(location) = same_document_symbol_location(document, symbol) {
         locations.push(location);
     }
 
@@ -186,10 +223,26 @@ fn unanimous_resolved_symbol(
             .workspace_index(*instance_id)?
             .reference_resolution(reference_handle)?;
         let ReferenceResolutionStatus::Resolved(symbol_handle) = status else {
+            debug!(
+                instance_id = instance_id.as_usize(),
+                ?reference_handle,
+                ?status,
+                "workspace instance could not resolve one reference unanimously"
+            );
             return None;
         };
 
-        if resolved_symbol.as_ref().is_some_and(|existing| existing != symbol_handle) {
+        if resolved_symbol
+            .as_ref()
+            .is_some_and(|existing| existing != symbol_handle)
+        {
+            debug!(
+                instance_id = instance_id.as_usize(),
+                ?reference_handle,
+                ?symbol_handle,
+                existing = ?resolved_symbol,
+                "workspace instances disagreed on one resolved definition target"
+            );
             return None;
         }
 
@@ -215,7 +268,17 @@ fn unanimous_reference_handles(
         references.sort();
         references.dedup();
 
-        if first.as_ref().is_some_and(|existing| existing != &references) {
+        if first
+            .as_ref()
+            .is_some_and(|existing| existing != &references)
+        {
+            debug!(
+                instance_id = instance_id.as_usize(),
+                ?symbol_handle,
+                ?references,
+                existing = ?first,
+                "workspace instances disagreed on one references result set"
+            );
             return None;
         }
 
@@ -254,10 +317,17 @@ fn symbol_location(
     symbol_handle: &SymbolHandle,
 ) -> Option<Location> {
     let document = open_document_by_id(state, symbol_handle.document());
-    let snapshot = workspace_facts.document(symbol_handle.document())?.snapshot();
+    let snapshot = workspace_facts
+        .document(symbol_handle.document())?
+        .snapshot();
     let symbol = snapshot.symbols().get(symbol_handle.symbol_id().0)?;
 
-    location_for_span(document, symbol_handle.document(), snapshot.source(), symbol.span)
+    location_for_span(
+        document,
+        symbol_handle.document(),
+        snapshot.source(),
+        symbol.span,
+    )
 }
 
 fn reference_location(
@@ -266,10 +336,19 @@ fn reference_location(
     reference_handle: &ReferenceHandle,
 ) -> Option<Location> {
     let document = open_document_by_id(state, reference_handle.document());
-    let snapshot = workspace_facts.document(reference_handle.document())?.snapshot();
-    let reference = snapshot.references().get(reference_handle.reference_index())?;
+    let snapshot = workspace_facts
+        .document(reference_handle.document())?
+        .snapshot();
+    let reference = snapshot
+        .references()
+        .get(reference_handle.reference_index())?;
 
-    location_for_span(document, reference_handle.document(), snapshot.source(), reference.span)
+    location_for_span(
+        document,
+        reference_handle.document(),
+        snapshot.source(),
+        reference.span,
+    )
 }
 
 fn location_for_span(
@@ -309,7 +388,10 @@ fn workspace_context<'a>(
     Some((state.workspace_facts()?, workspace_document_id(document)?))
 }
 
-fn open_document_by_id<'a>(state: &'a ServerState, document_id: &DocumentId) -> Option<&'a DocumentState> {
+fn open_document_by_id<'a>(
+    state: &'a ServerState,
+    document_id: &DocumentId,
+) -> Option<&'a DocumentState> {
     state.documents().iter().find(|document| {
         workspace_document_id(document)
             .as_ref()
@@ -380,7 +462,9 @@ fn symbol_matches_reference(symbol: &Symbol, reference: &Reference) -> bool {
     }
 
     match reference.target_hint {
-        structurizr_analysis::ReferenceTargetHint::Element => symbol.kind != SymbolKind::Relationship,
+        structurizr_analysis::ReferenceTargetHint::Element => {
+            symbol.kind != SymbolKind::Relationship
+        }
         structurizr_analysis::ReferenceTargetHint::Relationship => {
             symbol.kind == SymbolKind::Relationship
         }

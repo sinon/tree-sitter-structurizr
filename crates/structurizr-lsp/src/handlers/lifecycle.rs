@@ -3,6 +3,7 @@
 use tower_lsp_server::ls_types::{
     InitializeParams, InitializeResult, InitializedParams, ServerInfo, Uri,
 };
+use tracing::{debug, info};
 
 use crate::{capabilities, server::Backend};
 
@@ -20,6 +21,11 @@ pub async fn initialize(
         || params.root_uri.into_iter().collect::<Vec<Uri>>(),
         |folders| folders.into_iter().map(|folder| folder.uri).collect(),
     );
+    info!(
+        workspace_root_count = workspace_roots.len(),
+        "initializing Structurizr LSP session"
+    );
+    debug!(workspace_roots = ?workspace_roots, "captured workspace roots");
 
     let mut state = backend.state().write().await;
     state.set_client_capabilities(params.capabilities);
@@ -37,13 +43,16 @@ pub async fn initialize(
 }
 
 /// Handles the post-initialize notification.
-pub const fn initialized(_backend: &Backend, _params: InitializedParams) {}
+pub fn initialized(_backend: &Backend, _params: InitializedParams) {
+    info!("language server initialized");
+}
 
 /// Handles the LSP shutdown request.
 ///
 /// # Errors
 ///
 /// This handler currently does not emit JSON-RPC errors.
-pub const fn shutdown(_backend: &Backend) -> tower_lsp_server::jsonrpc::Result<()> {
+pub fn shutdown(_backend: &Backend) -> tower_lsp_server::jsonrpc::Result<()> {
+    info!("shutting down Structurizr LSP session");
     Ok(())
 }

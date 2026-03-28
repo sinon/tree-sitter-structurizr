@@ -301,7 +301,8 @@ async fn diagnostics_publish_bounded_semantic_errors() {
     let alpha_path = workspace_root.join("alpha.dsl");
     let alpha_uri = file_uri_from_path(&alpha_path);
     open_document(&mut service, &alpha_uri, &read_workspace_file(&alpha_path)).await;
-    let alpha_notification = next_publish_diagnostics_for_uri(&mut socket, alpha_uri.as_str()).await;
+    let alpha_notification =
+        next_publish_diagnostics_for_uri(&mut socket, alpha_uri.as_str()).await;
 
     let alpha_messages = alpha_notification["params"]["diagnostics"]
         .as_array()
@@ -339,10 +340,17 @@ async fn diagnostics_publish_bounded_semantic_errors() {
                 .expect("diagnostic message should be a string")
         })
         .collect::<Vec<_>>();
-    assert_eq!(workspace_messages, vec!["ambiguous identifier reference: api"]);
+    assert_eq!(
+        workspace_messages,
+        vec!["ambiguous identifier reference: api"]
+    );
 }
 
 fn read_workspace_file(path: &Path) -> String {
-    fs::read_to_string(path)
-        .unwrap_or_else(|error| panic!("failed to read workspace file `{}`: {error}", path.display()))
+    fs::read_to_string(path).unwrap_or_else(|error| {
+        panic!(
+            "failed to read workspace file `{}`: {error}",
+            path.display()
+        )
+    })
 }
