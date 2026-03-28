@@ -33,6 +33,28 @@ test-analysis-fast:
 test-cli:
     cargo test -p structurizr-cli
 
+bench-analysis:
+    cargo bench -p structurizr-analysis --bench analysis
+
+bench-lsp:
+    cargo bench -p structurizr-lsp --bench session
+
+bench-rust: bench-analysis bench-lsp
+
+bench-black-box:
+    cargo build -p structurizr-cli --bin strz --release
+    tools/bench_black_box.sh --mode quick --output-dir tmp/benchmark-results/quick --binary target/release/strz
+
+bench-black-box-stable:
+    cargo build -p structurizr-cli --bin strz --release
+    tools/bench_black_box.sh --mode stable --output-dir tmp/benchmark-results/stable --binary target/release/strz
+
+bench-perf:
+    tools/run_benchmarks.sh --mode quick
+
+bench-perf-stable:
+    tools/run_benchmarks.sh --mode stable
+
 test-rust:
     cargo nextest run --workspace --no-fail-fast
     cargo test --workspace --doc

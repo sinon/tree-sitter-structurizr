@@ -9,22 +9,28 @@ on:
       - "Justfile"
       - "Cargo.toml"
       - "Cargo.lock"
+      - "crates/**"
       - "grammar.js"
       - "bindings/rust/**"
+      - "queries/**"
       - "src/**"
       - "test/**"
       - "tests/**"
+      - "tools/**"
   pull_request:
     paths:
       - ".github/workflows/**"
       - "Justfile"
       - "Cargo.toml"
       - "Cargo.lock"
+      - "crates/**"
       - "grammar.js"
       - "bindings/rust/**"
+      - "queries/**"
       - "src/**"
       - "test/**"
       - "tests/**"
+      - "tools/**"
 
 permissions: {}
 
