@@ -158,6 +158,7 @@ impl WorkspaceIncludeTargetView {
 #[case("minimal-scan")]
 #[case("ignored-explicit")]
 #[case("directory-include")]
+#[case("inherited-constants")]
 #[case("remote-include")]
 #[case("missing-include")]
 #[case("unsupported-escape")]
@@ -195,6 +196,25 @@ fn explicit_file_roots_are_loaded_even_without_dsl_extensions() {
             .filter_map(|symbol| symbol.binding_name.as_deref())
             .collect::<Vec<_>>(),
         vec!["user"]
+    );
+}
+
+#[test]
+fn constants_must_be_defined_before_they_can_drive_include_resolution() {
+    let fixture_root = workspace_fixture_root().join("ordered-constants");
+    let facts = load_workspace([fixture_root.as_path()])
+        .expect("ordered-constants fixture should load successfully");
+
+    let diagnostics = facts.include_diagnostics().iter().collect::<Vec<_>>();
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].kind,
+        IncludeDiagnosticKind::MissingLocalTarget
+    );
+    assert_eq!(diagnostics[0].target_text, "details/${DETAIL_FILE}");
+    assert_eq!(
+        display_document_id(diagnostics[0].document.as_str(), &fixture_root),
+        "shared/system.dsl"
     );
 }
 

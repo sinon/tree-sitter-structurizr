@@ -4,15 +4,17 @@
 //! This crate sits between the Tree-sitter grammar and a future LSP crate.
 //! It owns reusable parsing outputs, extracted facts, and snapshot-oriented APIs.
 
+mod constants;
 mod diagnostics;
 mod extract;
-mod includes;
+pub(crate) mod includes;
 mod parse;
 mod snapshot;
 mod span;
 mod symbols;
 mod workspace;
 
+pub use constants::ConstantDefinition;
 pub use diagnostics::{
     IncludeDiagnostic, IncludeDiagnosticKind, SyntaxDiagnostic, SyntaxDiagnosticKind,
 };

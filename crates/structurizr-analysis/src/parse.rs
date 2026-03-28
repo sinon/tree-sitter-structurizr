@@ -29,15 +29,16 @@ impl DocumentAnalyzer {
     /// Parses one document and returns an immutable snapshot of extracted facts.
     ///
     /// The resulting snapshot keeps the original source, parse tree, syntax
-    /// diagnostics, include directives, identifier-mode directives, symbols,
-    /// and references together so downstream tools can answer queries without
-    /// re-parsing immediately.
+    /// diagnostics, include directives, constant definitions, identifier-mode
+    /// directives, symbols, and references together so downstream tools can
+    /// answer queries without re-parsing immediately.
     #[must_use]
     pub fn analyze(&mut self, input: DocumentInput) -> DocumentSnapshot {
         let (id, location, source) = input.into_parts();
         let tree = self.parse(&source);
         let syntax_diagnostics = extract::diagnostics::collect(&tree);
         let include_directives = extract::includes::collect(&tree, &source);
+        let constant_definitions = extract::constants::collect(&tree, &source);
         let identifier_modes = extract::symbols::collect_identifier_modes(&tree, &source);
         let (symbols, references) =
             extract::symbols::collect_symbols_and_references(&tree, &source);
@@ -49,6 +50,7 @@ impl DocumentAnalyzer {
             tree,
             syntax_diagnostics,
             include_directives,
+            constant_definitions,
             identifier_modes,
             symbols,
             references,

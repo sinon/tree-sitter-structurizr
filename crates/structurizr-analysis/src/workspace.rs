@@ -1,7 +1,7 @@
 //! Workspace discovery, include-following, and file-level include diagnostics.
 
 use std::{
-    collections::{BTreeMap, BTreeSet, VecDeque},
+    collections::{BTreeMap, BTreeSet},
     fs, io,
     path::{Component, Path, PathBuf},
 };
@@ -9,8 +9,8 @@ use std::{
 use ignore::WalkBuilder;
 
 use crate::{
-    DirectiveValueKind, DocumentAnalyzer, DocumentId, DocumentInput, DocumentSnapshot,
-    IncludeDiagnostic, IncludeDirective, TextSpan,
+    ConstantDefinition, DocumentAnalyzer, DocumentId, DocumentInput, IncludeDiagnostic,
+    IncludeDirective, TextSpan, includes::normalized_directive_value,
 };
 
 /// Classifies whether a discovered document can act as a workspace entry point.
@@ -25,7 +25,7 @@ pub enum WorkspaceDocumentKind {
 /// One discovered document plus the metadata gathered during workspace loading.
 #[derive(Debug)]
 pub struct WorkspaceDocument {
-    snapshot: DocumentSnapshot,
+    snapshot: crate::DocumentSnapshot,
     kind: WorkspaceDocumentKind,
     discovered_by_scan: bool,
 }
@@ -39,7 +39,7 @@ impl WorkspaceDocument {
 
     /// Returns the analyzed snapshot for the discovered document.
     #[must_use]
-    pub const fn snapshot(&self) -> &DocumentSnapshot {
+    pub const fn snapshot(&self) -> &crate::DocumentSnapshot {
         &self.snapshot
     }
 
@@ -119,7 +119,7 @@ impl ResolvedInclude {
         &self.raw_value
     }
 
-    /// Returns the normalized target text with surrounding quotes stripped.
+    /// Returns the normalized target text after string substitution.
     #[must_use]
     pub fn target_text(&self) -> &str {
         &self.target_text
@@ -247,72 +247,29 @@ impl WorkspaceLoader {
         normalized_roots.sort();
         normalized_roots.dedup();
 
-        let mut queued_documents = VecDeque::new();
-        let mut scheduled_documents = BTreeMap::<PathBuf, bool>::new();
         let mut loaded_documents = BTreeMap::<PathBuf, WorkspaceDocument>::new();
-        let mut resolved_includes = Vec::new();
-
-        for root in normalized_roots {
-            for path in scan_workspace_root(&root)? {
-                schedule_document(
-                    path,
-                    true,
-                    &mut queued_documents,
-                    &mut scheduled_documents,
-                    &mut loaded_documents,
-                );
+        for root in &normalized_roots {
+            for path in scan_workspace_root(root)? {
+                self.load_document(path, true, &mut loaded_documents)?;
             }
         }
 
-        while let Some(path) = queued_documents.pop_front() {
-            let discovered_by_scan = scheduled_documents.remove(&path).unwrap_or(false);
+        let mut processed_contexts = BTreeMap::<DocumentContextKey, ProcessedDocumentContext>::new();
+        let mut active_stack = Vec::new();
 
-            if let Some(document) = loaded_documents.get_mut(&path) {
-                if discovered_by_scan {
-                    document.mark_discovered_by_scan();
-                }
-                continue;
-            }
-
-            let source = self
-                .document_overrides
-                .get(&path)
-                .cloned()
-                .unwrap_or(fs::read_to_string(&path)?);
-            let snapshot = self.analyzer.analyze(
-                DocumentInput::new(document_id_from_path(&path), source)
-                    .with_location(path.clone()),
-            );
-            let kind = if snapshot.is_workspace_entry() {
-                WorkspaceDocumentKind::Entry
-            } else {
-                WorkspaceDocumentKind::Fragment
-            };
-
-            for resolved_include in
-                resolve_includes(snapshot.id(), &path, snapshot.include_directives())?
-            {
-                for included_path in &resolved_include.discovered_paths {
-                    schedule_document(
-                        included_path.clone(),
-                        false,
-                        &mut queued_documents,
-                        &mut scheduled_documents,
-                        &mut loaded_documents,
-                    );
-                }
-                resolved_includes.push(resolved_include.include);
-            }
-
-            loaded_documents.insert(
-                path,
-                WorkspaceDocument {
-                    snapshot,
-                    kind,
-                    discovered_by_scan,
-                },
-            );
+        for context in start_contexts(&normalized_roots, &loaded_documents) {
+            let _ = self.process_document_context(
+                context,
+                &mut loaded_documents,
+                &mut processed_contexts,
+                &mut active_stack,
+            )?;
         }
+
+        let mut resolved_includes = processed_contexts
+            .into_values()
+            .flat_map(|context| context.direct_includes)
+            .collect::<Vec<_>>();
 
         resolved_includes.sort_by(|left, right| {
             left.including_document()
@@ -328,6 +285,128 @@ impl WorkspaceLoader {
             resolved_includes,
             include_diagnostics,
         })
+    }
+
+    fn load_document(
+        &mut self,
+        path: PathBuf,
+        discovered_by_scan: bool,
+        loaded_documents: &mut BTreeMap<PathBuf, WorkspaceDocument>,
+    ) -> io::Result<()> {
+        if let Some(document) = loaded_documents.get_mut(&path) {
+            if discovered_by_scan {
+                document.mark_discovered_by_scan();
+            }
+            return Ok(());
+        }
+
+        let source = self
+            .document_overrides
+            .get(&path)
+            .cloned()
+            .unwrap_or(fs::read_to_string(&path)?);
+        let snapshot = self.analyzer.analyze(
+            DocumentInput::new(document_id_from_path(&path), source).with_location(path.clone()),
+        );
+        let kind = if snapshot.is_workspace_entry() {
+            WorkspaceDocumentKind::Entry
+        } else {
+            WorkspaceDocumentKind::Fragment
+        };
+
+        loaded_documents.insert(
+            path,
+            WorkspaceDocument {
+                snapshot,
+                kind,
+                discovered_by_scan,
+            },
+        );
+        Ok(())
+    }
+
+    fn process_document_context(
+        &mut self,
+        context: DocumentContext,
+        loaded_documents: &mut BTreeMap<PathBuf, WorkspaceDocument>,
+        processed_contexts: &mut BTreeMap<DocumentContextKey, ProcessedDocumentContext>,
+        active_stack: &mut Vec<PathBuf>,
+    ) -> io::Result<ConstantEnvironment> {
+        if let Some(processed_context) = processed_contexts.get(&context.key) {
+            return Ok(processed_context.exported_constants.clone());
+        }
+
+        self.load_document(context.path.clone(), false, loaded_documents)?;
+
+        let (document_id, constant_definitions, include_directives) = {
+            let document = loaded_documents
+                .get(&context.path)
+                .expect("document context should be loaded before processing");
+
+            (
+                document.id().clone(),
+                document.snapshot().constant_definitions().to_vec(),
+                document.snapshot().include_directives().to_vec(),
+            )
+        };
+
+        active_stack.push(context.path.clone());
+        let processed = (|| -> io::Result<ProcessedDocumentContext> {
+            let mut current_constants = context.inherited_constants.clone();
+            let mut direct_includes = Vec::new();
+
+            // Process constants and includes in source order so inherited values,
+            // local definitions, and included fragments all obey the DSL's
+            // imperative execution model.
+            for event in document_directive_events(&constant_definitions, &include_directives) {
+                match event {
+                    DocumentDirectiveEvent::Constant(constant) => {
+                        apply_constant_definition(constant, &mut current_constants);
+                    }
+                    DocumentDirectiveEvent::Include(directive) => {
+                        let resolved_include = resolve_include(
+                            &document_id,
+                            &context.path,
+                            directive,
+                            &current_constants,
+                        )?;
+
+                        for included_path in &resolved_include.discovered_paths {
+                            self.load_document(included_path.clone(), false, loaded_documents)?;
+                        }
+
+                        for included_path in &resolved_include.discovered_paths {
+                            if active_stack.contains(included_path) {
+                                continue;
+                            }
+
+                            let child_context =
+                                DocumentContext::new(included_path.clone(), current_constants.clone());
+                            current_constants = self.process_document_context(
+                                child_context,
+                                loaded_documents,
+                                processed_contexts,
+                                active_stack,
+                            )?;
+                        }
+
+                        direct_includes.push(resolved_include.include);
+                    }
+                }
+            }
+
+            Ok(ProcessedDocumentContext {
+                exported_constants: current_constants,
+                direct_includes,
+            })
+        })();
+        let popped_path = active_stack.pop();
+        debug_assert_eq!(popped_path.as_deref(), Some(context.path.as_path()));
+
+        let processed = processed?;
+        let exported_constants = processed.exported_constants.clone();
+        processed_contexts.insert(context.key, processed);
+        Ok(exported_constants)
     }
 }
 
@@ -351,27 +430,164 @@ struct ResolvedIncludeWork {
     discovered_paths: Vec<PathBuf>,
 }
 
-fn schedule_document(
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+struct ConstantEnvironment {
+    bindings: BTreeMap<String, String>,
+}
+
+impl ConstantEnvironment {
+    fn insert(&mut self, name: String, value: String) {
+        self.bindings.insert(name, value);
+    }
+
+    fn get(&self, name: &str) -> Option<&str> {
+        self.bindings.get(name).map(String::as_str)
+    }
+
+    fn context_key_entries(&self) -> Vec<(String, String)> {
+        self.bindings
+            .iter()
+            .map(|(name, value)| (name.clone(), value.clone()))
+            .collect()
+    }
+}
+
+#[derive(Debug, Clone)]
+struct DocumentContext {
+    key: DocumentContextKey,
     path: PathBuf,
-    discovered_by_scan: bool,
-    queued_documents: &mut VecDeque<PathBuf>,
-    scheduled_documents: &mut BTreeMap<PathBuf, bool>,
-    loaded_documents: &mut BTreeMap<PathBuf, WorkspaceDocument>,
-) {
-    if let Some(document) = loaded_documents.get_mut(&path) {
-        if discovered_by_scan {
-            document.mark_discovered_by_scan();
+    inherited_constants: ConstantEnvironment,
+}
+
+impl DocumentContext {
+    fn new(path: PathBuf, inherited_constants: ConstantEnvironment) -> Self {
+        let key = DocumentContextKey {
+            path: path.clone(),
+            inherited_constants: inherited_constants.context_key_entries(),
+        };
+
+        Self {
+            key,
+            path,
+            inherited_constants,
         }
-        return;
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct DocumentContextKey {
+    path: PathBuf,
+    inherited_constants: Vec<(String, String)>,
+}
+
+#[derive(Debug)]
+struct ProcessedDocumentContext {
+    exported_constants: ConstantEnvironment,
+    direct_includes: Vec<ResolvedInclude>,
+}
+
+enum DocumentDirectiveEvent<'a> {
+    Constant(&'a ConstantDefinition),
+    Include(&'a IncludeDirective),
+}
+
+impl DocumentDirectiveEvent<'_> {
+    const fn sort_rank(&self) -> usize {
+        match self {
+            Self::Constant(_) => 0,
+            Self::Include(_) => 1,
+        }
     }
 
-    if let Some(existing_discovered_by_scan) = scheduled_documents.get_mut(&path) {
-        *existing_discovered_by_scan |= discovered_by_scan;
-        return;
+    const fn start_byte(&self) -> usize {
+        match self {
+            Self::Constant(constant) => constant.span.start_byte,
+            Self::Include(include) => include.span.start_byte,
+        }
+    }
+}
+
+fn start_contexts(
+    normalized_roots: &[PathBuf],
+    loaded_documents: &BTreeMap<PathBuf, WorkspaceDocument>,
+) -> Vec<DocumentContext> {
+    let mut contexts = Vec::new();
+    let mut seen = BTreeSet::new();
+
+    for root in normalized_roots {
+        for path in start_paths_for_root(root, loaded_documents) {
+            let context = DocumentContext::new(path, ConstantEnvironment::default());
+            if seen.insert(context.key.clone()) {
+                contexts.push(context);
+            }
+        }
     }
 
-    scheduled_documents.insert(path.clone(), discovered_by_scan);
-    queued_documents.push_back(path);
+    contexts.sort_by(|left, right| left.key.cmp(&right.key));
+    contexts
+}
+
+fn start_paths_for_root(
+    root: &Path,
+    loaded_documents: &BTreeMap<PathBuf, WorkspaceDocument>,
+) -> Vec<PathBuf> {
+    if root.is_file() {
+        return vec![root.to_path_buf()];
+    }
+
+    let mut paths = documents_under_root(root, loaded_documents, |document| {
+        document.kind() == WorkspaceDocumentKind::Entry
+    });
+    if paths.is_empty() {
+        paths = documents_under_root(root, loaded_documents, |_| true);
+    }
+    paths
+}
+
+fn documents_under_root<F>(
+    root: &Path,
+    loaded_documents: &BTreeMap<PathBuf, WorkspaceDocument>,
+    predicate: F,
+) -> Vec<PathBuf>
+where
+    F: Fn(&WorkspaceDocument) -> bool,
+{
+    let mut paths = loaded_documents
+        .iter()
+        .filter_map(|(path, document)| {
+            (path.starts_with(root) && predicate(document)).then_some(path.clone())
+        })
+        .collect::<Vec<_>>();
+
+    paths.sort();
+    paths.dedup();
+    paths
+}
+
+fn document_directive_events<'a>(
+    constant_definitions: &'a [ConstantDefinition],
+    include_directives: &'a [IncludeDirective],
+) -> Vec<DocumentDirectiveEvent<'a>> {
+    let mut events = constant_definitions
+        .iter()
+        .map(DocumentDirectiveEvent::Constant)
+        .chain(include_directives.iter().map(DocumentDirectiveEvent::Include))
+        .collect::<Vec<_>>();
+
+    events.sort_by(|left, right| {
+        left.start_byte()
+            .cmp(&right.start_byte())
+            .then_with(|| left.sort_rank().cmp(&right.sort_rank()))
+    });
+    events
+}
+
+fn apply_constant_definition(
+    constant: &ConstantDefinition,
+    current_constants: &mut ConstantEnvironment,
+) {
+    let expanded_value = expand_string_substitutions(&constant.value, current_constants);
+    current_constants.insert(constant.name.clone(), expanded_value);
 }
 
 fn normalize_existing_path(path: &Path) -> io::Result<PathBuf> {
@@ -391,9 +607,7 @@ fn scan_workspace_root(root: &Path) -> io::Result<Vec<PathBuf>> {
     for entry in builder.build() {
         let entry = entry.map_err(io::Error::other)?;
         let entry_path = entry.path();
-        let is_file = entry
-            .file_type()
-            .is_some_and(|file_type| file_type.is_file());
+        let is_file = entry.file_type().is_some_and(|file_type| file_type.is_file());
 
         if is_file && has_dsl_extension(entry_path) {
             paths.push(normalize_existing_path(entry_path)?);
@@ -415,23 +629,14 @@ fn document_id_from_path(path: &Path) -> DocumentId {
     DocumentId::new(path.to_string_lossy().into_owned())
 }
 
-fn resolve_includes(
-    including_document: &DocumentId,
-    including_document_path: &Path,
-    directives: &[IncludeDirective],
-) -> io::Result<Vec<ResolvedIncludeWork>> {
-    directives
-        .iter()
-        .map(|directive| resolve_include(including_document, including_document_path, directive))
-        .collect()
-}
-
 fn resolve_include(
     including_document: &DocumentId,
     including_document_path: &Path,
     directive: &IncludeDirective,
+    constants: &ConstantEnvironment,
 ) -> io::Result<ResolvedIncludeWork> {
-    let target_text = normalized_include_value(directive);
+    let target_text =
+        expand_string_substitutions(&normalized_include_value(directive), constants);
     let base_include = |target: WorkspaceIncludeTarget, discovered_paths: Vec<PathBuf>| {
         let discovered_documents = discovered_paths
             .iter()
@@ -473,9 +678,7 @@ fn resolve_include(
 
     if !is_supported_local_include_path(&relative_target) {
         return Ok(base_include(
-            WorkspaceIncludeTarget::UnsupportedLocalPath {
-                path: joined_target,
-            },
+            WorkspaceIncludeTarget::UnsupportedLocalPath { path: joined_target },
             Vec::new(),
         ));
     }
@@ -523,15 +726,11 @@ fn resolve_include(
             ))
         }
         Ok(_) => Ok(base_include(
-            WorkspaceIncludeTarget::UnsupportedLocalPath {
-                path: joined_target,
-            },
+            WorkspaceIncludeTarget::UnsupportedLocalPath { path: joined_target },
             Vec::new(),
         )),
         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(base_include(
-            WorkspaceIncludeTarget::MissingLocalPath {
-                path: joined_target,
-            },
+            WorkspaceIncludeTarget::MissingLocalPath { path: joined_target },
             Vec::new(),
         )),
         Err(error) => Err(error),
@@ -539,22 +738,45 @@ fn resolve_include(
 }
 
 fn normalized_include_value(directive: &IncludeDirective) -> String {
-    match directive.value_kind {
-        DirectiveValueKind::String => strip_wrapping(&directive.raw_value, "\"", "\"").to_owned(),
-        DirectiveValueKind::TextBlockString => {
-            strip_wrapping(&directive.raw_value, "\"\"\"", "\"\"\"").to_owned()
-        }
-        DirectiveValueKind::BareValue
-        | DirectiveValueKind::Identifier
-        | DirectiveValueKind::Other(_) => directive.raw_value.clone(),
-    }
+    normalized_directive_value(&directive.raw_value, &directive.value_kind)
 }
 
-fn strip_wrapping<'a>(value: &'a str, prefix: &str, suffix: &str) -> &'a str {
-    value
-        .strip_prefix(prefix)
-        .and_then(|stripped| stripped.strip_suffix(suffix))
-        .unwrap_or(value)
+fn expand_string_substitutions(value: &str, constants: &ConstantEnvironment) -> String {
+    let mut expanded = String::with_capacity(value.len());
+    let mut remaining = value;
+
+    while let Some(marker_start) = remaining.find("${") {
+        expanded.push_str(&remaining[..marker_start]);
+
+        let placeholder = &remaining[marker_start..];
+        let Some(placeholder_end) = placeholder.find('}') else {
+            expanded.push_str(placeholder);
+            return expanded;
+        };
+
+        let name = &placeholder[2..placeholder_end];
+        if is_supported_substitution_name(name) {
+            if let Some(replacement) = constants.get(name) {
+                expanded.push_str(replacement);
+            } else {
+                expanded.push_str(&placeholder[..=placeholder_end]);
+            }
+        } else {
+            expanded.push_str(&placeholder[..=placeholder_end]);
+        }
+
+        remaining = &placeholder[placeholder_end + 1..];
+    }
+
+    expanded.push_str(remaining);
+    expanded
+}
+
+fn is_supported_substitution_name(name: &str) -> bool {
+    !name.is_empty()
+        && name
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || "-_.".contains(character))
 }
 
 fn is_remote_include(target_text: &str) -> bool {
@@ -588,9 +810,7 @@ fn collect_directory_include_paths(
     for entry in builder.build() {
         let entry = entry.map_err(io::Error::other)?;
         let entry_path = entry.path();
-        let is_file = entry
-            .file_type()
-            .is_some_and(|file_type| file_type.is_file());
+        let is_file = entry.file_type().is_some_and(|file_type| file_type.is_file());
 
         if !is_file {
             continue;

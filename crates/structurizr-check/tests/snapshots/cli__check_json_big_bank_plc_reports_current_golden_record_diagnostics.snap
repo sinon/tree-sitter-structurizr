@@ -8,37 +8,17 @@ info:
     - check
     - tests/lsp/workspaces/big-bank-plc
 ---
-success: false
-exit_code: 1
+success: true
+exit_code: 0
 ----- stdout -----
 {
   "summary": {
     "documents_checked": 6,
-    "diagnostics": 1,
-    "errors": 1,
+    "diagnostics": 0,
+    "errors": 0,
     "warnings": 0
   },
-  "diagnostics": [
-    {
-      "path": "tests/lsp/workspaces/big-bank-plc/model/people-and-software-systems.dsl",
-      "severity": "error",
-      "code": "include.missing-local-target",
-      "source": "include",
-      "message": "included path does not exist: internet-banking-system/${INTERNET_BANKING_SYSTEM_INCLUDE}",
-      "span": {
-        "start_byte": 880,
-        "end_byte": 949,
-        "start": {
-          "line": 12,
-          "column": 9
-        },
-        "end": {
-          "line": 12,
-          "column": 78
-        }
-      }
-    }
-  ]
+  "diagnostics": []
 }
 
 ----- stderr -----

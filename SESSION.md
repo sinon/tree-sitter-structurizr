@@ -4,6 +4,4 @@
 - The bounded analysis extractor currently records only the first identifier in a multi-value view `include` statement.
 - The current `tower-lsp-server` fork uses `ls-types` rather than a directly interoperable `lsp-types` surface, so the LSP crate should standardize on `tower_lsp_server::ls_types` unless a deliberate conversion layer is introduced.
 - The LSP's new include-diagnostic path currently recomputes workspace discovery for all open-buffer updates; that is acceptable for the bounded MVP, but future workspace indexing should replace it with cached invalidation rather than whole-workspace reloads.
-- Included Structurizr fragments are currently analyzed as standalone documents during workspace loading, which produces large false-positive `syntax.error-node` clusters on real multi-file workspaces like `tests/lsp/workspaces/big-bank-plc`.
-- The grammar currently reports syntax errors for `!include` directives inside `styles` blocks, so style fragment includes in realistic workspaces are not extracted or followed.
-- Workspace include resolution currently treats `${CONST}` path segments in `!include` targets as literal text, which produces false `include.missing-local-target` diagnostics on constant-driven include paths.
+- Workspace include resolution now expands inherited `!const`/`!constant` values in `!include` targets, but it still does not substitute environment variables documented by the DSL.

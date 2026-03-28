@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use tree_sitter::Tree;
 
+use crate::constants::ConstantDefinition;
 use crate::diagnostics::SyntaxDiagnostic;
 use crate::includes::IncludeDirective;
 use crate::symbols::{IdentifierModeFact, Reference, Symbol};
@@ -132,6 +133,7 @@ pub struct DocumentSnapshot {
     tree: Tree,
     syntax_diagnostics: Vec<SyntaxDiagnostic>,
     include_directives: Vec<IncludeDirective>,
+    constant_definitions: Vec<ConstantDefinition>,
     identifier_modes: Vec<IdentifierModeFact>,
     symbols: Vec<Symbol>,
     references: Vec<Reference>,
@@ -146,6 +148,7 @@ impl DocumentSnapshot {
         tree: Tree,
         syntax_diagnostics: Vec<SyntaxDiagnostic>,
         include_directives: Vec<IncludeDirective>,
+        constant_definitions: Vec<ConstantDefinition>,
         identifier_modes: Vec<IdentifierModeFact>,
         symbols: Vec<Symbol>,
         references: Vec<Reference>,
@@ -157,6 +160,7 @@ impl DocumentSnapshot {
             tree,
             syntax_diagnostics,
             include_directives,
+            constant_definitions,
             identifier_modes,
             symbols,
             references,
@@ -213,6 +217,12 @@ impl DocumentSnapshot {
     /// Returns all raw `!include` directives found in the document.
     pub fn include_directives(&self) -> &[IncludeDirective] {
         &self.include_directives
+    }
+
+    #[must_use]
+    /// Returns all ordered string-constant definitions extracted from the document.
+    pub fn constant_definitions(&self) -> &[ConstantDefinition] {
+        &self.constant_definitions
     }
 
     #[must_use]

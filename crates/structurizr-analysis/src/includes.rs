@@ -29,6 +29,28 @@ impl DirectiveValueKind {
     }
 }
 
+pub fn normalized_directive_value(
+    raw_value: &str,
+    value_kind: &DirectiveValueKind,
+) -> String {
+    match value_kind {
+        DirectiveValueKind::String => strip_wrapping(raw_value, "\"", "\"").to_owned(),
+        DirectiveValueKind::TextBlockString => {
+            strip_wrapping(raw_value, "\"\"\"", "\"\"\"").to_owned()
+        }
+        DirectiveValueKind::BareValue
+        | DirectiveValueKind::Identifier
+        | DirectiveValueKind::Other(_) => raw_value.to_owned(),
+    }
+}
+
+fn strip_wrapping<'a>(value: &'a str, prefix: &str, suffix: &str) -> &'a str {
+    value
+        .strip_prefix(prefix)
+        .and_then(|stripped| stripped.strip_suffix(suffix))
+        .unwrap_or(value)
+}
+
 /// Records the syntactic block that directly contains a directive.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DirectiveContainer {
