@@ -23,11 +23,9 @@ fn collect_from_node(node: Node<'_>, source: &str, directives: &mut Vec<IncludeD
             container: directive_container(node),
         });
     }
-    // TODO: Can we rework this to use an iterator and avoid the expect (that should always succeed)
-    for index in 0..node.child_count() {
-        if let Some(child) = node.child(index.try_into().expect("child index should fit in u32")) {
-            collect_from_node(child, source, directives);
-        }
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_from_node(child, source, directives);
     }
 }
 

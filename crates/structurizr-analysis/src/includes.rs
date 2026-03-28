@@ -29,10 +29,7 @@ impl DirectiveValueKind {
     }
 }
 
-pub fn normalized_directive_value(
-    raw_value: &str,
-    value_kind: &DirectiveValueKind,
-) -> String {
+pub fn normalized_directive_value(raw_value: &str, value_kind: &DirectiveValueKind) -> String {
     match value_kind {
         DirectiveValueKind::String => strip_wrapping(raw_value, "\"", "\"").to_owned(),
         DirectiveValueKind::TextBlockString => {

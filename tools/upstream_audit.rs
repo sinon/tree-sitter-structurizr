@@ -5,6 +5,7 @@
 edition = "2021"
 
 [dependencies]
+anyhow = "1.0"
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
 serde = { version = "1.0", features = ["derive"] }
 tree-sitter = "0.26.7"
@@ -16,6 +17,7 @@ tree-sitter-structurizr = { path = ".." }
 use std::collections::BTreeMap;
 use std::env;
 
+use anyhow::{Context, Result};
 use serde::Deserialize;
 use tree_sitter::{Node, Parser, Point, Tree};
 
@@ -47,20 +49,20 @@ struct FileFailure {
     issues: Vec<ParseIssue>,
 }
 
-fn main() {
+fn main() -> Result<()> {
     let client = reqwest::blocking::Client::builder()
         .user_agent("tree-sitter-structurizr-upstream-audit")
         .build()
-        .expect("failed to build HTTP client");
+        .context("while attempting to build the GitHub API client")?;
 
     let mut entries: Vec<GitHubContent> = client
         .get(UPSTREAM_DSL_LISTING_URL)
         .send()
-        .expect("failed to fetch upstream DSL listing")
+        .context("while attempting to fetch the upstream DSL listing")?
         .error_for_status()
-        .expect("upstream DSL listing request failed")
+        .context("while attempting to validate the upstream DSL listing response")?
         .json()
-        .expect("failed to decode upstream DSL listing");
+        .context("while attempting to decode the upstream DSL listing response")?;
 
     entries.retain(|entry| entry.r#type == "file" && entry.name.ends_with(".dsl"));
     entries.sort_by(|a, b| a.path.cmp(&b.path));
@@ -87,16 +89,20 @@ fn main() {
     let mut breakdown = BTreeMap::<String, usize>::new();
 
     for entry in entries {
+        let download_url = entry.download_url.as_deref().with_context(|| {
+            format!("while attempting to read the download URL for `{}`", entry.path)
+        })?;
         let source = client
-            .get(entry.download_url.as_deref().expect("missing download_url"))
+            .get(download_url)
             .send()
-            .unwrap_or_else(|error| panic!("failed to download `{}`: {error}", entry.path))
+            .with_context(|| format!("while attempting to download `{}`", entry.path))?
             .error_for_status()
-            .unwrap_or_else(|error| panic!("download failed for `{}`: {error}", entry.path))
+            .with_context(|| format!("while attempting to validate the response for `{}`", entry.path))?
             .text()
-            .unwrap_or_else(|error| panic!("failed to read `{}`: {error}", entry.path));
+            .with_context(|| format!("while attempting to read the response body for `{}`", entry.path))?;
 
-        let tree = parse(&source);
+        let tree =
+            parse(&source).with_context(|| format!("while attempting to parse `{}`", entry.path))?;
         let issues = collect_parse_issues(&tree, &source);
 
         if issues.is_empty() {
@@ -175,16 +181,18 @@ fn main() {
         "upstream audit found {} failing DSL files",
         failures.len()
     );
+
+    Ok(())
 }
 
-fn parse(source: &str) -> Tree {
+fn parse(source: &str) -> Result<Tree> {
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_structurizr::LANGUAGE.into())
-        .expect("Error loading Structurizr parser");
+        .context("while attempting to load the Structurizr grammar")?;
     parser
         .parse(source, None)
-        .expect("Parser returned no tree")
+        .context("while attempting to build a parse tree")
 }
 
 fn collect_parse_issues(tree: &Tree, source: &str) -> Vec<ParseIssue> {
@@ -215,6 +223,8 @@ fn issue_text(node: Node, source: &str) -> String {
     let raw = if node.start_byte() < node.end_byte() {
         node.utf8_text(bytes).unwrap_or("")
     } else {
+        // Missing nodes can have zero width, so fall back to nearby source
+        // instead of reporting an empty issue snippet.
         context_excerpt(source, node.start_byte())
     };
 

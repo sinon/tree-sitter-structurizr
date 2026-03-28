@@ -5,3 +5,5 @@
 - The current `tower-lsp-server` fork uses `ls-types` rather than a directly interoperable `lsp-types` surface, so the LSP crate should standardize on `tower_lsp_server::ls_types` unless a deliberate conversion layer is introduced.
 - The LSP's new include-diagnostic path currently recomputes workspace discovery for all open-buffer updates; that is acceptable for the bounded MVP, but future workspace indexing should replace it with cached invalidation rather than whole-workspace reloads.
 - Workspace include resolution now expands inherited `!const`/`!constant` values in `!include` targets, but it still does not substitute environment variables documented by the DSL.
+- `tools/upstream_audit.rs` currently slices excerpt strings by raw byte windows around parse issues, which can still panic if an excerpt boundary lands inside a multibyte UTF-8 codepoint.
+- The LSP's workspace recomputation path currently drops `WorkspaceLoader` errors with `.ok()`, so filesystem failures silently suppress include diagnostics instead of surfacing actionable feedback.

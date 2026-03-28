@@ -23,10 +23,8 @@ fn collect_from_node(node: Node<'_>, diagnostics: &mut Vec<SyntaxDiagnostic>) {
         )));
     }
 
-    // TODO: Prefer iterator if possible
-    for index in 0..node.child_count() {
-        if let Some(child) = node.child(index.try_into().expect("child index should fit in u32")) {
-            collect_from_node(child, diagnostics);
-        }
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_from_node(child, diagnostics);
     }
 }

@@ -58,10 +58,10 @@ fn parse(source: &str) -> Tree {
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_structurizr::LANGUAGE.into())
-        .expect("Error loading Structurizr parser");
+        .expect("Structurizr language should load");
     parser
         .parse(source, None)
-        .expect("Parser returned no tree for fixture")
+        .expect("fixture source should produce a tree")
 }
 
 fn assert_no_errors(label: &str, tree: &Tree, source: &str) {

@@ -240,6 +240,8 @@ impl WorkspaceLoader {
         I: IntoIterator<Item = P>,
         P: AsRef<Path>,
     {
+        // Phase 1: Normalize and scan the requested roots so broad workspace
+        // discovery respects ignore rules before include traversal begins.
         let mut normalized_roots = roots
             .into_iter()
             .map(|root| normalize_existing_path(root.as_ref()))
@@ -254,7 +256,11 @@ impl WorkspaceLoader {
             }
         }
 
-        let mut processed_contexts = BTreeMap::<DocumentContextKey, ProcessedDocumentContext>::new();
+        // Phase 2: Re-process the discovered documents in directive order so
+        // constants, includes, and cycle detection follow the DSL's imperative
+        // execution model.
+        let mut processed_contexts =
+            BTreeMap::<DocumentContextKey, ProcessedDocumentContext>::new();
         let mut active_stack = Vec::new();
 
         for context in start_contexts(&normalized_roots, &loaded_documents) {
@@ -266,6 +272,8 @@ impl WorkspaceLoader {
             )?;
         }
 
+        // Phase 3: Flatten the per-document include results into one stable
+        // view for downstream diagnostics and editor features.
         let mut resolved_includes = processed_contexts
             .into_values()
             .flat_map(|context| context.direct_includes)
@@ -300,11 +308,14 @@ impl WorkspaceLoader {
             return Ok(());
         }
 
-        let source = self
-            .document_overrides
-            .get(&path)
-            .cloned()
-            .unwrap_or(fs::read_to_string(&path)?);
+        // Prefer unsaved editor text when one has been registered for this
+        // document, and only hit the filesystem when discovery has no override.
+        // This keeps workspace discovery aligned with live editor buffers.
+        let source = if let Some(source) = self.document_overrides.get(&path).cloned() {
+            source
+        } else {
+            fs::read_to_string(&path)?
+        };
         let snapshot = self.analyzer.analyze(
             DocumentInput::new(document_id_from_path(&path), source).with_location(path.clone()),
         );
@@ -332,6 +343,8 @@ impl WorkspaceLoader {
         processed_contexts: &mut BTreeMap<DocumentContextKey, ProcessedDocumentContext>,
         active_stack: &mut Vec<PathBuf>,
     ) -> io::Result<ConstantEnvironment> {
+        // Memoize by `(path, inherited constants)` so repeated includes can
+        // share the same processed result without rewalking the document.
         if let Some(processed_context) = processed_contexts.get(&context.key) {
             return Ok(processed_context.exported_constants.clone());
         }
@@ -341,7 +354,7 @@ impl WorkspaceLoader {
         let (document_id, constant_definitions, include_directives) = {
             let document = loaded_documents
                 .get(&context.path)
-                .expect("document context should be loaded before processing");
+                .expect("BUG: document context should be loaded before processing");
 
             (
                 document.id().clone(),
@@ -380,8 +393,10 @@ impl WorkspaceLoader {
                                 continue;
                             }
 
-                            let child_context =
-                                DocumentContext::new(included_path.clone(), current_constants.clone());
+                            let child_context = DocumentContext::new(
+                                included_path.clone(),
+                                current_constants.clone(),
+                            );
                             current_constants = self.process_document_context(
                                 child_context,
                                 loaded_documents,
@@ -411,6 +426,8 @@ impl WorkspaceLoader {
 }
 
 /// Convenience helper for scanning workspace roots with a fresh loader.
+///
+/// Equivalent to `WorkspaceLoader::new().load_paths(roots)`.
 ///
 /// # Errors
 ///
@@ -571,7 +588,11 @@ fn document_directive_events<'a>(
     let mut events = constant_definitions
         .iter()
         .map(DocumentDirectiveEvent::Constant)
-        .chain(include_directives.iter().map(DocumentDirectiveEvent::Include))
+        .chain(
+            include_directives
+                .iter()
+                .map(DocumentDirectiveEvent::Include),
+        )
         .collect::<Vec<_>>();
 
     events.sort_by(|left, right| {
@@ -607,7 +628,9 @@ fn scan_workspace_root(root: &Path) -> io::Result<Vec<PathBuf>> {
     for entry in builder.build() {
         let entry = entry.map_err(io::Error::other)?;
         let entry_path = entry.path();
-        let is_file = entry.file_type().is_some_and(|file_type| file_type.is_file());
+        let is_file = entry
+            .file_type()
+            .is_some_and(|file_type| file_type.is_file());
 
         if is_file && has_dsl_extension(entry_path) {
             paths.push(normalize_existing_path(entry_path)?);
@@ -635,8 +658,7 @@ fn resolve_include(
     directive: &IncludeDirective,
     constants: &ConstantEnvironment,
 ) -> io::Result<ResolvedIncludeWork> {
-    let target_text =
-        expand_string_substitutions(&normalized_include_value(directive), constants);
+    let target_text = expand_string_substitutions(&normalized_include_value(directive), constants);
     let base_include = |target: WorkspaceIncludeTarget, discovered_paths: Vec<PathBuf>| {
         let discovered_documents = discovered_paths
             .iter()
@@ -678,7 +700,9 @@ fn resolve_include(
 
     if !is_supported_local_include_path(&relative_target) {
         return Ok(base_include(
-            WorkspaceIncludeTarget::UnsupportedLocalPath { path: joined_target },
+            WorkspaceIncludeTarget::UnsupportedLocalPath {
+                path: joined_target,
+            },
             Vec::new(),
         ));
     }
@@ -726,11 +750,15 @@ fn resolve_include(
             ))
         }
         Ok(_) => Ok(base_include(
-            WorkspaceIncludeTarget::UnsupportedLocalPath { path: joined_target },
+            WorkspaceIncludeTarget::UnsupportedLocalPath {
+                path: joined_target,
+            },
             Vec::new(),
         )),
         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(base_include(
-            WorkspaceIncludeTarget::MissingLocalPath { path: joined_target },
+            WorkspaceIncludeTarget::MissingLocalPath {
+                path: joined_target,
+            },
             Vec::new(),
         )),
         Err(error) => Err(error),
@@ -810,7 +838,9 @@ fn collect_directory_include_paths(
     for entry in builder.build() {
         let entry = entry.map_err(io::Error::other)?;
         let entry_path = entry.path();
-        let is_file = entry.file_type().is_some_and(|file_type| file_type.is_file());
+        let is_file = entry
+            .file_type()
+            .is_some_and(|file_type| file_type.is_file());
 
         if !is_file {
             continue;

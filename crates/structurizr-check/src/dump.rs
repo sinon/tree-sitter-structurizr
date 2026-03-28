@@ -25,7 +25,8 @@ pub fn run(arguments: &DumpArgs) -> Result<DumpOutput> {
 }
 
 fn dump_document(path: &std::path::Path) -> Result<DumpOutput> {
-    let cwd = current_working_directory()?;
+    let cwd = current_working_directory()
+        .context("while attempting to determine the CLI display root")?;
     let canonical_path = fs::canonicalize(path)
         .with_context(|| format!("while attempting to resolve {}", path.display()))?;
     let source = fs::read_to_string(&canonical_path)
@@ -104,7 +105,8 @@ fn dump_document(path: &std::path::Path) -> Result<DumpOutput> {
 }
 
 fn dump_workspace(roots: &[std::path::PathBuf]) -> Result<DumpOutput> {
-    let cwd = current_working_directory()?;
+    let cwd = current_working_directory()
+        .context("while attempting to determine the CLI display root")?;
     let display_roots = roots
         .iter()
         .map(|root| root.display().to_string())

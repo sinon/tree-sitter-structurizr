@@ -20,7 +20,8 @@ pub struct CheckExecution {
 
 /// Runs the `check` command against one or more files or directories.
 pub fn run(arguments: &CheckArgs) -> Result<CheckExecution> {
-    let cwd = current_working_directory()?;
+    let cwd = current_working_directory()
+        .context("while attempting to determine the CLI display root")?;
     let roots = arguments.roots();
 
     let mut loader = WorkspaceLoader::new();

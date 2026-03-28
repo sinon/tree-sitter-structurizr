@@ -1,7 +1,14 @@
 //! Shared same-document navigation helpers for the bounded first LSP slice.
+//!
+//! These helpers intentionally stay within one analyzed snapshot. Cross-file
+//! resolution can layer on top later without complicating the bounded MVP.
 
 use structurizr_analysis::{DocumentSnapshot, Reference, ReferenceTargetHint, Symbol, SymbolKind};
 
+/// Finds the declaration or reference target at one byte offset.
+///
+/// Returns the referenced declaration when the offset lands on a reference, or
+/// the directly bound declaration when the offset lands on a symbol site.
 pub fn target_symbol_at_offset(snapshot: &DocumentSnapshot, offset: usize) -> Option<&Symbol> {
     reference_at_offset(snapshot, offset).map_or_else(
         || bindable_symbol_at_offset(snapshot, offset),
@@ -9,6 +16,8 @@ pub fn target_symbol_at_offset(snapshot: &DocumentSnapshot, offset: usize) -> Op
     )
 }
 
+/// Collects all same-document references that resolve to one symbol.
+#[must_use]
 pub fn references_for_symbol<'a>(
     snapshot: &'a DocumentSnapshot,
     symbol: &Symbol,
@@ -42,6 +51,8 @@ fn resolve_reference<'a>(
     snapshot: &'a DocumentSnapshot,
     reference: &Reference,
 ) -> Option<&'a Symbol> {
+    // Prefer returning no result over guessing between multiple candidates. The
+    // bounded MVP stays conservative until cross-file resolution is in place.
     let candidates: Vec<&Symbol> = snapshot
         .symbols()
         .iter()

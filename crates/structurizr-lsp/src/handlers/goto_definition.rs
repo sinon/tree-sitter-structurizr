@@ -9,6 +9,10 @@ use crate::{
 
 /// Handles `textDocument/definition` within the current open document set.
 ///
+/// This bounded MVP resolves definitions only within the current analyzed
+/// document. Missing targets are reported as `Ok(None)` instead of JSON-RPC
+/// errors so the handler behaves like a normal LSP query with no result.
+///
 /// # Errors
 ///
 /// This handler currently does not emit JSON-RPC errors. Missing targets are

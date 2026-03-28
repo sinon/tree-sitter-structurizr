@@ -57,6 +57,12 @@ impl DocumentAnalyzer {
         )
     }
 
+    /// Parses source text into a syntax tree for one analysis run.
+    ///
+    /// # Panics
+    ///
+    /// Panics if Tree-sitter fails to produce a tree, which would indicate a
+    /// parser invariant violation rather than invalid user input.
     fn parse(&mut self, source: &str) -> Tree {
         self.parser
             .parse(source, None)
