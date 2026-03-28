@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use proptest::prelude::any;
 use proptest::strategy::{Just, Strategy};
+use proptest::string::string_regex;
 use proptest::test_runner::{Config, TestCaseError};
 use structurizr_analysis::{
     IncludeDiagnosticKind, WorkspaceDocumentKind, WorkspaceFacts, WorkspaceIncludeTarget,
@@ -17,12 +18,15 @@ enum IncludeScenario {
     MissingLocal,
     Remote,
     Cycle,
+    InheritedConstant,
+    LateConstant,
 }
 
 #[derive(Debug, Clone)]
 struct GeneratedWorkspaceGraph {
     scenario: IncludeScenario,
     include_unrelated_neighbor: bool,
+    detail_file_name: String,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -158,6 +162,8 @@ fn include_scenario() -> impl Strategy<Value = IncludeScenario> {
         Just(IncludeScenario::MissingLocal),
         Just(IncludeScenario::Remote),
         Just(IncludeScenario::Cycle),
+        Just(IncludeScenario::InheritedConstant),
+        Just(IncludeScenario::LateConstant),
     ]
 }
 
@@ -169,12 +175,19 @@ fn local_root_order_scenario() -> impl Strategy<Value = IncludeScenario> {
 }
 
 fn generated_workspace_graph() -> impl Strategy<Value = GeneratedWorkspaceGraph> {
-    (include_scenario(), any::<bool>()).prop_map(|(scenario, include_unrelated_neighbor)| {
-        GeneratedWorkspaceGraph {
+    (include_scenario(), any::<bool>(), detail_file_name()).prop_map(
+        |(scenario, include_unrelated_neighbor, detail_file_name)| GeneratedWorkspaceGraph {
             scenario,
             include_unrelated_neighbor,
-        }
-    })
+            detail_file_name,
+        },
+    )
+}
+
+fn detail_file_name() -> impl Strategy<Value = String> {
+    string_regex("[a-z][a-z0-9_]{0,10}")
+        .expect("detail-file regex should compile")
+        .prop_map(|stem| format!("{stem}-details.dsl"))
 }
 
 fn materialize_workspace(model: &GeneratedWorkspaceGraph) -> MaterializedWorkspace {
@@ -186,41 +199,15 @@ fn materialize_workspace(model: &GeneratedWorkspaceGraph) -> MaterializedWorkspa
     let workspace_path = root_path.join("workspace.dsl");
 
     match model.scenario {
-        IncludeScenario::LocalModel => {
-            write_file(
-                &workspace_path,
-                "workspace {\n    !include \"model.dsl\"\n}\n",
-            );
-            write_file(
-                &root_path.join("model.dsl"),
-                "model {\n    user = person \"User\"\n    system = softwareSystem \"System\"\n    user -> system \"Uses\"\n}\n",
-            );
+        IncludeScenario::LocalModel => materialize_local_model(&root_path, &workspace_path),
+        IncludeScenario::MissingLocal => materialize_missing_local(&workspace_path),
+        IncludeScenario::Remote => materialize_remote(&workspace_path),
+        IncludeScenario::Cycle => materialize_cycle(&root_path, &workspace_path),
+        IncludeScenario::InheritedConstant => {
+            materialize_inherited_constant(model, &root_path, &workspace_path);
         }
-        IncludeScenario::MissingLocal => {
-            write_file(
-                &workspace_path,
-                "workspace {\n    !include \"missing.dsl\"\n}\n",
-            );
-        }
-        IncludeScenario::Remote => {
-            write_file(
-                &workspace_path,
-                "workspace {\n    !include \"https://example.com/base.dsl\"\n}\n",
-            );
-        }
-        IncludeScenario::Cycle => {
-            write_file(
-                &workspace_path,
-                "workspace {\n    !include \"loop-a.dsl\"\n}\n",
-            );
-            write_file(
-                &root_path.join("loop-a.dsl"),
-                "model {\n    !include \"loop-b.dsl\"\n    user = person \"User\"\n}\n",
-            );
-            write_file(
-                &root_path.join("loop-b.dsl"),
-                "model {\n    !include \"loop-a.dsl\"\n    system = softwareSystem \"System\"\n}\n",
-            );
+        IncludeScenario::LateConstant => {
+            materialize_late_constant(model, &root_path, &workspace_path);
         }
     }
 
@@ -231,17 +218,116 @@ fn materialize_workspace(model: &GeneratedWorkspaceGraph) -> MaterializedWorkspa
         );
     }
 
-    let secondary_root = match model.scenario {
-        IncludeScenario::LocalModel => Some(root_path.join("model.dsl")),
-        IncludeScenario::Cycle => Some(root_path.join("loop-a.dsl")),
-        IncludeScenario::MissingLocal | IncludeScenario::Remote => None,
-    };
+    let secondary_root = secondary_root_for(model, &root_path);
 
     MaterializedWorkspace {
         _root_dir: root_dir,
         root_path,
         workspace_path,
         secondary_root,
+    }
+}
+
+fn materialize_local_model(root_path: &Path, workspace_path: &Path) {
+    write_file(
+        workspace_path,
+        "workspace {\n    !include \"model.dsl\"\n}\n",
+    );
+    write_file(
+        &root_path.join("model.dsl"),
+        "model {\n    user = person \"User\"\n    system = softwareSystem \"System\"\n    user -> system \"Uses\"\n}\n",
+    );
+}
+
+fn materialize_missing_local(workspace_path: &Path) {
+    write_file(
+        workspace_path,
+        "workspace {\n    !include \"missing.dsl\"\n}\n",
+    );
+}
+
+fn materialize_remote(workspace_path: &Path) {
+    write_file(
+        workspace_path,
+        "workspace {\n    !include \"https://example.com/base.dsl\"\n}\n",
+    );
+}
+
+fn materialize_cycle(root_path: &Path, workspace_path: &Path) {
+    write_file(
+        workspace_path,
+        "workspace {\n    !include \"loop-a.dsl\"\n}\n",
+    );
+    write_file(
+        &root_path.join("loop-a.dsl"),
+        "model {\n    !include \"loop-b.dsl\"\n    user = person \"User\"\n}\n",
+    );
+    write_file(
+        &root_path.join("loop-b.dsl"),
+        "model {\n    !include \"loop-a.dsl\"\n    system = softwareSystem \"System\"\n}\n",
+    );
+}
+
+fn materialize_inherited_constant(
+    model: &GeneratedWorkspaceGraph,
+    root_path: &Path,
+    workspace_path: &Path,
+) {
+    let shared_dir = root_path.join("shared");
+    let details_dir = shared_dir.join("details");
+    fs::create_dir_all(&details_dir).expect("generated details directory should create");
+
+    write_file(
+        workspace_path,
+        &format!(
+            "!const DETAIL_FILE \"{}\"\n\nworkspace {{\n    model {{\n        !include shared/system.dsl\n    }}\n}}\n",
+            model.detail_file_name
+        ),
+    );
+    write_file(
+        &shared_dir.join("system.dsl"),
+        "system = softwareSystem \"Payments\" {\n    !include \"details/${DETAIL_FILE}\"\n}\n",
+    );
+    write_file(
+        &details_dir.join(&model.detail_file_name),
+        "api = container \"API\"\n",
+    );
+}
+
+fn materialize_late_constant(
+    model: &GeneratedWorkspaceGraph,
+    root_path: &Path,
+    workspace_path: &Path,
+) {
+    let shared_dir = root_path.join("shared");
+    let details_dir = shared_dir.join("details");
+    fs::create_dir_all(&details_dir).expect("generated details directory should create");
+
+    write_file(
+        workspace_path,
+        "workspace {\n    model {\n        !include shared/system.dsl\n    }\n}\n",
+    );
+    write_file(
+        &shared_dir.join("system.dsl"),
+        &format!(
+            "system = softwareSystem \"Ordered\" {{\n    !include \"details/${{DETAIL_FILE}}\"\n    !const DETAIL_FILE \"{}\"\n}}\n",
+            model.detail_file_name
+        ),
+    );
+    write_file(
+        &details_dir.join(&model.detail_file_name),
+        "api = container \"API\"\n",
+    );
+}
+
+fn secondary_root_for(model: &GeneratedWorkspaceGraph, root_path: &Path) -> Option<PathBuf> {
+    match model.scenario {
+        IncludeScenario::LocalModel => Some(root_path.join("model.dsl")),
+        IncludeScenario::Cycle => Some(root_path.join("loop-a.dsl")),
+        IncludeScenario::InheritedConstant | IncludeScenario::LateConstant => {
+            Some(root_path.join("shared/system.dsl"))
+        }
+        IncludeScenario::MissingLocal | IncludeScenario::Remote => None,
     }
 }
 
@@ -352,6 +438,61 @@ fn assert_expected_diagnostics(
                 ],
             );
         }
+        IncludeScenario::InheritedConstant => {
+            proptest::prop_assert!(
+                diagnostic_kinds.is_empty(),
+                "inherited constants should resolve includes cleanly: {diagnostic_kinds:?}",
+            );
+        }
+        IncludeScenario::LateConstant => {
+            proptest::prop_assert_eq!(
+                diagnostic_kinds,
+                vec![IncludeDiagnosticKind::MissingLocalTarget],
+            );
+        }
+    }
+
+    Ok(())
+}
+
+fn assert_expected_constant_resolution(
+    model: &GeneratedWorkspaceGraph,
+    facts: &WorkspaceFacts,
+    root: &Path,
+) -> Result<(), TestCaseError> {
+    match model.scenario {
+        IncludeScenario::InheritedConstant => {
+            let expected_target = format!("details/{}", model.detail_file_name);
+            let include = facts
+                .includes()
+                .iter()
+                .find(|include| include.target_text() == expected_target)
+                .expect("inherited-constant scenario should resolve the nested include");
+            let discovered_documents = include
+                .discovered_documents()
+                .iter()
+                .map(|document_id| display_path(Path::new(document_id.as_str()), root))
+                .collect::<Vec<_>>();
+
+            proptest::prop_assert_eq!(
+                discovered_documents,
+                vec![format!("shared/{expected_target}")],
+            );
+        }
+        IncludeScenario::LateConstant => {
+            let include = facts
+                .includes()
+                .iter()
+                .find(|include| include.raw_value() == "\"details/${DETAIL_FILE}\"")
+                .expect("late-constant scenario should keep the unresolved nested include");
+
+            proptest::prop_assert_eq!(include.target_text(), "details/${DETAIL_FILE}");
+            proptest::prop_assert!(include.discovered_documents().is_empty());
+        }
+        IncludeScenario::LocalModel
+        | IncludeScenario::MissingLocal
+        | IncludeScenario::Remote
+        | IncludeScenario::Cycle => {}
     }
 
     Ok(())
@@ -374,16 +515,19 @@ proptest::proptest! {
 
         proptest::prop_assert_eq!(first_view, second_view);
         assert_expected_diagnostics(&model, &first_facts)?;
+        assert_expected_constant_resolution(&model, &first_facts, &fixture.root_path)?;
     }
 
     #[test]
     fn generated_workspace_root_order_does_not_change_results(
         scenario in local_root_order_scenario(),
         include_unrelated_neighbor in any::<bool>(),
+        detail_file_name in detail_file_name(),
     ) {
         let fixture = materialize_workspace(&GeneratedWorkspaceGraph {
             scenario,
             include_unrelated_neighbor,
+            detail_file_name,
         });
         maybe_capture_workspace("generated_workspace_root_order_does_not_change_results", &fixture);
         let secondary_root = fixture
@@ -404,14 +548,19 @@ proptest::proptest! {
     }
 
     #[test]
-    fn unrelated_neighbors_do_not_change_explicit_root_loading(scenario in include_scenario()) {
+    fn unrelated_neighbors_do_not_change_explicit_root_loading(
+        scenario in include_scenario(),
+        detail_file_name in detail_file_name(),
+    ) {
         let without_unrelated = materialize_workspace(&GeneratedWorkspaceGraph {
             scenario,
             include_unrelated_neighbor: false,
+            detail_file_name: detail_file_name.clone(),
         });
         let with_unrelated = materialize_workspace(&GeneratedWorkspaceGraph {
             scenario,
             include_unrelated_neighbor: true,
+            detail_file_name,
         });
         maybe_capture_workspace(
             "unrelated_neighbors_do_not_change_explicit_root_loading_without_unrelated",
