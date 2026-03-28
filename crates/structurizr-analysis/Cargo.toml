@@ -3,12 +3,17 @@ name = "structurizr-analysis"
 version = "0.1.0"
 edition = "2024"
 
+[[bench]]
+name = "analysis"
+harness = false
+
 [dependencies]
 ignore = "0.4.25"
 tree-sitter = "0.26.7"
 tree-sitter-structurizr = { version = "0.0.1", path = "../.." }
 
 [dev-dependencies]
+criterion = { version = "4.4.1", package = "codspeed-criterion-compat" }
 indoc = "2.0"
 insta = "1.43"
 rstest = "0.25"

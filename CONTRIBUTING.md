@@ -13,6 +13,11 @@ For normal grammar and test work, install:
 - the Tree-sitter CLI
 - `cargo-nextest`
 
+For performance benchmarking only, also install:
+
+- [`hyperfine`](https://github.com/sharkdp/hyperfine) for black-box CLI timing
+- [`uv`](https://docs.astral.sh/uv/) to run the replay helper with a pinned Python version
+
 For the upstream audit workflow only, you also need a nightly Cargo toolchain because the audit runs through `cargo +nightly -Zscript`.
 
 ## Canonical commands
@@ -26,6 +31,10 @@ just test-rust
 just test-rust-fast
 just build-strz
 just test-cli
+just bench-rust
+just bench-black-box
+just bench-perf
+just bench-perf-stable
 just audit-upstream
 ```
 
@@ -60,6 +69,53 @@ or workspace. Use `dump document` and `dump workspace` when you want to inspect
 the extracted analysis facts that sit underneath the LSP. Use `server` when you
 want to run the same stdio language server entrypoint that editor integrations
 should launch.
+
+## Performance benchmarking
+
+The benchmark surface deliberately tracks a small fixed matrix so performance
+history stays comparable over time:
+
+- small document: `tests/fixtures/lsp/identifiers/direct-references-ok.dsl`
+- medium document: `tests/lsp/workspaces/big-bank-plc/model/people-and-software-systems.dsl`
+- large document: `tests/lsp/workspaces/big-bank-plc/internet-banking-system.dsl`
+- small workspace: `tests/lsp/workspaces/minimal-scan`
+- medium workspace: `tests/lsp/workspaces/directory-include`
+- large workspace: `tests/lsp/workspaces/big-bank-plc`
+- small LSP session: `tests/fixtures/lsp/relationships/named-relationships-ok.dsl`
+- large LSP session: `tests/lsp/workspaces/big-bank-plc/internet-banking-system.dsl`
+
+Useful commands from the repository root:
+
+```sh
+just bench-rust
+just bench-black-box
+just bench-perf
+just bench-perf-stable
+```
+
+Use `just bench-rust` when you want the in-process analysis and LSP benchmark
+suite without any external tooling beyond Cargo. Use `just bench-black-box`
+when you want Hyperfine measurements for `strz check`, `strz dump workspace`,
+and a replayed `strz server` session against the checked-in fixtures. Use
+`just bench-perf` or `just bench-perf-stable` when you want the combined flow
+plus environment capture written to `tmp/benchmark-results/`.
+
+The stable mode is still best-effort rather than perfectly reproducible. On
+Linux, you can set `STRZ_BENCH_CPUSET=2` (or another CPU set) before running
+`just bench-perf-stable` to request CPU pinning via `taskset`. On macOS, the
+same command still captures environment metadata, but it cannot offer the same
+level of scheduler control.
+
+The LSP replay helper prefers `uv run --python 3.12 tools/lsp_replay.py` so
+the interpreter version stays explicit, and falls back to `python3` only when
+`uv` is not available. If you want to sanity-check the CodSpeed-compatible
+bench harness locally, run:
+
+```sh
+cargo codspeed build -p structurizr-analysis -p structurizr-lsp
+cargo codspeed run -p structurizr-analysis
+cargo codspeed run -p structurizr-lsp
+```
 
 ## Upstream audit workflow
 

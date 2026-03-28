@@ -8,3 +8,4 @@
 - `tools/upstream_audit.rs` currently slices excerpt strings by raw byte windows around parse issues, which can still panic if an excerpt boundary lands inside a multibyte UTF-8 codepoint.
 - The LSP's workspace recomputation path currently drops `WorkspaceLoader` errors with `.ok()`, so filesystem failures silently suppress include diagnostics instead of surfacing actionable feedback.
 - The LSP delivery docs under `docs/lsp/03-delivery/` still assume a dedicated `structurizr-lsp` executable and release asset naming, so they now lag behind the unified `strz server` entrypoint.
+- `docs/lsp/03-delivery/roadmap.md` still frames the analysis and LSP crates as future additions even though those crates already exist in the workspace.
