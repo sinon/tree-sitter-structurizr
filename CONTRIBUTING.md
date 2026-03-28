@@ -169,6 +169,56 @@ When `grammar.js` changes, run `just generate` before testing or opening a PR.
 
 ## Test surfaces and how to use them
 
+## Property-test workflow
+
+The repository now keeps Proptest's default failure persistence enabled for the
+property suites in `tests/property_parser.rs`,
+`crates/structurizr-analysis/tests/property_analysis.rs`, and
+`crates/structurizr-analysis/tests/property_workspace.rs`.
+
+That means:
+
+- failing cases are persisted under `proptest-regressions/`
+- later runs automatically replay those persisted failures first
+- you can pin a specific RNG seed with `PROPTEST_RNG_SEED`
+- you can raise the case count with `PROPTEST_CASES`
+
+Useful wrappers from the repository root:
+
+```sh
+just test-proptest --test property_parser
+just test-proptest-stress 10000 --test property_workspace
+just rerun-proptest 123456 --test property_analysis mutated_generated_workspaces_report_syntax_errors
+just rerun-and-capture-proptest 123456 tmp/proptest-captures --test property_workspace generated_workspaces_load_idempotently
+```
+
+Capture notes:
+
+- Set `STRUCTURIZR_PROPTEST_CAPTURE_DIR` (or use `just capture-proptest` / `just rerun-and-capture-proptest`) when you want the currently generated case materialized on disk.
+- For single-document properties, the capture directory receives one `.dsl` file per property test name.
+- For generated workspace properties, the capture directory receives one subdirectory per property test name containing the generated workspace tree.
+- For the cleanest seeded replay, prefer `PROPTEST_CASES=1` when capturing a specific seed so the output directory reflects a single generated case.
+
+Promotion notes:
+
+- Start by capturing into `tmp/proptest-captures/`.
+- If the minimized case is worth keeping, promote it into `tests/fixtures/`, `tests/lsp/workspaces/`, or `test/corpus/` depending on whether it is best represented as a realistic fixture, a workspace discovery regression, or a small syntax teaching example.
+- Commit any useful `proptest-regressions/` updates alongside the curated fixture or corpus promotion when they still add value.
+
+## Grammar fuzzing
+
+Use `tree-sitter fuzz` as the current complementary fuzzing layer for the
+grammar. It mutates the checked-in corpus inputs with random edits and checks
+that incremental parse behavior stays consistent.
+
+Useful wrappers from the repository root:
+
+```sh
+just fuzz-grammar
+just fuzz-grammar 25 4
+just fuzz-grammar-stress
+```
+
 ### `test/corpus/`
 
 This is the cleanest place to see the DSL built up by concept. Prefer adding small, concept-focused grammar regressions here.
