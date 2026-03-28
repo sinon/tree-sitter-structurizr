@@ -445,6 +445,10 @@
           "named": true
         },
         {
+          "type": "include_directive",
+          "named": true
+        },
+        {
           "type": "metadata_statement",
           "named": true
         },
@@ -831,6 +835,10 @@
         },
         {
           "type": "group",
+          "named": true
+        },
+        {
+          "type": "include_directive",
           "named": true
         },
         {
@@ -1405,6 +1413,10 @@
           "named": true
         },
         {
+          "type": "include_directive",
+          "named": true
+        },
+        {
           "type": "relationship",
           "named": true
         }
@@ -1552,6 +1564,10 @@
         },
         {
           "type": "group",
+          "named": true
+        },
+        {
+          "type": "include_directive",
           "named": true
         },
         {
@@ -2358,6 +2374,10 @@
           "named": true
         },
         {
+          "type": "include_directive",
+          "named": true
+        },
+        {
           "type": "person",
           "named": true
         },
@@ -2657,6 +2677,10 @@
         },
         {
           "type": "group",
+          "named": true
+        },
+        {
+          "type": "include_directive",
           "named": true
         },
         {
@@ -4189,6 +4213,10 @@
           "named": true
         },
         {
+          "type": "deployment_environment",
+          "named": true
+        },
+        {
           "type": "description_statement",
           "named": true
         },
@@ -4206,6 +4234,10 @@
         },
         {
           "type": "group",
+          "named": true
+        },
+        {
+          "type": "include_directive",
           "named": true
         },
         {
@@ -4358,11 +4390,43 @@
       "required": false,
       "types": [
         {
+          "type": "adrs_directive",
+          "named": true
+        },
+        {
           "type": "const_directive",
           "named": true
         },
         {
           "type": "constant_directive",
+          "named": true
+        },
+        {
+          "type": "container",
+          "named": true
+        },
+        {
+          "type": "dark_styles",
+          "named": true
+        },
+        {
+          "type": "deployment_environment",
+          "named": true
+        },
+        {
+          "type": "description_statement",
+          "named": true
+        },
+        {
+          "type": "docs_directive",
+          "named": true
+        },
+        {
+          "type": "element_style",
+          "named": true
+        },
+        {
+          "type": "group",
           "named": true
         },
         {
@@ -4378,7 +4442,59 @@
           "named": true
         },
         {
+          "type": "light_styles",
+          "named": true
+        },
+        {
+          "type": "metadata_statement",
+          "named": true
+        },
+        {
           "type": "model",
+          "named": true
+        },
+        {
+          "type": "person",
+          "named": true
+        },
+        {
+          "type": "perspectives_block",
+          "named": true
+        },
+        {
+          "type": "properties_block",
+          "named": true
+        },
+        {
+          "type": "relationship",
+          "named": true
+        },
+        {
+          "type": "relationship_style",
+          "named": true
+        },
+        {
+          "type": "software_system",
+          "named": true
+        },
+        {
+          "type": "tag_statement",
+          "named": true
+        },
+        {
+          "type": "tags_statement",
+          "named": true
+        },
+        {
+          "type": "theme_statement",
+          "named": true
+        },
+        {
+          "type": "themes_statement",
+          "named": true
+        },
+        {
+          "type": "url_statement",
           "named": true
         },
         {
@@ -4406,6 +4522,10 @@
       "types": [
         {
           "type": "element_style",
+          "named": true
+        },
+        {
+          "type": "include_directive",
           "named": true
         },
         {
@@ -4530,6 +4650,10 @@
         },
         {
           "type": "element_style",
+          "named": true
+        },
+        {
+          "type": "include_directive",
           "named": true
         },
         {
@@ -5165,6 +5289,10 @@
         },
         {
           "type": "image_view",
+          "named": true
+        },
+        {
+          "type": "include_directive",
           "named": true
         },
         {

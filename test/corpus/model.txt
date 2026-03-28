@@ -46,6 +46,67 @@ workspace {
             (identifier)
             (string)))))))
 
+================================
+Standalone model body fragments
+================================
+
+customer = person "Customer"
+
+group "Bank" {
+  system = softwareSystem "System" {
+    !include "system.dsl"
+  }
+}
+
+customer -> system "Uses"
+
+---
+
+(source_file
+  (person
+    (identifier)
+    (string))
+  (group
+    (string)
+    (group_block
+      (software_system
+        (identifier)
+        (string)
+        (software_system_block
+          (include_directive
+            (string))))))
+  (relationship
+    (identifier)
+    (relationship_operator)
+    (identifier)
+    (string)))
+
+=========================================
+Standalone software system body fragments
+=========================================
+
+api = container "API" "Handles requests" "Rust" {
+  !include "components.dsl"
+}
+url https://example.com
+!docs docs
+
+---
+
+(source_file
+  (container
+    (identifier)
+    (string)
+    (string)
+    (string)
+    (container_block
+      (include_directive
+        (string))))
+  (url_statement
+    (bare_value))
+  (docs_directive
+    (identifier)))
+
 =======================
 Multiline continuation
 =======================

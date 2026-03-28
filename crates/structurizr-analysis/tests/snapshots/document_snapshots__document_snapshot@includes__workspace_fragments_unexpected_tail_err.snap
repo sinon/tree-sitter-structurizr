@@ -25,11 +25,11 @@ SnapshotView {
             kind: ErrorNode,
             message: "unexpected syntax",
             span: TextSpan {
-                start_byte: 89,
+                start_byte: 95,
                 end_byte: 100,
                 start_point: TextPoint {
                     row: 5,
-                    column: 0,
+                    column: 6,
                 },
                 end_point: TextPoint {
                     row: 5,

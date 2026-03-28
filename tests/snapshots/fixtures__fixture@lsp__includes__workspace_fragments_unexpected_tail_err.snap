@@ -10,4 +10,5 @@ expression: tree_sexp(&tree)
       (include_directive value:
         (string))))
   (ERROR
+    (identifier)
     (UNEXPECTED 'l')))
