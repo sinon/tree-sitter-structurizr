@@ -1,7 +1,7 @@
 ---
-source: crates/structurizr-check/tests/cli.rs
+source: crates/structurizr-cli/tests/cli.rs
 info:
-  program: structurizr-check
+  program: structurizr-cli
   args:
     - "--output-format"
     - json

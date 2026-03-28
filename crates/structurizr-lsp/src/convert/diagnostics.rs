@@ -37,7 +37,7 @@ fn syntax_diagnostic(
     Some(Diagnostic {
         range: span_to_range(document.line_index(), diagnostic.span)?,
         severity: Some(DiagnosticSeverity::ERROR),
-        source: Some("structurizr-lsp".to_owned()),
+        source: Some("strz".to_owned()),
         message: diagnostic.message.clone(),
         ..Diagnostic::default()
     })
@@ -69,7 +69,7 @@ fn include_diagnostic(
             | IncludeDiagnosticKind::EscapesAllowedSubtree
             | IncludeDiagnosticKind::IncludeCycle => DiagnosticSeverity::ERROR,
         }),
-        source: Some("structurizr-lsp".to_owned()),
+        source: Some("strz".to_owned()),
         message: diagnostic.message.clone(),
         ..Diagnostic::default()
     })

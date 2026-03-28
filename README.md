@@ -66,23 +66,27 @@ assert!(!tree.root_node().has_error());
 
 For deeper contributor workflow and development commands, start with [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
-## Analysis CLI
+## `strz` CLI
 
-The Rust workspace now also includes `structurizr-check`, a contributor-facing
-CLI on top of `structurizr-analysis`.
+The Rust workspace now also includes `strz`, a contributor-facing CLI on top of
+`structurizr-analysis` and the in-repo LSP server.
 
 It is useful when you want to verify syntax and workspace include behavior
 without launching the LSP through an editor:
 
 ```sh
-cargo run -p structurizr-check -- check
-cargo run -p structurizr-check -- dump workspace tests/lsp/workspaces/directory-include
-cargo run -p structurizr-check -- dump document tests/fixtures/lsp/identifiers/direct-references-ok.dsl
+cargo run -p structurizr-cli --bin strz -- check
+cargo run -p structurizr-cli --bin strz -- dump workspace tests/lsp/workspaces/directory-include
+cargo run -p structurizr-cli --bin strz -- dump document tests/fixtures/lsp/identifiers/direct-references-ok.dsl
+cargo run -p structurizr-cli --bin strz -- server
 ```
 
+That development command surface matches the installed binary shape:
+`strz check`, `strz dump`, and `strz server`.
+
 The CLI supports both human-oriented text output and `--output-format json`,
-making it suitable for local debugging, snapshots, and future CI-style semantic
-checks.
+making it suitable for local debugging, snapshots, future CI-style semantic
+checks, and editor integration.
 
 ## Supported today
 

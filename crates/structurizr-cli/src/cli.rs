@@ -3,12 +3,12 @@ use std::path::PathBuf;
 use anstream::ColorChoice;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
-/// Root CLI parser for `structurizr-check`.
+/// Root CLI parser for `strz`.
 #[derive(Debug, Clone, Parser)]
 #[command(
-    name = "structurizr-check",
+    name = "strz",
     version,
-    about = "Run Structurizr analysis checks and dumps without the LSP",
+    about = "Run Structurizr checks, contributor dumps, and the LSP server",
     propagate_version = true
 )]
 pub struct Cli {
@@ -38,6 +38,8 @@ pub enum Command {
     Check(CheckArgs),
     /// Dump analysis-layer facts for a document or workspace.
     Dump(DumpArgs),
+    /// Run the Structurizr LSP server over stdio.
+    Server,
 }
 
 /// Arguments for the `check` command.

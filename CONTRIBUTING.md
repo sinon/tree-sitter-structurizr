@@ -24,8 +24,8 @@ just generate
 just test-grammar
 just test-rust
 just test-rust-fast
-just build-check
-just test-check
+just build-strz
+just test-cli
 just audit-upstream
 ```
 
@@ -41,22 +41,25 @@ Use `just audit-upstream` when you are hardening coverage against upstream Struc
 
 ## Analysis CLI workflow
 
-The workspace now includes `structurizr-check`, a contributor-facing CLI that
-hosts `structurizr-analysis` without requiring the LSP or an editor loop.
+The workspace now includes `strz`, a contributor-facing CLI that hosts
+`structurizr-analysis` and the LSP server without requiring an editor loop.
 
 Useful commands from the repository root:
 
 ```sh
-just build-check
-just test-check
-just run-check check
-just run-check dump workspace tests/lsp/workspaces/directory-include
-just run-check dump document tests/fixtures/lsp/identifiers/direct-references-ok.dsl
+just build-strz
+just test-cli
+just run-strz check
+just run-strz dump workspace tests/lsp/workspaces/directory-include
+just run-strz dump document tests/fixtures/lsp/identifiers/direct-references-ok.dsl
+just run-strz server
 ```
 
 Use `check` when you want aggregated syntax and include diagnostics for a file
 or workspace. Use `dump document` and `dump workspace` when you want to inspect
-the extracted analysis facts that sit underneath the LSP.
+the extracted analysis facts that sit underneath the LSP. Use `server` when you
+want to run the same stdio language server entrypoint that editor integrations
+should launch.
 
 ## Upstream audit workflow
 

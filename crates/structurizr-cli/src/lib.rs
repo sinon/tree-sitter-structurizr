@@ -1,4 +1,4 @@
-//! Contributor-facing CLI for running `structurizr-analysis` without the LSP.
+//! Unified `strz` CLI for contributor analysis commands and the Structurizr LSP.
 
 mod check;
 mod cli;
@@ -16,11 +16,11 @@ use crate::cli::{Cli, Command};
 /// Parses CLI arguments, executes the selected command, and returns a process
 /// exit code suitable for `main`.
 #[must_use]
-pub fn main() -> ExitCode {
+pub async fn main() -> ExitCode {
     let cli = Cli::parse();
     let color_choice = cli.global.color.to_anstream();
 
-    match run(&cli) {
+    match run(&cli).await {
         Ok(exit_code) => exit_code,
         Err(error) => {
             render::write_error(&error, color_choice);
@@ -29,7 +29,7 @@ pub fn main() -> ExitCode {
     }
 }
 
-fn run(cli: &Cli) -> Result<ExitCode> {
+async fn run(cli: &Cli) -> Result<ExitCode> {
     match &cli.command {
         Command::Check(arguments) => {
             let result =
@@ -43,6 +43,10 @@ fn run(cli: &Cli) -> Result<ExitCode> {
                 dump::run(arguments).context("while attempting to execute the dump command")?;
             render::write_dump(&result, &cli.global)
                 .context("while attempting to render dump output")?;
+            Ok(ExitCode::SUCCESS)
+        }
+        Command::Server => {
+            structurizr_lsp::serve_stdio().await;
             Ok(ExitCode::SUCCESS)
         }
     }

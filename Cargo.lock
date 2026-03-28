@@ -881,7 +881,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "structurizr-check"
+name = "structurizr-cli"
 version = "0.1.0"
 dependencies = [
  "anstream",
@@ -893,6 +893,8 @@ dependencies = [
  "serde",
  "serde_json",
  "structurizr-analysis",
+ "structurizr-lsp",
+ "tokio",
 ]
 
 [[package]]
