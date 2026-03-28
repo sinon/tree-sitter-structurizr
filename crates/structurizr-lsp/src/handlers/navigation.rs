@@ -4,8 +4,9 @@ use std::{fs, str::FromStr};
 
 use line_index::LineIndex;
 use structurizr_analysis::{
-    DocumentId, DocumentSnapshot, Reference, ReferenceHandle, ReferenceResolutionStatus, Symbol,
-    SymbolHandle, SymbolKind, WorkspaceFacts, WorkspaceInstanceId,
+    DocumentId, DocumentSnapshot, Reference, ReferenceHandle, ReferenceKind,
+    ReferenceResolutionStatus, Symbol, SymbolHandle, SymbolId, SymbolKind, WorkspaceFacts,
+    WorkspaceInstanceId,
 };
 use tower_lsp_server::ls_types::{Location, Uri};
 use tracing::debug;
@@ -106,6 +107,47 @@ pub fn definition_location(
     }
 }
 
+pub fn type_definition_location(
+    state: &ServerState,
+    document: &DocumentState,
+    snapshot: &DocumentSnapshot,
+    offset: usize,
+) -> Option<Location> {
+    match navigation_site_at_offset(snapshot, offset)? {
+        NavigationSite::Symbol(symbol) => {
+            if let Some((workspace_facts, document_id)) = workspace_context(state, document) {
+                let candidate_instances = candidate_instances(workspace_facts, &document_id);
+                if !candidate_instances.is_empty() {
+                    let symbol_handle = SymbolHandle::new(document_id, symbol.id);
+                    let target = instance_type_symbol_handle(workspace_facts, &symbol_handle)?;
+                    return symbol_location(state, workspace_facts, &target);
+                }
+            }
+
+            instance_type_symbol(snapshot, symbol)
+                .and_then(|target| same_document_symbol_location(document, target))
+        }
+        NavigationSite::Reference { index, reference } => {
+            if let Some((workspace_facts, document_id)) = workspace_context(state, document) {
+                let candidate_instances = candidate_instances(workspace_facts, &document_id);
+                if !candidate_instances.is_empty() {
+                    let reference_handle = ReferenceHandle::new(document_id, index);
+                    let target = instance_type_symbol_handle_for_reference(
+                        workspace_facts,
+                        &candidate_instances,
+                        &reference_handle,
+                        reference,
+                    )?;
+                    return symbol_location(state, workspace_facts, &target);
+                }
+            }
+
+            instance_type_symbol_for_reference(snapshot, reference)
+                .and_then(|target| same_document_symbol_location(document, target))
+        }
+    }
+}
+
 #[must_use]
 pub fn reference_locations(
     state: &ServerState,
@@ -202,6 +244,43 @@ pub fn reference_locations(
             .filter_map(|reference| same_document_reference_location(document, reference)),
     );
     locations
+}
+
+fn instance_type_symbol_handle(
+    workspace_facts: &WorkspaceFacts,
+    symbol_handle: &SymbolHandle,
+) -> Option<SymbolHandle> {
+    let snapshot = workspace_facts
+        .document(symbol_handle.document())?
+        .snapshot();
+    let symbol = snapshot.symbols().get(symbol_handle.symbol_id().0)?;
+    if !is_instance_symbol(symbol) {
+        return None;
+    }
+
+    let (reference_index, _) = instance_target_reference(snapshot, symbol.id)?;
+    let candidate_instances = candidate_instances(workspace_facts, symbol_handle.document());
+    if candidate_instances.is_empty() {
+        return None;
+    }
+
+    let reference_handle = ReferenceHandle::new(symbol_handle.document().clone(), reference_index);
+    unanimous_resolved_symbol(workspace_facts, &candidate_instances, &reference_handle)
+}
+
+fn instance_type_symbol_handle_for_reference(
+    workspace_facts: &WorkspaceFacts,
+    candidate_instances: &[WorkspaceInstanceId],
+    reference_handle: &ReferenceHandle,
+    reference: &Reference,
+) -> Option<SymbolHandle> {
+    if reference.kind == ReferenceKind::InstanceTarget {
+        return unanimous_resolved_symbol(workspace_facts, candidate_instances, reference_handle);
+    }
+
+    let symbol_handle =
+        unanimous_resolved_symbol(workspace_facts, candidate_instances, reference_handle)?;
+    instance_type_symbol_handle(workspace_facts, &symbol_handle)
 }
 
 fn candidate_instances(
@@ -461,6 +540,55 @@ fn resolve_reference<'a>(
     } else {
         None
     }
+}
+
+fn instance_type_symbol_for_reference<'a>(
+    snapshot: &'a DocumentSnapshot,
+    reference: &Reference,
+) -> Option<&'a Symbol> {
+    if reference.kind == ReferenceKind::InstanceTarget {
+        return resolve_reference(snapshot, reference);
+    }
+
+    let symbol = resolve_reference(snapshot, reference)?;
+    instance_type_symbol(snapshot, symbol)
+}
+
+fn instance_type_symbol<'a>(snapshot: &'a DocumentSnapshot, symbol: &Symbol) -> Option<&'a Symbol> {
+    if !is_instance_symbol(symbol) {
+        return None;
+    }
+
+    let (_, reference) = instance_target_reference(snapshot, symbol.id)?;
+    resolve_reference(snapshot, reference)
+}
+
+fn instance_target_reference(
+    snapshot: &DocumentSnapshot,
+    symbol_id: SymbolId,
+) -> Option<(usize, &Reference)> {
+    let mut matches = snapshot
+        .references()
+        .iter()
+        .enumerate()
+        .filter(|(_, reference)| {
+            reference.kind == ReferenceKind::InstanceTarget
+                && reference.containing_symbol == Some(symbol_id)
+        });
+    let first = matches.next()?;
+
+    if matches.next().is_some() {
+        return None;
+    }
+
+    Some(first)
+}
+
+const fn is_instance_symbol(symbol: &Symbol) -> bool {
+    matches!(
+        symbol.kind,
+        SymbolKind::ContainerInstance | SymbolKind::SoftwareSystemInstance
+    )
 }
 
 fn symbol_matches_reference(symbol: &Symbol, reference: &Reference) -> bool {

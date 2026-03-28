@@ -8,6 +8,7 @@ use tower_lsp_server::ls_types::{
     DidOpenTextDocumentParams, DocumentSymbolParams, DocumentSymbolResponse, GotoDefinitionParams,
     GotoDefinitionResponse, InitializeParams, InitializeResult, InitializedParams, Location,
     ReferenceParams,
+    request::{GotoTypeDefinitionParams, GotoTypeDefinitionResponse},
 };
 use tower_lsp_server::{Client, LanguageServer};
 use tracing::trace;
@@ -127,6 +128,22 @@ impl LanguageServer for Backend {
             "dispatching request"
         );
         handlers::goto_definition::goto_definition(self, params).await
+    }
+
+    async fn goto_type_definition(
+        &self,
+        params: GotoTypeDefinitionParams,
+    ) -> tower_lsp_server::jsonrpc::Result<Option<GotoTypeDefinitionResponse>> {
+        trace!(
+            method = "textDocument/typeDefinition",
+            uri = params
+                .text_document_position_params
+                .text_document
+                .uri
+                .as_str(),
+            "dispatching request"
+        );
+        handlers::type_definition::goto_type_definition(self, params).await
     }
 
     async fn references(

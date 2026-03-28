@@ -434,6 +434,127 @@ async fn goto_definition_resolves_cross_file_big_bank_instance_targets() {
 }
 
 #[tokio::test(flavor = "current_thread")]
+async fn goto_type_definition_resolves_instance_declarations_to_model_elements() {
+    let (mut service, _socket) = new_service();
+    let workspace_root = workspace_fixture_path("deployment-navigation");
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
+    initialized(&mut service).await;
+
+    let workspace_path = workspace_root.join("workspace.dsl");
+    let workspace_source = read_workspace_file(&workspace_path);
+    let workspace_uri = file_uri_from_path(&workspace_path);
+    open_document(&mut service, &workspace_uri, &workspace_source).await;
+
+    let position = position_in(&workspace_source, "apiInstance = containerInstance api", 1);
+    let response = request_json(
+        &mut service,
+        "textDocument/typeDefinition",
+        json!({
+            "textDocument": { "uri": workspace_uri.as_str() },
+            "position": position,
+        }),
+        22,
+    )
+    .await;
+
+    assert_eq!(response["result"]["uri"], workspace_uri.as_str());
+    assert_eq!(response["result"]["range"]["start"]["line"], 3);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn goto_type_definition_resolves_instance_references_to_model_elements() {
+    let (mut service, _socket) = new_service();
+    let workspace_root = workspace_fixture_path("deployment-navigation");
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
+    initialized(&mut service).await;
+
+    let workspace_path = workspace_root.join("workspace.dsl");
+    let workspace_source = read_workspace_file(&workspace_path);
+    let workspace_uri = file_uri_from_path(&workspace_path);
+    open_document(&mut service, &workspace_uri, &workspace_source).await;
+
+    let position = position_in(&workspace_source, "gateway -> apiInstance", 11);
+    let response = request_json(
+        &mut service,
+        "textDocument/typeDefinition",
+        json!({
+            "textDocument": { "uri": workspace_uri.as_str() },
+            "position": position,
+        }),
+        23,
+    )
+    .await;
+
+    assert_eq!(response["result"]["uri"], workspace_uri.as_str());
+    assert_eq!(response["result"]["range"]["start"]["line"], 3);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn goto_type_definition_resolves_cross_file_big_bank_instance_declarations() {
+    let (mut service, _socket) = new_service();
+    let workspace_root = workspace_fixture_path("big-bank-plc");
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
+    initialized(&mut service).await;
+
+    let document_path = workspace_root.join("internet-banking-system.dsl");
+    let document_source = read_workspace_file(&document_path);
+    let document_uri = file_uri_from_path(&document_path);
+    open_document(&mut service, &document_uri, &document_source).await;
+
+    let position = position_in(
+        &document_source,
+        "livePrimaryDatabaseInstance = containerInstance database",
+        1,
+    );
+    let response = request_json(
+        &mut service,
+        "textDocument/typeDefinition",
+        json!({
+            "textDocument": { "uri": document_uri.as_str() },
+            "position": position,
+        }),
+        24,
+    )
+    .await;
+
+    let database_uri =
+        file_uri_from_path(&workspace_root.join("model/internet-banking-system/details.dsl"));
+    assert_eq!(response["result"]["uri"], database_uri.as_str());
+    assert_eq!(response["result"]["range"]["start"]["line"], 11);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn goto_type_definition_returns_no_result_for_plain_deployment_nodes() {
+    let (mut service, _socket) = new_service();
+    let workspace_root = workspace_fixture_path("deployment-navigation");
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
+    initialized(&mut service).await;
+
+    let workspace_path = workspace_root.join("workspace.dsl");
+    let workspace_source = read_workspace_file(&workspace_path);
+    let workspace_uri = file_uri_from_path(&workspace_path);
+    open_document(&mut service, &workspace_uri, &workspace_source).await;
+
+    let position = position_in(&workspace_source, "primary = deploymentNode", 1);
+    let response = request_json(
+        &mut service,
+        "textDocument/typeDefinition",
+        json!({
+            "textDocument": { "uri": workspace_uri.as_str() },
+            "position": position,
+        }),
+        25,
+    )
+    .await;
+
+    assert!(response["result"].is_null());
+}
+
+#[tokio::test(flavor = "current_thread")]
 async fn references_follow_instance_targets_from_model_declarations() {
     let (mut service, _socket) = new_service();
     let workspace_root = workspace_fixture_path("deployment-navigation");

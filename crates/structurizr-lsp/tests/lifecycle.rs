@@ -18,6 +18,7 @@ async fn initialize_advertises_bounded_capabilities() {
 
     assert_eq!(capabilities["documentSymbolProvider"], true);
     assert_eq!(capabilities["definitionProvider"], true);
+    assert_eq!(capabilities["typeDefinitionProvider"], true);
     assert_eq!(capabilities["referencesProvider"], true);
     assert_eq!(capabilities["textDocumentSync"]["change"], 1);
     assert!(capabilities["completionProvider"].is_object());
