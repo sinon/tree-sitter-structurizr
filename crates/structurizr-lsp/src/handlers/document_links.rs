@@ -1,6 +1,6 @@
 //! Document-link handler for directive arguments that point at files or folders.
 
-use std::str::FromStr;
+use std::{collections::BTreeMap, str::FromStr};
 
 use structurizr_analysis::{DocumentSnapshot, TextSpan, WorkspaceFacts};
 use tower_lsp_server::ls_types::{DocumentLink, DocumentLinkParams, Uri};
@@ -42,7 +42,23 @@ fn document_links(
     // navigation and plain file/folder opening as separate UX surfaces.
     let mut links = super::directive_paths::resolved_directive_paths(snapshot, workspace_facts)
         .into_iter()
-        .filter_map(|path| {
+        .fold(
+            BTreeMap::<TextSpan, Vec<_>>::new(),
+            |mut paths_by_span, path| {
+                paths_by_span.entry(path.span()).or_default().push(path);
+                paths_by_span
+            },
+        )
+        // `documentLink` cannot represent "one source span, many possible targets"
+        // in a way editors handle predictably. Suppress ambiguous spans here and
+        // let the definition fallback surface multiple file targets instead.
+        .into_values()
+        .filter_map(|mut paths| {
+            if paths.len() != 1 {
+                return None;
+            }
+
+            let path = paths.pop().expect("one resolved path should exist");
             link_for_target(
                 document,
                 path.span(),

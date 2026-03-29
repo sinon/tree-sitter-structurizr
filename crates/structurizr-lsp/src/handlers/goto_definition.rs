@@ -138,11 +138,7 @@ fn definition_targets_for_path(path: &Path) -> Vec<PathBuf> {
     let mut files = BTreeSet::new();
     collect_directory_files(path, &mut files);
 
-    if files.is_empty() {
-        vec![path.to_path_buf()]
-    } else {
-        files.into_iter().collect()
-    }
+    files.into_iter().collect()
 }
 
 fn collect_directory_files(path: &Path, files: &mut BTreeSet<PathBuf>) {

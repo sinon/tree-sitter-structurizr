@@ -130,7 +130,7 @@ These are editor-local path links, not semantic symbol references.
 The bounded MVP should therefore keep them out of semantic reference resolution and out of `textDocument/references`.
 When the server exposes these spans as protocol links, it should use `textDocument/documentLink` as the primary surface.
 Because Zed does not yet surface `textDocument/documentLink`, the current implementation also answers `textDocument/definition` on these spans as a compatibility fallback for Cmd-click navigation.
-For directory-valued targets such as `!docs` and `!adrs`, that fallback resolves to concrete files inside the directory because Zed expects file locations rather than directory URIs for definition targets.
+For directory-valued targets such as `!docs` and `!adrs`, that fallback resolves to concrete files inside the directory when any exist because Zed expects file locations rather than directory URIs for definition targets.
 
 ## 1. Diagnostics handler
 
@@ -396,6 +396,7 @@ Return no definition result for:
 
 Those cases should stay aligned with the extraction contract rather than being handled ad hoc in the LSP.
 The current implementation exposes them through `textDocument/documentLink` and also through a narrow `textDocument/definition` fallback for editors such as Zed that do not surface document links yet.
+If one source span resolves to multiple possible include targets across workspace contexts, the server suppresses `documentLink` for that span rather than emitting overlapping links and relies on `definition` to surface the multiple file results instead.
 
 ## 5. Find-references handler
 

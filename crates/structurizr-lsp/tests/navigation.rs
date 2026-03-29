@@ -1,6 +1,10 @@
 mod support;
 
-use std::{fs, path::Path};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use serde_json::json;
 use support::{
@@ -509,13 +513,55 @@ async fn document_links_resolve_interpolated_include_paths() {
     let links = response["result"]
         .as_array()
         .expect("document links should return an item array");
-    let include_uri =
-        file_uri_from_path(&workspace_root.join("model/internet-banking-system/details.dsl"));
     assert!(
-        links
-            .iter()
-            .any(|link| link["target"] == include_uri.as_str())
+        links.is_empty(),
+        "ambiguous include spans should not produce overlapping document links"
     );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn goto_definition_returns_no_result_for_empty_docs_and_adrs_directories() {
+    let temp_workspace = TempWorkspace::new(
+        "empty-path-targets",
+        "!docs docs\n!adrs adrs\n",
+        &[Path::new("docs"), Path::new("adrs")],
+    );
+    let (mut service, _socket) = new_service();
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(temp_workspace.path())])
+        .await;
+    initialized(&mut service).await;
+
+    let workspace_path = temp_workspace.path().join("workspace.dsl");
+    let workspace_source = read_workspace_file(&workspace_path);
+    let workspace_uri = file_uri_from_path(&workspace_path);
+    open_document(&mut service, &workspace_uri, &workspace_source).await;
+
+    let docs_position = position_in(&workspace_source, "!docs docs", 7);
+    let docs_response = request_json(
+        &mut service,
+        "textDocument/definition",
+        json!({
+            "textDocument": { "uri": workspace_uri.as_str() },
+            "position": docs_position,
+        }),
+        38,
+    )
+    .await;
+    assert!(docs_response["result"].is_null());
+
+    let adrs_position = position_in(&workspace_source, "!adrs adrs", 7);
+    let adrs_response = request_json(
+        &mut service,
+        "textDocument/definition",
+        json!({
+            "textDocument": { "uri": workspace_uri.as_str() },
+            "position": adrs_position,
+        }),
+        39,
+    )
+    .await;
+    assert!(adrs_response["result"].is_null());
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -1093,4 +1139,55 @@ fn read_workspace_file(path: &Path) -> String {
             path.display()
         )
     })
+}
+
+struct TempWorkspace {
+    path: PathBuf,
+}
+
+impl TempWorkspace {
+    fn new(name: &str, workspace_source: &str, directories: &[&Path]) -> Self {
+        let unique_suffix = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock should be after UNIX_EPOCH")
+            .as_nanos();
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../tmp")
+            .join(format!("{name}-{unique_suffix}"));
+
+        fs::create_dir_all(&path).unwrap_or_else(|error| {
+            panic!(
+                "failed to create temp workspace `{}`: {error}",
+                path.display()
+            )
+        });
+        fs::write(path.join("workspace.dsl"), workspace_source).unwrap_or_else(|error| {
+            panic!(
+                "failed to write temp workspace file `{}`: {error}",
+                path.join("workspace.dsl").display()
+            )
+        });
+
+        for directory in directories {
+            let directory_path = path.join(directory);
+            fs::create_dir_all(&directory_path).unwrap_or_else(|error| {
+                panic!(
+                    "failed to create temp workspace directory `{}`: {error}",
+                    directory_path.display()
+                )
+            });
+        }
+
+        Self { path }
+    }
+
+    fn path(&self) -> &Path {
+        &self.path
+    }
+}
+
+impl Drop for TempWorkspace {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.path);
+    }
 }

@@ -37,7 +37,8 @@ Keep semantic symbol navigation and path-link opening on separate protocol surfa
 - Keep semantic symbol navigation and `textDocument/references` limited to symbol usage, not plain path spans.
 - Implement path opening for those spans via `textDocument/documentLink`.
 - Also answer `textDocument/definition` for those spans as a practical Zed fallback, because Zed does not yet surface LSP document links.
-- For directory-valued directives such as `!docs` and `!adrs`, make that fallback point at concrete files inside the directory because Zed expects file definition targets.
+- For directory-valued directives such as `!docs` and `!adrs`, make that fallback point at concrete files inside the directory when possible because Zed expects file definition targets.
+- If one `!include` span resolves to multiple targets across workspace contexts, suppress `documentLink` for that span rather than emitting overlapping links, and rely on the multi-result `definition` fallback instead.
 
 This keeps the dedicated link surface available for editors that support it while still giving Zed a concrete Cmd-click path-opening route today.
 
