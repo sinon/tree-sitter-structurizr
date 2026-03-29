@@ -1372,6 +1372,7 @@ dependencies = [
  "tracing",
  "tracing-log",
  "tracing-subscriber",
+ "tree-sitter",
 ]
 
 [[package]]

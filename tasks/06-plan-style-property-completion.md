@@ -21,3 +21,15 @@ The roadmap and bounded handler note deliberately stop short of context-aware pr
 Plan this as a narrow roadmap expansion rather than tying it to full semantic identifier completion. A static, context-aware completion table for style blocks could deliver useful editor value without waiting for general scope-aware completion.
 
 If adopted, the follow-up implementation task should first define the supported property names and activation contexts before touching the completion handler.
+
+## Resolution
+
+Implement the narrow syntax-backed option.
+
+- Keep semantic identifier completion separate from syntax-backed style-property completion.
+- Add block-aware property-name completion for `element_style` and `relationship_style` bodies.
+- Continue treating `!identifiers` and scope rules as concerns for identifier completion, not style-property completion.
+
+Because the grammar still permits generic identifier-based style keys, this completion should be additive editor guidance rather than a validity gate.
+
+Property-name completion is now implemented; broader value completion remains future work.

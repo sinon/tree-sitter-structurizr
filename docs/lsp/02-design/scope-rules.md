@@ -385,6 +385,9 @@ Identifier completion depends on:
 
 Until those are all stable together, identifier completion should not be exposed as a half-semantic feature.
 
+This restriction is specifically about semantic identifier insertion.
+It does **not** affect the style-property completion already available inside parsed `element_style` and `relationship_style` blocks, because those suggestions do not depend on `!identifiers`, scope resolution, or canonical element keys.
+
 ### Future identifier completion policy
 
 When identifier completion is eventually added:

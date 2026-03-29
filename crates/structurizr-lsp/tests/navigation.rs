@@ -12,6 +12,9 @@ use support::{
 const DIRECT_REFERENCES_SOURCE: &str =
     include_str!("../../../tests/fixtures/lsp/relationships/named-relationships-ok.dsl");
 const COMPLETION_SOURCE: &str = "workspace {\n  !i\n}\n";
+const ELEMENT_STYLE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      element \"Person\" {\n        ba\n      }\n    }\n  }\n}\n";
+const RELATIONSHIP_STYLE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      relationship \"Uses\" {\n        da\n      }\n    }\n  }\n}\n";
+const STYLE_VALUE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      relationship \"Uses\" {\n        metadata de\n      }\n    }\n  }\n}\n";
 
 #[tokio::test(flavor = "current_thread")]
 async fn document_symbols_follow_analysis_symbols() {
@@ -83,6 +86,110 @@ async fn completion_returns_directive_keywords_for_prefixes() {
 
     assert!(labels.contains(&"!include"));
     assert!(labels.contains(&"!identifiers"));
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_element_style_suggests_element_style_properties() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let uri = file_uri("element-style-completion.dsl");
+    open_document(&mut service, &uri, ELEMENT_STYLE_COMPLETION_SOURCE).await;
+
+    let position = position_in(ELEMENT_STYLE_COMPLETION_SOURCE, "ba", 2);
+    let response = request_json(
+        &mut service,
+        "textDocument/completion",
+        json!({
+            "textDocument": { "uri": uri.as_str() },
+            "position": position,
+        }),
+        30,
+    )
+    .await;
+
+    let labels = response["result"]
+        .as_array()
+        .expect("completion should return an item array")
+        .iter()
+        .map(|item| {
+            item["label"]
+                .as_str()
+                .expect("completion label should be a string")
+        })
+        .collect::<Vec<_>>();
+
+    assert!(labels.contains(&"background"));
+    assert!(!labels.contains(&"routing"));
+    assert!(!labels.contains(&"workspace"));
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_relationship_style_suggests_relationship_style_properties() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let uri = file_uri("relationship-style-completion.dsl");
+    open_document(&mut service, &uri, RELATIONSHIP_STYLE_COMPLETION_SOURCE).await;
+
+    let position = position_in(RELATIONSHIP_STYLE_COMPLETION_SOURCE, "da", 2);
+    let response = request_json(
+        &mut service,
+        "textDocument/completion",
+        json!({
+            "textDocument": { "uri": uri.as_str() },
+            "position": position,
+        }),
+        31,
+    )
+    .await;
+
+    let labels = response["result"]
+        .as_array()
+        .expect("completion should return an item array")
+        .iter()
+        .map(|item| {
+            item["label"]
+                .as_str()
+                .expect("completion label should be a string")
+        })
+        .collect::<Vec<_>>();
+
+    assert!(labels.contains(&"dashed"));
+    assert!(!labels.contains(&"background"));
+    assert!(!labels.contains(&"workspace"));
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_style_values_suppresses_property_name_suggestions() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let uri = file_uri("style-value-completion.dsl");
+    open_document(&mut service, &uri, STYLE_VALUE_COMPLETION_SOURCE).await;
+
+    let position = position_in(STYLE_VALUE_COMPLETION_SOURCE, "metadata de", 11);
+    let response = request_json(
+        &mut service,
+        "textDocument/completion",
+        json!({
+            "textDocument": { "uri": uri.as_str() },
+            "position": position,
+        }),
+        32,
+    )
+    .await;
+
+    let items = response["result"]
+        .as_array()
+        .expect("completion should return an item array");
+    assert!(items.is_empty());
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -230,6 +337,184 @@ async fn goto_definition_resolves_cross_file_big_bank_relationship_endpoints() {
     assert_eq!(
         web_application_response["result"]["range"]["start"]["line"],
         2
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn goto_definition_resolves_docs_and_adrs_path_arguments() {
+    let (mut service, _socket) = new_service();
+    let workspace_root = workspace_fixture_path("big-bank-plc");
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
+    initialized(&mut service).await;
+
+    let details_path = workspace_root.join("model/internet-banking-system/details.dsl");
+    let details_source = read_workspace_file(&details_path);
+    let details_uri = file_uri_from_path(&details_path);
+    open_document(&mut service, &details_uri, &details_source).await;
+
+    let docs_position = position_in(&details_source, "!docs docs", 7);
+    let docs_response = request_json(
+        &mut service,
+        "textDocument/definition",
+        json!({
+            "textDocument": { "uri": details_uri.as_str() },
+            "position": docs_position,
+        }),
+        33,
+    )
+    .await;
+    let docs_uri = file_uri_from_path(
+        &details_path
+            .parent()
+            .expect("details path should have a parent")
+            .join("docs/01-context.md"),
+    );
+    assert_eq!(docs_response["result"]["uri"], docs_uri.as_str());
+    assert_eq!(docs_response["result"]["range"]["start"]["line"], 0);
+
+    let adrs_position = position_in(&details_source, "!adrs adrs", 7);
+    let adrs_response = request_json(
+        &mut service,
+        "textDocument/definition",
+        json!({
+            "textDocument": { "uri": details_uri.as_str() },
+            "position": adrs_position,
+        }),
+        34,
+    )
+    .await;
+    let adrs_uri = file_uri_from_path(
+        &details_path
+            .parent()
+            .expect("details path should have a parent")
+            .join("adrs/0001-record-architecture-decisions.md"),
+    );
+    assert_eq!(adrs_response["result"]["uri"], adrs_uri.as_str());
+    assert_eq!(adrs_response["result"]["range"]["start"]["line"], 0);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn goto_definition_resolves_include_path_arguments() {
+    let (mut service, _socket) = new_service();
+    let workspace_root = workspace_fixture_path("big-bank-plc");
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
+    initialized(&mut service).await;
+
+    let model_path = workspace_root.join("model/people-and-software-systems.dsl");
+    let model_source = read_workspace_file(&model_path);
+    let model_uri = file_uri_from_path(&model_path);
+    open_document(&mut service, &model_uri, &model_source).await;
+
+    let include_position = position_in(
+        &model_source,
+        "!include \"internet-banking-system/${INTERNET_BANKING_SYSTEM_INCLUDE}\"",
+        18,
+    );
+    let include_response = request_json(
+        &mut service,
+        "textDocument/definition",
+        json!({
+            "textDocument": { "uri": model_uri.as_str() },
+            "position": include_position,
+        }),
+        35,
+    )
+    .await;
+    let include_results = include_response["result"]
+        .as_array()
+        .expect("include path definitions should return an item array");
+    let details_uri =
+        file_uri_from_path(&workspace_root.join("model/internet-banking-system/details.dsl"));
+    let summary_uri =
+        file_uri_from_path(&workspace_root.join("model/internet-banking-system/summary.dsl"));
+    assert!(
+        include_results
+            .iter()
+            .any(|location| location["uri"] == details_uri.as_str())
+    );
+    assert!(
+        include_results
+            .iter()
+            .any(|location| location["uri"] == summary_uri.as_str())
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn document_links_resolve_docs_and_adrs_directive_paths() {
+    let (mut service, _socket) = new_service();
+    let workspace_root = workspace_fixture_path("big-bank-plc");
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
+    initialized(&mut service).await;
+
+    let details_path = workspace_root.join("model/internet-banking-system/details.dsl");
+    let details_source = read_workspace_file(&details_path);
+    let details_uri = file_uri_from_path(&details_path);
+    open_document(&mut service, &details_uri, &details_source).await;
+
+    let response = request_json(
+        &mut service,
+        "textDocument/documentLink",
+        json!({
+            "textDocument": { "uri": details_uri.as_str() }
+        }),
+        36,
+    )
+    .await;
+
+    let links = response["result"]
+        .as_array()
+        .expect("document links should return an item array");
+    let docs_uri = file_uri_from_path(
+        &details_path
+            .parent()
+            .expect("details path should have a parent")
+            .join("docs"),
+    );
+    let adrs_uri = file_uri_from_path(
+        &details_path
+            .parent()
+            .expect("details path should have a parent")
+            .join("adrs"),
+    );
+    assert!(links.iter().any(|link| link["target"] == docs_uri.as_str()));
+    assert!(links.iter().any(|link| link["target"] == adrs_uri.as_str()));
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn document_links_resolve_interpolated_include_paths() {
+    let (mut service, _socket) = new_service();
+    let workspace_root = workspace_fixture_path("big-bank-plc");
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
+    initialized(&mut service).await;
+
+    let model_path = workspace_root.join("model/people-and-software-systems.dsl");
+    let model_source = read_workspace_file(&model_path);
+    let model_uri = file_uri_from_path(&model_path);
+    open_document(&mut service, &model_uri, &model_source).await;
+
+    let response = request_json(
+        &mut service,
+        "textDocument/documentLink",
+        json!({
+            "textDocument": { "uri": model_uri.as_str() }
+        }),
+        37,
+    )
+    .await;
+
+    let links = response["result"]
+        .as_array()
+        .expect("document links should return an item array");
+    let include_uri =
+        file_uri_from_path(&workspace_root.join("model/internet-banking-system/details.dsl"));
+    assert!(
+        links
+            .iter()
+            .any(|link| link["target"] == include_uri.as_str())
     );
 }
 

@@ -1,8 +1,9 @@
 //! Server capability advertisement kept separate from handler code.
 
 use tower_lsp_server::ls_types::{
-    CompletionOptions, OneOf, ServerCapabilities, TextDocumentSyncCapability, TextDocumentSyncKind,
-    TextDocumentSyncOptions, TypeDefinitionProviderCapability,
+    CompletionOptions, DocumentLinkOptions, OneOf, ServerCapabilities, TextDocumentSyncCapability,
+    TextDocumentSyncKind, TextDocumentSyncOptions, TypeDefinitionProviderCapability,
+    WorkDoneProgressOptions,
 };
 
 /// Builds the server capabilities advertised during LSP initialization.
@@ -23,6 +24,10 @@ pub fn server_capabilities() -> ServerCapabilities {
             resolve_provider: Some(false),
             trigger_characters: Some(vec!["!".to_owned()]),
             ..CompletionOptions::default()
+        }),
+        document_link_provider: Some(DocumentLinkOptions {
+            resolve_provider: Some(false),
+            work_done_progress_options: WorkDoneProgressOptions::default(),
         }),
         definition_provider: Some(OneOf::Left(true)),
         type_definition_provider: Some(TypeDefinitionProviderCapability::Simple(true)),

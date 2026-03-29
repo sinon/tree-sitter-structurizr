@@ -18,9 +18,11 @@ This matrix is meant to keep future implementation work honest about what can be
 | Folding ranges | Query-backed | Partially | Likely unnecessary for Zed MVP because editor queries already cover this | P3 |
 | Hover | Syntax + semantic | Partially | Attach resolved symbol metadata and declaration context; avoid runtime-style model rendering or validation | P2 |
 | Keyword/directive completion | Syntax-backed | Yes | Add cursor-context heuristics and completion item text | P0 |
+| Style-property completion | Syntax-backed | Yes | Keep it block-aware and additive; future work can add value completion without tying it to semantic identifier completion | P1 |
 | Identifier completion | Semantic | Partially | Build in-scope symbol table and include-aware workspace index | P1 |
 | Go to definition | Semantic | Partially | Start with top-level assigned identifiers and direct model element references; defer `this`, selectors, and dynamic-view relationship refs | P0 |
 | Find references | Semantic | No | Start with the same bounded identifier set as go-to-definition before expanding to harder scoped cases | P0 |
+| Directive path links (`!docs`, `!adrs`, file-valued `!include`) | Syntax-backed | Yes | Expose `textDocument/documentLink`, and also answer `definition` as a Zed compatibility fallback; folder-valued directives degrade to file targets there because Zed expects file locations | P1 |
 | Rename | Semantic | No | Build safe edit sets with scope-aware resolution and conflict checks | P2 |
 | Workspace symbols | Semantic | No | Aggregate a workspace-wide symbol index | P2 |
 | Duplicate-definition diagnostics | Semantic | No | Detect duplicate identifiers in valid scopes | P1 |
@@ -30,7 +32,7 @@ This matrix is meant to keep future implementation work honest about what can be
 | Semantic tokens | Semantic | No | Add semantic classification layer and token legend | P3 |
 | Code actions | Semantic | No | Add fix generation once diagnostics stabilize | P3 |
 
-## What the existing queries should continue to own
+## What the existing queries and editor layer should continue to own
 
 For Zed specifically, keep these editor-native where possible:
 
@@ -55,6 +57,7 @@ The current bindings already anticipate some of this expansion by conditionally 
 
 ## Semantic notes worth designing explicitly
 
+- Style-property completion is syntax-backed context-aware completion, not semantic identifier completion.
 - `!identifiers` should be modeled before rename and identifier completion are treated as stable.
 - The server should report syntax diagnostics first and only layer on semantic diagnostics when the local parse tree is trustworthy.
 - The Zed extension already owns some editor-specific query surfaces today, so not every useful query needs to live in this repository.
@@ -65,6 +68,7 @@ The current bindings already anticipate some of this expansion by conditionally 
 
 - syntax diagnostics
 - keyword/directive completion
+- style-property completion in parsed style blocks
 - document symbols
 - basic go to definition
 
