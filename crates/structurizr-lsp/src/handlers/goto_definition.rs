@@ -99,6 +99,7 @@ fn directive_path_definition(
     // Zed does not currently surface `textDocument/documentLink`, so keep the
     // richer link surface for other editors but also answer `definition` on
     // directive path spans as a compatibility fallback for Cmd-click navigation.
+    // Reference: https://github.com/zed-industries/zed/issues/33587
     let mut locations = super::directive_paths::resolved_directive_paths_at_offset(
         snapshot,
         workspace_facts,
