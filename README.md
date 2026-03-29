@@ -129,6 +129,21 @@ The audit also ignores `multi-line-with-error.dsl` permanently because it is an 
 
 Start with [`CONTRIBUTING.md`](./CONTRIBUTING.md) for contributor setup, canonical commands, and how the corpus and fixtures are organized.
 
+## License and upstream provenance
+
+Original code in this repository is available under either the MIT License
+(`LICENSE-MIT`) or the Apache License, Version 2.0 (`LICENSE-APACHE`).
+
+This repository also includes material copied or adapted from the Apache-2.0
+licensed Structurizr DSL project in
+[`structurizr/structurizr`](https://github.com/structurizr/structurizr),
+predominently consisting of checked-in `.dsl` samples and fixtures.
+
+These consist of:
+- Structurizr DSL corpus material under `test/corpus/`
+- Structurizr DSL fixtures and workspaces under `tests/fixtures/`
+  and `tests/lsp/workspaces/`
+
 ## References
 
 - Structurizr DSL overview: <https://docs.structurizr.com/dsl>

@@ -15,6 +15,7 @@ workspace "Big Bank plc - System Landscape" "The system landscape for Big Bank p
             !include views/styles-people.dsl
 
             element "Software System" {
+                # TODO: we should tab-complete the known property names in `styles.element`
                 background #999999
                 color #ffffff
             }

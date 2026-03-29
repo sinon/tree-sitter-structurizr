@@ -11,5 +11,6 @@ apiApplication = container "API Application" "Provides Internet banking function
 }
 database = container "Database" "Stores user registration information, hashed authentication credentials, access logs, etc." "Oracle Database Schema" "Database"
 
+# TODO: Each of these directives clicking on the first arg should go to the relevant folder
 !docs docs
 !adrs adrs
