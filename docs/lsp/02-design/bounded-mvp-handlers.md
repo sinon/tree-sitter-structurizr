@@ -122,8 +122,8 @@ It is fine if document symbols overlap somewhat with editor outline features, bu
 Plain folder/file arguments should also stay out of bounded semantic navigation.
 Specifically:
 
-- `!docs <path>`
-- `!adrs <path>`
+- `!docs <path> [fully qualified class name]`
+- `!adrs <path> [adrtools|madr|log4brains|fully qualified class name]`
 - file-valued top-level `!include <path>`
 
 These are editor-local path links, not semantic symbol references.

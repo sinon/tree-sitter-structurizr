@@ -1340,6 +1340,55 @@
         }
       ]
     },
+    "java_fully_qualified_name": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 3,
+        "content": {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "PATTERN",
+              "value": "[A-Za-z_$][A-Za-z0-9_$]*"
+            },
+            {
+              "type": "REPEAT1",
+              "content": {
+                "type": "SEQ",
+                "members": [
+                  {
+                    "type": "STRING",
+                    "value": "."
+                  },
+                  {
+                    "type": "PATTERN",
+                    "value": "[A-Za-z_$][A-Za-z0-9_$]*"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "decision_importer_type": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "adrtools"
+        },
+        {
+          "type": "STRING",
+          "value": "madr"
+        },
+        {
+          "type": "STRING",
+          "value": "log4brains"
+        }
+      ]
+    },
     "_definition": {
       "type": "CHOICE",
       "members": [
@@ -6709,36 +6758,113 @@
       ]
     },
     "docs_directive": {
-      "type": "SEQ",
+      "type": "CHOICE",
       "members": [
         {
-          "type": "STRING",
-          "value": "!docs"
+          "type": "PREC_DYNAMIC",
+          "value": 1,
+          "content": {
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "STRING",
+                "value": "!docs"
+              },
+              {
+                "type": "FIELD",
+                "name": "path",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_directive_value"
+                }
+              },
+              {
+                "type": "FIELD",
+                "name": "importer",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "java_fully_qualified_name"
+                }
+              }
+            ]
+          }
         },
         {
-          "type": "FIELD",
-          "name": "path",
-          "content": {
-            "type": "SYMBOL",
-            "name": "_directive_value"
-          }
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "STRING",
+              "value": "!docs"
+            },
+            {
+              "type": "FIELD",
+              "name": "path",
+              "content": {
+                "type": "SYMBOL",
+                "name": "_directive_value"
+              }
+            }
+          ]
         }
       ]
     },
     "adrs_directive": {
-      "type": "SEQ",
+      "type": "CHOICE",
       "members": [
         {
-          "type": "STRING",
-          "value": "!adrs"
+          "type": "PREC_DYNAMIC",
+          "value": 1,
+          "content": {
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "STRING",
+                "value": "!adrs"
+              },
+              {
+                "type": "FIELD",
+                "name": "path",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_directive_value"
+                }
+              },
+              {
+                "type": "FIELD",
+                "name": "importer",
+                "content": {
+                  "type": "CHOICE",
+                  "members": [
+                    {
+                      "type": "SYMBOL",
+                      "name": "decision_importer_type"
+                    },
+                    {
+                      "type": "SYMBOL",
+                      "name": "java_fully_qualified_name"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
-          "type": "FIELD",
-          "name": "path",
-          "content": {
-            "type": "SYMBOL",
-            "name": "_directive_value"
-          }
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "STRING",
+              "value": "!adrs"
+            },
+            {
+              "type": "FIELD",
+              "name": "path",
+              "content": {
+                "type": "SYMBOL",
+                "name": "_directive_value"
+              }
+            }
+          ]
         }
       ]
     },

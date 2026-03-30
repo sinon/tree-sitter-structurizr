@@ -5,8 +5,8 @@ Workspace directives and config
 workspace {
   !identifiers hierarchical
   !impliedRelationships false
-  !docs "docs"
-  !adrs "docs/adrs"
+  !docs "docs" com.example.documentation.CustomDocumentationImporter
+  !adrs "docs/adrs" log4brains
 
   model {
     user = person "User"
@@ -59,9 +59,11 @@ workspace {
       (implied_relationships_directive
         (identifier))
       (docs_directive
-        (string))
+        (string)
+        (java_fully_qualified_name))
       (adrs_directive
-        (string))
+        (string)
+        (decision_importer_type))
       (model
         (model_block
           (person

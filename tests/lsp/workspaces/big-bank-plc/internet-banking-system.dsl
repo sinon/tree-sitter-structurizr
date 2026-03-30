@@ -93,7 +93,10 @@ workspace "Big Bank plc - Internet Banking System" "The software architecture of
 
     views {
         systemcontext internetBankingSystem "SystemContext" {
-            include *
+            # TODO: These argument after the include should be detected as an identifier for highlighting
+            # TODO: These once they are detected as identifers should then support go-to-def to the relevant assignment/creation
+            #       (note this should also work for other view types `container`, `component`, `dynamic` and `deployment`)
+            include internetBankingSystem customer mainframe email
             # TODO: These identifiers in `views.systemcontext.animation` should allow go-to-def to the relevant assignment/creation
             animation {
                 internetBankingSystem
