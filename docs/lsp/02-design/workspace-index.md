@@ -520,7 +520,7 @@ Later profiling can decide whether narrower recompute is worthwhile.
 
 The current fixtures already suggest the first useful cross-file case:
 
-`crates/structurizr-grammar/tests/fixtures/lsp/includes/workspace_fragments-ok.dsl`
+`crates/structurizr-lsp/tests/fixtures/includes/workspace_fragments-ok.dsl`
 
 ```dsl
 workspace {
@@ -529,7 +529,7 @@ workspace {
 }
 ```
 
-`crates/structurizr-grammar/tests/fixtures/lsp/includes/model-fragment-ok.dsl`
+`crates/structurizr-lsp/tests/fixtures/includes/model-fragment-ok.dsl`
 
 ```dsl
 model {
@@ -542,7 +542,7 @@ model {
 }
 ```
 
-`crates/structurizr-grammar/tests/fixtures/lsp/includes/views-fragment-ok.dsl`
+`crates/structurizr-lsp/tests/fixtures/includes/views-fragment-ok.dsl`
 
 ```dsl
 views {
@@ -623,6 +623,6 @@ That is the semantic step that makes the planned LSP genuinely useful across mul
 - `docs/lsp/02-design/scope-rules.md`
 - `docs/lsp/02-design/bounded-mvp-handlers.md`
 - `docs/lsp/90-history/syntax-audit-directive-nodes.md`
-- `crates/structurizr-grammar/tests/fixtures/lsp/includes/workspace_fragments-ok.dsl`
-- `crates/structurizr-grammar/tests/fixtures/lsp/includes/model-fragment-ok.dsl`
-- `crates/structurizr-grammar/tests/fixtures/lsp/includes/views-fragment-ok.dsl`
+- `crates/structurizr-lsp/tests/fixtures/includes/workspace_fragments-ok.dsl`
+- `crates/structurizr-lsp/tests/fixtures/includes/model-fragment-ok.dsl`
+- `crates/structurizr-lsp/tests/fixtures/includes/views-fragment-ok.dsl`

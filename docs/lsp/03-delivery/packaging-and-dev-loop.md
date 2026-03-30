@@ -447,9 +447,9 @@ And validate:
 Use:
 
 - `/Users/rob/dev/zed-structurizr/big-bank.dsl`
-- `crates/structurizr-grammar/tests/fixtures/lsp/includes/`
-- `crates/structurizr-grammar/tests/fixtures/lsp/identifiers/`
-- `crates/structurizr-grammar/tests/fixtures/lsp/relationships/`
+- `crates/structurizr-lsp/tests/fixtures/includes/`
+- `crates/structurizr-lsp/tests/fixtures/identifiers/`
+- `crates/structurizr-lsp/tests/fixtures/relationships/`
 
 as the first representative smoke-test set.
 

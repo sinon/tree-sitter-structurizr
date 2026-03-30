@@ -339,5 +339,5 @@ There are also two grammar-alignment questions worth carrying forward:
 - `crates/structurizr-grammar/src/node-types.json`
 - `crates/structurizr-grammar/test/corpus/workspace.txt`
 - `crates/structurizr-grammar/test/corpus/model.txt`
-- `crates/structurizr-grammar/tests/fixtures/workspace/extension_directives-ok.dsl`
-- `crates/structurizr-grammar/tests/fixtures/views/advanced-ok.dsl`
+- `fixtures/workspace/extension_directives-ok.dsl`
+- `fixtures/views/advanced-ok.dsl`

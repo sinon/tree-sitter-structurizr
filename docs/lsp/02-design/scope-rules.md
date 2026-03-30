@@ -463,7 +463,7 @@ Why hierarchical rename should wait:
 
 ## Model-level override example
 
-The current fixture `crates/structurizr-grammar/tests/fixtures/lsp/directives/identifiers-directive-ok.dsl` is a good example of the bounded rule:
+The current fixture `crates/structurizr-lsp/tests/fixtures/directives/identifiers-directive-ok.dsl` is a good example of the bounded rule:
 
 ```dsl
 workspace {
@@ -525,5 +525,5 @@ Most importantly, it prevents the project from drifting into accidental pseudo-r
 - `docs/lsp/02-design/first-pass-symbol-extraction.md`
 - `docs/lsp/02-design/bounded-mvp-handlers.md`
 - `docs/lsp/90-history/syntax-audit-directive-nodes.md`
-- `crates/structurizr-grammar/tests/fixtures/lsp/directives/identifiers-directive-ok.dsl`
+- `crates/structurizr-lsp/tests/fixtures/directives/identifiers-directive-ok.dsl`
 - `https://docs.structurizr.com/dsl/identifiers`

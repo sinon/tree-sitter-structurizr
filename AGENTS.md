@@ -32,7 +32,8 @@ This project is not trying to become a Structurizr runtime. It should preserve a
 - `tools/upstream_audit.rs` — contributor-only single-file Cargo script for downloading upstream Structurizr DSL fixtures and auditing parser coverage
 - `crates/structurizr-grammar/tests/fixtures.rs` — fixture-driven Rust tests with snapshots
 - `crates/structurizr-grammar/test/corpus/` — Tree-sitter CLI corpus tests
-- `crates/structurizr-grammar/tests/fixtures/` — the main Rust fixture tree, organized by feature area
+- `fixtures/` — the main Rust fixture tree, organized by feature area
+- `crates/structurizr-lsp/tests/fixtures/` — LSP-specific single-document fixtures
 - `crates/structurizr-grammar/queries/` — checked-in highlighting/folding/indentation queries
 - `docs/lsp/` — current LSP architecture, status, and delivery docs
 - `Justfile` — canonical command surface
@@ -50,6 +51,7 @@ This project is not trying to become a Structurizr runtime. It should preserve a
 - For ad-hoc debugging, create a temporary Rust example in examples/ and run it with cargo run --example <name>. Remove the example after use.
 - Use tmp/ (project-local) for intermediate files and comparison artifacts, not /tmp. This keeps outputs discoverable and project-scoped. The tmp/ directory is gitignored.
 - Use `gh` for fetching files from github instead of fetching web content.
+- When you include a reference to a markdown doc in another markdown file include a fragment link so that lychee can catch drift
 - Run `just check-links` after doc edits. It uses `lychee` with local file and fragment checking so relative markdown links inside `README.md`, `CONTRIBUTING.md`, `AGENTS.md`, `docs/**`, and markdown docs under `crates/**` stay valid.
 
 ## Test harnesses and why they exist
@@ -85,7 +87,7 @@ This is the main local correctness harness.
 
 It is fixture-first:
 
-- `crates/structurizr-grammar/tests/fixtures.rs` loads file-based fixtures under `crates/structurizr-grammar/tests/fixtures/`
+- `fixtures.rs` loads file-based fixtures under `fixtures/`
 - fixture filenames encode expectation:
   - `-ok.dsl` means the fixture should parse without errors
   - `-err.dsl` means the fixture should continue to produce parse errors
@@ -151,7 +153,7 @@ When changing the grammar, use this loop:
 1. Pick a narrow syntax slice from the upstream audit.
 2. Read the failing upstream examples for that slice.
 3. Add or adjust local coverage first:
-   - fixture files under `crates/structurizr-grammar/tests/fixtures/`, organized by feature area
+   - fixture files under `fixtures/`, organized by feature area
    - use `-ok.dsl` or `-err.dsl` suffixes to express expected outcome
    - corpus coverage under `crates/structurizr-grammar/test/corpus/` if the syntax belongs in the compact CLI suite
 4. Update `crates/structurizr-grammar/grammar.js`.
@@ -189,7 +191,7 @@ Use `crates/structurizr-grammar/test/corpus/` when:
 - the tree shape is important
 - the syntax belongs in the stable Tree-sitter-native regression suite
 
-Use `crates/structurizr-grammar/tests/fixtures/` when:
+Use `fixtures/` when:
 
 - the example is more realistic or multi-block
 - you want snapshot coverage for a representative DSL file

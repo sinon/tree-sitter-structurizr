@@ -424,8 +424,8 @@ The analysis crate should reuse the repository's existing testing style rather t
 
 Continue treating repo-root fixtures as the canonical DSL inputs:
 
-- `crates/structurizr-grammar/tests/fixtures/`
-- `crates/structurizr-grammar/tests/fixtures/lsp/`
+- `fixtures/`
+- `crates/structurizr-lsp/tests/fixtures/`
 
 Do **not** duplicate the same DSL files under the crate directory.
 

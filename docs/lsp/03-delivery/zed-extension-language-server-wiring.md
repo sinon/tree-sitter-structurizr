@@ -486,13 +486,13 @@ Use `/Users/rob/dev/zed-structurizr/big-bank.dsl` to confirm:
 
 Use the fixture slice in this repository to confirm:
 
-- `crates/structurizr-grammar/tests/fixtures/lsp/identifiers/direct-references-ok.dsl`
+- `crates/structurizr-lsp/tests/fixtures/identifiers/direct-references-ok.dsl`
   - bounded definition works for assigned identifiers
-- `crates/structurizr-grammar/tests/fixtures/lsp/relationships/named-relationships-ok.dsl`
+- `crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl`
   - named relationship navigation works when implemented
-- `crates/structurizr-grammar/tests/fixtures/lsp/includes/workspace_fragments-ok.dsl`
+- `crates/structurizr-lsp/tests/fixtures/includes/workspace_fragments-ok.dsl`
   - include-aware diagnostics resolve against the parent directive site
-- `crates/structurizr-grammar/tests/fixtures/lsp/directives/identifiers-directive-ok.dsl`
+- `crates/structurizr-lsp/tests/fixtures/directives/identifiers-directive-ok.dsl`
   - hierarchical identifier mode does not crash or produce overconfident results
 
 ### Logging

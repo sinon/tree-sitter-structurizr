@@ -67,7 +67,7 @@ just test-cli
 cargo test -p structurizr-lsp --test navigation
 just run-strz check
 just run-strz dump workspace tests/lsp/workspaces/directory-include
-just run-strz dump document crates/structurizr-grammar/tests/fixtures/lsp/identifiers/direct-references-ok.dsl
+just run-strz dump document crates/structurizr-lsp/tests/fixtures/identifiers/direct-references-ok.dsl
 just run-strz server
 ```
 
@@ -110,13 +110,13 @@ artifact when you need to debug one hanging case.
 The benchmark surface deliberately tracks a small fixed matrix so performance
 history stays comparable over time:
 
-- small document: `crates/structurizr-grammar/tests/fixtures/lsp/identifiers/direct-references-ok.dsl`
+- small document: `crates/structurizr-lsp/tests/fixtures/identifiers/direct-references-ok.dsl`
 - medium document: `tests/lsp/workspaces/big-bank-plc/model/people-and-software-systems.dsl`
 - large document: `tests/lsp/workspaces/big-bank-plc/internet-banking-system.dsl`
 - small workspace: `tests/lsp/workspaces/minimal-scan`
 - medium workspace: `tests/lsp/workspaces/directory-include`
 - large workspace: `tests/lsp/workspaces/big-bank-plc`
-- small LSP session: `crates/structurizr-grammar/tests/fixtures/lsp/relationships/named-relationships-ok.dsl`
+- small LSP session: `crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl`
 - large LSP session: `tests/lsp/workspaces/big-bank-plc/internet-banking-system.dsl`
 
 Useful commands from the repository root:
@@ -231,7 +231,7 @@ Capture notes:
 Promotion notes:
 
 - Start by capturing into `tmp/proptest-captures/`.
-- If the minimized case is worth keeping, promote it into `crates/structurizr-grammar/tests/fixtures/`, `tests/lsp/workspaces/`, or `crates/structurizr-grammar/test/corpus/` depending on whether it is best represented as a realistic fixture, a workspace discovery regression, or a small syntax teaching example.
+- If the minimized case is worth keeping, promote it into `fixtures/`, `tests/lsp/workspaces/`, or `crates/structurizr-grammar/test/corpus/` depending on whether it is best represented as a realistic fixture, a workspace discovery regression, or a small syntax teaching example.
 - Commit any useful `proptest-regressions/` updates alongside the curated fixture or corpus promotion when they still add value.
 
 ## Grammar fuzzing
@@ -265,7 +265,7 @@ Current corpus layout:
 
 When adding a new concept, prefer making the corpus mapping clearer rather than adding another catch-all example if a narrow example will do.
 
-### `crates/structurizr-grammar/tests/fixtures/`
+### `fixtures/`
 
 This is the broader Rust snapshot suite. Keep using it for realistic, multi-block, or integration-style examples.
 
@@ -298,11 +298,11 @@ When changing grammar support:
 The repository uses three complementary views of coverage:
 
 - `crates/structurizr-grammar/test/corpus/` for gradual concept-oriented grammar coverage
-- `crates/structurizr-grammar/tests/fixtures/` for richer snapshot-backed regression coverage
+- `fixtures/` for richer snapshot-backed regression coverage
 - `tools/upstream_audit.rs` as the backlog generator for broader Structurizr DSL parity work
 
 If you are deciding where to add coverage, use this rule of thumb:
 
 - choose `crates/structurizr-grammar/test/corpus/` when the concept should be easy to discover and teach
-- choose `crates/structurizr-grammar/tests/fixtures/` when the example is more realistic, broader, or valuable as a regression snapshot
+- choose `fixtures/` when the example is more realistic, broader, or valuable as a regression snapshot
 - use the upstream audit to choose the next syntax slice, not as a substitute for local tests

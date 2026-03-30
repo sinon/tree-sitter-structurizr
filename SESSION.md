@@ -1,5 +1,4 @@
 - Add one explicit `docs/lsp/` readiness note that states whether bounded-MVP analysis has any blocking grammar gaps; right now that conclusion must be inferred across several docs.
-- Decide whether `crates/structurizr-grammar/tests/fixtures/lsp/` should remain a shared grammar-plus-analysis fixture set or move or duplicate now that the in-repo LSP crate exists and fixture ownership is clearer.
 - The current syntax-diagnostic extractor can emit duplicate diagnostics for the same recovery region on some parse-error fixtures.
 - The bounded analysis extractor currently records only the first identifier in a multi-value view `include` statement.
 - The LSP's new include-diagnostic path currently recomputes workspace discovery for all open-buffer updates; that is acceptable for the bounded MVP, but future workspace indexing should replace it with cached invalidation rather than whole-workspace reloads.
@@ -16,4 +15,3 @@
 - An assigned `softwareSystemInstance` form produced parse errors in an ad-hoc task 03 fixture even though the grammar source and node-types appear to allow one, so that syntax shape likely needs a focused grammar/parity check before relying on it in future navigation work.
 - The `tree-sitter` CLI still warns about missing parser directories during local `parse` / `query` / `highlight` debugging even when `-p .` is provided, so contributor docs may need a clearer local grammar-debugging workflow.
 - `crates/structurizr-analysis/README.md` still frames the language server as future work and understates the current workspace/indexing surface, so it should be synced with the newer top-level docs.
-- `crates/structurizr-grammar/tests/snapshots/` appears to still contain parser snapshot files for fixture names that no longer exist in `crates/structurizr-grammar/tests/fixtures/`, so the grammar test tree likely has stale snapshot cleanup to do.

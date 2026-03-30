@@ -36,7 +36,7 @@ The CLI and server share the same opt-in logging controls:
 ```sh
 just build-strz
 just run-strz check
-just run-strz dump document crates/structurizr-grammar/tests/fixtures/lsp/identifiers/direct-references-ok.dsl
+just run-strz dump document crates/structurizr-lsp/tests/fixtures/identifiers/direct-references-ok.dsl
 just run-strz dump workspace tests/lsp/workspaces/directory-include
 just run-strz server
 cargo test -p structurizr-cli

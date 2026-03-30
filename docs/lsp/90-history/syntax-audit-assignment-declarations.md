@@ -358,4 +358,4 @@ The main follow-up questions are semantic rather than syntactic:
 - `crates/structurizr-grammar/src/node-types.json`
 - `crates/structurizr-grammar/test/corpus/model.txt`
 - `crates/structurizr-grammar/test/corpus/workspace.txt`
-- `crates/structurizr-grammar/tests/fixtures/model/nested_elements-ok.dsl`
+- `fixtures/model/nested_elements-ok.dsl`

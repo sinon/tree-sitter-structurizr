@@ -382,5 +382,5 @@ The main boundary is not parser capability; it is discipline about what the firs
 - `crates/structurizr-grammar/test/corpus/workspace.txt`
 - `crates/structurizr-grammar/test/corpus/views.txt`
 - `crates/structurizr-grammar/test/corpus/model.txt`
-- `crates/structurizr-grammar/tests/fixtures/views/dynamic-explicit-relationships-ok.dsl`
-- `crates/structurizr-grammar/tests/fixtures/deployment/instance_bodies-ok.dsl`
+- `fixtures/views/dynamic-explicit-relationships-ok.dsl`
+- `fixtures/deployment/instance_bodies-ok.dsl`
