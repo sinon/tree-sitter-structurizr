@@ -380,6 +380,99 @@ async fn goto_definition_resolves_cross_file_big_bank_relationship_endpoints() {
 }
 
 #[tokio::test(flavor = "current_thread")]
+async fn goto_definition_resolves_cross_file_big_bank_view_include_and_animation_references() {
+    let (mut service, _socket) = new_service();
+    let workspace_root = workspace_fixture_path("big-bank-plc");
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
+    initialized(&mut service).await;
+
+    let document_path = workspace_root.join("internet-banking-system.dsl");
+    let document_source = read_workspace_file(&document_path);
+    let document_uri = file_uri_from_path(&document_path);
+    open_document(&mut service, &document_uri, &document_source).await;
+
+    let include_customer_position = position_in(
+        &document_source,
+        "internetBankingSystem customer mainframe email",
+        22,
+    );
+    let include_customer_response = request_json(
+        &mut service,
+        "textDocument/definition",
+        json!({
+            "textDocument": { "uri": document_uri.as_str() },
+            "position": include_customer_position,
+        }),
+        12,
+    )
+    .await;
+
+    let people_uri =
+        file_uri_from_path(&workspace_root.join("model/people-and-software-systems.dsl"));
+    assert_eq!(
+        include_customer_response["result"]["uri"],
+        people_uri.as_str()
+    );
+    assert_eq!(
+        include_customer_response["result"]["range"]["start"]["line"],
+        0
+    );
+
+    let container_animation_position = position_in(
+        &document_source,
+        "webApplication\n                singlePageApplication",
+        0,
+    );
+    let container_animation_response = request_json(
+        &mut service,
+        "textDocument/definition",
+        json!({
+            "textDocument": { "uri": document_uri.as_str() },
+            "position": container_animation_position,
+        }),
+        13,
+    )
+    .await;
+
+    let details_uri =
+        file_uri_from_path(&workspace_root.join("model/internet-banking-system/details.dsl"));
+    assert_eq!(
+        container_animation_response["result"]["uri"],
+        details_uri.as_str()
+    );
+    assert_eq!(
+        container_animation_response["result"]["range"]["start"]["line"],
+        2
+    );
+
+    let deployment_animation_position = position_in(
+        &document_source,
+        "developerSinglePageApplicationInstance",
+        0,
+    );
+    let deployment_animation_response = request_json(
+        &mut service,
+        "textDocument/definition",
+        json!({
+            "textDocument": { "uri": document_uri.as_str() },
+            "position": deployment_animation_position,
+        }),
+        14,
+    )
+    .await;
+
+    assert_eq!(
+        deployment_animation_response["result"]["uri"],
+        document_uri.as_str()
+    );
+    assert_eq!(
+        deployment_animation_response["result"]["range"]["start"]["line"],
+        31
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
 async fn goto_definition_resolves_docs_and_adrs_path_arguments() {
     let (mut service, _socket) = new_service();
     let workspace_root = workspace_fixture_path("big-bank-plc");

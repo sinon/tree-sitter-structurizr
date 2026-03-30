@@ -144,6 +144,12 @@
   source: (identifier) @variable
   destination: (identifier) @variable)
 
+(include_statement
+  value: (identifier) @variable)
+
+(animation_block
+  value: (identifier) @variable)
+
 (style_setting
   name: (identifier) @property)
 

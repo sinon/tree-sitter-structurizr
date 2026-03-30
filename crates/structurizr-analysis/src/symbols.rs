@@ -66,6 +66,8 @@ pub enum ReferenceKind {
     ViewScope,
     /// `include` reference nested inside a view body.
     ViewInclude,
+    /// Identifier-valued `animation` reference nested inside a view body.
+    ViewAnimation,
 }
 
 /// Narrows which symbol kinds are valid targets for a reference.

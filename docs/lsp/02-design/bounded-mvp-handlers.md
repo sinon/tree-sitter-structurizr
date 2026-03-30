@@ -361,10 +361,12 @@ Definition should work from these reference kinds only:
 - `RelationshipDestination`
 - `ViewScope`
 - `ViewInclude`
+- `ViewAnimation`
 
 And only when the raw identifier text can be matched against a supported bindable symbol in the current bounded context.
 
 Here `ViewInclude` means identifier-valued `include` statements inside supported view bodies.
+Here `ViewAnimation` means identifier-valued `animation` steps inside supported static and deployment view bodies.
 File-valued `!include` directives and path arguments to `!docs` / `!adrs` are handled separately as syntax-backed path navigation rather than as semantic symbol resolution.
 
 ### Matching policy
@@ -383,6 +385,7 @@ From the current fixtures, the handler should eventually support:
 - `user` / `system` / `api` / `worker` inside plain relationship endpoints
 - `system` / `api` in supported view `scope` fields
 - `user` / `api` / `worker` / `rel` inside supported `include_statement` identifier positions
+- `user` / `api` / `worker` and deployment instance identifiers inside supported `animation` blocks
 
 ### Deferred behavior
 
@@ -429,6 +432,7 @@ Only:
 - `RelationshipDestination`
 - `ViewScope`
 - `ViewInclude`
+- `ViewAnimation`
 
 As with definition, this surface is about semantic identifier references.
 Plain folder/file path arguments for `!docs`, `!adrs`, and file-valued top-level `!include` stay downstream rather than becoming protocol references.

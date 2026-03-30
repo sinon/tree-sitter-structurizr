@@ -275,6 +275,7 @@ This covers:
 - `systemContext system`
 - `container system`
 - `component api` in flat mode
+- `deployment system "Live"`
 
 It does **not** automatically make hierarchical shorthand work.
 
@@ -300,6 +301,28 @@ Conservative rule:
 - if both tables produce a candidate for the same raw text, treat the result as ambiguous and return no result until namespace policy is documented more fully
 
 This avoids silently choosing the wrong target kind.
+
+### 4. View animation references
+
+For:
+
+- `ReferenceKind::ViewAnimation`
+
+resolve against:
+
+- the element binding table when the reference carries `ReferenceTargetHint::Element`
+- the deployment binding table when the reference carries `ReferenceTargetHint::Deployment`
+
+using:
+
+- exact canonical key match in the relevant table
+
+This covers:
+
+- identifier steps inside `animation { ... }` for `systemLandscape`, `systemContext`, `container`, and `component` views
+- deployment-node and instance identifiers inside `deployment` view animations
+
+It does **not** widen support to `dynamic_relationship` or `dynamic_relationship_reference`.
 
 ## What stays explicitly deferred
 
