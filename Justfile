@@ -86,6 +86,9 @@ audit-upstream-all:
 zizmor:
     zizmor --gh-token="$(gh auth token)" .github/ --persona pedantic
 
+zizmor-fix:
+    zizmor --gh-token="$(gh auth token)" .github/ --persona pedantic --fix
+
 test-grammar:
     tree-sitter test
 
