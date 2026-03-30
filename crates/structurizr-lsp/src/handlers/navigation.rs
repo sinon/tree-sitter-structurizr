@@ -1,6 +1,6 @@
 //! Shared navigation helpers for same-document fallback and workspace indexing.
 
-use std::{fs, str::FromStr};
+use std::{fs, path::Path};
 
 use line_index::LineIndex;
 use structurizr_analysis::{
@@ -11,7 +11,11 @@ use structurizr_analysis::{
 use tower_lsp_server::ls_types::{Location, Uri};
 use tracing::debug;
 
-use crate::{convert::positions::span_to_range, documents::DocumentState, state::ServerState};
+use crate::{
+    convert::{positions::span_to_range, uris::file_uri_from_path},
+    documents::DocumentState,
+    state::ServerState,
+};
 
 pub enum NavigationSite<'a> {
     Symbol(&'a Symbol),
@@ -490,7 +494,7 @@ fn workspace_document_id(document: &DocumentState) -> Option<DocumentId> {
 }
 
 fn file_uri_from_document_id(document_id: &DocumentId) -> Option<Uri> {
-    Uri::from_str(&format!("file://{}", document_id.as_str())).ok()
+    file_uri_from_path(Path::new(document_id.as_str()))
 }
 
 fn bindable_symbol_at_offset<'a>(

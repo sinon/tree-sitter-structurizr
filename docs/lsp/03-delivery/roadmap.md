@@ -511,7 +511,18 @@ Only expand once the bounded MVP is stable.
 
 The current design note for this phase is `docs/lsp/03-delivery/advanced-semantic-expansion.md`.
 
-### 6.1 Add richer semantic features
+### 6.1 Add narrow syntax-backed completion refinements
+
+A good first post-MVP refinement was style-property completion inside parsed `element_style` and `relationship_style` blocks.
+
+That property-name slice is now landed.
+The remaining follow-up work here should stay narrow:
+
+- finite value completion where the grammar already fixes the allowed value set
+- optional `properties {}` scaffolding inside style-rule blocks
+- any further syntax-backed tables that still stay separate from semantic identifier completion and `!identifiers` policy
+
+### 6.2 Add richer semantic features
 
 Candidates:
 
@@ -522,18 +533,18 @@ Candidates:
 
 Each one should be gated by whether the scope rules are strong enough to implement it safely.
 
-### 6.2 Improve include and workspace diagnostics
+### 6.3 Improve include and workspace diagnostics
 
 Add better diagnostics quality, richer messages, and more workspace-awareness without drifting into full runtime validation.
 
-### 6.3 Revisit query layering
+### 6.4 Revisit query layering
 
 Once the server exists, revisit whether any additional query surfaces should move:
 
 - into the grammar repo as portable assets
 - or stay in the Zed extension as editor-specific assets
 
-### 6.4 Consider polish features
+### 6.5 Consider polish features
 
 Possible later additions:
 

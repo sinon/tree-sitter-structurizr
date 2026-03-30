@@ -91,6 +91,10 @@ Owns:
 
 This keeps the semantic logic close to the grammar while keeping editor-distribution details in the editor-facing repo.
 
+Today the extension needs the server to answer directive path spans through `textDocument/definition` as well as `textDocument/documentLink`.
+The current `zed_extension_api` surface does not expose a native clickable-span hook, and Zed does not yet surface LSP `textDocument/documentLink`, so Cmd-click path opening currently depends on the definition fallback.
+When a directive target is a directory, that fallback must resolve to concrete files when possible because Zed's definition flow expects file locations.
+
 ## What should change in the Zed extension repo
 
 The extension repo should gain exactly three new pieces:

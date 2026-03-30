@@ -29,3 +29,17 @@ The interpolated `!include` case is especially ambiguous because it may be an ed
 Resolve ownership first, not implementation. The likely default should be to keep plain path links editor-owned unless there is a strong cross-editor case for LSP support.
 
 If LSP support is later chosen, prefer `textDocument/documentLink` for `!docs`, `!adrs`, and top-level include paths instead of stretching `textDocument/definition` beyond its current semantic role.
+
+## Resolution
+
+Keep semantic symbol navigation and path-link opening on separate protocol surfaces.
+
+- Keep semantic symbol navigation and `textDocument/references` limited to symbol usage, not plain path spans.
+- Implement path opening for those spans via `textDocument/documentLink`.
+- Also answer `textDocument/definition` for those spans as a practical Zed fallback, because Zed does not yet surface LSP document links.
+- For directory-valued directives such as `!docs` and `!adrs`, make that fallback point at concrete files inside the directory when possible because Zed expects file definition targets.
+- If one `!include` span resolves to multiple targets across workspace contexts, suppress `documentLink` for that span rather than emitting overlapping links, and rely on the multi-result `definition` fallback instead.
+
+This keeps the dedicated link surface available for editors that support it while still giving Zed a concrete Cmd-click path-opening route today.
+
+The current `zed_extension_api` only exposes language-server launch and configuration hooks, so there is no extension-native clickable-span hook to own this directly at the moment.

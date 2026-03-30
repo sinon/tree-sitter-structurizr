@@ -199,8 +199,7 @@ pub fn file_uri(name: &str) -> Uri {
 }
 
 pub fn file_uri_from_path(path: &Path) -> Uri {
-    Uri::from_str(&format!("file://{}", path.to_string_lossy()))
-        .expect("file path URI should parse")
+    Uri::from_file_path(path).expect("file path URI should parse")
 }
 
 pub fn workspace_fixture_path(name: &str) -> PathBuf {

@@ -1366,12 +1366,14 @@ dependencies = [
  "line-index",
  "serde_json",
  "structurizr-analysis",
+ "tempfile",
  "tokio",
  "tower",
  "tower-lsp-server",
  "tracing",
  "tracing-log",
  "tracing-subscriber",
+ "tree-sitter",
 ]
 
 [[package]]

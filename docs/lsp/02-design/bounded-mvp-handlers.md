@@ -119,6 +119,19 @@ The LSP should therefore focus on semantic value first.
 
 It is fine if document symbols overlap somewhat with editor outline features, but the MVP should not try to replace editor-native query behavior wholesale.
 
+Plain folder/file arguments should also stay out of bounded semantic navigation.
+Specifically:
+
+- `!docs <path>`
+- `!adrs <path>`
+- file-valued top-level `!include <path>`
+
+These are editor-local path links, not semantic symbol references.
+The bounded MVP should therefore keep them out of semantic reference resolution and out of `textDocument/references`.
+When the server exposes these spans as protocol links, it should use `textDocument/documentLink` as the primary surface.
+Because Zed does not yet surface `textDocument/documentLink`, the current implementation also answers `textDocument/definition` on these spans as a compatibility fallback for Cmd-click navigation.
+For directory-valued targets such as `!docs` and `!adrs`, that fallback resolves to concrete files inside the directory when any exist because Zed expects file locations rather than directory URIs for definition targets.
+
 ## 1. Diagnostics handler
 
 This is the first required user-visible handler because it establishes the trust model for the rest of the server.
@@ -274,6 +287,10 @@ The first completion slice should support:
 
 This is enough to make the server feel helpful without requiring deep semantic scope resolution.
 
+The current completion slice also supports style-property names inside `element_style` and `relationship_style` blocks.
+That refinement stays syntax-backed and context-aware: it is driven by parsed style-block context and block-specific property tables, not by semantic identifier resolution.
+Because the grammar still allows generic identifier-based style keys, it should stay additive rather than becoming a validity gate.
+
 ### What not to do yet
 
 Do **not** implement first-pass identifier completion yet.
@@ -303,6 +320,8 @@ Do not try to provide:
 - rename-aware completion
 - relationship-reference completion in dynamic views
 - full context-sensitive value completion for every DSL statement
+
+Future style-completion work should stay focused on safe value suggestions and similar syntax-backed refinements rather than expanding into semantic identifier completion by accident.
 
 ## 4. Go-to-definition handler
 
@@ -345,6 +364,9 @@ Definition should work from these reference kinds only:
 
 And only when the raw identifier text can be matched against a supported bindable symbol in the current bounded context.
 
+Here `ViewInclude` means identifier-valued `include` statements inside supported view bodies.
+File-valued `!include` directives and path arguments to `!docs` / `!adrs` are handled separately as syntax-backed path navigation rather than as semantic symbol resolution.
+
 ### Matching policy
 
 The first definition implementation should stay deterministic and conservative:
@@ -373,6 +395,8 @@ Return no definition result for:
 - other selector-based lookups
 
 Those cases should stay aligned with the extraction contract rather than being handled ad hoc in the LSP.
+The current implementation exposes them through `textDocument/documentLink` and also through a narrow `textDocument/definition` fallback for editors such as Zed that do not surface document links yet.
+If one source span resolves to multiple possible include targets across workspace contexts, the server suppresses `documentLink` for that span rather than emitting overlapping links and relies on `definition` to surface the multiple file results instead.
 
 ## 5. Find-references handler
 
@@ -405,6 +429,9 @@ Only:
 - `RelationshipDestination`
 - `ViewScope`
 - `ViewInclude`
+
+As with definition, this surface is about semantic identifier references.
+Plain folder/file path arguments for `!docs`, `!adrs`, and file-valued top-level `!include` stay downstream rather than becoming protocol references.
 
 ### Important consistency rule
 

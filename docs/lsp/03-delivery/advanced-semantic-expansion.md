@@ -50,10 +50,11 @@ The server should grow in **ordered tracks**, not as one undifferentiated “adv
 
 Recommended order:
 
-1. complete the deferred core reference/scope model for the current bounded symbol families
-2. add richer **read-only** semantic features on top of that
-3. add **edit-capable** semantic features only when reference coverage is strong enough
-4. add presentation/polish features only if they provide value beyond Tree-sitter-native editor behavior
+1. allow narrow syntax-backed completion refinements that rely only on stable parse context
+2. complete the deferred core reference/scope model for the current bounded symbol families
+3. add richer **read-only** semantic features on top of that
+4. add **edit-capable** semantic features only when reference coverage is strong enough
+5. add presentation/polish features only if they provide value beyond Tree-sitter-native editor behavior
 
 The most important meta-rule is:
 
@@ -145,7 +146,34 @@ Otherwise it becomes too hard to tell whether failures come from:
 
 ## Expansion tracks
 
-The cleanest way to think about Phase 6 is four tracks.
+The cleanest way to think about Phase 6 is five tracks.
+
+## Track 0: remaining syntax-backed completion refinements
+
+Style-property name completion inside parsed style blocks is now landed.
+Before broader semantic expansion starts, the server can still add small completion improvements that rely only on stable parse context and static DSL tables.
+
+### What belongs in this track
+
+- finite value completion inside `element_style` blocks
+- finite value completion inside `relationship_style` blocks
+- optional `properties {}` block scaffolding inside style-rule blocks
+
+### Why this track is separate
+
+- it does not require workspace indexes or symbol resolution
+- it does not depend on `!identifiers` or rename-grade scope confidence
+- it is closer to the existing keyword/directive completion slice than to semantic identifier completion
+
+### Recommended rollout inside this track
+
+1. define activation contexts and non-semantic value tables first
+2. add value suggestions only when the grammar or fixtures already make the allowed values explicit
+3. leave arbitrary `properties {}` entries additive rather than trying to validate them semantically
+
+### Important guardrail
+
+The grammar still accepts generic identifier-based style keys, so this completion should be additive editor guidance rather than a validity gate.
 
 ## Track 1: complete the core deferred reference model
 
