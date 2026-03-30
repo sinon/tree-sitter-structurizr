@@ -520,6 +520,147 @@ async fn document_links_resolve_docs_and_adrs_directive_paths() {
     );
     assert!(links.iter().any(|link| link["target"] == docs_uri.as_str()));
     assert!(links.iter().any(|link| link["target"] == adrs_uri.as_str()));
+
+    let docs_link = links
+        .iter()
+        .find(|link| link["target"] == docs_uri.as_str())
+        .expect("docs link should exist");
+    assert_eq!(docs_link["range"]["start"]["line"], 14);
+    assert_eq!(docs_link["range"]["start"]["character"], 6);
+    assert_eq!(docs_link["range"]["end"]["line"], 14);
+    assert_eq!(docs_link["range"]["end"]["character"], 10);
+
+    let adrs_link = links
+        .iter()
+        .find(|link| link["target"] == adrs_uri.as_str())
+        .expect("adrs link should exist");
+    assert_eq!(adrs_link["range"]["start"]["line"], 15);
+    assert_eq!(adrs_link["range"]["start"]["character"], 6);
+    assert_eq!(adrs_link["range"]["end"]["line"], 15);
+    assert_eq!(adrs_link["range"]["end"]["character"], 10);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn goto_definition_ignores_docs_and_adrs_importer_arguments() {
+    let temp_workspace = TempWorkspace::new(
+        "directive-importers",
+        "workspace {\n  !docs docs com.example.documentation.CustomDocumentationImporter\n  !adrs decisions com.example.documentation.CustomDecisionImporter\n}\n",
+        &[Path::new("docs"), Path::new("decisions")],
+        &[
+            (Path::new("docs/01-context.md"), "# Context"),
+            (Path::new("decisions/0001-record.md"), "# Decision"),
+        ],
+    );
+    let (mut service, _socket) = new_service();
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(temp_workspace.path())])
+        .await;
+    initialized(&mut service).await;
+
+    let workspace_path = temp_workspace.path().join("workspace.dsl");
+    let workspace_source = read_workspace_file(&workspace_path);
+    let workspace_uri = file_uri_from_path(&workspace_path);
+    open_document(&mut service, &workspace_uri, &workspace_source).await;
+
+    let docs_importer_position = position_in(
+        &workspace_source,
+        "com.example.documentation.CustomDocumentationImporter",
+        4,
+    );
+    let docs_importer_response = request_json(
+        &mut service,
+        "textDocument/definition",
+        json!({
+            "textDocument": { "uri": workspace_uri.as_str() },
+            "position": docs_importer_position,
+        }),
+        50,
+    )
+    .await;
+    assert!(docs_importer_response["result"].is_null());
+
+    let adrs_importer_position = position_in(
+        &workspace_source,
+        "com.example.documentation.CustomDecisionImporter",
+        4,
+    );
+    let adrs_importer_response = request_json(
+        &mut service,
+        "textDocument/definition",
+        json!({
+            "textDocument": { "uri": workspace_uri.as_str() },
+            "position": adrs_importer_position,
+        }),
+        51,
+    )
+    .await;
+    assert!(adrs_importer_response["result"].is_null());
+
+    let docs_path_position = position_in(&workspace_source, "!docs docs", 7);
+    let docs_path_response = request_json(
+        &mut service,
+        "textDocument/definition",
+        json!({
+            "textDocument": { "uri": workspace_uri.as_str() },
+            "position": docs_path_position,
+        }),
+        52,
+    )
+    .await;
+    let docs_uri = file_uri_from_path(
+        &fs::canonicalize(temp_workspace.path().join("docs/01-context.md"))
+            .expect("docs file should canonicalize"),
+    );
+    assert_eq!(docs_path_response["result"]["uri"], docs_uri.as_str());
+
+    let adrs_path_position = position_in(&workspace_source, "!adrs decisions", 7);
+    let adrs_path_response = request_json(
+        &mut service,
+        "textDocument/definition",
+        json!({
+            "textDocument": { "uri": workspace_uri.as_str() },
+            "position": adrs_path_position,
+        }),
+        53,
+    )
+    .await;
+    let adrs_uri = file_uri_from_path(
+        &fs::canonicalize(temp_workspace.path().join("decisions/0001-record.md"))
+            .expect("adrs file should canonicalize"),
+    );
+    assert_eq!(adrs_path_response["result"]["uri"], adrs_uri.as_str());
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn diagnostics_do_not_report_syntax_errors_for_docs_and_adrs_importers() {
+    let temp_workspace = TempWorkspace::new(
+        "directive-importer-diagnostics",
+        "workspace \"Some System\" \"Description\" {\n  model {\n    contributor = person \"Person\"\n    someSystem = softwareSystem \"Some System\" {\n      !docs docs com.example.documentation.CustomDocumentationImporter\n      !adrs decisions adrtools\n      someContainer = container \"Some Container\" \"\" \"\"\n    }\n  }\n}\n",
+        &[Path::new("docs"), Path::new("decisions")],
+        &[
+            (Path::new("docs/01-context.md"), "# Context"),
+            (Path::new("decisions/0001-record.md"), "# Decision"),
+        ],
+    );
+    let (mut service, mut socket) = new_service();
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(temp_workspace.path())])
+        .await;
+    initialized(&mut service).await;
+
+    let workspace_path = temp_workspace.path().join("workspace.dsl");
+    let workspace_source = read_workspace_file(&workspace_path);
+    let workspace_uri = file_uri_from_path(&workspace_path);
+    open_document(&mut service, &workspace_uri, &workspace_source).await;
+
+    let notification = next_publish_diagnostics_for_uri(&mut socket, workspace_uri.as_str()).await;
+    let diagnostics = notification["params"]["diagnostics"]
+        .as_array()
+        .expect("diagnostics notification should include an array");
+    assert!(
+        diagnostics.is_empty(),
+        "optional importer arguments should not leave syntax errors behind: {diagnostics:?}"
+    );
 }
 
 #[tokio::test(flavor = "current_thread")]

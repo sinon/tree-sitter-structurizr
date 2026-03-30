@@ -3,6 +3,20 @@
     "type": "adrs_directive",
     "named": true,
     "fields": {
+      "importer": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "decision_importer_type",
+            "named": true
+          },
+          {
+            "type": "java_fully_qualified_name",
+            "named": true
+          }
+        ]
+      },
       "path": {
         "multiple": false,
         "required": true,
@@ -1353,6 +1367,11 @@
     }
   },
   {
+    "type": "decision_importer_type",
+    "named": true,
+    "fields": {}
+  },
+  {
     "type": "deployment_environment",
     "named": true,
     "fields": {
@@ -1752,6 +1771,16 @@
     "type": "docs_directive",
     "named": true,
     "fields": {
+      "importer": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "java_fully_qualified_name",
+            "named": true
+          }
+        ]
+      },
       "path": {
         "multiple": false,
         "required": true,
@@ -5561,6 +5590,10 @@
     "named": false
   },
   {
+    "type": "adrtools",
+    "named": false
+  },
+  {
     "type": "animation",
     "named": false
   },
@@ -5718,6 +5751,10 @@
     "named": false
   },
   {
+    "type": "java_fully_qualified_name",
+    "named": true
+  },
+  {
     "type": "kroki",
     "named": false
   },
@@ -5730,11 +5767,19 @@
     "named": true
   },
   {
+    "type": "log4brains",
+    "named": false
+  },
+  {
     "type": "logo",
     "named": false
   },
   {
     "type": "lr",
+    "named": false
+  },
+  {
+    "type": "madr",
     "named": false
   },
   {

@@ -344,6 +344,24 @@ export default grammar({
     _directive_value: ($) =>
       choice($.string, $.text_block_string, $.bare_value, $.identifier),
 
+    // Documentation importers and ADR importer selectors are identifier-shaped
+    // values in the DSL: either a built-in token such as `adrtools` or a fully
+    // qualified Java class name. Keeping them separate from `_directive_value`
+    // preserves flexible path parsing without treating hyphenated bare values
+    // such as `adr-tools` as first-class supported importer syntax.
+    java_fully_qualified_name: (_) =>
+      token(
+        prec(
+          3,
+          seq(
+            /[A-Za-z_$][A-Za-z0-9_$]*/,
+            repeat1(seq(".", /[A-Za-z_$][A-Za-z0-9_$]*/)),
+          ),
+        ),
+      ),
+
+    decision_importer_type: (_) => choice("adrtools", "madr", "log4brains"),
+
     _definition: ($) =>
       choice(
         $.workspace,
@@ -1418,9 +1436,34 @@ export default grammar({
     implied_relationships_directive: ($) =>
       seq("!impliedRelationships", field("value", $._directive_value)),
 
-    docs_directive: ($) => seq("!docs", field("path", $._directive_value)),
+    docs_directive: ($) =>
+      choice(
+        prec.dynamic(
+          1,
+          seq(
+            "!docs",
+            field("path", $._directive_value),
+            field("importer", $.java_fully_qualified_name),
+          ),
+        ),
+        seq("!docs", field("path", $._directive_value)),
+      ),
 
-    adrs_directive: ($) => seq("!adrs", field("path", $._directive_value)),
+    adrs_directive: ($) =>
+      choice(
+        prec.dynamic(
+          1,
+          seq(
+            "!adrs",
+            field("path", $._directive_value),
+            field(
+              "importer",
+              choice($.decision_importer_type, $.java_fully_qualified_name),
+            ),
+          ),
+        ),
+        seq("!adrs", field("path", $._directive_value)),
+      ),
 
     system_landscape_view: ($) =>
       choice(

@@ -89,7 +89,9 @@ api = container "API" "Handles requests" "Rust" {
   !include "components.dsl"
 }
 url https://example.com
-!docs docs
+!docs docs com.example.documentation.CustomDocumentationImporter
+!adrs adrs com.example.documentation.CustomDecisionImporter
+worker = container "Worker" "Processes jobs" "Rust"
 
 ---
 
@@ -105,7 +107,16 @@ url https://example.com
   (url_statement
     (bare_value))
   (docs_directive
-    (identifier)))
+    (identifier)
+    (java_fully_qualified_name))
+  (adrs_directive
+    (identifier)
+    (java_fully_qualified_name))
+  (container
+    (identifier)
+    (string)
+    (string)
+    (string)))
 
 =======================
 Multiline continuation

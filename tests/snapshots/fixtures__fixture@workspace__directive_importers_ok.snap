@@ -1,0 +1,35 @@
+---
+source: tests/fixtures.rs
+expression: tree_sexp(&tree)
+---
+(source_file
+  (workspace name:
+    (string) description:
+    (string) body:
+    (workspace_block
+      (docs_directive path:
+        (identifier) importer:
+        (java_fully_qualified_name))
+      (adrs_directive path:
+        (identifier) importer:
+        (decision_importer_type))
+      (model body:
+        (model_block
+          (person identifier:
+            (identifier) name:
+            (string))
+          (software_system identifier:
+            (identifier) name:
+            (string) body:
+            (software_system_block
+              (docs_directive path:
+                (bare_value) importer:
+                (java_fully_qualified_name))
+              (adrs_directive path:
+                (bare_value) importer:
+                (java_fully_qualified_name))
+              (container identifier:
+                (identifier) name:
+                (string) description:
+                (string) technology:
+                (string)))))))))
