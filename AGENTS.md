@@ -9,28 +9,32 @@ The main goal is editor support rather than DSL execution:
 - syntax highlighting
 - code folding
 - indentation/query support
-- robust parsing of real `.dsl` files for a future Zed extension and other Rust-based consumers
+- robust parsing of real `.dsl` files for Zed and other Rust-based consumers
 
 This project is not trying to become a Structurizr runtime. It should preserve and expose syntax structure faithfully enough for editor features, tests, and iterative grammar hardening.
 
-## Planned LSP work
+## Current LSP work and boundaries
 
-- `docs/lsp/README.md` is the entry point for the future Structurizr DSL LSP design.
-- The intended implementation shape is a future analysis crate plus a future `structurizr-lsp` crate in this repo, reusing the grammar and Rust bindings.
+- `docs/lsp/README.md` and `docs/lsp/00-current-state.md` are the entry points for the current LSP architecture, status, and roadmap docs.
+- This repo now already contains `crates/structurizr-analysis/`, `crates/structurizr-lsp/`, and `crates/structurizr-cli/` alongside the grammar.
 - Keep `/Users/rob/dev/zed-structurizr` as a separate downstream editor integration repo.
 - Treat the grammar as the syntax layer and the LSP as a separate semantic layer; do not distort grammar rules just to model runtime semantics.
-- If implementation starts, prefer transport-agnostic analysis logic and keep protocol/editor glue thin.
+- Prefer transport-agnostic analysis logic and keep protocol/editor glue thin.
 
 ## Core files and layout
 
-- `CONTRIBUTORS.md` — contributor-only local development and audit workflow guide
+- `CONTRIBUTING.md` — contributor workflow and canonical command surface
 - `grammar.js` — source of truth for the grammar
 - `src/parser.c`, `src/grammar.json`, `src/node-types.json` — generated artifacts
+- `crates/structurizr-analysis/` — transport-agnostic document and workspace facts
+- `crates/structurizr-lsp/` — language server implementation
+- `crates/structurizr-cli/` — `strz` CLI including `strz server`
 - `tools/upstream_audit.rs` — contributor-only single-file Cargo script for downloading upstream Structurizr DSL fixtures and auditing parser coverage
 - `tests/fixtures.rs` — fixture-driven Rust tests with snapshots
 - `test/corpus/` — Tree-sitter CLI corpus tests
 - `tests/fixtures/` — the main Rust fixture tree, organized by feature area
-- `queries/` — placeholder area for future highlighting/folding/indentation queries
+- `queries/` — checked-in highlighting/folding/indentation queries
+- `docs/lsp/` — current LSP architecture, status, and delivery docs
 - `Justfile` — canonical command surface
 
 ## Specification references
@@ -46,6 +50,7 @@ This project is not trying to become a Structurizr runtime. It should preserve a
 - For ad-hoc debugging, create a temporary Rust example in examples/ and run it with cargo run --example <name>. Remove the example after use.
 - Use tmp/ (project-local) for intermediate files and comparison artifacts, not /tmp. This keeps outputs discoverable and project-scoped. The tmp/ directory is gitignored.
 - Use `gh` for fetching files from github instead of fetching web content.
+- Run `just check-links` after doc edits. It uses `lychee` with local file and fragment checking so relative markdown links inside `README.md`, `CONTRIBUTING.md`, `AGENTS.md`, and `docs/**` stay valid.
 
 ## Test harnesses and why they exist
 

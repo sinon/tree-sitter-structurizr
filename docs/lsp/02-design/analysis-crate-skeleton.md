@@ -1,5 +1,10 @@
 # Structurizr DSL analysis crate skeleton
 
+> Status: implemented in bounded form.
+>
+> `structurizr-analysis` now exists in-repo. Read this note as the architectural
+> contract for that crate shape and as background for future expansion work.
+
 This note turns Phase 2 of `docs/lsp/03-delivery/roadmap.md` into a concrete crate shape.
 
 Its job is to define the first reusable semantic layer that sits:

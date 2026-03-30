@@ -1,5 +1,11 @@
 # Structurizr DSL repo topology and integration options
 
+> Status: implemented decision.
+>
+> The grammar, analysis crate, LSP crate, and separate Zed extension now exist
+> in this shape. Read remaining future-tense wording below as the rationale for
+> why that topology was chosen and why it should stay stable.
+
 ## Why this matters
 
 There are already two moving pieces:

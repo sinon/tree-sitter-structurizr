@@ -1,5 +1,11 @@
 # Structurizr DSL query ownership decision
 
+> Status: current decision.
+>
+> The grammar repo already owns the portable query surface, and the in-repo LSP
+> now exists. Read future-tense wording below as ongoing query-planning context,
+> not as evidence that the server is still hypothetical.
+
 This document records where query files should live between:
 
 - this grammar repository: `/Users/rob/dev/tree-sitter-structurizr`

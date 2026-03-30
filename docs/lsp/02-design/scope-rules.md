@@ -1,5 +1,11 @@
 # Structurizr DSL bounded scope rules
 
+> Status: implemented in bounded form.
+>
+> The bounded resolution rules described here are now active in the in-repo
+> analysis and LSP layers. Read remaining future-tense wording below as the
+> original rationale for those limits and follow-on expansion notes.
+
 This note defines the first supported identifier-resolution rules for the future Structurizr analysis crate and LSP.
 
 It is the semantic companion to:

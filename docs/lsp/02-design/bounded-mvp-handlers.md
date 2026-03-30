@@ -1,6 +1,13 @@
-# Structurizr DSL bounded MVP handlers
+# Structurizr DSL bounded handler contracts
 
-This note defines the first user-visible LSP handler slice for the future Structurizr server.
+> Status: implemented in-repo.
+>
+> Read this as the design contract for the shipped bounded handler slice, not as
+> a greenfield plan. If you need current status or the remaining path to
+> feature-complete editor support, start with `../00-current-state.md` and
+> `../03-delivery/roadmap.md`.
+
+This note defines the first user-visible LSP handler slice for the in-repo Structurizr server.
 
 It sits on top of:
 
@@ -12,14 +19,11 @@ The goal is to make the first handler implementation concrete enough that future
 
 ## Why this note exists
 
-We already have:
+This note originally turned the bounded feature list into a concrete handler
+contract while the analysis and LSP crates were still being shaped.
 
-- a bounded MVP feature list
-- a planned analysis crate
-- a planned LSP crate
-- a first-pass extraction contract
-
-What we still needed was a concrete answer to:
+Those crates and handlers now exist. The document remains useful because it
+explains:
 
 - what each first handler should consume
 - what it should return

@@ -1,5 +1,11 @@
 # Structurizr DSL LSP crate skeleton
 
+> Status: implemented in bounded form.
+>
+> `structurizr-lsp` now exists in-repo. Read this note as the crate-shape
+> contract and rationale for keeping the server thin rather than as a greenfield
+> proposal.
+
 This note turns Phase 4 of `docs/lsp/03-delivery/roadmap.md` into a concrete crate shape.
 
 Its job is to define the first language-server crate that:

@@ -1,94 +1,61 @@
 # Structurizr DSL LSP capability matrix
 
-This matrix is meant to keep future implementation work honest about what can be powered directly by Tree-sitter and what needs a real semantic layer.
+This matrix records which editor features are already shipped in-repo, which ones are the next steps toward a feature-complete experience, and which ones remain deliberate later work.
 
-## Key
+## Status key
 
-- **Syntax-backed**: can be built mostly from the parse tree
-- **Query-backed**: best driven by Tree-sitter queries
-- **Semantic**: requires symbol/index resolution beyond syntax
+- **Shipped**: implemented in the current in-repo analysis/LSP stack
+- **Shipped, bounded**: implemented, but intentionally conservative around deferred scope cases
+- **Next**: high-value follow-on work before the stack feels feature-complete
+- **Later**: valuable, but not on the shortest path to a complete-feeling editor experience
+- **Out of scope**: intentionally outside the goals of this repository
 
 ## Feature matrix
 
-| Feature | Primary source | Can leverage current repo? | Additional work needed | Suggested priority |
-| --- | --- | --- | --- | --- |
-| Syntax diagnostics | Syntax-backed | Yes | Map parse errors to LSP diagnostics with ranges/messages | P0 |
-| Document symbols / outline | Query-backed or syntax-backed | Partially | Add `tags.scm` or equivalent node walker for symbol extraction | P0 |
-| Selection ranges | Syntax-backed | Yes | Walk parent nodes to provide useful ancestor ranges; keep MVP tree-structured rather than scope-aware | P1 |
-| Folding ranges | Query-backed | Partially | Likely unnecessary for Zed MVP because editor queries already cover this | P3 |
-| Hover | Syntax + semantic | Partially | Attach resolved symbol metadata and declaration context; avoid runtime-style model rendering or validation | P2 |
-| Keyword/directive completion | Syntax-backed | Yes | Add cursor-context heuristics and completion item text | P0 |
-| Style-property completion | Syntax-backed | Yes | Keep it block-aware and additive; future work can add value completion without tying it to semantic identifier completion | P1 |
-| Identifier completion | Semantic | Partially | Build in-scope symbol table and include-aware workspace index | P1 |
-| Go to definition | Semantic | Partially | Start with top-level assigned identifiers, direct model element references, and explicit dynamic-view endpoint references; defer `this`, selectors, and named dynamic-view relationship refs | P0 |
-| Find references | Semantic | No | Start with the same bounded identifier set as go-to-definition before expanding to harder scoped cases | P0 |
-| Directive path links (`!docs`, `!adrs`, file-valued `!include`) | Syntax-backed | Yes | Expose `textDocument/documentLink`, and also answer `definition` as a Zed compatibility fallback; folder-valued directives degrade to file targets there when files exist because Zed expects file locations | P1 |
-| Rename | Semantic | No | Build safe edit sets with scope-aware resolution and conflict checks | P2 |
-| Workspace symbols | Semantic | No | Aggregate a workspace-wide symbol index | P2 |
-| Duplicate-definition diagnostics | Semantic | No | Detect duplicate identifiers in valid scopes | P1 |
-| Unresolved-reference diagnostics | Semantic | No | Resolve identifiers and flag missing targets | P1 |
-| Include diagnostics | Semantic | Partially | Resolve `!include` paths, detect missing files/cycles, and index included docs; start with file-resolution concerns before deeper semantics | P1 |
-| View-target diagnostics | Semantic | No | Validate references from views to model elements | P2 |
-| Semantic tokens | Semantic | No | Add semantic classification layer and token legend | P3 |
-| Code actions | Semantic | No | Add fix generation once diagnostics stabilize | P3 |
+| Feature | Primary layer | Status | Notes |
+| --- | --- | --- | --- |
+| Syntax diagnostics | Tree-sitter + analysis + LSP | Shipped | Parse errors already flow through the current snapshots and handlers. |
+| Include diagnostics | Analysis + LSP | Shipped | Missing and cyclic file-resolution cases are already surfaced at directive sites. |
+| Bounded semantic diagnostics | Analysis + LSP | Shipped, bounded | Current duplicate and ambiguous identifier cases are handled for the shipped symbol families. |
+| Document symbols | Analysis + LSP | Shipped | Powered by structural symbol facts rather than editor-only outline logic. |
+| Keyword/directive completion | Syntax + LSP | Shipped | Fixed-vocabulary completion already works. |
+| Style-property completion | Syntax + LSP | Shipped | Property-name completion is already landed for style blocks. |
+| Directive-path document links | Syntax + LSP | Shipped | `textDocument/documentLink` is supported, with a `definition` fallback for clients that need file targets. |
+| Go to definition | Analysis + LSP | Shipped, bounded | Core cross-file navigation already works for the currently modeled symbol families. |
+| Find references | Analysis + LSP | Shipped, bounded | Shares the same bounded semantic model as definition. |
+| Type definition | Analysis + LSP | Shipped, bounded | Instance-to-model navigation is already exposed through `textDocument/typeDefinition`. |
+| Broader scope/reference coverage (`this`, selectors, named dynamic refs) | Analysis + LSP | Next | This is the biggest remaining gap inside the current semantic model. |
+| Identifier completion | Analysis + LSP | Next | Needs broader scope confidence and clearer `!identifiers` policy. |
+| Hover | Analysis + LSP | Next | Read-only semantic detail is a natural next step once broader resolution is in place. |
+| Workspace symbols | Analysis + LSP | Next | A good follow-on once workspace facts cover more symbol families. |
+| Rename | Analysis + LSP | Later | Should wait for broader reference coverage and conflict checks. |
+| Semantic tokens | Analysis + LSP | Later | Nice polish, but not core value compared with stronger navigation and diagnostics. |
+| Code actions | Analysis + LSP | Later | Best added after diagnostics and rename are trustworthy. |
+| Runtime-style validation | Runtime | Out of scope | The project stays editor-oriented rather than runtime-oriented. |
 
-## What the existing queries and editor layer should continue to own
+## What should stay query-owned
 
-For Zed specifically, keep these editor-native where possible:
+Tree-sitter queries and editor-native behavior should continue to own as much of the pure syntax experience as possible.
+
+That includes:
 
 - highlighting
 - folding
 - indentation
-- bracket behavior
-- outline queries if Zed can use them directly
+- bracket behavior where the editor already supports it cleanly
+- editor-specific query surfaces that do not need semantic resolution
 
-The LSP should not duplicate query-driven editor behavior just because the protocol can represent it.
+The LSP should add semantic value, not duplicate what the grammar/query layer already does well.
 
-## Query work worth planning early
+## What still makes the stack feel incomplete
 
-Even if the first LSP features are implemented via handwritten tree traversal, these query files would still be valuable:
+The current gaps are less about whether the server exists and more about how complete the current semantic coverage feels in practice.
 
-- `queries/tags.scm` for symbols and outline-like extraction
-- `queries/brackets.scm` for Zed/editor bracket matching
-- `queries/outline.scm` if editor-side structure should not depend on LSP
-- `queries/locals.scm` only if local-scope capture patterns become useful for tooling
+The biggest missing pieces are:
 
-The current bindings already anticipate some of this expansion by conditionally exposing additional query constants when files exist.
+- broader safe resolution across the still-deferred scope families
+- richer read-only semantic feedback such as hover and workspace symbols
+- safe edit-capable features such as rename
+- downstream packaging and editor wiring that make the current in-repo server easy to consume
 
-## Semantic notes worth designing explicitly
-
-- Style-property completion is syntax-backed context-aware completion, not semantic identifier completion.
-- `!identifiers` should be modeled before rename and identifier completion are treated as stable.
-- The server should report syntax diagnostics first and only layer on semantic diagnostics when the local parse tree is trustworthy.
-- The Zed extension already owns some editor-specific query surfaces today, so not every useful query needs to live in this repository.
-
-## Recommended order of feature delivery
-
-### Phase A: useful with only parse trees plus light indexing
-
-- syntax diagnostics
-- keyword/directive completion
-- style-property completion in parsed style blocks
-- document symbols
-- basic go to definition
-
-### Phase B: value unlocked by workspace graph
-
-- references
-- unresolved/duplicate diagnostics
-- identifier completion
-- include-aware indexing
-
-### Phase C: polish and ecosystem fit
-
-- rename
-- richer hover
-- workspace symbols
-- semantic tokens
-- code actions
-
-The concrete post-MVP sequencing and guardrails for these later features are captured in `docs/lsp/03-delivery/advanced-semantic-expansion.md`.
-
-## Guardrail
-
-If a feature requires reproducing too much upstream execution behavior, it should be de-scoped unless it clearly improves editor workflows.
+For sequencing and delivery detail, continue with [`../03-delivery/roadmap.md`](../03-delivery/roadmap.md).

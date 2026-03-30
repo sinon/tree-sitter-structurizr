@@ -1,47 +1,77 @@
 # tree-sitter-structurizr
 
-Tree-sitter grammar for the [Structurizr DSL](https://docs.structurizr.com/dsl/language).
+Structurizr editor tooling built around the `strz` language server and a Tree-sitter grammar for `.dsl`.
 
-This repository focuses on practical, test-backed coverage of the Structurizr DSL for Tree-sitter consumers. The scope is the grammar, queries, and bindings surface for real `.dsl` files rather than executable DSL extensions or full semantic validation.
+## What are you here for?
 
-## Status
+- **Use Structurizr in Zed** -> start with [Using `strz` with Zed today](#using-strz-with-zed-today)
+- **Parse Structurizr DSL directly in Rust** -> jump to [Using the grammar directly](#using-the-grammar-directly)
+- **Contribute to the grammar, analysis layer, or LSP** -> start with [`CONTRIBUTING.md`](./CONTRIBUTING.md)
+- **Understand the current LSP architecture and roadmap** -> start with [`docs/lsp/README.md`](./docs/lsp/README.md)
 
-The grammar is already useful for a meaningful subset of the DSL, with:
+## Using `strz` with Zed today
 
-- checked-in generated parser artifacts
-- Tree-sitter corpus tests
-- Rust fixture and snapshot tests
-- an upstream audit harness for coverage hardening
+Today the most reliable setup is local and explicit: install a Rust toolchain, build `strz`, then point Zed at that binary.
 
-Current release status should be read as **early and iterating** rather than feature-complete. The parser is intentionally being expanded in slices, with coverage driven by local tests and upstream examples.
+1. Build the binary:
+  ```sh
+  cargo build -p structurizr-cli --bin strz --release
+  ```
 
-## Shipped surface
+1. Verify the binary works:
+  ```sh
+  ./target/release/strz check your-workspace.dsl
+  ./target/release/strz server
+  ```
 
-Today this repository ships:
+1. Install the [`zed-structurizr`](https://github.com/sinon/zed-structurizr) extension.
+  > [!NOTE]
+  > The extension currently needs to be installed manually as it is pre-release.
+  > In the future the extension will download `strz` if not installed on the system.
 
-- the Tree-sitter grammar source in `grammar.js`
-- generated parser artifacts in `src/`
-- Rust bindings in `bindings/rust/`
-- checked-in query files in `queries/`
+1. Point Zed at it:
+  ```json
+  {
+    "lsp": {
+      "structurizr-lsp": {
+        "binary": {
+          "path": "~/path/to/tree-sitter-structurizr/target/release/strz"
+        }
+      }
+    }
+  }
+  ```
 
-Current binding availability from `tree-sitter.json`:
+### What works today
 
-- Rust: shipped
-- C, Go, Java, Node, Python, Swift, Zig: not currently shipped in this repository
+- syntax and include diagnostics
+- document symbols
+- keyword/directive and style-property completion
+- go-to-definition, find-references, and type-definition for the currently supported reference shapes
+- directive path links and path-opening fallbacks
 
-The query files are **real, checked-in editor-support artifacts**, not empty placeholders. They already cover highlighting, folding, and indentation for the syntax families implemented today, but they are still incomplete relative to the full Structurizr DSL.
+### What is still intentionally conservative
 
-## Using from Rust
+- `this`
+- selector-style references such as `system.api`
+- named dynamic relationship reference sites
+- rename, hover, workspace symbols, semantic tokens, and code actions
 
-Add the parser alongside `tree-sitter`:
+For deeper status, delivery, and configuration detail, continue with:
+
+- [`docs/lsp/00-current-state.md`](./docs/lsp/00-current-state.md)
+- [`docs/lsp/03-delivery/roadmap.md`](./docs/lsp/03-delivery/roadmap.md)
+- [`docs/lsp/03-delivery/zed-extension-language-server-wiring.md`](./docs/lsp/03-delivery/zed-extension-language-server-wiring.md)
+
+## Using the grammar directly
+
+If you only want syntax parsing or the Rust grammar crate, start here:
 
 ```toml
 [dependencies]
 tree-sitter = "0.26.7"
 tree-sitter-structurizr = "0.0.1"
 ```
-
-Then load the language into a parser:
 
 ```rust
 let code = r#"
@@ -64,85 +94,24 @@ let tree = parser.parse(code, None).unwrap();
 assert!(!tree.root_node().has_error());
 ```
 
-For deeper contributor workflow and development commands, start with [`CONTRIBUTING.md`](./CONTRIBUTING.md).
-
-## `strz` CLI
-
-The Rust workspace now also includes `strz`, a contributor-facing CLI on top of
-`structurizr-analysis` and the in-repo LSP server.
-
-It is useful when you want to verify syntax and workspace include behavior
-without launching the LSP through an editor:
-
-```sh
-cargo run -p structurizr-cli --bin strz -- check
-cargo run -p structurizr-cli --bin strz -- dump workspace tests/lsp/workspaces/directory-include
-cargo run -p structurizr-cli --bin strz -- dump document tests/fixtures/lsp/identifiers/direct-references-ok.dsl
-cargo run -p structurizr-cli --bin strz -- server
-```
-
-That development command surface matches the installed binary shape:
-`strz check`, `strz dump`, and `strz server`.
-
-The CLI supports both human-oriented text output and `--output-format json`,
-making it suitable for local debugging, snapshots, future CI-style semantic
-checks, and editor integration.
-
-## Supported today
-
-The following syntax is implemented and covered by the local corpus and Rust test suite:
-
-- Workspace structure: `workspace`, nested `model`, `views`, and `configuration` blocks.
-- Core metadata and tokens: strings, numbers, identifiers, wildcard values, and comments (`//`, whitespace-prefixed `#`, and `/* ... */`).
-- Core model elements: `person`, `softwareSystem`, `container`, and `component`, including identifier assignment.
-- Deployment model constructs: `deploymentEnvironment` with or without a body, `deploymentGroup`, `deploymentNode`, `infrastructureNode`, `containerInstance`, `softwareSystemInstance`, and `instanceOf`, including instance bodies with relationships to `this`.
-- Relationships: basic `->`, `-/>`, tagged operators such as `--https->`, assigned relationships like `r = a -> b`, `this`, relationship bulk updates via `!relationships`, and relationship bodies used by the current fixtures.
-- Views: `systemLandscape`, `systemContext`, `container`, `component`, `filtered`, `dynamic`, `deployment`, `custom`, and `image`, plus `branding` and `terminology`.
-- Common view statements: `include`, `exclude`, `animation`, `autoLayout`, `default`, `title`, `description`, and per-view `properties`.
-- Deployment/view helpers used by current fixtures: `animation`, `theme`, `themes`, image `light`/`dark` source groups, and lowercase `autolayout`.
-- Dynamic view coverage includes explicit relationship references such as `r2 "Async"`, nested parallel blocks, and no-description relationship bodies for nested flows or metadata.
-- Styles inside `views`: `styles`, `element`, `relationship`, light/dark style modes, inline `theme`/`themes`, and flat style settings like `background`, `shape`, `color`, and `opacity`.
-- Directives and configuration currently used by fixtures: `!include` at workspace and model level, `!const`, `!constant`, `!var`, `!identifiers`, `!impliedRelationships`, `!docs`, `!adrs`, `!elements`, `!element`, `!relationships`, workspace/model `properties`, plus `configuration { scope, visibility, users }`.
-- Text features used by current fixtures: triple-quoted text blocks, multiline `\` continuations between tokens and inside quoted strings, and image/PlantUML sources fed from text blocks.
-- Expanded archetype/custom-element support: archetype defaults, nested `properties` and richer `perspectives` inside archetype bodies, relationship archetype extensions such as `sync = -> { ... }` / `--sync->`, custom elements, `!elements`, `!element`, hierarchical selectors like `a.b.c`, deployment-node selectors, and selector updates inside nested groups.
-
-## Not yet implemented
-
-These areas are still in progress. Some parse partially, but they are not considered complete or stable yet:
-
-- broader grammar coverage beyond the syntax families already represented in the local tests
-
-## Explicitly unsupported
-
-These are currently out of scope on purpose rather than merely unfinished:
-
-- `!script`
-- `!plugin`
-
-`!script` and `!plugin` are intentionally treated as unsupported because this grammar targets editor parsing, not executable DSL extensions. The contributor-only upstream audit excludes script and plugin-related fixtures by default so they do not block progress on the parser.
-
-Upstream fixtures whose names contain `unexpected-` are also ignored permanently by the audit because they are intentional negative parser tests from the upstream project rather than valid DSL samples.
-
-The audit also ignores `multi-line-with-error.dsl` permanently because it is an intentional invalid multiline sample whose remaining failure is the nested invalid model shape rather than the line-continuation syntax itself.
+For grammar coverage details, test surfaces, and contributor workflow, start with [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ## Contributing
 
-Start with [`CONTRIBUTING.md`](./CONTRIBUTING.md) for contributor setup, canonical commands, and how the corpus and fixtures are organized.
+For grammar, analysis, LSP, benchmarking, and release workflow, start with [`CONTRIBUTING.md`](./CONTRIBUTING.md).
+
+For the current LSP architecture, status, and doc map, start with [`docs/lsp/README.md`](./docs/lsp/README.md).
 
 ## License and upstream provenance
 
-Original code in this repository is available under either the MIT License
-(`LICENSE-MIT`) or the Apache License, Version 2.0 (`LICENSE-APACHE`).
+Original code in this repository is available under either the MIT License (`LICENSE-MIT`) or the Apache License, Version 2.0 (`LICENSE-APACHE`).
 
-This repository also includes material copied or adapted from the Apache-2.0
-licensed Structurizr DSL project in
-[`structurizr/structurizr`](https://github.com/structurizr/structurizr),
-predominently consisting of checked-in `.dsl` samples and fixtures.
+This repository also includes material copied or adapted from the Apache-2.0 licensed Structurizr DSL project in [`structurizr/structurizr`](https://github.com/structurizr/structurizr), predominantly consisting of checked-in `.dsl` samples and fixtures.
 
 These consist of:
+
 - Structurizr DSL corpus material under `test/corpus/`
-- Structurizr DSL fixtures and workspaces under `tests/fixtures/`
-  and `tests/lsp/workspaces/`
+- Structurizr DSL fixtures and workspaces under `tests/fixtures/` and `tests/lsp/workspaces/`
 
 ## References
 

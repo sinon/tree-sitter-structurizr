@@ -1,5 +1,11 @@
 # Structurizr DSL workspace index
 
+> Status: implemented in bounded form.
+>
+> The workspace layer described here now exists in-repo. Read this note as the
+> contract for the current bounded workspace view and the rationale for what is
+> still intentionally deferred.
+
 This note turns Phase 3.4 of `docs/lsp/03-delivery/roadmap.md` into a concrete design for how the future analysis crate should merge per-document facts into one bounded semantic workspace view.
 
 It sits on top of:

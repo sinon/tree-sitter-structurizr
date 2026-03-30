@@ -1,5 +1,5 @@
 - Add one explicit `docs/lsp/` readiness note that states whether bounded-MVP analysis has any blocking grammar gaps; right now that conclusion must be inferred across several docs.
-- Decide whether `tests/fixtures/lsp/` should remain a shared grammar-plus-analysis fixture set or move/duplicate once the future LSP crate lands and fixture ownership becomes clearer.
+- Decide whether `tests/fixtures/lsp/` should remain a shared grammar-plus-analysis fixture set or move or duplicate now that the in-repo LSP crate exists and fixture ownership is clearer.
 - The current syntax-diagnostic extractor can emit duplicate diagnostics for the same recovery region on some parse-error fixtures.
 - The bounded analysis extractor currently records only the first identifier in a multi-value view `include` statement.
 - The current `tower-lsp-server` fork uses `ls-types` rather than a directly interoperable `lsp-types` surface, so the LSP crate should standardize on `tower_lsp_server::ls_types` unless a deliberate conversion layer is introduced.
@@ -17,3 +17,4 @@
 - The checked-in `big-bank-plc` workspace now passes an in-repo `gotoDefinition` regression test for both endpoints of `customer -> webApplication`, so any remaining Cmd-click failure there appears to be downstream `zed-structurizr` integration rather than repository LSP resolution.
 - An assigned `softwareSystemInstance` form produced parse errors in an ad-hoc task 03 fixture even though the grammar source and node-types appear to allow one, so that syntax shape likely needs a focused grammar/parity check before relying on it in future navigation work.
 - The `tree-sitter` CLI still warns about missing parser directories during local `parse` / `query` / `highlight` debugging even when `-p .` is provided, so contributor docs may need a clearer local grammar-debugging workflow.
+- `crates/structurizr-analysis/README.md` still frames the language server as future work and understates the current workspace/indexing surface, so it should be synced with the newer top-level docs.

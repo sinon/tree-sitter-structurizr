@@ -1,108 +1,90 @@
 # Structurizr DSL LSP docs
 
-This directory holds the long-lived planning and design material for a future Structurizr DSL language server.
+This directory documents the in-repo Structurizr analysis layer and language server: the durable design direction, the current implementation state, and the remaining delivery work.
 
-The layout is intentionally split so it is easier to tell:
+If you only read one file first, read [`00-current-state.md`](./00-current-state.md).
 
-- which docs are foundational context
-- which docs are durable design contracts
-- which docs are delivery/sequence guides
-- which docs are retained historical inputs rather than the primary place to start
+## What these docs are for now
+
+Use this directory when you need to:
+
+- understand the architecture well enough to contribute safely
+- see what is already shipped versus still intentionally bounded or deferred
+- understand the remaining path to a feature-complete editor experience
+- separate durable design decisions from planning-era or historical material
+
+## Start here
+
+1. [`00-current-state.md`](./00-current-state.md)
+2. [`../../README.md`](../../README.md)
+3. [`../../CONTRIBUTING.md`](../../CONTRIBUTING.md)
 
 ## Directory layout
 
 ### `01-foundations/`
 
-Long-lived context and boundary-setting docs.
+Durable architecture and boundary-setting docs.
 
-Read these when you need to re-orient yourself on:
+Read these when you need to re-orient on:
 
-- why the LSP is feasible
-- what should stay Tree-sitter-native vs semantic
-- how the repos fit together
-- where query ownership belongs
+- the editor-oriented goals and non-goals
+- what belongs in the grammar versus the analysis layer versus the LSP layer
+- how the grammar repo and downstream editor integrations fit together
+- what should remain query-owned instead of being pushed through the LSP
 
 ### `02-design/`
 
-Durable design contracts for the future analysis layer, workspace model, scope rules, handler boundaries, and crate shapes.
+Detailed contracts for the analysis layer, workspace model, scope rules, and handler boundaries.
 
-These are the docs that should stay useful even after implementation begins, because they describe the intended semantic model rather than only a one-time task list.
+Many of these docs describe shapes that are now implemented in code. They remain useful because they explain why the current implementation is intentionally conservative in some areas.
 
 ### `03-delivery/`
 
-Action-oriented sequencing and integration docs.
+Integration, packaging, and sequencing docs.
 
-These are still important while the server is being built, but they are more likely to evolve or become partially superseded by real code and release processes.
+These are the right place to look when you care about what remains before the current in-repo implementation feels feature-complete for downstream editor users.
 
 ### `90-history/`
 
-Retained background material from the early planning pass.
+Retained planning inputs and parser-shape audits from the early design pass.
 
-These docs are still useful as evidence and parser-shape reference, but they are no longer the primary entry point once the design contracts exist.
+Keep these for evidence and historical reasoning trails, but do not treat them as the primary starting point for current work.
 
-## Suggested reading order
+## Suggested reading paths
 
-### Start here
+### Contributor path
 
-1. `01-foundations/overview.md`
-2. `01-foundations/capability-matrix.md`
-3. `01-foundations/repository-topology.md`
-4. `01-foundations/query-ownership.md`
-5. `03-delivery/roadmap.md`
+1. [`00-current-state.md`](./00-current-state.md)
+2. [`01-foundations/overview.md`](./01-foundations/overview.md)
+3. [`01-foundations/capability-matrix.md`](./01-foundations/capability-matrix.md)
+4. [`03-delivery/roadmap.md`](./03-delivery/roadmap.md)
+5. the specific design note in `02-design/` for the slice you are changing
 
-### Core design sequence
+### LSP user or integrator path
 
-6. `02-design/analysis-crate-skeleton.md`
-7. `02-design/first-pass-symbol-extraction.md`
-8. `02-design/scope-rules.md`
-9. `02-design/workspace-discovery-includes.md`
-10. `02-design/workspace-index.md`
-11. `02-design/lsp-crate-skeleton.md`
-12. `02-design/bounded-mvp-handlers.md`
+1. [`00-current-state.md`](./00-current-state.md)
+2. [`03-delivery/roadmap.md`](./03-delivery/roadmap.md)
+3. [`03-delivery/packaging-and-dev-loop.md`](./03-delivery/packaging-and-dev-loop.md)
+4. [`03-delivery/zed-extension-language-server-wiring.md`](./03-delivery/zed-extension-language-server-wiring.md)
 
-### Delivery and integration sequence
+### Grammar/query consumer path
 
-13. `03-delivery/zed-extension-language-server-wiring.md`
-14. `03-delivery/packaging-and-dev-loop.md`
-15. `03-delivery/advanced-semantic-expansion.md`
+1. [`../../README.md`](../../README.md)
+2. [`01-foundations/overview.md`](./01-foundations/overview.md)
+3. [`01-foundations/query-ownership.md`](./01-foundations/query-ownership.md)
 
-## Which docs are foundational vs transient
+### Maintainer/reviewer path
 
-### Keep as long-lived references
-
-- everything in `01-foundations/`
-- everything in `02-design/`
-
-These are the docs most worth retaining even after substantial implementation lands.
-
-### Keep while implementation is active
-
-- `03-delivery/roadmap.md`
-- `03-delivery/zed-extension-language-server-wiring.md`
-- `03-delivery/packaging-and-dev-loop.md`
-- `03-delivery/advanced-semantic-expansion.md`
-
-These remain useful, but they are naturally more likely to evolve as real crates, binaries, and extension wiring appear.
-
-### Retain as historical/reference inputs
-
-- everything in `90-history/`
-
-In particular:
-
-- `90-history/phase1-backlog.md` is an execution artifact from the initial planning phase
-- the syntax audits are still useful evidence for why later extraction/design docs took the shape they did
+1. [`00-current-state.md`](./00-current-state.md)
+2. [`03-delivery/roadmap.md`](./03-delivery/roadmap.md)
+3. [`01-foundations/repository-topology.md`](./01-foundations/repository-topology.md)
+4. [`02-design/`](./02-design/)
+5. [`90-history/`](./90-history/), only when you need the older reasoning trail
 
 ## Practical rule of thumb
 
-If you are trying to understand the current intended architecture, prefer:
+If a document talks about already-shipped bounded behavior, read it as an implementation contract and rationale document.
 
-- `01-foundations/`
-- then `02-design/`
-- then `03-delivery/`
+If a document talks about downstream wiring, packaging, or broader semantic coverage, read it as active delivery or forward-looking design work.
 
-Only drop into `90-history/` when you need:
-
-- parser-shape background
-- early backlog context
-- the reasoning trail behind a design choice
+If a document lives under `90-history/`, treat it as historical context rather than a current entry point.

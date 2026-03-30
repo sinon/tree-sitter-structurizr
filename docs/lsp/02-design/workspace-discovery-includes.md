@@ -1,5 +1,11 @@
 # Structurizr DSL workspace discovery and include resolution
 
+> Status: implemented in bounded form.
+>
+> Workspace discovery and include resolution now exist in-repo. This note
+> remains the design contract for that behavior and the place to document later
+> expansion without drifting into runtime semantics.
+
 This note defines how the future analysis crate and LSP should discover `.dsl` files and handle `!include` without drifting into full runtime behavior.
 
 It is meant to make Phase 3 of `docs/lsp/03-delivery/roadmap.md` concrete enough that future implementation work can start from a stable model instead of re-deciding filesystem and include semantics ad hoc.
