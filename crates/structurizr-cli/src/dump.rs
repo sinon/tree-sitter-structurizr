@@ -264,6 +264,7 @@ fn reference_kind_name(kind: ReferenceKind) -> String {
         }
         ReferenceKind::ViewScope => "view_scope".to_owned(),
         ReferenceKind::ViewInclude => "view_include".to_owned(),
+        ReferenceKind::ViewAnimation => "view_animation".to_owned(),
     }
 }
 

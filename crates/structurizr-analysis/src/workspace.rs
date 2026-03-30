@@ -10,8 +10,8 @@ use ignore::WalkBuilder;
 
 use crate::{
     ConstantDefinition, DocumentAnalyzer, DocumentId, DocumentInput, IdentifierMode,
-    IncludeDiagnostic, IncludeDirective, ReferenceKind, SemanticDiagnostic, SymbolId, SymbolKind,
-    TextSpan,
+    IncludeDiagnostic, IncludeDirective, Reference, ReferenceKind, ReferenceTargetHint,
+    SemanticDiagnostic, SymbolId, SymbolKind, TextSpan,
     includes::{DirectiveContainer, normalized_directive_value},
 };
 
@@ -1501,7 +1501,7 @@ fn build_reference_resolution_tables(
                 document: document_id.clone(),
                 reference_index,
             };
-            let status = resolve_reference_status(reference.kind, &reference.raw_text, bindings);
+            let status = resolve_reference_status(reference, bindings);
 
             if !snapshot.has_syntax_errors() {
                 match status {
@@ -1597,29 +1597,48 @@ fn push_duplicate_binding_diagnostics(
 }
 
 fn resolve_reference_status(
-    kind: ReferenceKind,
-    raw_text: &str,
+    reference: &Reference,
     bindings: &WorkspaceBindingTables,
 ) -> ReferenceResolutionStatus {
-    match kind {
+    // Syntax-role kinds remain useful to the LSP and diagnostics, but bounded
+    // workspace resolution really depends on which binding family one reference
+    // is allowed to target.
+    match reference.kind {
         ReferenceKind::RelationshipSource
         | ReferenceKind::RelationshipDestination
         | ReferenceKind::InstanceTarget
-        | ReferenceKind::ViewScope => resolve_reference_against_element_table(
-            raw_text,
+        | ReferenceKind::DeploymentRelationshipSource
+        | ReferenceKind::DeploymentRelationshipDestination
+        | ReferenceKind::ViewScope
+        | ReferenceKind::ViewInclude
+        | ReferenceKind::ViewAnimation => {
+            resolve_reference_against_target_hint(reference, bindings)
+        }
+    }
+}
+
+fn resolve_reference_against_target_hint(
+    reference: &Reference,
+    bindings: &WorkspaceBindingTables,
+) -> ReferenceResolutionStatus {
+    match reference.target_hint {
+        ReferenceTargetHint::Element => resolve_reference_against_element_table(
+            &reference.raw_text,
             &bindings.unique_elements,
             &bindings.duplicate_elements,
         ),
-        ReferenceKind::DeploymentRelationshipSource
-        | ReferenceKind::DeploymentRelationshipDestination => {
-            resolve_reference_against_binding_table(
-                raw_text,
-                &bindings.unique_deployments,
-                &bindings.duplicate_deployments,
-            )
-        }
-        ReferenceKind::ViewInclude => resolve_view_include_reference(
-            raw_text,
+        ReferenceTargetHint::Deployment => resolve_reference_against_binding_table(
+            &reference.raw_text,
+            &bindings.unique_deployments,
+            &bindings.duplicate_deployments,
+        ),
+        ReferenceTargetHint::Relationship => resolve_reference_against_binding_table(
+            &reference.raw_text,
+            &bindings.unique_relationships,
+            &bindings.duplicate_relationships,
+        ),
+        ReferenceTargetHint::ElementOrRelationship => resolve_view_include_reference(
+            &reference.raw_text,
             &bindings.unique_elements,
             &bindings.duplicate_elements,
             &bindings.unique_relationships,

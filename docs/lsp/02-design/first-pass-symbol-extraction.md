@@ -133,8 +133,8 @@ For the first extraction pass, the key types should conceptually look like:
 | `Symbol` | One declaration-like fact with kind, name, binding, span, and parent context |
 | `Reference` | One observed identifier reference site with kind, raw text, span, and container context |
 | `SymbolKind` | Domain-shaped declaration kind (`Person`, `SoftwareSystem`, `Container`, `Component`, `Relationship`) |
-| `ReferenceKind` | Syntax role of the reference site (`RelationshipSource`, `RelationshipDestination`, `ViewScope`, `ViewInclude`) |
-| `ReferenceTargetHint` | Narrow target-family hint (`Element`, `Relationship`, `ElementOrRelationship`) where useful |
+| `ReferenceKind` | Syntax role of the reference site (`RelationshipSource`, `RelationshipDestination`, `ViewScope`, `ViewInclude`, `ViewAnimation`) |
+| `ReferenceTargetHint` | Narrow target-family hint (`Element`, `Deployment`, `Relationship`, `ElementOrRelationship`) where useful |
 
 Important design choice:
 
@@ -247,6 +247,7 @@ Emit `Reference` facts from the `scope` field of:
 - `system_context_view`
 - `container_view`
 - `component_view`
+- `deployment_view`
 
 Use:
 
@@ -267,16 +268,21 @@ Emit `Reference` facts for `include_statement.value` when the value is a plain `
 - `system_context_view`
 - `container_view`
 - `component_view`
+- `deployment_view`
 
 Use:
 
 - `ReferenceKind::ViewInclude`
-- `ReferenceTargetHint::ElementOrRelationship`
+- `ReferenceTargetHint::ElementOrRelationship` for non-deployment views
+- `ReferenceTargetHint::Deployment` for `deployment_view`
 
 This target hint is intentionally broader because a view include identifier may refer to:
 
 - a model element identifier
 - a named relationship identifier
+
+Inside `deployment_view`, the same syntax instead targets deployment-layer
+bindings such as deployment nodes and instances.
 
 Do **not** treat:
 
@@ -288,6 +294,25 @@ Do **not** treat:
 as first-pass reference facts.
 
 Those are later-phase view semantics, not bounded-MVP identifier extraction.
+
+### 4. Identifier-valued view animation steps
+
+Emit `Reference` facts for plain `identifier` values inside `animation_block` within:
+
+- `system_landscape_view`
+- `system_context_view`
+- `container_view`
+- `component_view`
+- `deployment_view`
+
+Use:
+
+- `ReferenceKind::ViewAnimation`
+- `ReferenceTargetHint::Element` for non-deployment views
+- `ReferenceTargetHint::Deployment` for `deployment_view`
+
+This keeps animation within the same direct-identifier navigation slice without
+pulling dynamic-view relationship sequencing into the bounded MVP.
 
 ## Supported traversal contexts
 
@@ -317,7 +342,8 @@ The first pass should walk:
 - `views_block`
 - supported static view nodes listed above
 
-Only the explicitly supported `scope` and identifier-valued `include_statement` fields should emit reference facts.
+Only the explicitly supported `scope`, identifier-valued `include_statement`, and
+identifier-valued `animation_block` fields should emit reference facts.
 
 ## Directives in the same snapshot
 
@@ -416,6 +442,7 @@ For each supported view node:
 
 1. emit a `ViewScope` reference when `scope` is a plain identifier
 2. emit `ViewInclude` references for identifier-valued include statements
+3. emit `ViewAnimation` references for identifier-valued animation steps
 
 ### Phase D: preserve pre-order output
 

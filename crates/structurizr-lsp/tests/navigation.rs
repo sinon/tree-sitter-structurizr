@@ -4,11 +4,12 @@ use std::{fs, path::Path};
 
 use serde_json::json;
 use support::{
-    close_document, file_uri, file_uri_from_path, initialize, initialize_with_workspace_folders,
-    initialized, new_service, next_publish_diagnostics_for_uri, open_document, position_in,
-    request_json, workspace_fixture_path,
+    TestService, close_document, file_uri, file_uri_from_path, initialize,
+    initialize_with_workspace_folders, initialized, new_service, next_publish_diagnostics_for_uri,
+    open_document, position_in, request_json, workspace_fixture_path,
 };
 use tempfile::TempDir;
+use tower_lsp_server::ls_types::Uri;
 
 const DIRECT_REFERENCES_SOURCE: &str =
     include_str!("../../../tests/fixtures/lsp/relationships/named-relationships-ok.dsl");
@@ -338,45 +339,81 @@ async fn goto_definition_resolves_cross_file_big_bank_relationship_endpoints() {
     let document_uri = file_uri_from_path(&document_path);
     open_document(&mut service, &document_uri, &document_source).await;
 
-    let customer_position = position_in(&document_source, "customer -> webApplication", 1);
-    let customer_response = request_json(
-        &mut service,
-        "textDocument/definition",
-        json!({
-            "textDocument": { "uri": document_uri.as_str() },
-            "position": customer_position,
-        }),
-        10,
-    )
-    .await;
-
     let customer_uri =
         file_uri_from_path(&workspace_root.join("model/people-and-software-systems.dsl"));
-    assert_eq!(customer_response["result"]["uri"], customer_uri.as_str());
-    assert_eq!(customer_response["result"]["range"]["start"]["line"], 0);
-
-    let web_application_position = position_in(&document_source, "customer -> webApplication", 13);
-    let web_application_response = request_json(
-        &mut service,
-        "textDocument/definition",
-        json!({
-            "textDocument": { "uri": document_uri.as_str() },
-            "position": web_application_position,
-        }),
-        11,
-    )
-    .await;
-
     let web_application_uri =
         file_uri_from_path(&workspace_root.join("model/internet-banking-system/details.dsl"));
-    assert_eq!(
-        web_application_response["result"]["uri"],
-        web_application_uri.as_str()
-    );
-    assert_eq!(
-        web_application_response["result"]["range"]["start"]["line"],
-        2
-    );
+
+    for expectation in [
+        DefinitionExpectation {
+            needle: "customer -> webApplication",
+            byte_offset_within_needle: 1,
+            request_id: 10,
+            expected_uri: customer_uri.as_str(),
+            expected_line: 0,
+        },
+        DefinitionExpectation {
+            needle: "customer -> webApplication",
+            byte_offset_within_needle: 13,
+            request_id: 11,
+            expected_uri: web_application_uri.as_str(),
+            expected_line: 2,
+        },
+    ] {
+        assert_definition_target(&mut service, &document_uri, &document_source, expectation).await;
+    }
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn goto_definition_resolves_cross_file_big_bank_view_include_and_animation_references() {
+    let (mut service, _socket) = new_service();
+    let workspace_root = workspace_fixture_path("big-bank-plc");
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
+    initialized(&mut service).await;
+
+    let document_path = workspace_root.join("internet-banking-system.dsl");
+    let document_source = read_workspace_file(&document_path);
+    let document_uri = file_uri_from_path(&document_path);
+    open_document(&mut service, &document_uri, &document_source).await;
+
+    let people_uri =
+        file_uri_from_path(&workspace_root.join("model/people-and-software-systems.dsl"));
+    let details_uri =
+        file_uri_from_path(&workspace_root.join("model/internet-banking-system/details.dsl"));
+
+    for expectation in [
+        DefinitionExpectation {
+            needle: "internetBankingSystem customer mainframe email",
+            byte_offset_within_needle: 22,
+            request_id: 12,
+            expected_uri: people_uri.as_str(),
+            expected_line: 0,
+        },
+        DefinitionExpectation {
+            needle: "webApplication\n                singlePageApplication",
+            byte_offset_within_needle: 0,
+            request_id: 13,
+            expected_uri: details_uri.as_str(),
+            expected_line: 2,
+        },
+        DefinitionExpectation {
+            needle: "developerSinglePageApplicationInstance",
+            byte_offset_within_needle: 0,
+            request_id: 14,
+            expected_uri: document_uri.as_str(),
+            expected_line: 31,
+        },
+        DefinitionExpectation {
+            needle: "developerSinglePageApplicationInstance developerWebApplicationInstance developerApiApplicationInstance developerDatabaseInstance",
+            byte_offset_within_needle: 39,
+            request_id: 15,
+            expected_uri: document_uri.as_str(),
+            expected_line: 35,
+        },
+    ] {
+        assert_definition_target(&mut service, &document_uri, &document_source, expectation).await;
+    }
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -794,42 +831,25 @@ async fn goto_definition_resolves_deployment_instance_targets() {
     let workspace_uri = file_uri_from_path(&workspace_path);
     open_document(&mut service, &workspace_uri, &workspace_source).await;
 
-    let api_target_position = position_in(&workspace_source, "containerInstance api", 18);
-    let api_target_response = request_json(
-        &mut service,
-        "textDocument/definition",
-        json!({
-            "textDocument": { "uri": workspace_uri.as_str() },
-            "position": api_target_position,
-        }),
-        12,
-    )
-    .await;
-
-    assert_eq!(api_target_response["result"]["uri"], workspace_uri.as_str());
-    assert_eq!(api_target_response["result"]["range"]["start"]["line"], 3);
-
-    let system_target_position =
-        position_in(&workspace_source, "softwareSystemInstance system", 23);
-    let system_target_response = request_json(
-        &mut service,
-        "textDocument/definition",
-        json!({
-            "textDocument": { "uri": workspace_uri.as_str() },
-            "position": system_target_position,
-        }),
-        13,
-    )
-    .await;
-
-    assert_eq!(
-        system_target_response["result"]["uri"],
-        workspace_uri.as_str()
-    );
-    assert_eq!(
-        system_target_response["result"]["range"]["start"]["line"],
-        2
-    );
+    for expectation in [
+        DefinitionExpectation {
+            needle: "containerInstance api",
+            byte_offset_within_needle: 18,
+            request_id: 12,
+            expected_uri: workspace_uri.as_str(),
+            expected_line: 3,
+        },
+        DefinitionExpectation {
+            needle: "softwareSystemInstance system",
+            byte_offset_within_needle: 23,
+            request_id: 13,
+            expected_uri: workspace_uri.as_str(),
+            expected_line: 2,
+        },
+    ] {
+        assert_definition_target(&mut service, &workspace_uri, &workspace_source, expectation)
+            .await;
+    }
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -845,56 +865,32 @@ async fn goto_definition_resolves_deployment_relationship_endpoints() {
     let workspace_uri = file_uri_from_path(&workspace_path);
     open_document(&mut service, &workspace_uri, &workspace_source).await;
 
-    let primary_position = position_in(&workspace_source, "primary -> gateway", 1);
-    let primary_response = request_json(
-        &mut service,
-        "textDocument/definition",
-        json!({
-            "textDocument": { "uri": workspace_uri.as_str() },
-            "position": primary_position,
-        }),
-        14,
-    )
-    .await;
-    assert_eq!(primary_response["result"]["uri"], workspace_uri.as_str());
-    assert_eq!(primary_response["result"]["range"]["start"]["line"], 7);
-
-    let gateway_instance_body_position = position_in(&workspace_source, "gateway -> this", 1);
-    let gateway_instance_body_response = request_json(
-        &mut service,
-        "textDocument/definition",
-        json!({
-            "textDocument": { "uri": workspace_uri.as_str() },
-            "position": gateway_instance_body_position,
-        }),
-        15,
-    )
-    .await;
-    assert_eq!(
-        gateway_instance_body_response["result"]["uri"],
-        workspace_uri.as_str()
-    );
-    assert_eq!(
-        gateway_instance_body_response["result"]["range"]["start"]["line"],
-        8
-    );
-
-    let api_instance_position = position_in(&workspace_source, "gateway -> apiInstance", 11);
-    let api_instance_response = request_json(
-        &mut service,
-        "textDocument/definition",
-        json!({
-            "textDocument": { "uri": workspace_uri.as_str() },
-            "position": api_instance_position,
-        }),
-        16,
-    )
-    .await;
-    assert_eq!(
-        api_instance_response["result"]["uri"],
-        workspace_uri.as_str()
-    );
-    assert_eq!(api_instance_response["result"]["range"]["start"]["line"], 9);
+    for expectation in [
+        DefinitionExpectation {
+            needle: "primary -> gateway",
+            byte_offset_within_needle: 1,
+            request_id: 14,
+            expected_uri: workspace_uri.as_str(),
+            expected_line: 7,
+        },
+        DefinitionExpectation {
+            needle: "gateway -> this",
+            byte_offset_within_needle: 1,
+            request_id: 15,
+            expected_uri: workspace_uri.as_str(),
+            expected_line: 8,
+        },
+        DefinitionExpectation {
+            needle: "gateway -> apiInstance",
+            byte_offset_within_needle: 11,
+            request_id: 16,
+            expected_uri: workspace_uri.as_str(),
+            expected_line: 9,
+        },
+    ] {
+        assert_definition_target(&mut service, &workspace_uri, &workspace_source, expectation)
+            .await;
+    }
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -938,47 +934,29 @@ async fn goto_definition_resolves_cross_file_big_bank_instance_targets() {
     let document_uri = file_uri_from_path(&document_path);
     open_document(&mut service, &document_uri, &document_source).await;
 
-    let web_application_target_position =
-        position_in(&document_source, "containerInstance webApplication", 18);
-    let web_application_response = request_json(
-        &mut service,
-        "textDocument/definition",
-        json!({
-            "textDocument": { "uri": document_uri.as_str() },
-            "position": web_application_target_position,
-        }),
-        18,
-    )
-    .await;
-
     let web_application_uri =
         file_uri_from_path(&workspace_root.join("model/internet-banking-system/details.dsl"));
-    assert_eq!(
-        web_application_response["result"]["uri"],
-        web_application_uri.as_str()
-    );
-    assert_eq!(
-        web_application_response["result"]["range"]["start"]["line"],
-        2
-    );
-
-    let mainframe_target_position =
-        position_in(&document_source, "softwareSystemInstance mainframe", 23);
-    let mainframe_response = request_json(
-        &mut service,
-        "textDocument/definition",
-        json!({
-            "textDocument": { "uri": document_uri.as_str() },
-            "position": mainframe_target_position,
-        }),
-        19,
-    )
-    .await;
-
     let mainframe_uri =
         file_uri_from_path(&workspace_root.join("model/people-and-software-systems.dsl"));
-    assert_eq!(mainframe_response["result"]["uri"], mainframe_uri.as_str());
-    assert_eq!(mainframe_response["result"]["range"]["start"]["line"], 6);
+
+    for expectation in [
+        DefinitionExpectation {
+            needle: "containerInstance webApplication",
+            byte_offset_within_needle: 18,
+            request_id: 18,
+            expected_uri: web_application_uri.as_str(),
+            expected_line: 2,
+        },
+        DefinitionExpectation {
+            needle: "softwareSystemInstance mainframe",
+            byte_offset_within_needle: 23,
+            request_id: 19,
+            expected_uri: mainframe_uri.as_str(),
+            expected_line: 6,
+        },
+    ] {
+        assert_definition_target(&mut service, &document_uri, &document_source, expectation).await;
+    }
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -1356,6 +1334,43 @@ fn read_workspace_file(path: &Path) -> String {
             path.display()
         )
     })
+}
+
+struct DefinitionExpectation<'a> {
+    needle: &'a str,
+    byte_offset_within_needle: usize,
+    request_id: i64,
+    expected_uri: &'a str,
+    expected_line: u64,
+}
+
+async fn assert_definition_target(
+    service: &mut TestService,
+    document_uri: &Uri,
+    document_source: &str,
+    expectation: DefinitionExpectation<'_>,
+) {
+    let position = position_in(
+        document_source,
+        expectation.needle,
+        expectation.byte_offset_within_needle,
+    );
+    let response = request_json(
+        service,
+        "textDocument/definition",
+        json!({
+            "textDocument": { "uri": document_uri.as_str() },
+            "position": position,
+        }),
+        expectation.request_id,
+    )
+    .await;
+
+    assert_eq!(response["result"]["uri"], expectation.expected_uri);
+    assert_eq!(
+        response["result"]["range"]["start"]["line"],
+        expectation.expected_line
+    );
 }
 
 struct TempWorkspace {

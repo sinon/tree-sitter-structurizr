@@ -1,0 +1,658 @@
+---
+source: crates/structurizr-analysis/tests/document_snapshots.rs
+assertion_line: 46
+expression: "SnapshotView::from(&snapshot)"
+---
+SnapshotView {
+    has_syntax_errors: false,
+    diagnostics: [],
+    include_directives: [],
+    identifier_modes: [],
+    symbols: [
+        Symbol {
+            id: SymbolId(
+                0,
+            ),
+            kind: Person,
+            display_name: "User",
+            binding_name: Some(
+                "user",
+            ),
+            span: TextSpan {
+                start_byte: 32,
+                end_byte: 52,
+                start_point: TextPoint {
+                    row: 2,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 2,
+                    column: 28,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "person",
+        },
+        Symbol {
+            id: SymbolId(
+                1,
+            ),
+            kind: SoftwareSystem,
+            display_name: "System",
+            binding_name: Some(
+                "system",
+            ),
+            span: TextSpan {
+                start_byte: 61,
+                end_byte: 233,
+                start_point: TextPoint {
+                    row: 3,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 8,
+                    column: 9,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "software_system",
+        },
+        Symbol {
+            id: SymbolId(
+                2,
+            ),
+            kind: Container,
+            display_name: "Web",
+            binding_name: Some(
+                "web",
+            ),
+            span: TextSpan {
+                start_byte: 108,
+                end_byte: 129,
+                start_point: TextPoint {
+                    row: 4,
+                    column: 12,
+                },
+                end_point: TextPoint {
+                    row: 4,
+                    column: 33,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    1,
+                ),
+            ),
+            syntax_node_kind: "container",
+        },
+        Symbol {
+            id: SymbolId(
+                3,
+            ),
+            kind: Container,
+            display_name: "API",
+            binding_name: Some(
+                "api",
+            ),
+            span: TextSpan {
+                start_byte: 142,
+                end_byte: 223,
+                start_point: TextPoint {
+                    row: 5,
+                    column: 12,
+                },
+                end_point: TextPoint {
+                    row: 7,
+                    column: 13,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    1,
+                ),
+            ),
+            syntax_node_kind: "container",
+        },
+        Symbol {
+            id: SymbolId(
+                4,
+            ),
+            kind: Component,
+            display_name: "Worker",
+            binding_name: Some(
+                "worker",
+            ),
+            span: TextSpan {
+                start_byte: 182,
+                end_byte: 209,
+                start_point: TextPoint {
+                    row: 6,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 6,
+                    column: 43,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    3,
+                ),
+            ),
+            syntax_node_kind: "component",
+        },
+        Symbol {
+            id: SymbolId(
+                5,
+            ),
+            kind: DeploymentNode,
+            display_name: "Primary",
+            binding_name: Some(
+                "primary",
+            ),
+            span: TextSpan {
+                start_byte: 293,
+                end_byte: 395,
+                start_point: TextPoint {
+                    row: 11,
+                    column: 12,
+                },
+                end_point: TextPoint {
+                    row: 13,
+                    column: 13,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "deployment_node",
+        },
+        Symbol {
+            id: SymbolId(
+                6,
+            ),
+            kind: ContainerInstance,
+            display_name: "webInstance",
+            binding_name: Some(
+                "webInstance",
+            ),
+            span: TextSpan {
+                start_byte: 346,
+                end_byte: 381,
+                start_point: TextPoint {
+                    row: 12,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 12,
+                    column: 51,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    5,
+                ),
+            ),
+            syntax_node_kind: "container_instance",
+        },
+        Symbol {
+            id: SymbolId(
+                7,
+            ),
+            kind: DeploymentNode,
+            display_name: "Secondary",
+            binding_name: Some(
+                "secondary",
+            ),
+            span: TextSpan {
+                start_byte: 408,
+                end_byte: 514,
+                start_point: TextPoint {
+                    row: 14,
+                    column: 12,
+                },
+                end_point: TextPoint {
+                    row: 16,
+                    column: 13,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "deployment_node",
+        },
+        Symbol {
+            id: SymbolId(
+                8,
+            ),
+            kind: ContainerInstance,
+            display_name: "apiInstance",
+            binding_name: Some(
+                "apiInstance",
+            ),
+            span: TextSpan {
+                start_byte: 465,
+                end_byte: 500,
+                start_point: TextPoint {
+                    row: 15,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 15,
+                    column: 51,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    7,
+                ),
+            ),
+            syntax_node_kind: "container_instance",
+        },
+    ],
+    references: [
+        Reference {
+            kind: InstanceTarget,
+            raw_text: "web",
+            span: TextSpan {
+                start_byte: 378,
+                end_byte: 381,
+                start_point: TextPoint {
+                    row: 12,
+                    column: 48,
+                },
+                end_point: TextPoint {
+                    row: 12,
+                    column: 51,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "container_instance",
+            containing_symbol: Some(
+                SymbolId(
+                    6,
+                ),
+            ),
+        },
+        Reference {
+            kind: InstanceTarget,
+            raw_text: "api",
+            span: TextSpan {
+                start_byte: 497,
+                end_byte: 500,
+                start_point: TextPoint {
+                    row: 15,
+                    column: 48,
+                },
+                end_point: TextPoint {
+                    row: 15,
+                    column: 51,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "container_instance",
+            containing_symbol: Some(
+                SymbolId(
+                    8,
+                ),
+            ),
+        },
+        Reference {
+            kind: ViewScope,
+            raw_text: "system",
+            span: TextSpan {
+                start_byte: 566,
+                end_byte: 572,
+                start_point: TextPoint {
+                    row: 21,
+                    column: 22,
+                },
+                end_point: TextPoint {
+                    row: 21,
+                    column: 28,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "system_context_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewInclude,
+            raw_text: "user",
+            span: TextSpan {
+                start_byte: 612,
+                end_byte: 616,
+                start_point: TextPoint {
+                    row: 22,
+                    column: 20,
+                },
+                end_point: TextPoint {
+                    row: 22,
+                    column: 24,
+                },
+            },
+            target_hint: ElementOrRelationship,
+            container_node_kind: "system_context_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewInclude,
+            raw_text: "system",
+            span: TextSpan {
+                start_byte: 617,
+                end_byte: 623,
+                start_point: TextPoint {
+                    row: 22,
+                    column: 25,
+                },
+                end_point: TextPoint {
+                    row: 22,
+                    column: 31,
+                },
+            },
+            target_hint: ElementOrRelationship,
+            container_node_kind: "system_context_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "user",
+            span: TextSpan {
+                start_byte: 664,
+                end_byte: 668,
+                start_point: TextPoint {
+                    row: 24,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 24,
+                    column: 20,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "system_context_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "system",
+            span: TextSpan {
+                start_byte: 669,
+                end_byte: 675,
+                start_point: TextPoint {
+                    row: 24,
+                    column: 21,
+                },
+                end_point: TextPoint {
+                    row: 24,
+                    column: 27,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "system_context_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewScope,
+            raw_text: "system",
+            span: TextSpan {
+                start_byte: 719,
+                end_byte: 725,
+                start_point: TextPoint {
+                    row: 28,
+                    column: 18,
+                },
+                end_point: TextPoint {
+                    row: 28,
+                    column: 24,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "container_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewInclude,
+            raw_text: "api",
+            span: TextSpan {
+                start_byte: 765,
+                end_byte: 768,
+                start_point: TextPoint {
+                    row: 29,
+                    column: 20,
+                },
+                end_point: TextPoint {
+                    row: 29,
+                    column: 23,
+                },
+            },
+            target_hint: ElementOrRelationship,
+            container_node_kind: "container_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewInclude,
+            raw_text: "worker",
+            span: TextSpan {
+                start_byte: 769,
+                end_byte: 775,
+                start_point: TextPoint {
+                    row: 29,
+                    column: 24,
+                },
+                end_point: TextPoint {
+                    row: 29,
+                    column: 30,
+                },
+            },
+            target_hint: ElementOrRelationship,
+            container_node_kind: "container_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "api",
+            span: TextSpan {
+                start_byte: 816,
+                end_byte: 819,
+                start_point: TextPoint {
+                    row: 31,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 31,
+                    column: 19,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "container_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "worker",
+            span: TextSpan {
+                start_byte: 820,
+                end_byte: 826,
+                start_point: TextPoint {
+                    row: 31,
+                    column: 20,
+                },
+                end_point: TextPoint {
+                    row: 31,
+                    column: 26,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "container_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewScope,
+            raw_text: "system",
+            span: TextSpan {
+                start_byte: 871,
+                end_byte: 877,
+                start_point: TextPoint {
+                    row: 35,
+                    column: 19,
+                },
+                end_point: TextPoint {
+                    row: 35,
+                    column: 25,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "deployment_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewInclude,
+            raw_text: "primary",
+            span: TextSpan {
+                start_byte: 907,
+                end_byte: 914,
+                start_point: TextPoint {
+                    row: 36,
+                    column: 20,
+                },
+                end_point: TextPoint {
+                    row: 36,
+                    column: 27,
+                },
+            },
+            target_hint: Deployment,
+            container_node_kind: "deployment_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewInclude,
+            raw_text: "secondary",
+            span: TextSpan {
+                start_byte: 915,
+                end_byte: 924,
+                start_point: TextPoint {
+                    row: 36,
+                    column: 28,
+                },
+                end_point: TextPoint {
+                    row: 36,
+                    column: 37,
+                },
+            },
+            target_hint: Deployment,
+            container_node_kind: "deployment_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewInclude,
+            raw_text: "webInstance",
+            span: TextSpan {
+                start_byte: 925,
+                end_byte: 936,
+                start_point: TextPoint {
+                    row: 36,
+                    column: 38,
+                },
+                end_point: TextPoint {
+                    row: 36,
+                    column: 49,
+                },
+            },
+            target_hint: Deployment,
+            container_node_kind: "deployment_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewInclude,
+            raw_text: "apiInstance",
+            span: TextSpan {
+                start_byte: 937,
+                end_byte: 948,
+                start_point: TextPoint {
+                    row: 36,
+                    column: 50,
+                },
+                end_point: TextPoint {
+                    row: 36,
+                    column: 61,
+                },
+            },
+            target_hint: Deployment,
+            container_node_kind: "deployment_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "primary",
+            span: TextSpan {
+                start_byte: 989,
+                end_byte: 996,
+                start_point: TextPoint {
+                    row: 38,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 38,
+                    column: 23,
+                },
+            },
+            target_hint: Deployment,
+            container_node_kind: "deployment_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "secondary",
+            span: TextSpan {
+                start_byte: 997,
+                end_byte: 1006,
+                start_point: TextPoint {
+                    row: 38,
+                    column: 24,
+                },
+                end_point: TextPoint {
+                    row: 38,
+                    column: 33,
+                },
+            },
+            target_hint: Deployment,
+            container_node_kind: "deployment_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "webInstance",
+            span: TextSpan {
+                start_byte: 1023,
+                end_byte: 1034,
+                start_point: TextPoint {
+                    row: 39,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 39,
+                    column: 27,
+                },
+            },
+            target_hint: Deployment,
+            container_node_kind: "deployment_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "apiInstance",
+            span: TextSpan {
+                start_byte: 1035,
+                end_byte: 1046,
+                start_point: TextPoint {
+                    row: 39,
+                    column: 28,
+                },
+                end_point: TextPoint {
+                    row: 39,
+                    column: 39,
+                },
+            },
+            target_hint: Deployment,
+            container_node_kind: "deployment_view",
+            containing_symbol: None,
+        },
+    ],
+}

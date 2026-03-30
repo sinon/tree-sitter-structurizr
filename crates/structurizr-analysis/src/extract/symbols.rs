@@ -138,10 +138,32 @@ impl<'a> SymbolExtractor<'a> {
                 self.push_instance_target_reference(node, symbol_id.or(parent_symbol));
                 self.visit_children(node, symbol_id.or(parent_symbol));
             }
-            "system_landscape_view" => self.extract_view(node, false, parent_symbol),
+            "system_landscape_view" => self.extract_view(
+                node,
+                None,
+                Some(ReferenceTargetHint::ElementOrRelationship),
+                Some(ReferenceTargetHint::Element),
+                parent_symbol,
+            ),
             "system_context_view" | "container_view" | "component_view" => {
-                self.extract_view(node, true, parent_symbol);
+                self.extract_view(
+                    node,
+                    Some(ReferenceTargetHint::Element),
+                    Some(ReferenceTargetHint::ElementOrRelationship),
+                    Some(ReferenceTargetHint::Element),
+                    parent_symbol,
+                );
             }
+            // Deployment-view scope still points at the model element, but both
+            // `include` and `animation` identifiers refer to deployment-layer
+            // bindings such as deployment nodes and instances.
+            "deployment_view" => self.extract_view(
+                node,
+                Some(ReferenceTargetHint::Element),
+                Some(ReferenceTargetHint::Deployment),
+                Some(ReferenceTargetHint::Deployment),
+                parent_symbol,
+            ),
             _ => self.visit_children(node, parent_symbol),
         }
     }
@@ -324,10 +346,12 @@ impl<'a> SymbolExtractor<'a> {
     fn extract_view(
         &mut self,
         view: Node<'_>,
-        supports_scope: bool,
+        scope_target_hint: Option<ReferenceTargetHint>,
+        include_target_hint: Option<ReferenceTargetHint>,
+        animation_target_hint: Option<ReferenceTargetHint>,
         parent_symbol: Option<SymbolId>,
     ) {
-        if supports_scope
+        if let Some(target_hint) = scope_target_hint
             && let Some(scope) = view.child_by_field_name("scope")
             && scope.kind() == "identifier"
         {
@@ -335,14 +359,24 @@ impl<'a> SymbolExtractor<'a> {
                 kind: ReferenceKind::ViewScope,
                 raw_text: node_text(scope, self.source),
                 span: TextSpan::from_node(scope),
-                target_hint: ReferenceTargetHint::Element,
+                target_hint,
                 container_node_kind: view.kind().to_owned(),
                 containing_symbol: parent_symbol,
             });
         }
 
         if let Some(body) = view.child_by_field_name("body") {
-            self.collect_view_include_references(body, view.kind(), parent_symbol);
+            if let Some(target_hint) = include_target_hint {
+                self.collect_view_include_references(body, view.kind(), target_hint, parent_symbol);
+            }
+            if let Some(target_hint) = animation_target_hint {
+                self.collect_view_animation_references(
+                    body,
+                    view.kind(),
+                    target_hint,
+                    parent_symbol,
+                );
+            }
         }
     }
 
@@ -350,28 +384,76 @@ impl<'a> SymbolExtractor<'a> {
         &mut self,
         node: Node<'_>,
         view_kind: &str,
+        target_hint: ReferenceTargetHint,
         parent_symbol: Option<SymbolId>,
     ) {
         if node.kind() == "include_statement" {
-            if let Some(value) = node.child_by_field_name("value")
-                && value.kind() == "identifier"
-            {
-                self.references.push(Reference {
-                    kind: ReferenceKind::ViewInclude,
-                    raw_text: node_text(value, self.source),
-                    span: TextSpan::from_node(value),
-                    target_hint: ReferenceTargetHint::ElementOrRelationship,
-                    container_node_kind: view_kind.to_owned(),
-                    containing_symbol: parent_symbol,
-                });
+            let mut cursor = node.walk();
+            for value in node.named_children(&mut cursor) {
+                self.push_view_reference(
+                    value,
+                    ReferenceKind::ViewInclude,
+                    target_hint,
+                    view_kind,
+                    parent_symbol,
+                );
             }
             return;
         }
 
         let mut cursor = node.walk();
         for child in node.named_children(&mut cursor) {
-            self.collect_view_include_references(child, view_kind, parent_symbol);
+            self.collect_view_include_references(child, view_kind, target_hint, parent_symbol);
         }
+    }
+
+    fn collect_view_animation_references(
+        &mut self,
+        node: Node<'_>,
+        view_kind: &str,
+        target_hint: ReferenceTargetHint,
+        parent_symbol: Option<SymbolId>,
+    ) {
+        if node.kind() == "animation_block" {
+            let mut cursor = node.walk();
+            for value in node.named_children(&mut cursor) {
+                self.push_view_reference(
+                    value,
+                    ReferenceKind::ViewAnimation,
+                    target_hint,
+                    view_kind,
+                    parent_symbol,
+                );
+            }
+            return;
+        }
+
+        let mut cursor = node.walk();
+        for child in node.named_children(&mut cursor) {
+            self.collect_view_animation_references(child, view_kind, target_hint, parent_symbol);
+        }
+    }
+
+    fn push_view_reference(
+        &mut self,
+        value: Node<'_>,
+        kind: ReferenceKind,
+        target_hint: ReferenceTargetHint,
+        view_kind: &str,
+        parent_symbol: Option<SymbolId>,
+    ) {
+        if value.kind() != "identifier" {
+            return;
+        }
+
+        self.references.push(Reference {
+            kind,
+            raw_text: node_text(value, self.source),
+            span: TextSpan::from_node(value),
+            target_hint,
+            container_node_kind: view_kind.to_owned(),
+            containing_symbol: parent_symbol,
+        });
     }
 }
 

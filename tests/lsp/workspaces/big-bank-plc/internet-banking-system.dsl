@@ -93,11 +93,7 @@ workspace "Big Bank plc - Internet Banking System" "The software architecture of
 
     views {
         systemcontext internetBankingSystem "SystemContext" {
-            # TODO: These argument after the include should be detected as an identifier for highlighting
-            # TODO: These once they are detected as identifers should then support go-to-def to the relevant assignment/creation
-            #       (note this should also work for other view types `container`, `component`, `dynamic` and `deployment`)
             include internetBankingSystem customer mainframe email
-            # TODO: These identifiers in `views.systemcontext.animation` should allow go-to-def to the relevant assignment/creation
             animation {
                 internetBankingSystem
                 customer
@@ -107,8 +103,7 @@ workspace "Big Bank plc - Internet Banking System" "The software architecture of
         }
 
         container internetBankingSystem "Containers" {
-            include *
-            # TODO: These identifiers in `views.container.animation` should allow go-to-def to the relevant assignment/creation
+            include customer
             animation {
                 customer mainframe email
                 webApplication
@@ -120,8 +115,7 @@ workspace "Big Bank plc - Internet Banking System" "The software architecture of
         }
 
         component apiApplication "Components" {
-            include *
-            # TODO: These identifiers in `views.component.animation` should allow go-to-def to the relevant assignment/creation
+            include mobileApp
             animation {
                 singlePageApplication mobileApp database email mainframe
                 signinController securityComponent
@@ -129,6 +123,7 @@ workspace "Big Bank plc - Internet Banking System" "The software architecture of
                 resetPasswordController emailComponent
             }
         }
+        # TODO: The first arg to dynamic `apiApplication` should cmd+click to the relevant assignment/creation
         # TODO: These identifiers in `views.dynamic` should allow go-to-def to the relevant assignment/creation
         dynamic apiApplication "SignIn" "Summarises how the sign in feature works in the single-page application." {
             singlePageApplication -> signinController "Submits credentials to"
@@ -140,8 +135,7 @@ workspace "Big Bank plc - Internet Banking System" "The software architecture of
         }
 
         deployment internetBankingSystem "Development" "DevelopmentDeployment" {
-            include *
-            # TODO: These identifiers in `views.deployment.animation` should allow go-to-def to the relevant assignment/creation
+            include developerSinglePageApplicationInstance developerWebApplicationInstance developerApiApplicationInstance developerDatabaseInstance
             animation {
                 developerSinglePageApplicationInstance
                 developerWebApplicationInstance developerApiApplicationInstance

@@ -320,6 +320,7 @@ Only the supported bounded reference kinds should be resolved:
 - `RelationshipDestination`
 - `ViewScope`
 - `ViewInclude`
+- `ViewAnimation`
 
 And they should be resolved exactly as the scope note describes.
 
