@@ -525,18 +525,18 @@ async fn document_links_resolve_docs_and_adrs_directive_paths() {
         .iter()
         .find(|link| link["target"] == docs_uri.as_str())
         .expect("docs link should exist");
-    assert_eq!(docs_link["range"]["start"]["line"], 14);
+    assert_eq!(docs_link["range"]["start"]["line"], 13);
     assert_eq!(docs_link["range"]["start"]["character"], 6);
-    assert_eq!(docs_link["range"]["end"]["line"], 14);
+    assert_eq!(docs_link["range"]["end"]["line"], 13);
     assert_eq!(docs_link["range"]["end"]["character"], 10);
 
     let adrs_link = links
         .iter()
         .find(|link| link["target"] == adrs_uri.as_str())
         .expect("adrs link should exist");
-    assert_eq!(adrs_link["range"]["start"]["line"], 15);
+    assert_eq!(adrs_link["range"]["start"]["line"], 14);
     assert_eq!(adrs_link["range"]["start"]["character"], 6);
-    assert_eq!(adrs_link["range"]["end"]["line"], 15);
+    assert_eq!(adrs_link["range"]["end"]["line"], 14);
     assert_eq!(adrs_link["range"]["end"]["character"], 10);
 }
 
