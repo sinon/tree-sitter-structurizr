@@ -252,6 +252,7 @@ using:
 This means:
 
 - in flat mode, `user -> system` resolves through `user` and `system`
+- explicit dynamic-view edges such as `web -> signin` resolve through the same element binding table
 - in hierarchical mode, a simple `api` reference does **not** resolve to `system.api`
 
 That outcome is intentional until selector reference syntax is in scope.
@@ -276,6 +277,7 @@ This covers:
 - `container system`
 - `component api` in flat mode
 - `deployment system "Live"`
+- `dynamic api "SignIn"`
 
 It does **not** automatically make hierarchical shorthand work.
 
@@ -323,7 +325,7 @@ This covers:
 - identifier steps inside `animation { ... }` for `systemLandscape`, `systemContext`, `container`, and `component` views
 - deployment-node and instance identifiers inside `deployment` view animations
 
-It does **not** widen support to `dynamic_relationship` or `dynamic_relationship_reference`.
+It does **not** widen support to named `dynamic_relationship_reference` sites.
 
 ## What stays explicitly deferred
 
@@ -332,7 +334,6 @@ The bounded MVP should **not** resolve:
 - `this`
 - omitted-source relationship shorthand
 - `nested_relationship`
-- `dynamic_relationship`
 - `dynamic_relationship_reference`
 - hierarchical selector reference syntax such as `system.api`
 - `!element` / `!relationship` selector lookups

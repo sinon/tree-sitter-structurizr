@@ -112,7 +112,7 @@ If a feature depends on:
 
 - selector semantics
 - `this`
-- dynamic relationship references
+- named dynamic relationship references
 - multi-context fragment behavior
 
 and those rules are not yet explicit and tested, the feature should wait.
@@ -187,7 +187,7 @@ That means deferring broad new domains until the current core domains are explai
 - `!element` / `!relationship` selector lookup targets
 - `this`
 - omitted-source relationship shorthand
-- dynamic relationship references
+- named dynamic relationship references
 - any other direct follow-on work needed to make the current core symbol families semantically coherent
 
 ### Why this track comes first
@@ -257,9 +257,9 @@ They need:
 
 They should not be guessed.
 
-#### 1D. Add dynamic relationship references last in this track
+#### 1D. Add named dynamic relationship references last in this track
 
-Dynamic relationship references mix:
+Named dynamic relationship references mix:
 
 - relationship symbol semantics
 - view semantics
@@ -609,7 +609,7 @@ The safest way to keep Phase 6 honest is to write down what each feature depends
 | Selector-based references | canonical key model, workspace index, explicit selector extraction | exact canonical selectors for current core element symbols | fuzzy or partial selector matching |
 | `!element` / `!relationship` lookup resolution | selector resolver | reuse same selector-resolution path | separate one-off resolver logic |
 | `this` / omitted-source relationships | containing-symbol context rules | current core element families in well-defined contexts | malformed or ambiguous containing contexts |
-| Dynamic relationship references | relationship symbol model, view semantics, selector/reference stability | bounded dynamic-reference surfaces | broad dynamic-view heuristics |
+| Named dynamic relationship references | relationship symbol model, view semantics, selector/reference stability | bounded dynamic-reference surfaces | broad dynamic-view heuristics |
 | Richer hover | stable symbol/reference resolution | core elements + named relationships | runtime-style model rendering |
 | Workspace symbols | workspace index, reverse document-to-instance membership | instance-scoped symbols with root context | folder-global symbol bags |
 | Identifier completion | stable canonical keys + supported insertion behavior | flat-mode element + relationship identifiers | hierarchical insertion before selector support |

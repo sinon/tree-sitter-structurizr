@@ -417,6 +417,56 @@ async fn goto_definition_resolves_cross_file_big_bank_view_include_and_animation
 }
 
 #[tokio::test(flavor = "current_thread")]
+async fn goto_definition_resolves_cross_file_big_bank_dynamic_view_references() {
+    let (mut service, _socket) = new_service();
+    let workspace_root = workspace_fixture_path("big-bank-plc");
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
+    initialized(&mut service).await;
+
+    let document_path = workspace_root.join("internet-banking-system.dsl");
+    let document_source = read_workspace_file(&document_path);
+    let document_uri = file_uri_from_path(&document_path);
+    open_document(&mut service, &document_uri, &document_source).await;
+
+    let details_uri =
+        file_uri_from_path(&workspace_root.join("model/internet-banking-system/details.dsl"));
+
+    for expectation in [
+        DefinitionExpectation {
+            needle: "dynamic apiApplication \"SignIn\"",
+            byte_offset_within_needle: 8,
+            request_id: 70,
+            expected_uri: details_uri.as_str(),
+            expected_line: 3,
+        },
+        DefinitionExpectation {
+            needle: "singlePageApplication -> signinController \"Submits credentials to\"",
+            byte_offset_within_needle: 1,
+            request_id: 71,
+            expected_uri: details_uri.as_str(),
+            expected_line: 0,
+        },
+        DefinitionExpectation {
+            needle: "singlePageApplication -> signinController \"Submits credentials to\"",
+            byte_offset_within_needle: 25,
+            request_id: 72,
+            expected_uri: details_uri.as_str(),
+            expected_line: 4,
+        },
+        DefinitionExpectation {
+            needle: "signinController -> securityComponent \"Validates credentials using\"",
+            byte_offset_within_needle: 20,
+            request_id: 73,
+            expected_uri: details_uri.as_str(),
+            expected_line: 7,
+        },
+    ] {
+        assert_definition_target(&mut service, &document_uri, &document_source, expectation).await;
+    }
+}
+
+#[tokio::test(flavor = "current_thread")]
 async fn goto_definition_resolves_docs_and_adrs_path_arguments() {
     let (mut service, _socket) = new_service();
     let workspace_root = workspace_fixture_path("big-bank-plc");

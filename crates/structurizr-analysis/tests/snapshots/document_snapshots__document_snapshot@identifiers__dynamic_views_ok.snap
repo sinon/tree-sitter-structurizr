@@ -1,0 +1,312 @@
+---
+source: crates/structurizr-analysis/tests/document_snapshots.rs
+assertion_line: 46
+expression: "SnapshotView::from(&snapshot)"
+---
+SnapshotView {
+    has_syntax_errors: false,
+    diagnostics: [],
+    include_directives: [],
+    identifier_modes: [],
+    symbols: [
+        Symbol {
+            id: SymbolId(
+                0,
+            ),
+            kind: SoftwareSystem,
+            display_name: "System",
+            binding_name: Some(
+                "system",
+            ),
+            span: TextSpan {
+                start_byte: 32,
+                end_byte: 342,
+                start_point: TextPoint {
+                    row: 2,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 9,
+                    column: 9,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "software_system",
+        },
+        Symbol {
+            id: SymbolId(
+                1,
+            ),
+            kind: Container,
+            display_name: "Web Application",
+            binding_name: Some(
+                "web",
+            ),
+            span: TextSpan {
+                start_byte: 79,
+                end_byte: 112,
+                start_point: TextPoint {
+                    row: 3,
+                    column: 12,
+                },
+                end_point: TextPoint {
+                    row: 3,
+                    column: 45,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    0,
+                ),
+            ),
+            syntax_node_kind: "container",
+        },
+        Symbol {
+            id: SymbolId(
+                2,
+            ),
+            kind: Container,
+            display_name: "API Application",
+            binding_name: Some(
+                "api",
+            ),
+            span: TextSpan {
+                start_byte: 125,
+                end_byte: 288,
+                start_point: TextPoint {
+                    row: 4,
+                    column: 12,
+                },
+                end_point: TextPoint {
+                    row: 7,
+                    column: 13,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    0,
+                ),
+            ),
+            syntax_node_kind: "container",
+        },
+        Symbol {
+            id: SymbolId(
+                3,
+            ),
+            kind: Component,
+            display_name: "Sign In Controller",
+            binding_name: Some(
+                "signin",
+            ),
+            span: TextSpan {
+                start_byte: 177,
+                end_byte: 216,
+                start_point: TextPoint {
+                    row: 5,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 5,
+                    column: 55,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    2,
+                ),
+            ),
+            syntax_node_kind: "component",
+        },
+        Symbol {
+            id: SymbolId(
+                4,
+            ),
+            kind: Component,
+            display_name: "Security Component",
+            binding_name: Some(
+                "security",
+            ),
+            span: TextSpan {
+                start_byte: 233,
+                end_byte: 274,
+                start_point: TextPoint {
+                    row: 6,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 6,
+                    column: 57,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    2,
+                ),
+            ),
+            syntax_node_kind: "component",
+        },
+        Symbol {
+            id: SymbolId(
+                5,
+            ),
+            kind: Container,
+            display_name: "Database",
+            binding_name: Some(
+                "database",
+            ),
+            span: TextSpan {
+                start_byte: 301,
+                end_byte: 332,
+                start_point: TextPoint {
+                    row: 8,
+                    column: 12,
+                },
+                end_point: TextPoint {
+                    row: 8,
+                    column: 43,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    0,
+                ),
+            ),
+            syntax_node_kind: "container",
+        },
+    ],
+    references: [
+        Reference {
+            kind: ViewScope,
+            raw_text: "api",
+            span: TextSpan {
+                start_byte: 378,
+                end_byte: 381,
+                start_point: TextPoint {
+                    row: 13,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 13,
+                    column: 19,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "dynamic_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "web",
+            span: TextSpan {
+                start_byte: 405,
+                end_byte: 408,
+                start_point: TextPoint {
+                    row: 14,
+                    column: 12,
+                },
+                end_point: TextPoint {
+                    row: 14,
+                    column: 15,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "dynamic_relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "signin",
+            span: TextSpan {
+                start_byte: 412,
+                end_byte: 418,
+                start_point: TextPoint {
+                    row: 14,
+                    column: 19,
+                },
+                end_point: TextPoint {
+                    row: 14,
+                    column: 25,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "dynamic_relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "signin",
+            span: TextSpan {
+                start_byte: 456,
+                end_byte: 462,
+                start_point: TextPoint {
+                    row: 15,
+                    column: 12,
+                },
+                end_point: TextPoint {
+                    row: 15,
+                    column: 18,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "dynamic_relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "security",
+            span: TextSpan {
+                start_byte: 466,
+                end_byte: 474,
+                start_point: TextPoint {
+                    row: 15,
+                    column: 22,
+                },
+                end_point: TextPoint {
+                    row: 15,
+                    column: 30,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "dynamic_relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "security",
+            span: TextSpan {
+                start_byte: 517,
+                end_byte: 525,
+                start_point: TextPoint {
+                    row: 16,
+                    column: 12,
+                },
+                end_point: TextPoint {
+                    row: 16,
+                    column: 20,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "dynamic_relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "database",
+            span: TextSpan {
+                start_byte: 529,
+                end_byte: 537,
+                start_point: TextPoint {
+                    row: 16,
+                    column: 24,
+                },
+                end_point: TextPoint {
+                    row: 16,
+                    column: 32,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "dynamic_relationship",
+            containing_symbol: None,
+        },
+    ],
+}
