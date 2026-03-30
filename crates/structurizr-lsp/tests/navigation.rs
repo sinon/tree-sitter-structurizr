@@ -1,10 +1,6 @@
 mod support;
 
-use std::{
-    fs,
-    path::{Path, PathBuf},
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::{fs, path::Path};
 
 use serde_json::json;
 use support::{
@@ -12,6 +8,7 @@ use support::{
     initialized, new_service, next_publish_diagnostics_for_uri, open_document, position_in,
     request_json, workspace_fixture_path,
 };
+use tempfile::TempDir;
 
 const DIRECT_REFERENCES_SOURCE: &str =
     include_str!("../../../tests/fixtures/lsp/relationships/named-relationships-ok.dsl");
@@ -19,6 +16,7 @@ const COMPLETION_SOURCE: &str = "workspace {\n  !i\n}\n";
 const ELEMENT_STYLE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      element \"Person\" {\n        ba\n      }\n    }\n  }\n}\n";
 const RELATIONSHIP_STYLE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      relationship \"Uses\" {\n        da\n      }\n    }\n  }\n}\n";
 const STYLE_VALUE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      relationship \"Uses\" {\n        metadata de\n      }\n    }\n  }\n}\n";
+const STYLE_BLOCK_END_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      element \"Person\" {\n        background #ffffff\n      }\n      !d\n    }\n  }\n}\n";
 
 #[tokio::test(flavor = "current_thread")]
 async fn document_symbols_follow_analysis_symbols() {
@@ -194,6 +192,43 @@ async fn completion_inside_style_values_suppresses_property_name_suggestions() {
         .as_array()
         .expect("completion should return an item array");
     assert!(items.is_empty());
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_after_style_block_returns_fixed_vocabulary() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let uri = file_uri("style-block-end-completion.dsl");
+    open_document(&mut service, &uri, STYLE_BLOCK_END_COMPLETION_SOURCE).await;
+
+    let position = position_in(STYLE_BLOCK_END_COMPLETION_SOURCE, "!d", 2);
+    let response = request_json(
+        &mut service,
+        "textDocument/completion",
+        json!({
+            "textDocument": { "uri": uri.as_str() },
+            "position": position,
+        }),
+        40,
+    )
+    .await;
+
+    let labels = response["result"]
+        .as_array()
+        .expect("completion should return an item array")
+        .iter()
+        .map(|item| {
+            item["label"]
+                .as_str()
+                .expect("completion label should be a string")
+        })
+        .collect::<Vec<_>>();
+
+    assert!(labels.contains(&"!docs"));
+    assert!(!labels.contains(&"background"));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -525,6 +560,7 @@ async fn goto_definition_returns_no_result_for_empty_docs_and_adrs_directories()
         "empty-path-targets",
         "!docs docs\n!adrs adrs\n",
         &[Path::new("docs"), Path::new("adrs")],
+        &[],
     );
     let (mut service, _socket) = new_service();
 
@@ -562,6 +598,46 @@ async fn goto_definition_returns_no_result_for_empty_docs_and_adrs_directories()
     )
     .await;
     assert!(adrs_response["result"].is_null());
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn goto_definition_uses_direct_child_docs_files_only() {
+    let temp_workspace = TempWorkspace::new(
+        "direct-child-docs",
+        "!docs docs\n",
+        &[Path::new("docs/nested")],
+        &[
+            (Path::new("docs/01-top.md"), "# Top"),
+            (Path::new("docs/nested/02-nested.md"), "# Nested"),
+        ],
+    );
+    let (mut service, _socket) = new_service();
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(temp_workspace.path())])
+        .await;
+    initialized(&mut service).await;
+
+    let workspace_path = temp_workspace.path().join("workspace.dsl");
+    let workspace_source = read_workspace_file(&workspace_path);
+    let workspace_uri = file_uri_from_path(&workspace_path);
+    open_document(&mut service, &workspace_uri, &workspace_source).await;
+
+    let docs_position = position_in(&workspace_source, "!docs docs", 7);
+    let docs_response = request_json(
+        &mut service,
+        "textDocument/definition",
+        json!({
+            "textDocument": { "uri": workspace_uri.as_str() },
+            "position": docs_position,
+        }),
+        41,
+    )
+    .await;
+    let docs_uri = file_uri_from_path(
+        &fs::canonicalize(temp_workspace.path().join("docs/01-top.md"))
+            .expect("direct child docs file should canonicalize"),
+    );
+    assert_eq!(docs_response["result"]["uri"], docs_uri.as_str());
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -1142,25 +1218,22 @@ fn read_workspace_file(path: &Path) -> String {
 }
 
 struct TempWorkspace {
-    path: PathBuf,
+    temp_dir: TempDir,
 }
 
 impl TempWorkspace {
-    fn new(name: &str, workspace_source: &str, directories: &[&Path]) -> Self {
-        let unique_suffix = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system clock should be after UNIX_EPOCH")
-            .as_nanos();
-        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../tmp")
-            .join(format!("{name}-{unique_suffix}"));
+    fn new(
+        name: &str,
+        workspace_source: &str,
+        directories: &[&Path],
+        files: &[(&Path, &str)],
+    ) -> Self {
+        let temp_dir = tempfile::Builder::new()
+            .prefix(name)
+            .tempdir()
+            .expect("temp workspace should create");
+        let path = temp_dir.path();
 
-        fs::create_dir_all(&path).unwrap_or_else(|error| {
-            panic!(
-                "failed to create temp workspace `{}`: {error}",
-                path.display()
-            )
-        });
         fs::write(path.join("workspace.dsl"), workspace_source).unwrap_or_else(|error| {
             panic!(
                 "failed to write temp workspace file `{}`: {error}",
@@ -1178,16 +1251,28 @@ impl TempWorkspace {
             });
         }
 
-        Self { path }
+        for (relative_path, contents) in files {
+            let file_path = path.join(relative_path);
+            if let Some(parent) = file_path.parent() {
+                fs::create_dir_all(parent).unwrap_or_else(|error| {
+                    panic!(
+                        "failed to create temp workspace parent `{}`: {error}",
+                        parent.display()
+                    )
+                });
+            }
+            fs::write(&file_path, contents).unwrap_or_else(|error| {
+                panic!(
+                    "failed to write temp workspace file `{}`: {error}",
+                    file_path.display()
+                )
+            });
+        }
+
+        Self { temp_dir }
     }
 
     fn path(&self) -> &Path {
-        &self.path
-    }
-}
-
-impl Drop for TempWorkspace {
-    fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.path);
+        self.temp_dir.path()
     }
 }

@@ -4,15 +4,17 @@ use std::{
     collections::BTreeSet,
     fs,
     path::{Path, PathBuf},
-    str::FromStr,
 };
 
 use tower_lsp_server::ls_types::{
-    GotoDefinitionParams, GotoDefinitionResponse, Location, Position, Range, Uri,
+    GotoDefinitionParams, GotoDefinitionResponse, Location, Position, Range,
 };
 use tracing::{debug, info};
 
-use crate::{convert::positions::position_to_byte_offset, server::Backend};
+use crate::{
+    convert::{positions::position_to_byte_offset, uris::file_uri_from_path},
+    server::Backend,
+};
 
 /// Handles `textDocument/definition` for the bounded navigation slice.
 ///
@@ -122,7 +124,7 @@ fn directive_path_definition(
 }
 
 fn location_for_path(path: &Path) -> Option<Location> {
-    let uri = Uri::from_str(&format!("file://{}", path.to_string_lossy())).ok()?;
+    let uri = file_uri_from_path(path)?;
     let origin = Position::new(0, 0);
     Some(Location::new(uri, Range::new(origin, origin)))
 }
@@ -132,31 +134,24 @@ fn definition_targets_for_path(path: &Path) -> Vec<PathBuf> {
         return vec![path.to_path_buf()];
     }
 
-    // Zed's definition UI expects file targets rather than directories, so when
-    // a directive names a folder we expand it to concrete files that the editor
-    // can actually open. Editors that support `documentLink` still receive the
-    // original directory target through that separate surface.
-    let mut files = BTreeSet::new();
-    collect_directory_files(path, &mut files);
-
-    files.into_iter().collect()
-}
-
-fn collect_directory_files(path: &Path, files: &mut BTreeSet<PathBuf>) {
+    // Upstream Structurizr importers enumerate direct children in the supplied
+    // docs/ADRs directory rather than walking nested subfolders. Mirroring that
+    // behavior keeps the fallback cheap and aligned with what the DSL runtime
+    // actually imports.
     let Ok(entries) = fs::read_dir(path) else {
-        return;
+        return Vec::new();
     };
+    let mut files = BTreeSet::new();
 
     for entry in entries.flatten() {
         let Ok(file_type) = entry.file_type() else {
             continue;
         };
-        let entry_path = entry.path();
 
         if file_type.is_file() {
-            files.insert(entry_path);
-        } else if file_type.is_dir() {
-            collect_directory_files(&entry_path, files);
+            files.insert(entry.path());
         }
     }
+
+    files.into_iter().collect()
 }

@@ -2,7 +2,6 @@
 
 use std::{
     path::{Path, PathBuf},
-    str::FromStr,
     time::Duration,
 };
 
@@ -233,8 +232,7 @@ async fn wait_for_publish_diagnostics(socket: &mut ClientSocket) {
 }
 
 fn file_uri_from_path(path: &Path) -> Uri {
-    Uri::from_str(&format!("file://{}", path.to_string_lossy()))
-        .expect("file path URI should parse")
+    Uri::from_file_path(path).expect("file path URI should parse")
 }
 
 fn position_in(text: &str, needle: &str, byte_offset_within_needle: usize) -> Position {

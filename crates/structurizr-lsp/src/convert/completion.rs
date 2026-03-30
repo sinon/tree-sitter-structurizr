@@ -220,7 +220,11 @@ fn is_style_property_insertion_point(text: &str, prefix_start: usize) -> bool {
 }
 
 const fn span_contains(start_byte: usize, end_byte: usize, offset: usize) -> bool {
-    start_byte <= offset && offset <= end_byte
+    if start_byte == end_byte {
+        offset == start_byte
+    } else {
+        start_byte <= offset && offset < end_byte
+    }
 }
 
 fn completion_prefix_start(text: &str, offset: usize) -> usize {

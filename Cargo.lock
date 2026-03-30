@@ -1366,6 +1366,7 @@ dependencies = [
  "line-index",
  "serde_json",
  "structurizr-analysis",
+ "tempfile",
  "tokio",
  "tower",
  "tower-lsp-server",

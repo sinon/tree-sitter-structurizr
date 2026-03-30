@@ -1,11 +1,15 @@
 //! Document-link handler for directive arguments that point at files or folders.
 
-use std::{collections::BTreeMap, str::FromStr};
+use std::collections::BTreeMap;
 
 use structurizr_analysis::{DocumentSnapshot, TextSpan, WorkspaceFacts};
-use tower_lsp_server::ls_types::{DocumentLink, DocumentLinkParams, Uri};
+use tower_lsp_server::ls_types::{DocumentLink, DocumentLinkParams};
 
-use crate::{convert::positions::span_to_range, documents::DocumentState, server::Backend};
+use crate::{
+    convert::{positions::span_to_range, uris::file_uri_from_path},
+    documents::DocumentState,
+    server::Backend,
+};
 
 /// Handles `textDocument/documentLink` for local directive paths.
 ///
@@ -91,8 +95,4 @@ fn link_for_target(
         tooltip: Some(tooltip),
         data: None,
     })
-}
-
-fn file_uri_from_path(path: &std::path::Path) -> Option<Uri> {
-    Uri::from_str(&format!("file://{}", path.to_string_lossy())).ok()
 }
