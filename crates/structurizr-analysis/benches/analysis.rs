@@ -8,7 +8,7 @@ use criterion::{
 use structurizr_analysis::{DocumentAnalyzer, DocumentInput, WorkspaceLoader};
 
 const SMALL_DOCUMENT_SOURCE: &str =
-    include_str!("../../../tests/fixtures/lsp/identifiers/direct-references-ok.dsl");
+    include_str!("../../structurizr-grammar/tests/fixtures/lsp/identifiers/direct-references-ok.dsl");
 const MEDIUM_DOCUMENT_SOURCE: &str = include_str!(
     "../../../tests/lsp/workspaces/big-bank-plc/model/people-and-software-systems.dsl"
 );

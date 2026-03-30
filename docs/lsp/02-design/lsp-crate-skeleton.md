@@ -635,4 +635,4 @@ It gives the project a clean top-layer crate that is editor-facing without becom
 - `docs/lsp/01-foundations/repository-topology.md`
 - `docs/lsp/02-design/analysis-crate-skeleton.md`
 - `docs/lsp/02-design/workspace-discovery-includes.md`
-- `/Users/rob/dev/zed-structurizr/extension.toml`
+- `/Users/rob/dev/zed-structurizr/extensions.toml`

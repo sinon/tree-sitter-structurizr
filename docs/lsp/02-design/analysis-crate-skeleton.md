@@ -42,8 +42,8 @@ So the analysis crate should become the first place where “Structurizr editor 
 This repository already has an important packaging shape:
 
 - the root `Cargo.toml` is the parser crate package
-- the parser crate's library entry point is `bindings/rust/lib.rs`
-- there is **not** a separate `bindings/rust/Cargo.toml`
+- the parser crate's library entry point is `crates/structurizr-grammar/bindings/rust/lib.rs`
+- there is **not** a separate `crates/structurizr-grammar/bindings/rust/Cargo.toml`
 - the repository root must remain a normal Tree-sitter grammar repo for Zed and other grammar consumers
 
 That means the analysis crate should be added **alongside** the existing parser crate, not by moving the parser into a new nested Cargo package.
@@ -54,7 +54,7 @@ The recommended near-term layout is:
 
 ```text
 Cargo.toml                      existing parser crate package at repo root
-bindings/rust/lib.rs            existing parser crate entry point
+crates/structurizr-grammar/bindings/rust/lib.rs            existing parser crate entry point
 crates/structurizr-analysis/    new analysis crate
 ```
 
@@ -84,7 +84,7 @@ edition = "2021"
 
 [dependencies]
 tree-sitter = { workspace = true }
-tree-sitter-structurizr = { path = "../.." }
+tree-sitter-structurizr = { path = "../structurizr-grammar" }
 
 [dev-dependencies]
 insta = { workspace = true }
@@ -282,7 +282,7 @@ That should stay **private or absent** until a real portable query surface exist
 In practice:
 
 - the initial symbol and directive extractors should be handwritten tree walks based on the audit docs
-- when `queries/tags.scm` lands, a private query helper can be introduced without forcing the whole analysis architecture to depend on queries from day one
+- when `crates/structurizr-grammar/queries/tags.scm` lands, a private query helper can be introduced without forcing the whole analysis architecture to depend on queries from day one
 
 This keeps the skeleton honest about the current repo state.
 
@@ -424,8 +424,8 @@ The analysis crate should reuse the repository's existing testing style rather t
 
 Continue treating repo-root fixtures as the canonical DSL inputs:
 
-- `tests/fixtures/`
-- `tests/fixtures/lsp/`
+- `crates/structurizr-grammar/tests/fixtures/`
+- `crates/structurizr-grammar/tests/fixtures/lsp/`
 
 Do **not** duplicate the same DSL files under the crate directory.
 
@@ -504,8 +504,8 @@ It gives us:
 ## Sources
 
 - `Cargo.toml`
-- `bindings/rust/lib.rs`
-- `bindings/rust/build.rs`
+- `crates/structurizr-grammar/bindings/rust/lib.rs`
+- `crates/structurizr-grammar/bindings/rust/build.rs`
 - `Justfile`
 - `README.md`
 - `docs/lsp/03-delivery/roadmap.md`

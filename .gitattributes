@@ -1,44 +1,44 @@
 * text=auto eol=lf
 
 # Generated source files
-src/*.json linguist-generated
-src/parser.c linguist-generated
-src/tree_sitter/* linguist-generated
+crates/structurizr-grammar/src/*.json linguist-generated
+crates/structurizr-grammar/src/parser.c linguist-generated
+crates/structurizr-grammar/src/tree_sitter/* linguist-generated
 
 # C bindings
-bindings/c/** linguist-generated
-CMakeLists.txt linguist-generated
-Makefile linguist-generated
+crates/structurizr-grammar/bindings/c/** linguist-generated
+crates/structurizr-grammar/CMakeLists.txt linguist-generated
+crates/structurizr-grammar/Makefile linguist-generated
 
 # Rust bindings
-bindings/rust/* linguist-generated
+crates/structurizr-grammar/bindings/rust/* linguist-generated
 
 # Node.js bindings
-bindings/node/* linguist-generated
-binding.gyp linguist-generated
-package.json linguist-generated
-package-lock.json linguist-generated
+crates/structurizr-grammar/bindings/node/* linguist-generated
+crates/structurizr-grammar/binding.gyp linguist-generated
+crates/structurizr-grammar/package.json linguist-generated
+crates/structurizr-grammar/package-lock.json linguist-generated
 
 # Python bindings
-bindings/python/** linguist-generated
-setup.py linguist-generated
-pyproject.toml linguist-generated
+crates/structurizr-grammar/bindings/python/** linguist-generated
+crates/structurizr-grammar/setup.py linguist-generated
+crates/structurizr-grammar/pyproject.toml linguist-generated
 
 # Go bindings
-bindings/go/* linguist-generated
-go.mod linguist-generated
-go.sum linguist-generated
+crates/structurizr-grammar/bindings/go/* linguist-generated
+crates/structurizr-grammar/go.mod linguist-generated
+crates/structurizr-grammar/go.sum linguist-generated
 
 # Swift bindings
-bindings/swift/** linguist-generated
-Package.swift linguist-generated
-Package.resolved linguist-generated
+crates/structurizr-grammar/bindings/swift/** linguist-generated
+crates/structurizr-grammar/Package.swift linguist-generated
+crates/structurizr-grammar/Package.resolved linguist-generated
 
 # Zig bindings
-bindings/zig/* linguist-generated
-build.zig linguist-generated
-build.zig.zon linguist-generated
+crates/structurizr-grammar/bindings/zig/* linguist-generated
+crates/structurizr-grammar/build.zig linguist-generated
+crates/structurizr-grammar/build.zig.zon linguist-generated
 
 # Java bindings
-pom.xml linguist-generated
-bindings/java/** linguist-generated
+crates/structurizr-grammar/pom.xml linguist-generated
+crates/structurizr-grammar/bindings/java/** linguist-generated

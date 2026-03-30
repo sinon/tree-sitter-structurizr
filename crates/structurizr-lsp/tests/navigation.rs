@@ -12,7 +12,7 @@ use tempfile::TempDir;
 use tower_lsp_server::ls_types::Uri;
 
 const DIRECT_REFERENCES_SOURCE: &str =
-    include_str!("../../../tests/fixtures/lsp/relationships/named-relationships-ok.dsl");
+    include_str!("../../structurizr-grammar/tests/fixtures/lsp/relationships/named-relationships-ok.dsl");
 const COMPLETION_SOURCE: &str = "workspace {\n  !i\n}\n";
 const ELEMENT_STYLE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      element \"Person\" {\n        ba\n      }\n    }\n  }\n}\n";
 const RELATIONSHIP_STYLE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      relationship \"Uses\" {\n        da\n      }\n    }\n  }\n}\n";

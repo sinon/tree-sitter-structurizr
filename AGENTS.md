@@ -24,16 +24,16 @@ This project is not trying to become a Structurizr runtime. It should preserve a
 ## Core files and layout
 
 - `CONTRIBUTING.md` — contributor workflow and canonical command surface
-- `grammar.js` — source of truth for the grammar
-- `src/parser.c`, `src/grammar.json`, `src/node-types.json` — generated artifacts
+- `crates/structurizr-grammar/grammar.js` — source of truth for the grammar
+- `crates/structurizr-grammar/src/parser.c`, `crates/structurizr-grammar/src/grammar.json`, `crates/structurizr-grammar/src/node-types.json` — generated artifacts
 - `crates/structurizr-analysis/` — transport-agnostic document and workspace facts
 - `crates/structurizr-lsp/` — language server implementation
 - `crates/structurizr-cli/` — `strz` CLI including `strz server`
 - `tools/upstream_audit.rs` — contributor-only single-file Cargo script for downloading upstream Structurizr DSL fixtures and auditing parser coverage
-- `tests/fixtures.rs` — fixture-driven Rust tests with snapshots
-- `test/corpus/` — Tree-sitter CLI corpus tests
-- `tests/fixtures/` — the main Rust fixture tree, organized by feature area
-- `queries/` — checked-in highlighting/folding/indentation queries
+- `crates/structurizr-grammar/tests/fixtures.rs` — fixture-driven Rust tests with snapshots
+- `crates/structurizr-grammar/test/corpus/` — Tree-sitter CLI corpus tests
+- `crates/structurizr-grammar/tests/fixtures/` — the main Rust fixture tree, organized by feature area
+- `crates/structurizr-grammar/queries/` — checked-in highlighting/folding/indentation queries
 - `docs/lsp/` — current LSP architecture, status, and delivery docs
 - `Justfile` — canonical command surface
 
@@ -62,7 +62,7 @@ Command:
 just test-grammar
 ```
 
-This runs `tree-sitter test` against `test/corpus/`.
+This runs `tree-sitter test` against `crates/structurizr-grammar/test/corpus/`.
 
 Use this harness for:
 
@@ -85,7 +85,7 @@ This is the main local correctness harness.
 
 It is fixture-first:
 
-- `tests/fixtures.rs` loads file-based fixtures under `tests/fixtures/`
+- `crates/structurizr-grammar/tests/fixtures.rs` loads file-based fixtures under `crates/structurizr-grammar/tests/fixtures/`
 - fixture filenames encode expectation:
   - `-ok.dsl` means the fixture should parse without errors
   - `-err.dsl` means the fixture should continue to produce parse errors
@@ -151,10 +151,10 @@ When changing the grammar, use this loop:
 1. Pick a narrow syntax slice from the upstream audit.
 2. Read the failing upstream examples for that slice.
 3. Add or adjust local coverage first:
-   - fixture files under `tests/fixtures/`, organized by feature area
+   - fixture files under `crates/structurizr-grammar/tests/fixtures/`, organized by feature area
    - use `-ok.dsl` or `-err.dsl` suffixes to express expected outcome
-   - corpus coverage under `test/corpus/` if the syntax belongs in the compact CLI suite
-4. Update `grammar.js`.
+   - corpus coverage under `crates/structurizr-grammar/test/corpus/` if the syntax belongs in the compact CLI suite
+4. Update `crates/structurizr-grammar/grammar.js`.
 5. Regenerate parser artifacts:
 
 ```sh
@@ -183,13 +183,13 @@ just audit-upstream
 
 ## How to decide where a test belongs
 
-Use `test/corpus/` when:
+Use `crates/structurizr-grammar/test/corpus/` when:
 
 - the example is small
 - the tree shape is important
 - the syntax belongs in the stable Tree-sitter-native regression suite
 
-Use `tests/fixtures/` when:
+Use `crates/structurizr-grammar/tests/fixtures/` when:
 
 - the example is more realistic or multi-block
 - you want snapshot coverage for a representative DSL file

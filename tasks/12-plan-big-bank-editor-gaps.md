@@ -13,8 +13,8 @@ Most of this surface already parses cleanly. The task is therefore mainly about 
 ## Root Cause
 
 - `crates/structurizr-lsp/src/convert/completion.rs` now offers style-property-name completion inside `element` and `relationship` style blocks, but it intentionally suppresses completions once the cursor moves into a style value. `crates/structurizr-lsp/tests/navigation.rs` locks that behavior in today.
-- `grammar.js` allows repeated `field("value", $._view_value)` children inside `include_statement`, but `crates/structurizr-analysis/src/extract/symbols.rs` currently reads only `node.child_by_field_name("value")`. That means only the first identifier in `include a b c` becomes a `ReferenceKind::ViewInclude`.
-- `grammar.js` also parses identifier-valued `animation` steps, but `queries/highlights.scm` has no capture for animation values and the analysis crate does not yet emit bounded reference facts for them.
+- `crates/structurizr-grammar/grammar.js` allows repeated `field("value", $._view_value)` children inside `include_statement`, but `crates/structurizr-analysis/src/extract/symbols.rs` currently reads only `node.child_by_field_name("value")`. That means only the first identifier in `include a b c` becomes a `ReferenceKind::ViewInclude`.
+- `crates/structurizr-grammar/grammar.js` also parses identifier-valued `animation` steps, but `crates/structurizr-grammar/queries/highlights.scm` has no capture for animation values and the analysis crate does not yet emit bounded reference facts for them.
 - Direct `dynamic_relationship` endpoints already parse and highlight, but the bounded-MVP docs in `docs/lsp/02-design/` and `docs/lsp/03-delivery/roadmap.md` explicitly defer dynamic-view relationship references. Broadening that support would change a documented boundary rather than just fill an isolated bug.
 
 ## Options

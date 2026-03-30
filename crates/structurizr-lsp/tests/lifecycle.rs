@@ -8,7 +8,7 @@ use support::{
 };
 
 const INVALID_SOURCE: &str =
-    include_str!("../../../tests/fixtures/lsp/directives/identifiers-unexpected-tokens-err.dsl");
+    include_str!("../../structurizr-grammar/tests/fixtures/lsp/directives/identifiers-unexpected-tokens-err.dsl");
 
 #[tokio::test(flavor = "current_thread")]
 async fn initialize_advertises_bounded_capabilities() {

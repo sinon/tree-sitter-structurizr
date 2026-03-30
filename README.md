@@ -110,8 +110,8 @@ This repository also includes material copied or adapted from the Apache-2.0 lic
 
 These consist of:
 
-- Structurizr DSL corpus material under `test/corpus/`
-- Structurizr DSL fixtures and workspaces under `tests/fixtures/` and `tests/lsp/workspaces/`
+- Structurizr DSL corpus material under `crates/structurizr-grammar/test/corpus/`
+- Structurizr DSL fixtures and workspaces under `crates/structurizr-grammar/tests/fixtures/` and `tests/lsp/workspaces/`
 
 ## References
 

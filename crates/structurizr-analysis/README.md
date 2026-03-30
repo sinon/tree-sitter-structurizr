@@ -109,8 +109,8 @@ parser setup stays in one place.
 This crate follows the repository's existing fixture-and-snapshot testing style.
 
 - integration tests live in `crates/structurizr-analysis/tests/`
-- shared DSL inputs stay in the repo-root fixture tree under
-  `tests/fixtures/lsp/`
+- shared single-document DSL inputs live under
+  `crates/structurizr-grammar/tests/fixtures/lsp/`
 - snapshots assert higher-level analysis outputs rather than raw parse trees
 
 The main snapshot test currently exercises:

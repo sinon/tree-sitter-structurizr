@@ -241,7 +241,7 @@ The project should treat grammar and LSP version references as related but separ
 
 The Zed extension should continue to pin:
 
-- a grammar git revision in `extension.toml`
+- a grammar git revision in `extensions.toml`
 
 That pin controls:
 
@@ -299,7 +299,7 @@ when you want the broader Rust + grammar validation pass before landing or relea
 For local Zed iteration:
 
 - install `/Users/rob/dev/zed-structurizr` as a dev extension
-- temporarily point its grammar entry at `file:///Users/rob/dev/tree-sitter-structurizr`
+- temporarily point its grammar entry at `file:///Users/rob/dev/tree-sitter-structurizr` with `path = "crates/structurizr-grammar"`
 - open a representative `.dsl` file such as `big-bank.dsl`
 
 This loop does not require an LSP yet.
@@ -447,9 +447,9 @@ And validate:
 Use:
 
 - `/Users/rob/dev/zed-structurizr/big-bank.dsl`
-- `tests/fixtures/lsp/includes/`
-- `tests/fixtures/lsp/identifiers/`
-- `tests/fixtures/lsp/relationships/`
+- `crates/structurizr-grammar/tests/fixtures/lsp/includes/`
+- `crates/structurizr-grammar/tests/fixtures/lsp/identifiers/`
+- `crates/structurizr-grammar/tests/fixtures/lsp/relationships/`
 
 as the first representative smoke-test set.
 

@@ -567,4 +567,4 @@ Once this handler contract exists, the future implementation path becomes much c
 - `docs/lsp/01-foundations/overview.md`
 - `docs/lsp/01-foundations/repository-topology.md`
 - `/Users/rob/dev/zed-structurizr/languages/structurizr/outline.scm`
-- `tests/fixtures/lsp/`
+- `crates/structurizr-grammar/tests/fixtures/lsp/`

@@ -335,9 +335,9 @@ There are also two grammar-alignment questions worth carrying forward:
 
 ## Sources
 
-- `grammar.js`
-- `src/node-types.json`
-- `test/corpus/workspace.txt`
-- `test/corpus/model.txt`
-- `tests/fixtures/workspace/extension_directives-ok.dsl`
-- `tests/fixtures/views/advanced-ok.dsl`
+- `crates/structurizr-grammar/grammar.js`
+- `crates/structurizr-grammar/src/node-types.json`
+- `crates/structurizr-grammar/test/corpus/workspace.txt`
+- `crates/structurizr-grammar/test/corpus/model.txt`
+- `crates/structurizr-grammar/tests/fixtures/workspace/extension_directives-ok.dsl`
+- `crates/structurizr-grammar/tests/fixtures/views/advanced-ok.dsl`

@@ -38,7 +38,7 @@ impl From<&DocumentSnapshot> for SnapshotView {
 
 #[rstest]
 fn lsp_fixtures_produce_stable_snapshots(
-    #[files("../../tests/fixtures/lsp/**/*.dsl")] path: PathBuf,
+    #[files("../structurizr-grammar/tests/fixtures/lsp/**/*.dsl")] path: PathBuf,
 ) {
     let snapshot = analyze_fixture(&path);
 
@@ -55,7 +55,10 @@ fn analyze_fixture(path: &Path) -> DocumentSnapshot {
 
 fn relative_fixture_name(path: &Path) -> String {
     let fixture_root =
-        fs::canonicalize(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/fixtures/lsp"))
+        fs::canonicalize(
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../structurizr-grammar/tests/fixtures/lsp"),
+        )
             .unwrap_or_else(|error| panic!("failed to canonicalize fixture root: {error}"));
     let fixture_path = fs::canonicalize(path).unwrap_or_else(|error| {
         panic!(
@@ -67,7 +70,7 @@ fn relative_fixture_name(path: &Path) -> String {
         .strip_prefix(&fixture_root)
         .unwrap_or_else(|_| {
             panic!(
-                "fixture path should live under tests/fixtures/lsp: {}",
+                "fixture path should live under crates/structurizr-grammar/tests/fixtures/lsp: {}",
                 path.display()
             )
         })

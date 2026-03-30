@@ -377,10 +377,10 @@ The main boundary is not parser capability; it is discipline about what the firs
 
 ## Sources
 
-- `grammar.js`
-- `src/node-types.json`
-- `test/corpus/workspace.txt`
-- `test/corpus/views.txt`
-- `test/corpus/model.txt`
-- `tests/fixtures/views/dynamic-explicit-relationships-ok.dsl`
-- `tests/fixtures/deployment/instance_bodies-ok.dsl`
+- `crates/structurizr-grammar/grammar.js`
+- `crates/structurizr-grammar/src/node-types.json`
+- `crates/structurizr-grammar/test/corpus/workspace.txt`
+- `crates/structurizr-grammar/test/corpus/views.txt`
+- `crates/structurizr-grammar/test/corpus/model.txt`
+- `crates/structurizr-grammar/tests/fixtures/views/dynamic-explicit-relationships-ok.dsl`
+- `crates/structurizr-grammar/tests/fixtures/deployment/instance_bodies-ok.dsl`

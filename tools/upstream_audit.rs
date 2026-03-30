@@ -9,7 +9,7 @@ anyhow = "1.0"
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
 serde = { version = "1.0", features = ["derive"] }
 tree-sitter = "0.26.7"
-tree-sitter-structurizr = { path = ".." }
+tree-sitter-structurizr = { path = "../crates/structurizr-grammar" }
 ---
 
 //! Contributor-only upstream audit for real Structurizr DSL samples.
