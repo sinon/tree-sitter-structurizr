@@ -1,5 +1,10 @@
 # Structurizr DSL first-pass symbol extraction
 
+> Status: implemented in bounded form.
+>
+> The first bounded extraction pass now exists in-repo. Read this note as the
+> contract that explains the current extraction choices and deferred cases.
+
 This note defines the first bounded symbol and reference extraction pass for the future analysis crate.
 
 It sits between:

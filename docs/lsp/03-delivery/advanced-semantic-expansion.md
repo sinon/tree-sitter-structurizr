@@ -1,6 +1,12 @@
 # Structurizr DSL advanced semantic expansion
 
-This note defines how the future Structurizr DSL server should grow **after** the bounded MVP is stable.
+> Status: forward-looking design for the post-bounded phases.
+>
+> The in-repo bounded handler slice already exists. Read this after
+> `../00-current-state.md` and `roadmap.md` when you want to plan what should
+> come after the current delivery work.
+
+This note defines how the Structurizr DSL server should grow **after** the shipped bounded slice is stable enough to broaden safely.
 
 It is the Phase 6 companion to:
 
@@ -13,7 +19,7 @@ Its job is to keep post-MVP work deliberate instead of letting the server expand
 
 ## Why this note exists
 
-By the time the bounded MVP exists, the project should already have:
+The shipped bounded slice already gives us:
 
 - syntax diagnostics
 - document symbols
@@ -21,9 +27,9 @@ By the time the bounded MVP exists, the project should already have:
 - go-to-definition for the bounded identifier set
 - find-references for the same bounded set
 - workspace instances and bounded workspace indexes
-- Zed integration with grammar + LSP working together
 
-At that point, the pressure usually changes.
+The next delivery milestone is still downstream editor wiring and packaging.
+Once that path is stable, the pressure usually changes.
 
 Instead of asking “can this be an LSP at all?”, the questions become:
 

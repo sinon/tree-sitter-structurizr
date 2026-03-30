@@ -16,6 +16,9 @@ lint:
 lint-fix:
     cargo clippy --fix --workspace --all-targets -- -D warnings -W clippy::pedantic -W clippy::nursery -A clippy::const_is_empty
 
+check-links:
+    lychee --no-progress --scheme file --include-fragments --root-dir "$PWD" README.md CONTRIBUTING.md AGENTS.md "docs/**/*.md" "crates/**/*.md"
+
 build-wasm:
     tree-sitter build --wasm
 

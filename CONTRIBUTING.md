@@ -1,8 +1,20 @@
 # Contributing
 
-Thanks for helping improve `tree-sitter-structurizr`.
+This repository now has three areas of focus:
 
-This repository is a Tree-sitter grammar for the Structurizr DSL. Contributions should optimize for faithful syntax structure, understandable parse trees, and stable coverage for the grammar, queries, and bindings surface rather than trying to turn the project into a Structurizr runtime.
+- grammar and query coverage work
+- transport-agnostic analysis and workspace work
+- LSP, CLI, and downstream editor-integration work
+
+If you are starting on the semantic or editor-facing side, read `docs/lsp/00-current-state.md` first. It is the quickest summary of the current architecture, shipped bounded surface, and remaining path to feature completeness.
+
+## Choosing a starting point
+
+Pick the layer before you pick the code:
+
+- grammar or query work: start with `README.md`, then use this file's recommended grammar workflow and test surfaces
+- analysis or LSP work: start with `docs/lsp/00-current-state.md`, then `docs/lsp/01-foundations/overview.md`, then the relevant design note under `docs/lsp/02-design/`
+- downstream editor wiring or release work: start with `docs/lsp/03-delivery/roadmap.md` and the packaging/wiring notes under `docs/lsp/03-delivery/`
 
 ## Prerequisites
 
@@ -22,23 +34,9 @@ For the upstream audit workflow only, you also need a nightly Cargo toolchain be
 
 ## Canonical commands
 
-The `Justfile` is the canonical command surface:
+The [`Justfile`](Justfile) has the canonical command surface:
 
-```sh
-just generate
-just test-grammar
-just test-rust
-just test-rust-fast
-just build-strz
-just test-cli
-just bench-rust
-just bench-black-box
-just bench-perf
-just bench-perf-stable
-just audit-upstream
-```
-
-Recommended baseline loop:
+Recommended baseline loop for grammar development:
 
 ```sh
 just generate
@@ -46,23 +44,40 @@ just test-grammar
 INSTA_UPDATE=always just test-rust
 ```
 
+When you change docs, run `just check-links` to verify relative markdown links
+and fragment anchors across `README.md`, `CONTRIBUTING.md`, `AGENTS.md`,
+`docs/**`, and markdown docs under `crates/**`.
+
 Use `just audit-upstream` when you are hardening coverage against upstream Structurizr examples. It is useful for maintainers and focused grammar work, but it is not required for every consumer-facing change.
 
-## Analysis CLI workflow
+## Analysis, LSP, and CLI workflow
 
-The workspace now includes `strz`, a contributor-facing CLI that hosts
-`structurizr-analysis` and the LSP server without requiring an editor loop.
+The workspace now includes `strz`, the local entrypoint for both
+`structurizr-analysis` and the in-repo stdio language server.
+
+Use it when you want to inspect extracted facts, reproduce diagnostics without
+an editor, or launch the same `strz server` entrypoint that downstream
+integrations should execute.
 
 Useful commands from the repository root:
 
 ```sh
 just build-strz
 just test-cli
+cargo test -p structurizr-lsp --test navigation
 just run-strz check
 just run-strz dump workspace tests/lsp/workspaces/directory-include
 just run-strz dump document tests/fixtures/lsp/identifiers/direct-references-ok.dsl
 just run-strz server
 ```
+
+If you are changing semantic behavior, read `docs/lsp/00-current-state.md`
+first, then `docs/lsp/01-foundations/overview.md`, and then the specific
+design note for the slice you are touching.
+
+For crate-local context, see `crates/structurizr-cli/README.md` for the `strz`
+binary surface and logging knobs, and `crates/structurizr-lsp/README.md` for
+the server crate layout and test entry points.
 
 Use `check` when you want aggregated syntax and include diagnostics for a file
 or workspace. Use `dump document` and `dump workspace` when you want to inspect
@@ -164,7 +179,7 @@ Behavior notes:
 
 - fixtures whose path contains `unexpected-` are ignored permanently because they are intentional upstream negative tests
 - fixtures whose path contains `script` or `plugin` are excluded by default because those features are explicitly unsupported here
-- `multi-line-with-error.dsl` is also ignored permanently as an intentional invalid multiline sample
+- `multi-line-with-error.dsl` is also ignored permanently as it is an intentionaly invalid multiline sample
 
 The audit downloads sample `.dsl` files from the upstream [structurizr/structurizr](https://github.com/structurizr/structurizr) repository and reports:
 
@@ -172,21 +187,12 @@ The audit downloads sample `.dsl` files from the upstream [structurizr/structuri
 - breakdown by broad feature area
 - extracted text for `ERROR` and `MISSING` nodes
 
-## What is edited vs generated
-
-Hand-edited source:
-
-- `grammar.js` — source of truth for the grammar
-- `queries/*.scm` — checked-in highlighting, folding, and indentation queries
-- `tests/fixtures/` — broader Rust fixture coverage
-- `test/corpus/` — compact Tree-sitter-native regression coverage
-- `README.md`, `CONTRIBUTING.md`
-
-Generated artifacts:
+## Generated artifacts
 
 - `src/parser.c`
 - `src/grammar.json`
 - `src/node-types.json`
+- `bindings/rust/**` - generated by `tree-sitter init` these are not re-generated by changes to `grammar.js`
 
 When `grammar.js` changes, run `just generate` before testing or opening a PR.
 
@@ -300,18 +306,3 @@ If you are deciding where to add coverage, use this rule of thumb:
 - choose `test/corpus/` when the concept should be easy to discover and teach
 - choose `tests/fixtures/` when the example is more realistic, broader, or valuable as a regression snapshot
 - use the upstream audit to choose the next syntax slice, not as a substitute for local tests
-
-## Repository layout
-
-- `grammar.js` — source of truth for the grammar
-- `src/parser.c`, `src/grammar.json`, `src/node-types.json` — generated artifacts
-- `bindings/rust/lib.rs` — Rust bindings entry point
-- `tests/fixtures.rs` — fixture-driven Rust tests with snapshots
-- `tests/fixtures/` — main Rust fixture tree
-- `test/corpus/` — Tree-sitter CLI corpus tests
-- `tools/upstream_audit.rs` — contributor-only upstream audit script
-- `queries/` — checked-in highlighting/folding/indentation queries that are still expanding with grammar coverage
-
-## Attribution
-
-The upstream audit uses sample DSL files from the upstream Structurizr repository. Those samples are not vendored into this repository. They remain upstream project materials and are used here under the upstream project's Apache-2.0 license. See the upstream [LICENSE](https://github.com/structurizr/structurizr/blob/main/LICENSE) for the governing terms.
