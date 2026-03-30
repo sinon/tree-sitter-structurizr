@@ -20,7 +20,7 @@ This matrix is meant to keep future implementation work honest about what can be
 | Keyword/directive completion | Syntax-backed | Yes | Add cursor-context heuristics and completion item text | P0 |
 | Style-property completion | Syntax-backed | Yes | Keep it block-aware and additive; future work can add value completion without tying it to semantic identifier completion | P1 |
 | Identifier completion | Semantic | Partially | Build in-scope symbol table and include-aware workspace index | P1 |
-| Go to definition | Semantic | Partially | Start with top-level assigned identifiers and direct model element references; defer `this`, selectors, and dynamic-view relationship refs | P0 |
+| Go to definition | Semantic | Partially | Start with top-level assigned identifiers, direct model element references, and explicit dynamic-view endpoint references; defer `this`, selectors, and named dynamic-view relationship refs | P0 |
 | Find references | Semantic | No | Start with the same bounded identifier set as go-to-definition before expanding to harder scoped cases | P0 |
 | Directive path links (`!docs`, `!adrs`, file-valued `!include`) | Syntax-backed | Yes | Expose `textDocument/documentLink`, and also answer `definition` as a Zed compatibility fallback; folder-valued directives degrade to file targets there when files exist because Zed expects file locations | P1 |
 | Rename | Semantic | No | Build safe edit sets with scope-aware resolution and conflict checks | P2 |

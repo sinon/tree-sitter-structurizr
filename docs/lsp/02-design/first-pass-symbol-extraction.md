@@ -217,7 +217,7 @@ The first pass should extract only the syntax-simple reference sites we can expl
 
 ### 1. Plain relationship endpoint identifiers
 
-From `relationship` nodes, emit `Reference` facts for:
+From `relationship` and `dynamic_relationship` nodes, emit `Reference` facts for:
 
 - `source` when it is a plain `identifier`
 - `destination` when it is a plain `identifier`
@@ -232,6 +232,7 @@ This covers:
 
 - plain relationships like `user -> system`
 - named relationships like `rel = user -> system`
+- explicit dynamic-view edges like `web -> signin`
 
 Do **not** emit these references when:
 
@@ -248,6 +249,7 @@ Emit `Reference` facts from the `scope` field of:
 - `container_view`
 - `component_view`
 - `deployment_view`
+- `dynamic_view`
 
 Use:
 
@@ -363,7 +365,6 @@ The first pass should intentionally skip these cases even when they appear synta
 - `this_keyword`
 - `relationship` forms with omitted `source`
 - `nested_relationship`
-- `dynamic_relationship`
 - `dynamic_relationship_reference`
 
 ### Selector/scope-related
@@ -443,6 +444,7 @@ For each supported view node:
 1. emit a `ViewScope` reference when `scope` is a plain identifier
 2. emit `ViewInclude` references for identifier-valued include statements
 3. emit `ViewAnimation` references for identifier-valued animation steps
+4. for `dynamic_view`, emit `RelationshipSource` / `RelationshipDestination` references for plain-identifier `dynamic_relationship` endpoints
 
 ### Phase D: preserve pre-order output
 
@@ -492,6 +494,17 @@ Expected first-pass extraction:
 - a named `Relationship` symbol for `rel`
 - relationship endpoint references for `user` and `system`
 - a `ViewInclude` reference for `include rel`
+
+### `tests/fixtures/lsp/identifiers/dynamic-views-ok.dsl`
+
+Expected first-pass extraction:
+
+- declaration symbols for `system`, `web`, `api`, `signin`, `security`, and `database`
+- a `ViewScope` reference for `dynamic api`
+- `RelationshipSource` / `RelationshipDestination` references for:
+  - `web -> signin`
+  - `signin -> security`
+  - `security -> database`
 
 ### `tests/fixtures/lsp/relationships/named-relationship-dynamic-reference-ok.dsl`
 

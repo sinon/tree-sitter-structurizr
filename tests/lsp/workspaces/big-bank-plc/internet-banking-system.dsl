@@ -123,8 +123,6 @@ workspace "Big Bank plc - Internet Banking System" "The software architecture of
                 resetPasswordController emailComponent
             }
         }
-        # TODO: The first arg to dynamic `apiApplication` should cmd+click to the relevant assignment/creation
-        # TODO: These identifiers in `views.dynamic` should allow go-to-def to the relevant assignment/creation
         dynamic apiApplication "SignIn" "Summarises how the sign in feature works in the single-page application." {
             singlePageApplication -> signinController "Submits credentials to"
             signinController -> securityComponent "Validates credentials using"

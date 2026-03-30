@@ -104,7 +104,7 @@ State explicitly that MVP excludes:
 
 - `this`
 - hierarchical selectors such as `a.b.c`
-- dynamic-view relationship references
+- named dynamic-view relationship references
 - rename for unresolved scope shapes
 - semantic tokens
 - runtime-style validation
@@ -248,7 +248,7 @@ The initial extractor should only support the bounded MVP surface:
 - direct identifier references in obvious cases
 - include directives as extracted facts
 
-Do **not** broaden into `this`, selectors, or dynamic-view relationship references yet.
+Do **not** broaden into `this`, selectors, or named dynamic-view relationship references yet.
 
 The current design note for this phase is `docs/lsp/02-design/first-pass-symbol-extraction.md`.
 
@@ -284,7 +284,7 @@ Document exactly what is deferred:
 
 - `this`
 - hierarchical selectors
-- dynamic-view relationship references
+- named dynamic-view relationship references
 - deeper view/model scoping questions
 
 Concrete outputs:

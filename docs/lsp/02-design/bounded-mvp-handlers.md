@@ -84,7 +84,7 @@ For deferred syntax such as:
 
 - `this`
 - `a.b.c`
-- dynamic relationship references
+- named dynamic relationship reference sites
 - filtered-view key/tag references
 
 the bounded-MVP handlers should:
@@ -177,7 +177,7 @@ Do not try to publish semantic diagnostics for:
 
 - `this`
 - hierarchical selectors
-- dynamic relationship references
+- named dynamic relationship reference sites
 - broader runtime validation
 
 ### Important rule
@@ -383,10 +383,11 @@ The first definition implementation should stay deterministic and conservative:
 From the current fixtures, the handler should eventually support:
 
 - `user` / `system` / `api` / `worker` inside plain relationship endpoints
-- `system` / `api` in supported view `scope` fields
+- `system` / `api` in supported view `scope` fields, including `dynamic api "SignIn"`
 - `user` / `api` / `worker` / `rel` inside supported static-view `include_statement` identifier positions
 - deployment-node and deployment-instance identifiers inside supported deployment-view `include_statement` positions
 - `user` / `api` / `worker` and deployment-node / deployment-instance identifiers inside supported `animation` blocks
+- explicit dynamic-view endpoint identifiers such as `web -> signin` and `signin -> security`
 
 ### Deferred behavior
 

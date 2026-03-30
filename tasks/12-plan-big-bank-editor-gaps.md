@@ -47,7 +47,8 @@ Implemented the split option's bounded-navigation slice.
 
 - `include` extraction now records every identifier-valued argument, including deployment-view include identifiers that resolve against deployment-layer bindings.
 - The bounded analysis/LSP layer now records `ViewAnimation` references for supported static views and deployment views, with deployment animations resolving against deployment-layer bindings.
+- The bounded analysis/LSP layer now also records `dynamic_view` scope identifiers plus explicit `dynamic_relationship` endpoint identifiers, so the Big Bank `dynamic apiApplication ...` subject and its `a -> b` endpoint identifiers navigate to their declarations.
 - Query highlighting now treats identifier-valued `include` and `animation` positions as references.
 - Added a dedicated low-level fixture plus snapshots for multi-value `include` and `animation`, and added a Big Bank `gotoDefinition` regression that covers a non-first `include` identifier, a static-view animation identifier, and a deployment-view animation identifier.
 
-Style-value completion remains separate future work, and dynamic-view relationship navigation remains deferred.
+Style-value completion remains separate future work, and named dynamic-view relationship references remain deferred.

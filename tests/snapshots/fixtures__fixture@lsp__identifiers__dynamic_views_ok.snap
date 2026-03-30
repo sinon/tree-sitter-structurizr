@@ -1,0 +1,48 @@
+---
+source: tests/fixtures.rs
+assertion_line: 44
+expression: tree_sexp(&tree)
+---
+(source_file
+  (workspace body:
+    (workspace_block
+      (model body:
+        (model_block
+          (software_system identifier:
+            (identifier) name:
+            (string) body:
+            (software_system_block
+              (container identifier:
+                (identifier) name:
+                (string))
+              (container identifier:
+                (identifier) name:
+                (string) body:
+                (container_block
+                  (component identifier:
+                    (identifier) name:
+                    (string))
+                  (component identifier:
+                    (identifier) name:
+                    (string))))
+              (container identifier:
+                (identifier) name:
+                (string))))))
+      (views body:
+        (views_block
+          (dynamic_view scope:
+            (identifier) key:
+            (string) body:
+            (dynamic_view_block
+              (dynamic_relationship source:
+                (identifier) destination:
+                (identifier) description:
+                (string))
+              (dynamic_relationship source:
+                (identifier) destination:
+                (identifier) description:
+                (string))
+              (dynamic_relationship source:
+                (identifier) destination:
+                (identifier) description:
+                (string)))))))))

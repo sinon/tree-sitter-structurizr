@@ -164,6 +164,7 @@ impl<'a> SymbolExtractor<'a> {
                 Some(ReferenceTargetHint::Deployment),
                 parent_symbol,
             ),
+            "dynamic_view" => self.extract_dynamic_view(node, parent_symbol),
             _ => self.visit_children(node, parent_symbol),
         }
     }
@@ -380,6 +381,20 @@ impl<'a> SymbolExtractor<'a> {
         }
     }
 
+    fn extract_dynamic_view(&mut self, view: Node<'_>, parent_symbol: Option<SymbolId>) {
+        self.extract_view(
+            view,
+            Some(ReferenceTargetHint::Element),
+            None,
+            None,
+            parent_symbol,
+        );
+
+        if let Some(body) = view.child_by_field_name("body") {
+            self.collect_dynamic_relationship_references(body, parent_symbol);
+        }
+    }
+
     fn collect_view_include_references(
         &mut self,
         node: Node<'_>,
@@ -431,6 +446,35 @@ impl<'a> SymbolExtractor<'a> {
         let mut cursor = node.walk();
         for child in node.named_children(&mut cursor) {
             self.collect_view_animation_references(child, view_kind, target_hint, parent_symbol);
+        }
+    }
+
+    fn collect_dynamic_relationship_references(
+        &mut self,
+        node: Node<'_>,
+        parent_symbol: Option<SymbolId>,
+    ) {
+        if node.kind() == "dynamic_relationship" {
+            let (source_kind, destination_kind, target_hint) = relationship_reference_surface(node);
+            self.push_relationship_reference(
+                node,
+                "source",
+                source_kind,
+                target_hint,
+                parent_symbol,
+            );
+            self.push_relationship_reference(
+                node,
+                "destination",
+                destination_kind,
+                target_hint,
+                parent_symbol,
+            );
+        }
+
+        let mut cursor = node.walk();
+        for child in node.named_children(&mut cursor) {
+            self.collect_dynamic_relationship_references(child, parent_symbol);
         }
     }
 
