@@ -45,8 +45,8 @@ INSTA_UPDATE=always just test-rust
 ```
 
 When you change docs, run `just check-links` to verify relative markdown links
-and fragment anchors across `README.md`, `CONTRIBUTING.md`, `AGENTS.md`, and
-`docs/**`.
+and fragment anchors across `README.md`, `CONTRIBUTING.md`, `AGENTS.md`,
+`docs/**`, and markdown docs under `crates/**`.
 
 Use `just audit-upstream` when you are hardening coverage against upstream Structurizr examples. It is useful for maintainers and focused grammar work, but it is not required for every consumer-facing change.
 
@@ -74,6 +74,10 @@ just run-strz server
 If you are changing semantic behavior, read `docs/lsp/00-current-state.md`
 first, then `docs/lsp/01-foundations/overview.md`, and then the specific
 design note for the slice you are touching.
+
+For crate-local context, see `crates/structurizr-cli/README.md` for the `strz`
+binary surface and logging knobs, and `crates/structurizr-lsp/README.md` for
+the server crate layout and test entry points.
 
 Use `check` when you want aggregated syntax and include diagnostics for a file
 or workspace. Use `dump document` and `dump workspace` when you want to inspect

@@ -2,7 +2,6 @@
 - Decide whether `tests/fixtures/lsp/` should remain a shared grammar-plus-analysis fixture set or move or duplicate now that the in-repo LSP crate exists and fixture ownership is clearer.
 - The current syntax-diagnostic extractor can emit duplicate diagnostics for the same recovery region on some parse-error fixtures.
 - The bounded analysis extractor currently records only the first identifier in a multi-value view `include` statement.
-- The current `tower-lsp-server` fork uses `ls-types` rather than a directly interoperable `lsp-types` surface, so the LSP crate should standardize on `tower_lsp_server::ls_types` unless a deliberate conversion layer is introduced.
 - The LSP's new include-diagnostic path currently recomputes workspace discovery for all open-buffer updates; that is acceptable for the bounded MVP, but future workspace indexing should replace it with cached invalidation rather than whole-workspace reloads.
 - Workspace include resolution now expands inherited `!const`/`!constant` values in `!include` targets, but it still does not substitute environment variables documented by the DSL.
 - `tools/upstream_audit.rs` currently slices excerpt strings by raw byte windows around parse issues, which can still panic if an excerpt boundary lands inside a multibyte UTF-8 codepoint.
@@ -14,7 +13,6 @@
 - Property-test capture paths need to be absolute at the command-wrapper layer because `cargo test` runs each integration test from its package root, so relative capture directories can otherwise land in different crates.
 - The analysis crate still walks the Tree-sitter tree through several separate extractor passes per document analysis run, so `analysis/document` likely still has room for a fused-extractor optimization pass.
 - Workspace loading and LSP request translation still canonicalize, clone, and sort aggressively enough that future performance work should focus on cached path identities, precomputed directive ordering, and incremental workspace invalidation.
-- The checked-in `big-bank-plc` workspace now passes an in-repo `gotoDefinition` regression test for both endpoints of `customer -> webApplication`, so any remaining Cmd-click failure there appears to be downstream `zed-structurizr` integration rather than repository LSP resolution.
 - An assigned `softwareSystemInstance` form produced parse errors in an ad-hoc task 03 fixture even though the grammar source and node-types appear to allow one, so that syntax shape likely needs a focused grammar/parity check before relying on it in future navigation work.
 - The `tree-sitter` CLI still warns about missing parser directories during local `parse` / `query` / `highlight` debugging even when `-p .` is provided, so contributor docs may need a clearer local grammar-debugging workflow.
 - `crates/structurizr-analysis/README.md` still frames the language server as future work and understates the current workspace/indexing surface, so it should be synced with the newer top-level docs.

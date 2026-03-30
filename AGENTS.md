@@ -50,7 +50,7 @@ This project is not trying to become a Structurizr runtime. It should preserve a
 - For ad-hoc debugging, create a temporary Rust example in examples/ and run it with cargo run --example <name>. Remove the example after use.
 - Use tmp/ (project-local) for intermediate files and comparison artifacts, not /tmp. This keeps outputs discoverable and project-scoped. The tmp/ directory is gitignored.
 - Use `gh` for fetching files from github instead of fetching web content.
-- Run `just check-links` after doc edits. It uses `lychee` with local file and fragment checking so relative markdown links inside `README.md`, `CONTRIBUTING.md`, `AGENTS.md`, and `docs/**` stay valid.
+- Run `just check-links` after doc edits. It uses `lychee` with local file and fragment checking so relative markdown links inside `README.md`, `CONTRIBUTING.md`, `AGENTS.md`, `docs/**`, and markdown docs under `crates/**` stay valid.
 
 ## Test harnesses and why they exist
 
