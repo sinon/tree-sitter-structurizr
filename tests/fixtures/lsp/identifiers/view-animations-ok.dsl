@@ -11,6 +11,8 @@ workspace {
         live = deploymentEnvironment "Live" {
             primary = deploymentNode "Primary" {
                 webInstance = containerInstance web
+            }
+            secondary = deploymentNode "Secondary" {
                 apiInstance = containerInstance api
             }
         }
@@ -32,9 +34,9 @@ workspace {
         }
 
         deployment system "Live" {
-            include *
+            include primary secondary webInstance apiInstance
             animation {
-                primary
+                primary secondary
                 webInstance apiInstance
             }
         }

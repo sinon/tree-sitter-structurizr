@@ -135,7 +135,6 @@ workspace "Big Bank plc - Internet Banking System" "The software architecture of
         }
 
         deployment internetBankingSystem "Development" "DevelopmentDeployment" {
-            # TODO: `views.deployment.include` should cmd+click it's arg similar to `views.componet.include`
             include developerSinglePageApplicationInstance developerWebApplicationInstance developerApiApplicationInstance developerDatabaseInstance
             animation {
                 developerSinglePageApplicationInstance

@@ -154,15 +154,13 @@ impl<'a> SymbolExtractor<'a> {
                     parent_symbol,
                 );
             }
-            // Deployment-view scope is still an ordinary element reference, but
-            // animation steps should resolve against deployment-layer bindings.
-            // Explicit deployment-view `include foo` semantics stay deferred for
-            // now because they need a more precise target policy than the
-            // ordinary element-or-relationship `ViewInclude` surface.
+            // Deployment-view scope still points at the model element, but both
+            // `include` and `animation` identifiers refer to deployment-layer
+            // bindings such as deployment nodes and instances.
             "deployment_view" => self.extract_view(
                 node,
                 Some(ReferenceTargetHint::Element),
-                None,
+                Some(ReferenceTargetHint::Deployment),
                 Some(ReferenceTargetHint::Deployment),
                 parent_symbol,
             ),

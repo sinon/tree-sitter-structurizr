@@ -268,16 +268,21 @@ Emit `Reference` facts for `include_statement.value` when the value is a plain `
 - `system_context_view`
 - `container_view`
 - `component_view`
+- `deployment_view`
 
 Use:
 
 - `ReferenceKind::ViewInclude`
-- `ReferenceTargetHint::ElementOrRelationship`
+- `ReferenceTargetHint::ElementOrRelationship` for non-deployment views
+- `ReferenceTargetHint::Deployment` for `deployment_view`
 
 This target hint is intentionally broader because a view include identifier may refer to:
 
 - a model element identifier
 - a named relationship identifier
+
+Inside `deployment_view`, the same syntax instead targets deployment-layer
+bindings such as deployment nodes and instances.
 
 Do **not** treat:
 

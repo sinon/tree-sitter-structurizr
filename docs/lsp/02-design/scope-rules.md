@@ -287,8 +287,9 @@ For:
 
 attempt resolution against:
 
-1. the element binding table
-2. the relationship binding table
+1. the element binding table when the reference carries `ReferenceTargetHint::ElementOrRelationship`
+2. the relationship binding table when the reference carries `ReferenceTargetHint::ElementOrRelationship`
+3. the deployment binding table when the reference carries `ReferenceTargetHint::Deployment`
 
 using:
 

@@ -45,7 +45,7 @@ That split keeps the task honest about current behavior, reuses the existing bou
 
 Implemented the split option's bounded-navigation slice.
 
-- `include` extraction now records every identifier-valued argument, not only the first one.
+- `include` extraction now records every identifier-valued argument, including deployment-view include identifiers that resolve against deployment-layer bindings.
 - The bounded analysis/LSP layer now records `ViewAnimation` references for supported static views and deployment views, with deployment animations resolving against deployment-layer bindings.
 - Query highlighting now treats identifier-valued `include` and `animation` positions as references.
 - Added a dedicated low-level fixture plus snapshots for multi-value `include` and `animation`, and added a Big Bank `gotoDefinition` regression that covers a non-first `include` identifier, a static-view animation identifier, and a deployment-view animation identifier.

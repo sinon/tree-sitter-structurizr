@@ -384,8 +384,9 @@ From the current fixtures, the handler should eventually support:
 
 - `user` / `system` / `api` / `worker` inside plain relationship endpoints
 - `system` / `api` in supported view `scope` fields
-- `user` / `api` / `worker` / `rel` inside supported `include_statement` identifier positions
-- `user` / `api` / `worker` and deployment instance identifiers inside supported `animation` blocks
+- `user` / `api` / `worker` / `rel` inside supported static-view `include_statement` identifier positions
+- deployment-node and deployment-instance identifiers inside supported deployment-view `include_statement` positions
+- `user` / `api` / `worker` and deployment-node / deployment-instance identifiers inside supported `animation` blocks
 
 ### Deferred behavior
 
