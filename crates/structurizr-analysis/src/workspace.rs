@@ -471,8 +471,6 @@ impl WorkspaceLoader {
         I: IntoIterator<Item = P>,
         P: AsRef<Path>,
     {
-        // Phase 1: Normalize and scan the requested roots so broad workspace
-        // discovery respects ignore rules before include traversal begins.
         let mut normalized_roots = roots
             .into_iter()
             .map(|root| normalize_existing_path(root.as_ref()))
@@ -480,34 +478,85 @@ impl WorkspaceLoader {
         normalized_roots.sort();
         normalized_roots.dedup();
 
-        let mut loaded_documents = BTreeMap::<PathBuf, WorkspaceDocument>::new();
-        for root in &normalized_roots {
-            for path in scan_workspace_root(root)? {
-                self.load_document(path, true, &mut loaded_documents)?;
-            }
+        let analyzer = &mut self.analyzer;
+        let document_overrides = &self.document_overrides;
+
+        WorkspaceBuildSession::new(analyzer, document_overrides).build_from_roots(&normalized_roots)
+    }
+}
+
+// =============================================================================
+// Private workspace-build session
+// =============================================================================
+//
+// `WorkspaceLoader` remains the public compatibility facade, but the mutable
+// state for one workspace load now lives in a dedicated session object. This is
+// the next Salsa-oriented seam: future incremental workspace inputs and cached
+// instance results can hang off this session without changing existing callers.
+
+struct WorkspaceBuildSession<'loader> {
+    analyzer: &'loader mut DocumentAnalyzer,
+    document_overrides: &'loader BTreeMap<PathBuf, String>,
+    loaded_documents: BTreeMap<PathBuf, WorkspaceDocument>,
+    processed_contexts: BTreeMap<DocumentContextKey, ProcessedDocumentContext>,
+    active_stack: Vec<PathBuf>,
+}
+
+impl<'loader> WorkspaceBuildSession<'loader> {
+    const fn new(
+        analyzer: &'loader mut DocumentAnalyzer,
+        document_overrides: &'loader BTreeMap<PathBuf, String>,
+    ) -> Self {
+        Self {
+            analyzer,
+            document_overrides,
+            loaded_documents: BTreeMap::new(),
+            processed_contexts: BTreeMap::new(),
+            active_stack: Vec::new(),
         }
+    }
+
+    fn build_from_roots(mut self, normalized_roots: &[PathBuf]) -> io::Result<WorkspaceFacts> {
+        // Phase 1: Normalize and scan the requested roots so broad workspace
+        // discovery respects ignore rules before include traversal begins.
+        self.scan_roots(normalized_roots)?;
 
         // Phase 2: Re-process the discovered documents in directive order so
         // constants, includes, and cycle detection follow the DSL's imperative
         // execution model.
-        let mut processed_contexts =
-            BTreeMap::<DocumentContextKey, ProcessedDocumentContext>::new();
-        let mut active_stack = Vec::new();
-
-        let start_contexts = start_contexts(&normalized_roots, &loaded_documents);
-
-        for context in &start_contexts {
-            let _ = self.process_document_context(
-                context.clone(),
-                &mut loaded_documents,
-                &mut processed_contexts,
-                &mut active_stack,
-            )?;
-        }
+        let start_contexts = self.process_start_contexts(normalized_roots)?;
 
         // Phase 3: Flatten the per-document include results into one stable
         // view for downstream diagnostics and editor features.
-        let mut resolved_includes = processed_contexts
+        Ok(self.finish(&start_contexts))
+    }
+
+    fn scan_roots(&mut self, normalized_roots: &[PathBuf]) -> io::Result<()> {
+        for root in normalized_roots {
+            for path in scan_workspace_root(root)? {
+                self.load_document(path, true)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn process_start_contexts(
+        &mut self,
+        normalized_roots: &[PathBuf],
+    ) -> io::Result<Vec<DocumentContext>> {
+        let start_contexts = start_contexts(normalized_roots, &self.loaded_documents);
+
+        for context in &start_contexts {
+            let _ = self.process_document_context(context.clone())?;
+        }
+
+        Ok(start_contexts)
+    }
+
+    fn finish(self, start_contexts: &[DocumentContext]) -> WorkspaceFacts {
+        let mut resolved_includes = self
+            .processed_contexts
             .values()
             .flat_map(|context| context.direct_includes.iter().cloned())
             .collect::<Vec<_>>();
@@ -521,25 +570,20 @@ impl WorkspaceLoader {
         });
         let include_diagnostics = include_diagnostics(&resolved_includes);
         let (workspace_indexes, document_instances, semantic_diagnostics) =
-            build_workspace_indexes(&loaded_documents, &start_contexts, &processed_contexts);
+            build_workspace_indexes(&self.loaded_documents, start_contexts, &self.processed_contexts);
 
-        Ok(WorkspaceFacts {
-            documents: loaded_documents.into_values().collect(),
+        WorkspaceFacts {
+            documents: self.loaded_documents.into_values().collect(),
             resolved_includes,
             include_diagnostics,
             workspace_indexes,
             document_instances,
             semantic_diagnostics,
-        })
+        }
     }
 
-    fn load_document(
-        &mut self,
-        path: PathBuf,
-        discovered_by_scan: bool,
-        loaded_documents: &mut BTreeMap<PathBuf, WorkspaceDocument>,
-    ) -> io::Result<()> {
-        if let Some(document) = loaded_documents.get_mut(&path) {
+    fn load_document(&mut self, path: PathBuf, discovered_by_scan: bool) -> io::Result<()> {
+        if let Some(document) = self.loaded_documents.get_mut(&path) {
             if discovered_by_scan {
                 document.mark_discovered_by_scan();
             }
@@ -563,7 +607,7 @@ impl WorkspaceLoader {
             WorkspaceDocumentKind::Fragment
         };
 
-        loaded_documents.insert(
+        self.loaded_documents.insert(
             path,
             WorkspaceDocument {
                 snapshot,
@@ -574,23 +618,18 @@ impl WorkspaceLoader {
         Ok(())
     }
 
-    fn process_document_context(
-        &mut self,
-        context: DocumentContext,
-        loaded_documents: &mut BTreeMap<PathBuf, WorkspaceDocument>,
-        processed_contexts: &mut BTreeMap<DocumentContextKey, ProcessedDocumentContext>,
-        active_stack: &mut Vec<PathBuf>,
-    ) -> io::Result<ConstantEnvironment> {
+    fn process_document_context(&mut self, context: DocumentContext) -> io::Result<ConstantEnvironment> {
         // Memoize by `(path, inherited constants)` so repeated includes can
         // share the same processed result without rewalking the document.
-        if let Some(processed_context) = processed_contexts.get(&context.key) {
+        if let Some(processed_context) = self.processed_contexts.get(&context.key) {
             return Ok(processed_context.exported_constants.clone());
         }
 
-        self.load_document(context.path.clone(), false, loaded_documents)?;
+        self.load_document(context.path.clone(), false)?;
 
         let (document_id, constant_definitions, include_directives) = {
-            let document = loaded_documents
+            let document = self
+                .loaded_documents
                 .get(&context.path)
                 .expect("BUG: document context should be loaded before processing");
 
@@ -601,7 +640,7 @@ impl WorkspaceLoader {
             )
         };
 
-        active_stack.push(context.path.clone());
+        self.active_stack.push(context.path.clone());
         let processed = (|| -> io::Result<ProcessedDocumentContext> {
             let mut current_constants = context.inherited_constants.clone();
             let mut direct_includes = Vec::new();
@@ -624,11 +663,11 @@ impl WorkspaceLoader {
                         )?;
 
                         for included_path in &resolved_include.discovered_paths {
-                            self.load_document(included_path.clone(), false, loaded_documents)?;
+                            self.load_document(included_path.clone(), false)?;
                         }
 
                         for included_path in &resolved_include.discovered_paths {
-                            if active_stack.contains(included_path) {
+                            if self.active_stack.contains(included_path) {
                                 continue;
                             }
 
@@ -637,12 +676,7 @@ impl WorkspaceLoader {
                                 current_constants.clone(),
                             );
                             included_contexts.push(child_context.key.clone());
-                            current_constants = self.process_document_context(
-                                child_context,
-                                loaded_documents,
-                                processed_contexts,
-                                active_stack,
-                            )?;
+                            current_constants = self.process_document_context(child_context)?;
                         }
 
                         direct_includes.push(resolved_include.include);
@@ -656,12 +690,12 @@ impl WorkspaceLoader {
                 included_contexts,
             })
         })();
-        let popped_path = active_stack.pop();
+        let popped_path = self.active_stack.pop();
         debug_assert_eq!(popped_path.as_deref(), Some(context.path.as_path()));
 
         let processed = processed?;
         let exported_constants = processed.exported_constants.clone();
-        processed_contexts.insert(context.key, processed);
+        self.processed_contexts.insert(context.key, processed);
         Ok(exported_constants)
     }
 }
