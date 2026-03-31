@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use rstest::rstest;
 use structurizr_analysis::{
     IncludeDiagnosticKind, TextSpan, WorkspaceDocumentKind, WorkspaceFacts, WorkspaceIncludeTarget,
-    load_workspace,
+    WorkspaceLoader,
 };
 
 macro_rules! set_snapshot_suffix {
@@ -165,7 +165,8 @@ impl WorkspaceIncludeTargetView {
 #[case("cycle")]
 fn workspace_fixtures_produce_stable_discovery_views(#[case] fixture_name: &str) {
     let fixture_root = workspace_fixture_root().join(fixture_name);
-    let facts = load_workspace([fixture_root.as_path()]).unwrap_or_else(|error| {
+    let mut loader = WorkspaceLoader::new();
+    let facts = loader.load_paths([fixture_root.as_path()]).unwrap_or_else(|error| {
         panic!("failed to load workspace fixture `{fixture_name}`: {error}")
     });
 
@@ -179,7 +180,9 @@ fn workspace_fixtures_produce_stable_discovery_views(#[case] fixture_name: &str)
 #[test]
 fn explicit_file_roots_are_loaded_even_without_dsl_extensions() {
     let explicit_file = workspace_fixture_root().join("ignored-explicit/ignored/model.inc");
-    let facts = load_workspace([explicit_file.as_path()])
+    let mut loader = WorkspaceLoader::new();
+    let facts = loader
+        .load_paths([explicit_file.as_path()])
         .expect("explicit non-.dsl file roots should still load");
 
     assert_eq!(facts.documents().len(), 1);
@@ -202,7 +205,9 @@ fn explicit_file_roots_are_loaded_even_without_dsl_extensions() {
 #[test]
 fn constants_must_be_defined_before_they_can_drive_include_resolution() {
     let fixture_root = workspace_fixture_root().join("ordered-constants");
-    let facts = load_workspace([fixture_root.as_path()])
+    let mut loader = WorkspaceLoader::new();
+    let facts = loader
+        .load_paths([fixture_root.as_path()])
         .expect("ordered-constants fixture should load successfully");
 
     let diagnostics = facts.include_diagnostics().iter().collect::<Vec<_>>();

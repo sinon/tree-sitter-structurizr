@@ -8,7 +8,7 @@ use proptest::prelude::any;
 use proptest::strategy::{BoxedStrategy, Just, Strategy};
 use proptest::string::string_regex;
 use proptest::test_runner::{Config, TestCaseError};
-use structurizr_analysis::{DocumentInput, DocumentSnapshot, TextSpan, analyze_document};
+use structurizr_analysis::{DocumentAnalyzer, DocumentInput, DocumentSnapshot, TextSpan};
 
 #[derive(Debug, Clone)]
 struct GeneratedWorkspace {
@@ -142,7 +142,8 @@ fn analysis_source() -> BoxedStrategy<String> {
 }
 
 fn analyze_source(source: &str) -> DocumentSnapshot {
-    analyze_document(DocumentInput::new("generated.dsl", source))
+    let mut analyzer = DocumentAnalyzer::new();
+    analyzer.analyze(DocumentInput::new("generated.dsl", source))
 }
 
 fn proptest_config() -> Config {

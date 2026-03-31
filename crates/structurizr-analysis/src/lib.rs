@@ -20,8 +20,8 @@ pub use diagnostics::{
     SyntaxDiagnostic, SyntaxDiagnosticKind,
 };
 pub use includes::{DirectiveContainer, DirectiveValueKind, IncludeDirective};
-pub use parse::{DocumentAnalyzer, analyze_document};
-pub use snapshot::{DocumentId, DocumentInput, DocumentLocation, DocumentSnapshot};
+pub use parse::DocumentAnalyzer;
+pub use snapshot::{DocumentId, DocumentInput, DocumentLocation, DocumentSnapshot, DocumentSyntaxFacts};
 pub use span::{TextPoint, TextSpan};
 pub use symbols::{
     IdentifierMode, IdentifierModeFact, Reference, ReferenceKind, ReferenceTargetHint, Symbol,
@@ -30,5 +30,5 @@ pub use symbols::{
 pub use workspace::{
     ReferenceHandle, ReferenceResolutionStatus, ResolvedInclude, SymbolHandle, WorkspaceDocument,
     WorkspaceDocumentKind, WorkspaceFacts, WorkspaceIncludeTarget, WorkspaceIndex,
-    WorkspaceInstanceId, WorkspaceLoader, load_workspace,
+    WorkspaceInstanceId, WorkspaceLoader,
 };

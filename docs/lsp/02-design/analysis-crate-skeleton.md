@@ -366,7 +366,8 @@ Keeping an internal or debug-only `node_kind` string is fine, but the public API
 
 ## Recommended public entrypoints
 
-The first public API should be centered on one analyzer type and one convenience function.
+The public API should be centered on one stateful analyzer type, with a
+separate stateful workspace loader when multi-file discovery matters.
 
 Something roughly like:
 
@@ -380,7 +381,17 @@ impl DocumentAnalyzer {
     pub fn analyze(&mut self, input: DocumentInput) -> DocumentSnapshot;
 }
 
-pub fn analyze_document(input: DocumentInput) -> DocumentSnapshot;
+pub struct WorkspaceLoader {
+    // private workspace/session state
+}
+
+impl WorkspaceLoader {
+    pub fn new() -> Self;
+    pub fn load_paths<I, P>(&mut self, roots: I) -> io::Result<WorkspaceFacts>
+    where
+        I: IntoIterator<Item = P>,
+        P: AsRef<Path>;
+}
 ```
 
 The exact names can change.
@@ -388,7 +399,8 @@ The exact names can change.
 What matters is:
 
 - callers do not manage Tree-sitter parser setup themselves
-- the result is an immutable snapshot
+- the document result is an immutable snapshot
+- repeated analysis and workspace loads can reuse internal session state
 - tests can use a small, synchronous API directly
 
 When Phase 3 starts, a separate `WorkspaceBuilder` or `WorkspaceAnalyzer` can layer on top of this single-document API rather than replacing it.

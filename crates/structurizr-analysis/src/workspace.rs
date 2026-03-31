@@ -4,14 +4,15 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fs, io,
     path::{Component, Path, PathBuf},
+    sync::Arc,
 };
 
 use ignore::WalkBuilder;
 
 use crate::{
     ConstantDefinition, DocumentAnalyzer, DocumentId, DocumentInput, IdentifierMode,
-    IncludeDiagnostic, IncludeDirective, Reference, ReferenceKind, ReferenceTargetHint,
-    SemanticDiagnostic, SymbolId, SymbolKind, TextSpan,
+    IdentifierModeFact, IncludeDiagnostic, IncludeDirective, Reference, ReferenceKind,
+    ReferenceTargetHint, SemanticDiagnostic, Symbol, SymbolId, SymbolKind, TextSpan,
     includes::{DirectiveContainer, normalized_directive_value},
 };
 
@@ -27,22 +28,48 @@ pub enum WorkspaceDocumentKind {
 /// One discovered document plus the metadata gathered during workspace loading.
 #[derive(Debug)]
 pub struct WorkspaceDocument {
-    snapshot: crate::DocumentSnapshot,
+    snapshot: Arc<crate::DocumentSnapshot>,
+    semantic_facts: Arc<WorkspaceSemanticDocumentFacts>,
     kind: WorkspaceDocumentKind,
+    semantic_generation: u64,
     discovered_by_scan: bool,
 }
 
 impl WorkspaceDocument {
+    const fn new(
+        snapshot: Arc<crate::DocumentSnapshot>,
+        semantic_facts: Arc<WorkspaceSemanticDocumentFacts>,
+        kind: WorkspaceDocumentKind,
+        semantic_generation: u64,
+        discovered_by_scan: bool,
+    ) -> Self {
+        Self {
+            snapshot,
+            semantic_facts,
+            kind,
+            semantic_generation,
+            discovered_by_scan,
+        }
+    }
+
     /// Returns the stable document identifier for the discovered document.
     #[must_use]
-    pub const fn id(&self) -> &DocumentId {
+    pub fn id(&self) -> &DocumentId {
         self.snapshot.id()
     }
 
     /// Returns the analyzed snapshot for the discovered document.
     #[must_use]
-    pub const fn snapshot(&self) -> &crate::DocumentSnapshot {
-        &self.snapshot
+    pub fn snapshot(&self) -> &crate::DocumentSnapshot {
+        self.snapshot.as_ref()
+    }
+
+    fn semantic_facts(&self) -> &WorkspaceSemanticDocumentFacts {
+        self.semantic_facts.as_ref()
+    }
+
+    const fn semantic_generation(&self) -> u64 {
+        self.semantic_generation
     }
 
     /// Returns the document's role in the discovered workspace set.
@@ -239,10 +266,12 @@ pub enum ReferenceResolutionStatus {
     DeferredByScopePolicy,
 }
 
-/// Derived semantic index for one workspace instance.
-#[derive(Debug)]
-pub struct WorkspaceIndex {
-    id: WorkspaceInstanceId,
+// The semantic payload for one workspace instance is reusable across loads, but
+// `WorkspaceInstanceId` is intentionally load-local. Keeping the payload in its
+// own packet lets repeated loads share expensive binding/reference work without
+// smuggling a stale per-load id through the cache.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct DerivedWorkspaceInstance {
     root_document: DocumentId,
     documents: Vec<DocumentId>,
     unique_element_bindings: BTreeMap<String, SymbolHandle>,
@@ -256,7 +285,43 @@ pub struct WorkspaceIndex {
     semantic_diagnostics: Vec<SemanticDiagnostic>,
 }
 
+// Keep the expensive per-instance binding/reference pass anchored to a stable
+// semantic packet derived from `DocumentSyntaxFacts`. When a document source edit
+// produces the same semantic packet, the host-side workspace caches can now
+// reuse the derived instance payload without paying the full rebuild cost again.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct WorkspaceSemanticDocumentFacts {
+    document_id: DocumentId,
+    has_syntax_errors: bool,
+    identifier_modes: Vec<IdentifierModeFact>,
+    symbols: Vec<Symbol>,
+    references: Vec<Reference>,
+}
+
+impl WorkspaceSemanticDocumentFacts {
+    fn from_snapshot(snapshot: &crate::DocumentSnapshot) -> Self {
+        Self {
+            document_id: snapshot.id().clone(),
+            has_syntax_errors: snapshot.has_syntax_errors(),
+            identifier_modes: snapshot.identifier_modes().to_vec(),
+            symbols: snapshot.symbols().to_vec(),
+            references: snapshot.references().to_vec(),
+        }
+    }
+}
+
+/// Derived semantic index for one workspace instance.
+#[derive(Debug)]
+pub struct WorkspaceIndex {
+    id: WorkspaceInstanceId,
+    derived: Arc<DerivedWorkspaceInstance>,
+}
+
 impl WorkspaceIndex {
+    const fn from_derived(id: WorkspaceInstanceId, derived: Arc<DerivedWorkspaceInstance>) -> Self {
+        Self { id, derived }
+    }
+
     /// Returns this index's stable instance identity.
     #[must_use]
     pub const fn id(&self) -> WorkspaceInstanceId {
@@ -265,50 +330,50 @@ impl WorkspaceIndex {
 
     /// Returns the root document that defines this workspace instance.
     #[must_use]
-    pub const fn root_document(&self) -> &DocumentId {
-        &self.root_document
+    pub fn root_document(&self) -> &DocumentId {
+        &self.derived.root_document
     }
 
     /// Returns the discovered documents that participate in this instance.
     #[must_use]
     pub fn documents(&self) -> &[DocumentId] {
-        &self.documents
+        &self.derived.documents
     }
 
     /// Returns the unique element-binding table keyed by canonical binding key.
     #[must_use]
-    pub const fn unique_element_bindings(&self) -> &BTreeMap<String, SymbolHandle> {
-        &self.unique_element_bindings
+    pub fn unique_element_bindings(&self) -> &BTreeMap<String, SymbolHandle> {
+        &self.derived.unique_element_bindings
     }
 
     /// Returns the duplicate element-binding sets keyed by canonical binding key.
     #[must_use]
-    pub const fn duplicate_element_bindings(&self) -> &BTreeMap<String, Vec<SymbolHandle>> {
-        &self.duplicate_element_bindings
+    pub fn duplicate_element_bindings(&self) -> &BTreeMap<String, Vec<SymbolHandle>> {
+        &self.derived.duplicate_element_bindings
     }
 
     /// Returns the unique deployment-binding table keyed by binding identifier.
     #[must_use]
-    pub const fn unique_deployment_bindings(&self) -> &BTreeMap<String, SymbolHandle> {
-        &self.unique_deployment_bindings
+    pub fn unique_deployment_bindings(&self) -> &BTreeMap<String, SymbolHandle> {
+        &self.derived.unique_deployment_bindings
     }
 
     /// Returns the duplicate deployment-binding sets keyed by binding identifier.
     #[must_use]
-    pub const fn duplicate_deployment_bindings(&self) -> &BTreeMap<String, Vec<SymbolHandle>> {
-        &self.duplicate_deployment_bindings
+    pub fn duplicate_deployment_bindings(&self) -> &BTreeMap<String, Vec<SymbolHandle>> {
+        &self.derived.duplicate_deployment_bindings
     }
 
     /// Returns the unique relationship-binding table keyed by canonical binding key.
     #[must_use]
-    pub const fn unique_relationship_bindings(&self) -> &BTreeMap<String, SymbolHandle> {
-        &self.unique_relationship_bindings
+    pub fn unique_relationship_bindings(&self) -> &BTreeMap<String, SymbolHandle> {
+        &self.derived.unique_relationship_bindings
     }
 
     /// Returns the duplicate relationship-binding sets keyed by canonical key.
     #[must_use]
-    pub const fn duplicate_relationship_bindings(&self) -> &BTreeMap<String, Vec<SymbolHandle>> {
-        &self.duplicate_relationship_bindings
+    pub fn duplicate_relationship_bindings(&self) -> &BTreeMap<String, Vec<SymbolHandle>> {
+        &self.derived.duplicate_relationship_bindings
     }
 
     /// Returns the resolution status recorded for one reference handle.
@@ -317,7 +382,7 @@ impl WorkspaceIndex {
         &self,
         handle: &ReferenceHandle,
     ) -> Option<&ReferenceResolutionStatus> {
-        self.reference_resolutions.get(handle)
+        self.derived.reference_resolutions.get(handle)
     }
 
     /// Returns every resolved reference that points at one symbol.
@@ -325,34 +390,44 @@ impl WorkspaceIndex {
         &self,
         handle: &SymbolHandle,
     ) -> impl Iterator<Item = &ReferenceHandle> + '_ {
-        self.references_by_target.get(handle).into_iter().flatten()
+        self.derived.references_by_target.get(handle).into_iter().flatten()
     }
 
     /// Returns the semantic diagnostics derived for this workspace instance.
     #[must_use]
     pub fn semantic_diagnostics(&self) -> &[SemanticDiagnostic] {
-        &self.semantic_diagnostics
+        &self.derived.semantic_diagnostics
     }
 
     /// Returns whether the workspace instance includes one document.
     #[must_use]
     pub fn contains_document(&self, document: &DocumentId) -> bool {
-        self.documents.contains(document)
+        self.derived.documents.contains(document)
     }
+}
+
+#[derive(Debug, Clone, Default)]
+struct DerivedWorkspaceFactsAssembly {
+    resolved_includes: Vec<ResolvedInclude>,
+    include_diagnostics: Vec<IncludeDiagnostic>,
+    document_instances: BTreeMap<DocumentId, Vec<WorkspaceInstanceId>>,
+    semantic_diagnostics: Vec<SemanticDiagnostic>,
 }
 
 /// Multi-file discovery facts gathered from one or more workspace roots.
 #[derive(Debug, Default)]
 pub struct WorkspaceFacts {
     documents: Vec<WorkspaceDocument>,
-    resolved_includes: Vec<ResolvedInclude>,
-    include_diagnostics: Vec<IncludeDiagnostic>,
     workspace_indexes: Vec<WorkspaceIndex>,
-    document_instances: BTreeMap<DocumentId, Vec<WorkspaceInstanceId>>,
-    semantic_diagnostics: Vec<SemanticDiagnostic>,
+    assembly: Arc<DerivedWorkspaceFactsAssembly>,
 }
 
 impl WorkspaceFacts {
+    #[cfg(test)]
+    const fn assembly_arc(&self) -> &Arc<DerivedWorkspaceFactsAssembly> {
+        &self.assembly
+    }
+
     /// Returns every discovered document in deterministic path order.
     #[must_use]
     pub fn documents(&self) -> &[WorkspaceDocument] {
@@ -362,13 +437,13 @@ impl WorkspaceFacts {
     /// Returns the discovered include-following results in deterministic order.
     #[must_use]
     pub fn includes(&self) -> &[ResolvedInclude] {
-        &self.resolved_includes
+        &self.assembly.resolved_includes
     }
 
     /// Returns include-resolution diagnostics in deterministic order.
     #[must_use]
     pub fn include_diagnostics(&self) -> &[IncludeDiagnostic] {
-        &self.include_diagnostics
+        &self.assembly.include_diagnostics
     }
 
     /// Returns include-resolution diagnostics for one document.
@@ -377,7 +452,8 @@ impl WorkspaceFacts {
         id: &DocumentId,
     ) -> impl Iterator<Item = &IncludeDiagnostic> + '_ {
         let id = id.clone();
-        self.include_diagnostics
+        self.assembly
+            .include_diagnostics
             .iter()
             .filter(move |diagnostic| diagnostic.document == id)
     }
@@ -412,13 +488,13 @@ impl WorkspaceFacts {
         &self,
         id: &DocumentId,
     ) -> impl Iterator<Item = &WorkspaceInstanceId> + '_ {
-        self.document_instances.get(id).into_iter().flatten()
+        self.assembly.document_instances.get(id).into_iter().flatten()
     }
 
     /// Returns every merged semantic diagnostic in deterministic order.
     #[must_use]
     pub fn semantic_diagnostics(&self) -> &[SemanticDiagnostic] {
-        &self.semantic_diagnostics
+        &self.assembly.semantic_diagnostics
     }
 
     /// Returns merged semantic diagnostics for one document.
@@ -427,7 +503,8 @@ impl WorkspaceFacts {
         id: &DocumentId,
     ) -> impl Iterator<Item = &SemanticDiagnostic> + '_ {
         let id = id.clone();
-        self.semantic_diagnostics
+        self.assembly
+            .semantic_diagnostics
             .iter()
             .filter(move |diagnostic| diagnostic.document == id)
     }
@@ -436,8 +513,7 @@ impl WorkspaceFacts {
 /// Loader that scans workspace roots and follows explicit include targets.
 #[derive(Default)]
 pub struct WorkspaceLoader {
-    analyzer: DocumentAnalyzer,
-    document_overrides: BTreeMap<PathBuf, String>,
+    session: WorkspaceAnalysisSession,
 }
 
 impl WorkspaceLoader {
@@ -452,7 +528,14 @@ impl WorkspaceLoader {
     /// This is useful for editor integrations that need workspace loading to
     /// observe unsaved buffer contents instead of only on-disk text.
     pub fn set_document_override(&mut self, path: PathBuf, source: String) {
-        self.document_overrides.insert(path, source);
+        self.session.set_document_override(path, source);
+    }
+
+    /// Clears all registered in-memory source overrides.
+    ///
+    /// This keeps a long-lived loader aligned with the current open-buffer set.
+    pub fn clear_document_overrides(&mut self) {
+        self.session.clear_document_overrides();
     }
 
     /// Scans one or more workspace roots for `.dsl` files and follows explicit
@@ -471,8 +554,6 @@ impl WorkspaceLoader {
         I: IntoIterator<Item = P>,
         P: AsRef<Path>,
     {
-        // Phase 1: Normalize and scan the requested roots so broad workspace
-        // discovery respects ignore rules before include traversal begins.
         let mut normalized_roots = roots
             .into_iter()
             .map(|root| normalize_existing_path(root.as_ref()))
@@ -480,117 +561,450 @@ impl WorkspaceLoader {
         normalized_roots.sort();
         normalized_roots.dedup();
 
-        let mut loaded_documents = BTreeMap::<PathBuf, WorkspaceDocument>::new();
-        for root in &normalized_roots {
-            for path in scan_workspace_root(root)? {
-                self.load_document(path, true, &mut loaded_documents)?;
-            }
-        }
-
-        // Phase 2: Re-process the discovered documents in directive order so
-        // constants, includes, and cycle detection follow the DSL's imperative
-        // execution model.
-        let mut processed_contexts =
-            BTreeMap::<DocumentContextKey, ProcessedDocumentContext>::new();
-        let mut active_stack = Vec::new();
-
-        let start_contexts = start_contexts(&normalized_roots, &loaded_documents);
-
-        for context in &start_contexts {
-            let _ = self.process_document_context(
-                context.clone(),
-                &mut loaded_documents,
-                &mut processed_contexts,
-                &mut active_stack,
-            )?;
-        }
-
-        // Phase 3: Flatten the per-document include results into one stable
-        // view for downstream diagnostics and editor features.
-        let mut resolved_includes = processed_contexts
-            .values()
-            .flat_map(|context| context.direct_includes.iter().cloned())
-            .collect::<Vec<_>>();
-
-        resolved_includes.sort_by(|left, right| {
-            left.including_document()
-                .as_str()
-                .cmp(right.including_document().as_str())
-                .then_with(|| left.span().start_byte.cmp(&right.span().start_byte))
-                .then_with(|| left.target_text().cmp(right.target_text()))
-        });
-        let include_diagnostics = include_diagnostics(&resolved_includes);
-        let (workspace_indexes, document_instances, semantic_diagnostics) =
-            build_workspace_indexes(&loaded_documents, &start_contexts, &processed_contexts);
-
-        Ok(WorkspaceFacts {
-            documents: loaded_documents.into_values().collect(),
-            resolved_includes,
-            include_diagnostics,
-            workspace_indexes,
-            document_instances,
-            semantic_diagnostics,
-        })
+        WorkspaceBuildSession::new(&mut self.session).build_from_roots(&normalized_roots)
     }
+}
 
-    fn load_document(
-        &mut self,
+impl std::fmt::Debug for WorkspaceLoader {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("WorkspaceLoader").finish_non_exhaustive()
+    }
+}
+
+// =============================================================================
+// Private analysis session
+// =============================================================================
+//
+// The public loader remains a compatibility facade, but a longer-lived internal
+// session now owns document analysis state, open-buffer overrides, and a
+// per-path cache of analyzed document packets. This gives future incremental
+// work one stable host object rather than rebuilding every internal packet from
+// scratch on each load.
+
+#[derive(Default)]
+struct WorkspaceAnalysisSession {
+    analyzer: DocumentAnalyzer,
+    document_overrides: BTreeMap<PathBuf, String>,
+    document_cache: BTreeMap<PathBuf, CachedWorkspaceDocument>,
+    processed_context_cache: BTreeMap<DocumentContextKey, CachedProcessedDocumentContext>,
+    workspace_instance_cache: BTreeMap<DocumentContextKey, CachedWorkspaceInstance>,
+    workspace_facts_assembly_cache: Option<CachedWorkspaceFactsAssembly>,
+    next_document_generation: u64,
+    next_semantic_generation: u64,
+    next_context_revision: u64,
+}
+
+#[derive(Debug)]
+struct CachedWorkspaceDocument {
+    snapshot: Arc<crate::DocumentSnapshot>,
+    semantic_facts: Arc<WorkspaceSemanticDocumentFacts>,
+    kind: WorkspaceDocumentKind,
+    generation: u64,
+    semantic_generation: u64,
+}
+
+#[derive(Debug, Clone)]
+struct CachedProcessedDocumentContext {
+    processed: ProcessedDocumentContext,
+    document_generation: u64,
+    child_context_revisions: Vec<u64>,
+    include_validations: Vec<CachedIncludeValidation>,
+    revision: u64,
+}
+
+#[derive(Debug, Clone)]
+struct CachedWorkspaceInstance {
+    document_semantic_generations: Vec<(DocumentId, u64)>,
+    derived: Arc<DerivedWorkspaceInstance>,
+}
+
+#[derive(Debug, Clone)]
+struct CachedWorkspaceFactsAssembly {
+    key: WorkspaceFactsAssemblyKey,
+    derived: Arc<DerivedWorkspaceFactsAssembly>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct RevisionedContextKey {
+    context_key: DocumentContextKey,
+    revision: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct WorkspaceFactsAssemblyKey {
+    processed_contexts: Vec<RevisionedContextKey>,
+    workspace_instances: Vec<RevisionedContextKey>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum CachedIncludeValidation {
+    RemoteUrl {
+        url: String,
+    },
+    UnsupportedLocalPath {
         path: PathBuf,
-        discovered_by_scan: bool,
-        loaded_documents: &mut BTreeMap<PathBuf, WorkspaceDocument>,
-    ) -> io::Result<()> {
-        if let Some(document) = loaded_documents.get_mut(&path) {
-            if discovered_by_scan {
-                document.mark_discovered_by_scan();
-            }
-            return Ok(());
-        }
+    },
+    MissingLocalPath {
+        path: PathBuf,
+    },
+    LocalFile {
+        path: PathBuf,
+        document_generation: u64,
+    },
+    LocalDirectory {
+        path: PathBuf,
+        discovered_paths: Vec<(PathBuf, u64)>,
+    },
+}
 
-        // Prefer unsaved editor text when one has been registered for this
-        // document, and only hit the filesystem when discovery has no override.
-        // This keeps workspace discovery aligned with live editor buffers.
-        let source = if let Some(source) = self.document_overrides.get(&path).cloned() {
-            source
-        } else {
-            fs::read_to_string(&path)?
-        };
-        let snapshot = self.analyzer.analyze(
-            DocumentInput::new(document_id_from_path(&path), source).with_location(path.clone()),
-        );
+impl CachedWorkspaceDocument {
+    fn new(
+        snapshot: crate::DocumentSnapshot,
+        semantic_facts: Arc<WorkspaceSemanticDocumentFacts>,
+        generation: u64,
+        semantic_generation: u64,
+    ) -> Self {
         let kind = if snapshot.is_workspace_entry() {
             WorkspaceDocumentKind::Entry
         } else {
             WorkspaceDocumentKind::Fragment
         };
 
-        loaded_documents.insert(
-            path,
-            WorkspaceDocument {
-                snapshot,
-                kind,
-                discovered_by_scan,
+        Self {
+            snapshot: Arc::new(snapshot),
+            semantic_facts,
+            kind,
+            generation,
+            semantic_generation,
+        }
+    }
+
+    fn workspace_document(&self, discovered_by_scan: bool) -> WorkspaceDocument {
+        WorkspaceDocument::new(
+            Arc::clone(&self.snapshot),
+            Arc::clone(&self.semantic_facts),
+            self.kind,
+            self.semantic_generation,
+            discovered_by_scan,
+        )
+    }
+}
+
+impl WorkspaceAnalysisSession {
+    fn set_document_override(&mut self, path: PathBuf, source: String) {
+        self.document_overrides.insert(path, source);
+    }
+
+    fn clear_document_overrides(&mut self) {
+        self.document_overrides.clear();
+    }
+
+    fn workspace_document(
+        &mut self,
+        path: &Path,
+        discovered_by_scan: bool,
+    ) -> io::Result<WorkspaceDocument> {
+        let source = self.document_source(path)?;
+        let needs_refresh = self
+            .document_cache
+            .get(path)
+            .is_none_or(|cached| cached.snapshot.source() != source);
+
+        if needs_refresh {
+            let snapshot = self.analyzer.analyze(
+                DocumentInput::new(document_id_from_path(path), source).with_location(path.to_path_buf()),
+            );
+            let semantic_facts = Arc::new(WorkspaceSemanticDocumentFacts::from_snapshot(&snapshot));
+            let generation = self.next_document_generation();
+            let previous_semantic_generation = self
+                .document_cache
+                .get(path)
+                .filter(|cached| cached.semantic_facts.as_ref() == semantic_facts.as_ref())
+                .map(|cached| cached.semantic_generation);
+            let semantic_generation =
+                previous_semantic_generation.unwrap_or_else(|| self.next_semantic_generation());
+            self.document_cache.insert(
+                path.to_path_buf(),
+                CachedWorkspaceDocument::new(snapshot, semantic_facts, generation, semantic_generation),
+            );
+        }
+
+        Ok(self
+            .document_cache
+            .get(path)
+            .expect("BUG: workspace document cache entry should exist after refresh")
+            .workspace_document(discovered_by_scan))
+    }
+
+    fn document_source(&self, path: &Path) -> io::Result<String> {
+        self.document_overrides
+            .get(path)
+            .map_or_else(|| fs::read_to_string(path), |source| Ok(source.clone()))
+    }
+
+    fn document_generation(&self, path: &Path) -> Option<u64> {
+        self.document_cache.get(path).map(|cached| cached.generation)
+    }
+
+    fn processed_context_revision(&self, key: &DocumentContextKey) -> Option<u64> {
+        self.processed_context_cache.get(key).map(|cached| cached.revision)
+    }
+
+    fn cached_processed_context(&self, key: &DocumentContextKey) -> Option<CachedProcessedDocumentContext> {
+        self.processed_context_cache.get(key).cloned()
+    }
+
+    fn cached_workspace_instance(&self, key: &DocumentContextKey) -> Option<CachedWorkspaceInstance> {
+        self.workspace_instance_cache.get(key).cloned()
+    }
+
+    fn cached_workspace_facts_assembly(
+        &self,
+        key: &WorkspaceFactsAssemblyKey,
+    ) -> Option<Arc<DerivedWorkspaceFactsAssembly>> {
+        self.workspace_facts_assembly_cache
+            .as_ref()
+            .filter(|cached| cached.key == *key)
+            .map(|cached| Arc::clone(&cached.derived))
+    }
+
+    fn store_processed_context(&mut self, context: &DocumentContext, processed: ProcessedDocumentContext) {
+        let child_context_revisions = processed
+            .included_contexts
+            .iter()
+            .map(|child_context| {
+                self.processed_context_revision(child_context)
+                    .expect("BUG: child context should be cached before its parent")
+            })
+            .collect();
+        let include_validations = processed
+            .direct_includes
+            .iter()
+            .map(|include| self.include_validation(include))
+            .collect();
+        let cached = CachedProcessedDocumentContext {
+            document_generation: self
+                .document_generation(&context.path)
+                .expect("BUG: processed context document should already be loaded"),
+            processed,
+            child_context_revisions,
+            include_validations,
+            revision: self.next_context_revision(),
+        };
+
+        self.processed_context_cache.insert(context.key.clone(), cached);
+    }
+
+    fn store_workspace_instance(
+        &mut self,
+        root_context_key: &DocumentContextKey,
+        document_semantic_generations: Vec<(DocumentId, u64)>,
+        derived: Arc<DerivedWorkspaceInstance>,
+    ) {
+        let cached = CachedWorkspaceInstance {
+            document_semantic_generations,
+            derived,
+        };
+
+        self.workspace_instance_cache
+            .insert(root_context_key.clone(), cached);
+    }
+
+    fn store_workspace_facts_assembly(
+        &mut self,
+        key: WorkspaceFactsAssemblyKey,
+        derived: Arc<DerivedWorkspaceFactsAssembly>,
+    ) {
+        self.workspace_facts_assembly_cache = Some(CachedWorkspaceFactsAssembly { key, derived });
+    }
+
+    fn include_validation(&self, include: &ResolvedInclude) -> CachedIncludeValidation {
+        match include.target() {
+            WorkspaceIncludeTarget::RemoteUrl { url } => CachedIncludeValidation::RemoteUrl {
+                url: url.clone(),
             },
-        );
+            WorkspaceIncludeTarget::UnsupportedLocalPath { path } => {
+                CachedIncludeValidation::UnsupportedLocalPath { path: path.clone() }
+            }
+            WorkspaceIncludeTarget::MissingLocalPath { path } => {
+                CachedIncludeValidation::MissingLocalPath { path: path.clone() }
+            }
+            WorkspaceIncludeTarget::LocalFile { path } => CachedIncludeValidation::LocalFile {
+                path: path.clone(),
+                document_generation: self
+                    .document_generation(path)
+                    .expect("BUG: local include file should already be loaded"),
+            },
+            WorkspaceIncludeTarget::LocalDirectory { path } => CachedIncludeValidation::LocalDirectory {
+                path: path.clone(),
+                discovered_paths: include
+                    .discovered_documents()
+                    .iter()
+                    .map(|document_id| {
+                        let path = PathBuf::from(document_id.as_str());
+                        let generation = self
+                            .document_generation(&path)
+                            .expect("BUG: directory include child should already be loaded");
+                        (path, generation)
+                    })
+                    .collect(),
+            },
+        }
+    }
+
+    const fn next_document_generation(&mut self) -> u64 {
+        self.next_document_generation = self
+            .next_document_generation
+            .checked_add(1)
+            .expect("document generation counter should not overflow");
+        self.next_document_generation
+    }
+
+    const fn next_semantic_generation(&mut self) -> u64 {
+        self.next_semantic_generation = self
+            .next_semantic_generation
+            .checked_add(1)
+            .expect("semantic generation counter should not overflow");
+        self.next_semantic_generation
+    }
+
+    const fn next_context_revision(&mut self) -> u64 {
+        self.next_context_revision = self
+            .next_context_revision
+            .checked_add(1)
+            .expect("context revision counter should not overflow");
+        self.next_context_revision
+    }
+}
+
+impl CachedWorkspaceInstance {
+    fn workspace_index(&self, id: WorkspaceInstanceId) -> WorkspaceIndex {
+        WorkspaceIndex::from_derived(id, Arc::clone(&self.derived))
+    }
+}
+
+// =============================================================================
+// Private workspace-build session
+// =============================================================================
+//
+// `WorkspaceLoader` remains the public compatibility facade, but the mutable
+// state for one workspace load now lives in a dedicated session object. This is
+// the next Salsa-oriented seam: future incremental workspace inputs and cached
+// instance results can hang off this session without changing existing callers.
+
+struct WorkspaceBuildSession<'loader> {
+    session: &'loader mut WorkspaceAnalysisSession,
+    loaded_documents: BTreeMap<PathBuf, WorkspaceDocument>,
+    processed_contexts: BTreeMap<DocumentContextKey, ProcessedDocumentContext>,
+    active_stack: Vec<PathBuf>,
+}
+
+impl<'loader> WorkspaceBuildSession<'loader> {
+    const fn new(session: &'loader mut WorkspaceAnalysisSession) -> Self {
+        Self {
+            session,
+            loaded_documents: BTreeMap::new(),
+            processed_contexts: BTreeMap::new(),
+            active_stack: Vec::new(),
+        }
+    }
+
+    fn build_from_roots(mut self, normalized_roots: &[PathBuf]) -> io::Result<WorkspaceFacts> {
+        // Phase 1: Normalize and scan the requested roots so broad workspace
+        // discovery respects ignore rules before include traversal begins.
+        self.scan_roots(normalized_roots)?;
+
+        // Phase 2: Re-process the discovered documents in directive order so
+        // constants, includes, and cycle detection follow the DSL's imperative
+        // execution model.
+        let start_contexts = self.process_start_contexts(normalized_roots)?;
+
+        // Phase 3: Flatten the per-document include results into one stable
+        // view for downstream diagnostics and editor features.
+        Ok(self.finish(&start_contexts))
+    }
+
+    fn scan_roots(&mut self, normalized_roots: &[PathBuf]) -> io::Result<()> {
+        for root in normalized_roots {
+            for path in scan_workspace_root(root)? {
+                self.load_document(path, true)?;
+            }
+        }
+
         Ok(())
     }
 
-    fn process_document_context(
+    fn process_start_contexts(
         &mut self,
-        context: DocumentContext,
-        loaded_documents: &mut BTreeMap<PathBuf, WorkspaceDocument>,
-        processed_contexts: &mut BTreeMap<DocumentContextKey, ProcessedDocumentContext>,
-        active_stack: &mut Vec<PathBuf>,
-    ) -> io::Result<ConstantEnvironment> {
+        normalized_roots: &[PathBuf],
+    ) -> io::Result<Vec<DocumentContext>> {
+        let start_contexts = start_contexts(normalized_roots, &self.loaded_documents);
+
+        for context in &start_contexts {
+            let _ = self.process_document_context(context.clone())?;
+        }
+
+        Ok(start_contexts)
+    }
+
+    fn finish(self, start_contexts: &[DocumentContext]) -> WorkspaceFacts {
+        let workspace_indexes = build_workspace_indexes(
+            self.session,
+            &self.loaded_documents,
+            start_contexts,
+            &self.processed_contexts,
+        );
+        let assembly_key =
+            workspace_facts_assembly_key(self.session, start_contexts, &self.processed_contexts);
+        let assembly = build_workspace_facts_assembly(
+            self.session,
+            assembly_key,
+            &self.processed_contexts,
+            &workspace_indexes,
+        );
+
+        WorkspaceFacts {
+            documents: self.loaded_documents.into_values().collect(),
+            workspace_indexes,
+            assembly,
+        }
+    }
+
+    fn load_document(&mut self, path: PathBuf, discovered_by_scan: bool) -> io::Result<()> {
+        if let Some(document) = self.loaded_documents.get_mut(&path) {
+            if discovered_by_scan {
+                document.mark_discovered_by_scan();
+            }
+            return Ok(());
+        }
+
+        let document = self.session.workspace_document(&path, discovered_by_scan)?;
+        self.loaded_documents.insert(path, document);
+        Ok(())
+    }
+
+    fn process_document_context(&mut self, context: DocumentContext) -> io::Result<ConstantEnvironment> {
         // Memoize by `(path, inherited constants)` so repeated includes can
         // share the same processed result without rewalking the document.
-        if let Some(processed_context) = processed_contexts.get(&context.key) {
+        if let Some(processed_context) = self.processed_contexts.get(&context.key) {
             return Ok(processed_context.exported_constants.clone());
         }
 
-        self.load_document(context.path.clone(), false, loaded_documents)?;
+        self.load_document(context.path.clone(), false)?;
+
+        if self.cached_context_tree_is_fresh(&context.key, &mut BTreeSet::new())? {
+            self.materialize_cached_context_tree(&context.key, &mut BTreeSet::new())?;
+            return Ok(self
+                .processed_contexts
+                .get(&context.key)
+                .expect("BUG: fresh cached context should materialize into the current load")
+                .exported_constants
+                .clone());
+        }
 
         let (document_id, constant_definitions, include_directives) = {
-            let document = loaded_documents
+            let document = self
+                .loaded_documents
                 .get(&context.path)
                 .expect("BUG: document context should be loaded before processing");
 
@@ -601,7 +1015,7 @@ impl WorkspaceLoader {
             )
         };
 
-        active_stack.push(context.path.clone());
+        self.active_stack.push(context.path.clone());
         let processed = (|| -> io::Result<ProcessedDocumentContext> {
             let mut current_constants = context.inherited_constants.clone();
             let mut direct_includes = Vec::new();
@@ -624,11 +1038,11 @@ impl WorkspaceLoader {
                         )?;
 
                         for included_path in &resolved_include.discovered_paths {
-                            self.load_document(included_path.clone(), false, loaded_documents)?;
+                            self.load_document(included_path.clone(), false)?;
                         }
 
                         for included_path in &resolved_include.discovered_paths {
-                            if active_stack.contains(included_path) {
+                            if self.active_stack.contains(included_path) {
                                 continue;
                             }
 
@@ -637,12 +1051,7 @@ impl WorkspaceLoader {
                                 current_constants.clone(),
                             );
                             included_contexts.push(child_context.key.clone());
-                            current_constants = self.process_document_context(
-                                child_context,
-                                loaded_documents,
-                                processed_contexts,
-                                active_stack,
-                            )?;
+                            current_constants = self.process_document_context(child_context)?;
                         }
 
                         direct_includes.push(resolved_include.include);
@@ -656,30 +1065,141 @@ impl WorkspaceLoader {
                 included_contexts,
             })
         })();
-        let popped_path = active_stack.pop();
+        let popped_path = self.active_stack.pop();
         debug_assert_eq!(popped_path.as_deref(), Some(context.path.as_path()));
 
         let processed = processed?;
         let exported_constants = processed.exported_constants.clone();
-        processed_contexts.insert(context.key, processed);
+        self.session.store_processed_context(&context, processed.clone());
+        self.processed_contexts.insert(context.key, processed);
         Ok(exported_constants)
     }
-}
 
-/// Convenience helper for scanning workspace roots with a fresh loader.
-///
-/// Equivalent to `WorkspaceLoader::new().load_paths(roots)`.
-///
-/// # Errors
-///
-/// Returns an I/O error when the loader cannot traverse a workspace root or
-/// read one of the discovered local files.
-pub fn load_workspace<I, P>(roots: I) -> io::Result<WorkspaceFacts>
-where
-    I: IntoIterator<Item = P>,
-    P: AsRef<Path>,
-{
-    WorkspaceLoader::new().load_paths(roots)
+    fn cached_context_tree_is_fresh(
+        &mut self,
+        context_key: &DocumentContextKey,
+        visiting: &mut BTreeSet<DocumentContextKey>,
+    ) -> io::Result<bool> {
+        if !visiting.insert(context_key.clone()) {
+            return Ok(true);
+        }
+
+        let freshness = (|| -> io::Result<bool> {
+            let Some(cached) = self.session.cached_processed_context(context_key) else {
+                return Ok(false);
+            };
+
+            self.load_document(context_key.path.clone(), false)?;
+
+            let Some(current_generation) = self.session.document_generation(&context_key.path) else {
+                return Ok(false);
+            };
+            if current_generation != cached.document_generation {
+                return Ok(false);
+            }
+
+            for (child_context, expected_revision) in cached
+                .processed
+                .included_contexts
+                .iter()
+                .zip(&cached.child_context_revisions)
+            {
+                let Some(current_revision) = self.session.processed_context_revision(child_context) else {
+                    return Ok(false);
+                };
+                if current_revision != *expected_revision {
+                    return Ok(false);
+                }
+                if !self.cached_context_tree_is_fresh(child_context, visiting)? {
+                    return Ok(false);
+                }
+            }
+
+            for validation in &cached.include_validations {
+                if !self.include_validation_is_fresh(validation)? {
+                    return Ok(false);
+                }
+            }
+
+            Ok(true)
+        })();
+        let _ = visiting.remove(context_key);
+        freshness
+    }
+
+    fn materialize_cached_context_tree(
+        &mut self,
+        context_key: &DocumentContextKey,
+        visiting: &mut BTreeSet<DocumentContextKey>,
+    ) -> io::Result<()> {
+        if self.processed_contexts.contains_key(context_key) {
+            return Ok(());
+        }
+        if !visiting.insert(context_key.clone()) {
+            return Ok(());
+        }
+
+        let materialized = (|| -> io::Result<()> {
+            self.load_document(context_key.path.clone(), false)?;
+
+            let cached = self
+                .session
+                .cached_processed_context(context_key)
+                .expect("BUG: fresh cached context should still exist while materializing");
+
+            for child_context in &cached.processed.included_contexts {
+                self.materialize_cached_context_tree(child_context, visiting)?;
+            }
+
+            self.processed_contexts
+                .insert(context_key.clone(), cached.processed);
+            Ok(())
+        })();
+        let _ = visiting.remove(context_key);
+        materialized
+    }
+
+    fn include_validation_is_fresh(&mut self, validation: &CachedIncludeValidation) -> io::Result<bool> {
+        match validation {
+            CachedIncludeValidation::RemoteUrl { .. }
+            | CachedIncludeValidation::UnsupportedLocalPath { .. } => Ok(true),
+            CachedIncludeValidation::MissingLocalPath { path } => {
+                Ok(fs::metadata(path).is_err_and(|error| error.kind() == io::ErrorKind::NotFound))
+            }
+            CachedIncludeValidation::LocalFile {
+                path,
+                document_generation,
+            } => {
+                self.load_document(path.clone(), false)?;
+                Ok(self.session.document_generation(path) == Some(*document_generation))
+            }
+            CachedIncludeValidation::LocalDirectory {
+                path,
+                discovered_paths,
+            } => {
+                let allowed_root = path.parent().expect("directory include path should have a parent");
+                let current_paths = collect_directory_include_paths(path, allowed_root)?;
+                if current_paths.len() != discovered_paths.len() {
+                    return Ok(false);
+                }
+
+                for (current_path, (expected_path, expected_generation)) in
+                    current_paths.iter().zip(discovered_paths)
+                {
+                    if current_path != expected_path {
+                        return Ok(false);
+                    }
+
+                    self.load_document(current_path.clone(), false)?;
+                    if self.session.document_generation(current_path) != Some(*expected_generation) {
+                        return Ok(false);
+                    }
+                }
+
+                Ok(true)
+            }
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -738,7 +1258,7 @@ struct DocumentContextKey {
     inherited_constants: Vec<(String, String)>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct ProcessedDocumentContext {
     exported_constants: ConstantEnvironment,
     direct_includes: Vec<ResolvedInclude>,
@@ -1240,56 +1760,211 @@ enum ElementIdentifierMode {
 }
 
 fn build_workspace_indexes(
+    session: &mut WorkspaceAnalysisSession,
     loaded_documents: &BTreeMap<PathBuf, WorkspaceDocument>,
     start_contexts: &[DocumentContext],
     processed_contexts: &BTreeMap<DocumentContextKey, ProcessedDocumentContext>,
-) -> (
-    Vec<WorkspaceIndex>,
-    BTreeMap<DocumentId, Vec<WorkspaceInstanceId>>,
-    Vec<SemanticDiagnostic>,
-) {
+) -> Vec<WorkspaceIndex> {
     let documents_by_id = loaded_documents
         .values()
         .map(|document| (document.id().clone(), document))
         .collect::<BTreeMap<_, _>>();
 
-    let mut workspace_indexes = Vec::new();
+    start_contexts
+        .iter()
+        .enumerate()
+        .map(|(ordinal, start_context)| {
+            let instance_id = WorkspaceInstanceId(ordinal);
+            build_workspace_index(
+                session,
+                instance_id,
+                start_context,
+                processed_contexts,
+                &documents_by_id,
+            )
+        })
+        .collect()
+}
+
+fn build_document_instances(
+    workspace_indexes: &[WorkspaceIndex],
+) -> BTreeMap<DocumentId, Vec<WorkspaceInstanceId>> {
     let mut document_instances = BTreeMap::<DocumentId, Vec<WorkspaceInstanceId>>::new();
 
-    for (ordinal, start_context) in start_contexts.iter().enumerate() {
-        let instance_id = WorkspaceInstanceId(ordinal);
-        let mut visited_contexts = BTreeSet::new();
-        let mut seen_documents = BTreeSet::new();
-        let mut instance_documents = Vec::new();
-        collect_instance_documents(
-            &start_context.key,
-            processed_contexts,
-            &mut visited_contexts,
-            &mut seen_documents,
-            &mut instance_documents,
-        );
-
-        let root_document = document_id_from_path(&start_context.path);
-        let index = build_workspace_index(
-            instance_id,
-            root_document,
-            &instance_documents,
-            &documents_by_id,
-        );
-
-        for document in index.documents() {
+    for workspace_index in workspace_indexes {
+        for document in workspace_index.documents() {
             document_instances
                 .entry(document.clone())
                 .or_default()
-                .push(index.id());
+                .push(workspace_index.id());
         }
-
-        workspace_indexes.push(index);
     }
 
-    let semantic_diagnostics = merge_semantic_diagnostics(&workspace_indexes, &document_instances);
+    document_instances
+}
 
-    (workspace_indexes, document_instances, semantic_diagnostics)
+fn build_workspace_index(
+    session: &mut WorkspaceAnalysisSession,
+    instance_id: WorkspaceInstanceId,
+    start_context: &DocumentContext,
+    processed_contexts: &BTreeMap<DocumentContextKey, ProcessedDocumentContext>,
+    documents_by_id: &BTreeMap<DocumentId, &WorkspaceDocument>,
+) -> WorkspaceIndex {
+    let _root_context_revision = session
+        .processed_context_revision(&start_context.key)
+        .expect("BUG: start context should be processed before building indexes");
+
+    let mut visited_contexts = BTreeSet::new();
+    let mut seen_documents = BTreeSet::new();
+    let mut instance_documents = Vec::new();
+    collect_instance_documents(
+        &start_context.key,
+        processed_contexts,
+        &mut visited_contexts,
+        &mut seen_documents,
+        &mut instance_documents,
+    );
+    let document_semantic_generations = instance_documents
+        .iter()
+        .map(|document_id| {
+            let document = documents_by_id
+                .get(document_id)
+                .expect("BUG: workspace-index document should exist");
+            (document_id.clone(), document.semantic_generation())
+        })
+        .collect::<Vec<_>>();
+
+    if let Some(cached) = session.cached_workspace_instance(&start_context.key)
+        && cached.document_semantic_generations == document_semantic_generations
+    {
+        return cached.workspace_index(instance_id);
+    }
+
+    let root_document = document_id_from_path(&start_context.path);
+    let root_document = documents_by_id
+        .get(&root_document)
+        .expect("BUG: workspace-index root document should exist");
+    let instance_semantic_documents = instance_documents
+        .iter()
+        .map(|document_id| {
+            documents_by_id
+                .get(document_id)
+                .expect("BUG: workspace-index document should exist")
+                .semantic_facts()
+        })
+        .collect::<Vec<_>>();
+    let derived = Arc::new(build_derived_workspace_instance(
+        root_document.semantic_facts(),
+        &instance_semantic_documents,
+    ));
+    session.store_workspace_instance(
+        &start_context.key,
+        document_semantic_generations,
+        Arc::clone(&derived),
+    );
+    WorkspaceIndex::from_derived(instance_id, derived)
+}
+
+fn workspace_facts_assembly_key(
+    session: &WorkspaceAnalysisSession,
+    start_contexts: &[DocumentContext],
+    processed_contexts: &BTreeMap<DocumentContextKey, ProcessedDocumentContext>,
+) -> WorkspaceFactsAssemblyKey {
+    let workspace_instances = start_contexts
+        .iter()
+        .map(|start_context| RevisionedContextKey {
+            context_key: start_context.key.clone(),
+            revision: session
+                .processed_context_revision(&start_context.key)
+                .expect("BUG: start context should be processed before assembly"),
+        })
+        .collect();
+
+    let processed_contexts = processed_contexts
+        .keys()
+        .map(|context_key| RevisionedContextKey {
+            context_key: context_key.clone(),
+            revision: session
+                .processed_context_revision(context_key)
+                .expect("BUG: materialized processed context should have a cached revision"),
+        })
+        .collect();
+
+    WorkspaceFactsAssemblyKey {
+        processed_contexts,
+        workspace_instances,
+    }
+}
+
+fn build_workspace_facts_assembly(
+    session: &mut WorkspaceAnalysisSession,
+    assembly_key: WorkspaceFactsAssemblyKey,
+    processed_contexts: &BTreeMap<DocumentContextKey, ProcessedDocumentContext>,
+    workspace_indexes: &[WorkspaceIndex],
+) -> Arc<DerivedWorkspaceFactsAssembly> {
+    if let Some(cached) = session.cached_workspace_facts_assembly(&assembly_key) {
+        return cached;
+    }
+
+    let mut resolved_includes = processed_contexts
+        .values()
+        .flat_map(|context| context.direct_includes.iter().cloned())
+        .collect::<Vec<_>>();
+    resolved_includes.sort_by(|left, right| {
+        left.including_document()
+            .as_str()
+            .cmp(right.including_document().as_str())
+            .then_with(|| left.span().start_byte.cmp(&right.span().start_byte))
+            .then_with(|| left.target_text().cmp(right.target_text()))
+    });
+
+    let include_diagnostics = include_diagnostics(&resolved_includes);
+    let document_instances = build_document_instances(workspace_indexes);
+    let semantic_diagnostics = merge_semantic_diagnostics(workspace_indexes, &document_instances);
+
+    let assembly = Arc::new(DerivedWorkspaceFactsAssembly {
+        resolved_includes,
+        include_diagnostics,
+        document_instances,
+        semantic_diagnostics,
+    });
+    session.store_workspace_facts_assembly(assembly_key, Arc::clone(&assembly));
+    assembly
+}
+
+fn build_derived_workspace_instance(
+    root_document: &WorkspaceSemanticDocumentFacts,
+    documents: &[&WorkspaceSemanticDocumentFacts],
+) -> DerivedWorkspaceInstance {
+    let inherited_workspace_mode = document_workspace_identifier_mode(root_document);
+    let bindings = build_binding_tables(documents, inherited_workspace_mode.as_ref());
+    let mut semantic_diagnostics = bindings.semantic_diagnostics.clone();
+    let reference_tables = build_reference_resolution_tables(documents, &bindings);
+    semantic_diagnostics.extend(reference_tables.semantic_diagnostics);
+
+    let mut references_by_target = reference_tables.references_by_target;
+    for references in references_by_target.values_mut() {
+        references.sort();
+        references.dedup();
+    }
+    sort_semantic_diagnostics(&mut semantic_diagnostics);
+
+    DerivedWorkspaceInstance {
+        root_document: root_document.document_id.clone(),
+        documents: documents
+            .iter()
+            .map(|document| document.document_id.clone())
+            .collect(),
+        unique_element_bindings: bindings.unique_elements,
+        duplicate_element_bindings: bindings.duplicate_elements,
+        unique_deployment_bindings: bindings.unique_deployments,
+        duplicate_deployment_bindings: bindings.duplicate_deployments,
+        unique_relationship_bindings: bindings.unique_relationships,
+        duplicate_relationship_bindings: bindings.duplicate_relationships,
+        reference_resolutions: reference_tables.resolutions,
+        references_by_target,
+        semantic_diagnostics,
+    }
 }
 
 fn collect_instance_documents(
@@ -1323,48 +1998,6 @@ fn collect_instance_documents(
     }
 }
 
-fn build_workspace_index(
-    id: WorkspaceInstanceId,
-    root_document: DocumentId,
-    documents: &[DocumentId],
-    documents_by_id: &BTreeMap<DocumentId, &WorkspaceDocument>,
-) -> WorkspaceIndex {
-    let root_snapshot = documents_by_id
-        .get(&root_document)
-        .expect("BUG: workspace-index root document should exist")
-        .snapshot();
-    let inherited_workspace_mode = document_workspace_identifier_mode(root_snapshot);
-    let bindings = build_binding_tables(
-        documents,
-        documents_by_id,
-        inherited_workspace_mode.as_ref(),
-    );
-    let mut semantic_diagnostics = bindings.semantic_diagnostics.clone();
-    let reference_tables = build_reference_resolution_tables(documents, documents_by_id, &bindings);
-    semantic_diagnostics.extend(reference_tables.semantic_diagnostics);
-
-    let mut references_by_target = reference_tables.references_by_target;
-    for references in references_by_target.values_mut() {
-        references.sort();
-        references.dedup();
-    }
-    sort_semantic_diagnostics(&mut semantic_diagnostics);
-
-    WorkspaceIndex {
-        id,
-        root_document,
-        documents: documents.to_vec(),
-        unique_element_bindings: bindings.unique_elements,
-        duplicate_element_bindings: bindings.duplicate_elements,
-        unique_deployment_bindings: bindings.unique_deployments,
-        duplicate_deployment_bindings: bindings.duplicate_deployments,
-        unique_relationship_bindings: bindings.unique_relationships,
-        duplicate_relationship_bindings: bindings.duplicate_relationships,
-        reference_resolutions: reference_tables.resolutions,
-        references_by_target,
-        semantic_diagnostics,
-    }
-}
 
 struct WorkspaceBindingTables {
     unique_elements: BTreeMap<String, SymbolHandle>,
@@ -1377,28 +2010,23 @@ struct WorkspaceBindingTables {
 }
 
 fn build_binding_tables(
-    documents: &[DocumentId],
-    documents_by_id: &BTreeMap<DocumentId, &WorkspaceDocument>,
+    documents: &[&WorkspaceSemanticDocumentFacts],
     inherited_workspace_mode: Option<&IdentifierMode>,
 ) -> WorkspaceBindingTables {
     let mut element_bindings = BTreeMap::<String, Vec<SymbolHandle>>::new();
     let mut deployment_bindings = BTreeMap::<String, Vec<SymbolHandle>>::new();
     let mut relationship_bindings = BTreeMap::<String, Vec<SymbolHandle>>::new();
 
-    for document_id in documents {
-        let document = documents_by_id
-            .get(document_id)
-            .expect("BUG: workspace-index document should exist");
-        let snapshot = document.snapshot();
-        let element_mode = effective_element_identifier_mode(snapshot, inherited_workspace_mode);
+    for document in documents {
+        let element_mode = effective_element_identifier_mode(document, inherited_workspace_mode);
 
-        for symbol in snapshot.symbols() {
+        for symbol in &document.symbols {
             let Some(binding_name) = symbol.binding_name.as_deref() else {
                 continue;
             };
 
             let handle = SymbolHandle {
-                document: document_id.clone(),
+                document: document.document_id.clone(),
                 symbol_id: symbol.id,
             };
 
@@ -1414,7 +2042,7 @@ fn build_binding_tables(
                 | SymbolKind::Container
                 | SymbolKind::Component => {
                     let Some(binding_key) =
-                        canonical_element_binding_key(snapshot, symbol.id, element_mode)
+                        canonical_element_binding_key(&document.symbols, symbol.id, element_mode)
                     else {
                         continue;
                     };
@@ -1448,19 +2076,19 @@ fn build_binding_tables(
     push_duplicate_binding_diagnostics(
         "element",
         &duplicate_element_bindings,
-        documents_by_id,
+        documents,
         &mut semantic_diagnostics,
     );
     push_duplicate_binding_diagnostics(
         "deployment",
         &duplicate_deployment_bindings,
-        documents_by_id,
+        documents,
         &mut semantic_diagnostics,
     );
     push_duplicate_binding_diagnostics(
         "relationship",
         &duplicate_relationship_bindings,
-        documents_by_id,
+        documents,
         &mut semantic_diagnostics,
     );
 
@@ -1482,32 +2110,26 @@ struct WorkspaceReferenceTables {
 }
 
 fn build_reference_resolution_tables(
-    documents: &[DocumentId],
-    documents_by_id: &BTreeMap<DocumentId, &WorkspaceDocument>,
+    documents: &[&WorkspaceSemanticDocumentFacts],
     bindings: &WorkspaceBindingTables,
 ) -> WorkspaceReferenceTables {
     let mut reference_resolutions = BTreeMap::<ReferenceHandle, ReferenceResolutionStatus>::new();
     let mut references_by_target = BTreeMap::<SymbolHandle, Vec<ReferenceHandle>>::new();
     let mut semantic_diagnostics = Vec::new();
 
-    for document_id in documents {
-        let document = documents_by_id
-            .get(document_id)
-            .expect("BUG: workspace-index reference document should exist");
-        let snapshot = document.snapshot();
-
-        for (reference_index, reference) in snapshot.references().iter().enumerate() {
+    for document in documents {
+        for (reference_index, reference) in document.references.iter().enumerate() {
             let handle = ReferenceHandle {
-                document: document_id.clone(),
+                document: document.document_id.clone(),
                 reference_index,
             };
             let status = resolve_reference_status(reference, bindings);
 
-            if !snapshot.has_syntax_errors() {
+            if !document.has_syntax_errors {
                 match status {
                     ReferenceResolutionStatus::UnresolvedNoMatch => {
                         semantic_diagnostics.push(SemanticDiagnostic::unresolved_reference(
-                            document_id,
+                            &document.document_id,
                             &reference.raw_text,
                             reference.span,
                         ));
@@ -1515,7 +2137,7 @@ fn build_reference_resolution_tables(
                     ReferenceResolutionStatus::AmbiguousDuplicateBinding
                     | ReferenceResolutionStatus::AmbiguousElementVsRelationship => {
                         semantic_diagnostics.push(SemanticDiagnostic::ambiguous_reference(
-                            document_id,
+                            &document.document_id,
                             &reference.raw_text,
                             reference.span,
                         ));
@@ -1569,21 +2191,25 @@ fn split_binding_table(
 fn push_duplicate_binding_diagnostics(
     binding_kind: &str,
     duplicate_bindings: &BTreeMap<String, Vec<SymbolHandle>>,
-    documents_by_id: &BTreeMap<DocumentId, &WorkspaceDocument>,
+    documents: &[&WorkspaceSemanticDocumentFacts],
     diagnostics: &mut Vec<SemanticDiagnostic>,
 ) {
+    let documents_by_id = documents
+        .iter()
+        .map(|document| (&document.document_id, *document))
+        .collect::<BTreeMap<_, _>>();
+
     for (key, handles) in duplicate_bindings {
         for handle in handles {
             let document = documents_by_id
                 .get(handle.document())
                 .expect("BUG: duplicate-binding document should exist");
-            let snapshot = document.snapshot();
-            if snapshot.has_syntax_errors() {
+            if document.has_syntax_errors {
                 continue;
             }
 
-            let symbol = snapshot
-                .symbols()
+            let symbol = document
+                .symbols
                 .get(handle.symbol_id().0)
                 .expect("BUG: duplicate-binding symbol should exist");
             diagnostics.push(SemanticDiagnostic::duplicate_binding(
@@ -1700,11 +2326,11 @@ fn resolve_view_include_reference(
 }
 
 fn effective_element_identifier_mode(
-    snapshot: &crate::DocumentSnapshot,
+    document: &WorkspaceSemanticDocumentFacts,
     inherited_workspace_mode: Option<&IdentifierMode>,
 ) -> ElementIdentifierMode {
-    match document_model_identifier_mode(snapshot)
-        .or_else(|| document_workspace_identifier_mode(snapshot))
+    match document_model_identifier_mode(document)
+        .or_else(|| document_workspace_identifier_mode(document))
         .or_else(|| inherited_workspace_mode.cloned())
     {
         Some(IdentifierMode::Hierarchical) => ElementIdentifierMode::Hierarchical,
@@ -1713,22 +2339,22 @@ fn effective_element_identifier_mode(
     }
 }
 
-fn document_model_identifier_mode(snapshot: &crate::DocumentSnapshot) -> Option<IdentifierMode> {
-    last_identifier_mode_for_container(snapshot, &DirectiveContainer::Model)
+fn document_model_identifier_mode(document: &WorkspaceSemanticDocumentFacts) -> Option<IdentifierMode> {
+    last_identifier_mode_for_container(document, &DirectiveContainer::Model)
 }
 
 fn document_workspace_identifier_mode(
-    snapshot: &crate::DocumentSnapshot,
+    document: &WorkspaceSemanticDocumentFacts,
 ) -> Option<IdentifierMode> {
-    last_identifier_mode_for_container(snapshot, &DirectiveContainer::Workspace)
+    last_identifier_mode_for_container(document, &DirectiveContainer::Workspace)
 }
 
 fn last_identifier_mode_for_container(
-    snapshot: &crate::DocumentSnapshot,
+    document: &WorkspaceSemanticDocumentFacts,
     container: &DirectiveContainer,
 ) -> Option<IdentifierMode> {
-    snapshot
-        .identifier_modes()
+    document
+        .identifier_modes
         .iter()
         .rev()
         .find(|fact| fact.container == *container)
@@ -1736,11 +2362,11 @@ fn last_identifier_mode_for_container(
 }
 
 fn canonical_element_binding_key(
-    snapshot: &crate::DocumentSnapshot,
+    symbols: &[Symbol],
     symbol_id: SymbolId,
     mode: ElementIdentifierMode,
 ) -> Option<String> {
-    let symbol = snapshot.symbols().get(symbol_id.0)?;
+    let symbol = symbols.get(symbol_id.0)?;
     let binding_name = symbol.binding_name.as_deref()?;
 
     match mode {
@@ -1751,7 +2377,7 @@ fn canonical_element_binding_key(
             let mut parent = symbol.parent;
 
             while let Some(parent_id) = parent {
-                let ancestor = snapshot.symbols().get(parent_id.0)?;
+                let ancestor = symbols.get(parent_id.0)?;
                 if !matches!(
                     ancestor.kind,
                     SymbolKind::Person
@@ -1822,4 +2448,548 @@ fn sort_semantic_diagnostics(diagnostics: &mut [SemanticDiagnostic]) {
             .then_with(|| left.kind.cmp(&right.kind))
             .then_with(|| left.message.cmp(&right.message))
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{
+        fs, ptr,
+        path::{Path, PathBuf},
+        sync::Arc,
+    };
+
+    use indoc::indoc;
+    use tempfile::TempDir;
+
+    use super::{WorkspaceFacts, WorkspaceIndex, WorkspaceLoader, document_id_from_path};
+
+    #[test]
+    fn loader_reuses_cached_document_snapshots_across_identical_loads() {
+        let fixture = TemporaryWorkspace::new(indoc! {r#"
+            workspace {
+                !include "model.dsl"
+            }
+        "#});
+        fixture.write_model(indoc! {r#"
+            model {
+                user = person "User"
+            }
+        "#});
+
+        let mut loader = WorkspaceLoader::new();
+        let first = loader
+            .load_paths([fixture.root()])
+            .expect("first load should succeed");
+        let second = loader
+            .load_paths([fixture.root()])
+            .expect("second load should succeed");
+
+        let first_workspace = first
+            .document(&document_id_from_path(fixture.workspace_path()))
+            .expect("workspace document should exist");
+        let second_workspace = second
+            .document(&document_id_from_path(fixture.workspace_path()))
+            .expect("workspace document should exist");
+        assert!(ptr::eq(first_workspace.snapshot(), second_workspace.snapshot()));
+
+        let first_model = first
+            .document(&document_id_from_path(&fixture.model_path()))
+            .expect("included model document should exist");
+        let second_model = second
+            .document(&document_id_from_path(&fixture.model_path()))
+            .expect("included model document should exist");
+        assert!(ptr::eq(first_model.snapshot(), second_model.snapshot()));
+    }
+
+    #[test]
+    fn loader_reuses_cached_workspace_instance_payloads_across_identical_loads() {
+        let fixture = TemporaryWorkspace::new(indoc! {r#"
+            workspace {
+                !include "model.dsl"
+            }
+        "#});
+        fixture.write_model(indoc! {r#"
+            model {
+                user = person "User"
+            }
+        "#});
+
+        let mut loader = WorkspaceLoader::new();
+        let first = loader
+            .load_paths([fixture.root()])
+            .expect("first load should succeed");
+        let second = loader
+            .load_paths([fixture.root()])
+            .expect("second load should succeed");
+
+        let first_index = first
+            .workspace_indexes()
+            .first()
+            .expect("workspace index should exist");
+        let second_index = second
+            .workspace_indexes()
+            .first()
+            .expect("workspace index should exist");
+
+        assert!(Arc::ptr_eq(&first_index.derived, &second_index.derived));
+    }
+
+    #[test]
+    fn source_only_edit_reuses_workspace_semantics_when_syntax_facts_are_unchanged() {
+        let source = indoc! {r#"
+            workspace {
+                model {
+                    user = person "User"
+                }
+            }
+        "#};
+        let fixture = TemporaryWorkspace::new(source);
+
+        let mut loader = WorkspaceLoader::new();
+
+        let first = loader
+            .load_paths([fixture.workspace_path().as_path()])
+            .expect("first load should succeed");
+
+        loader.set_document_override(fixture.workspace_path().clone(), format!("{source}\n"));
+
+        let second = loader
+            .load_paths([fixture.workspace_path().as_path()])
+            .expect("override-backed load should succeed");
+
+        let first_index = first
+            .workspace_indexes()
+            .first()
+            .expect("workspace index should exist");
+        let second_index = second
+            .workspace_indexes()
+            .first()
+            .expect("workspace index should exist");
+
+        assert!(Arc::ptr_eq(&first_index.derived, &second_index.derived));
+    }
+
+    #[test]
+    fn loader_reuses_final_workspace_facts_assembly_across_identical_loads() {
+        let fixture = TemporaryWorkspace::new(indoc! {r#"
+            workspace {
+                !include "model.dsl"
+            }
+        "#});
+        fixture.write_model(indoc! {r#"
+            model {
+                user = person "User"
+            }
+        "#});
+
+        let mut loader = WorkspaceLoader::new();
+        let first = loader
+            .load_paths([fixture.root()])
+            .expect("first load should succeed");
+        let second = loader
+            .load_paths([fixture.root()])
+            .expect("second load should succeed");
+
+        assert!(Arc::ptr_eq(first.assembly_arc(), second.assembly_arc()));
+    }
+
+    #[test]
+    fn loader_refreshes_cached_snapshot_when_override_changes() {
+        let fixture = TemporaryWorkspace::new(indoc! {r#"
+            workspace {
+                model {
+                    user = person "User"
+                }
+            }
+        "#});
+
+        let mut loader = WorkspaceLoader::new();
+        let first = loader
+            .load_paths([fixture.workspace_path().as_path()])
+            .expect("first load should succeed");
+
+        loader.set_document_override(
+            fixture.workspace_path().clone(),
+            indoc! {r#"
+                workspace {
+                    model {
+                        admin = person "Admin"
+                    }
+                }
+            "#}
+            .to_owned(),
+        );
+
+        let second = loader
+            .load_paths([fixture.workspace_path().as_path()])
+            .expect("override-backed load should succeed");
+
+        let first_document = first
+            .document(&document_id_from_path(fixture.workspace_path()))
+            .expect("workspace document should exist");
+        let second_document = second
+            .document(&document_id_from_path(fixture.workspace_path()))
+            .expect("workspace document should exist");
+
+        assert!(!ptr::eq(
+            first_document.snapshot(),
+            second_document.snapshot()
+        ));
+        assert_eq!(
+            second_document
+                .snapshot()
+                .symbols()
+                .iter()
+                .filter_map(|symbol| symbol.binding_name.as_deref())
+                .collect::<Vec<_>>(),
+            vec!["admin"]
+        );
+    }
+
+    #[test]
+    fn clearing_document_overrides_restores_disk_backed_snapshot() {
+        let fixture = TemporaryWorkspace::new(indoc! {r#"
+            workspace {
+                model {
+                    user = person "User"
+                }
+            }
+        "#});
+
+        let mut loader = WorkspaceLoader::new();
+        loader.set_document_override(
+            fixture.workspace_path().clone(),
+            indoc! {r#"
+                workspace {
+                    model {
+                        admin = person "Admin"
+                    }
+                }
+            "#}
+            .to_owned(),
+        );
+        let override_backed = loader
+            .load_paths([fixture.workspace_path().as_path()])
+            .expect("override-backed load should succeed");
+
+        loader.clear_document_overrides();
+        let disk_backed = loader
+            .load_paths([fixture.workspace_path().as_path()])
+            .expect("disk-backed reload should succeed");
+
+        let override_document = override_backed
+            .document(&document_id_from_path(fixture.workspace_path()))
+            .expect("workspace document should exist");
+        let disk_document = disk_backed
+            .document(&document_id_from_path(fixture.workspace_path()))
+            .expect("workspace document should exist");
+
+        assert_eq!(
+            override_document
+                .snapshot()
+                .symbols()
+                .iter()
+                .filter_map(|symbol| symbol.binding_name.as_deref())
+                .collect::<Vec<_>>(),
+            vec!["admin"]
+        );
+        assert_eq!(
+            disk_document
+                .snapshot()
+                .symbols()
+                .iter()
+                .filter_map(|symbol| symbol.binding_name.as_deref())
+                .collect::<Vec<_>>(),
+            vec!["user"]
+        );
+    }
+
+    #[test]
+    fn cached_parent_context_refreshes_when_included_child_changes() {
+        let fixture = TemporaryWorkspace::new(indoc! {r#"
+            workspace {
+                !include "model.dsl"
+            }
+        "#});
+        fixture.write_model(indoc! {r#"
+            model {
+                user = person "User"
+            }
+        "#});
+
+        let mut loader = WorkspaceLoader::new();
+        let first = loader
+            .load_paths([fixture.root()])
+            .expect("first load should succeed");
+        let first_index = first
+            .workspace_indexes()
+            .first()
+            .expect("workspace index should exist");
+        assert_eq!(
+            first_index
+                .unique_element_bindings()
+                .keys()
+                .cloned()
+                .collect::<Vec<_>>(),
+            vec!["user"]
+        );
+
+        fixture.write_model(indoc! {r#"
+            model {
+                admin = person "Admin"
+            }
+        "#});
+
+        let second = loader
+            .load_paths([fixture.root()])
+            .expect("second load should succeed");
+        let second_index = second
+            .workspace_indexes()
+            .first()
+            .expect("workspace index should exist");
+        assert_eq!(
+            second_index
+                .unique_element_bindings()
+                .keys()
+                .cloned()
+                .collect::<Vec<_>>(),
+            vec!["admin"]
+        );
+    }
+
+    #[test]
+    fn cached_parent_context_refreshes_when_grandchild_changes() {
+        let fixture = TemporaryWorkspace::new(indoc! {r#"
+            workspace {
+                !include "model.dsl"
+            }
+        "#});
+        fixture.write_model(indoc! {r#"
+            model {
+                !include "people.dsl"
+            }
+        "#});
+        fixture.write_file(
+            "people.dsl",
+            indoc! {r#"
+                model {
+                    user = person "User"
+                }
+            "#},
+        );
+
+        let mut loader = WorkspaceLoader::new();
+        let first = loader
+            .load_paths([fixture.root()])
+            .expect("first load should succeed");
+        let first_index = first
+            .workspace_indexes()
+            .first()
+            .expect("workspace index should exist");
+        assert_eq!(
+            first_index
+                .unique_element_bindings()
+                .keys()
+                .cloned()
+                .collect::<Vec<_>>(),
+            vec!["user"]
+        );
+
+        fixture.write_file(
+            "people.dsl",
+            indoc! {r#"
+                model {
+                    admin = person "Admin"
+                }
+            "#},
+        );
+
+        let second = loader
+            .load_paths([fixture.root()])
+            .expect("second load should succeed");
+        let second_index = second
+            .workspace_indexes()
+            .first()
+            .expect("workspace index should exist");
+        assert_eq!(
+            second_index
+                .unique_element_bindings()
+                .keys()
+                .cloned()
+                .collect::<Vec<_>>(),
+            vec!["admin"]
+        );
+    }
+
+    #[test]
+    fn sibling_root_changes_only_refresh_the_affected_workspace_instance() {
+        let fixture = TemporaryWorkspace::new(indoc! {r#"
+            workspace {
+                model {
+                    user = person "User"
+                }
+            }
+        "#});
+        fixture.write_file(
+            "other.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        admin = person "Admin"
+                    }
+                }
+            "#},
+        );
+        let other_path = fixture
+            .root()
+            .join("other.dsl")
+            .canonicalize()
+            .expect("other workspace path should canonicalize");
+
+        let mut loader = WorkspaceLoader::new();
+        let first = loader
+            .load_paths([fixture.root()])
+            .expect("first load should succeed");
+
+        fixture.write_file(
+            "other.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        support = person "Support"
+                    }
+                }
+            "#},
+        );
+
+        let second = loader
+            .load_paths([fixture.root()])
+            .expect("second load should succeed");
+
+        let first_workspace = workspace_index_for_root(&first, fixture.workspace_path());
+        let second_workspace = workspace_index_for_root(&second, fixture.workspace_path());
+        let first_other = workspace_index_for_root(&first, &other_path);
+        let second_other = workspace_index_for_root(&second, &other_path);
+
+        assert!(Arc::ptr_eq(
+            &first_workspace.derived,
+            &second_workspace.derived
+        ));
+        assert!(!Arc::ptr_eq(&first_other.derived, &second_other.derived));
+        assert_eq!(
+            second_other
+                .unique_element_bindings()
+                .keys()
+                .cloned()
+                .collect::<Vec<_>>(),
+            vec!["support"]
+        );
+    }
+
+    #[test]
+    fn sibling_root_changes_refresh_final_assembly_when_membership_changes() {
+        let fixture = TemporaryWorkspace::new(indoc! {r#"
+            workspace {
+                model {
+                    user = person "User"
+                }
+            }
+        "#});
+        fixture.write_file(
+            "other.dsl",
+            indoc! {r#"
+                workspace {
+                    !include "shared.dsl"
+                }
+            "#},
+        );
+        fixture.write_file(
+            "shared.dsl",
+            indoc! {r#"
+                model {
+                    admin = person "Admin"
+                }
+            "#},
+        );
+
+        let mut loader = WorkspaceLoader::new();
+        let first = loader
+            .load_paths([fixture.root()])
+            .expect("first load should succeed");
+
+        fixture.write_file(
+            "other.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        support = person "Support"
+                    }
+                }
+            "#},
+        );
+
+        let second = loader
+            .load_paths([fixture.root()])
+            .expect("second load should succeed");
+
+        assert!(!Arc::ptr_eq(first.assembly_arc(), second.assembly_arc()));
+        assert_eq!(
+            second
+                .candidate_instances_for(&document_id_from_path(&fixture.root().join("shared.dsl")))
+                .count(),
+            0
+        );
+    }
+
+    fn workspace_index_for_root<'a>(facts: &'a WorkspaceFacts, root_path: &Path) -> &'a WorkspaceIndex {
+        let root_document = document_id_from_path(root_path);
+        facts.workspace_indexes()
+            .iter()
+            .find(|index| index.root_document() == &root_document)
+            .expect("workspace index for root should exist")
+    }
+
+    struct TemporaryWorkspace {
+        _root_dir: TempDir,
+        root: PathBuf,
+        workspace_path: PathBuf,
+    }
+
+    impl TemporaryWorkspace {
+        fn new(workspace_source: &str) -> Self {
+            let root_dir = tempfile::tempdir().expect("tempdir should create");
+            let root = root_dir
+                .path()
+                .canonicalize()
+                .expect("tempdir path should canonicalize");
+            let workspace_path = root.join("workspace.dsl");
+            fs::write(&workspace_path, workspace_source).expect("workspace source should write");
+
+            Self {
+                _root_dir: root_dir,
+                root,
+                workspace_path,
+            }
+        }
+
+        fn write_model(&self, source: &str) {
+            fs::write(self.model_path(), source).expect("model source should write");
+        }
+
+        fn write_file(&self, relative_path: &str, source: &str) {
+            fs::write(self.root.join(relative_path), source).expect("workspace file should write");
+        }
+
+        fn root(&self) -> &Path {
+            &self.root
+        }
+
+        fn workspace_path(&self) -> &PathBuf {
+            &self.workspace_path
+        }
+
+        fn model_path(&self) -> PathBuf {
+            self.root.join("model.dsl")
+        }
+    }
 }

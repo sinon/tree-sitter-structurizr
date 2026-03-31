@@ -1,6 +1,6 @@
 //! Shared navigation helpers for same-document fallback and workspace indexing.
 
-use std::{fs, path::Path};
+use std::path::Path;
 
 use line_index::LineIndex;
 use structurizr_analysis::{
@@ -486,11 +486,7 @@ fn open_document_by_id<'a>(
 }
 
 fn workspace_document_id(document: &DocumentState) -> Option<DocumentId> {
-    let path = document.uri().to_file_path()?;
-    let canonical_path = fs::canonicalize(&path).ok()?;
-    Some(DocumentId::new(
-        canonical_path.to_string_lossy().into_owned(),
-    ))
+    document.workspace_document_id().cloned()
 }
 
 fn file_uri_from_document_id(document_id: &DocumentId) -> Option<Uri> {

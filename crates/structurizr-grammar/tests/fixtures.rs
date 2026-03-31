@@ -81,8 +81,9 @@ fn assert_has_errors(label: &str, tree: &Tree, source: &str) {
 }
 
 fn relative_fixture_name(path: &Path) -> String {
-    let fixture_root = fs::canonicalize(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures"))
-        .unwrap_or_else(|error| panic!("failed to canonicalize fixture root: {error}"));
+    let fixture_root =
+        fs::canonicalize(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures"))
+            .unwrap_or_else(|error| panic!("failed to canonicalize fixture root: {error}"));
     let fixture_path = fs::canonicalize(path).unwrap_or_else(|error| {
         panic!(
             "failed to canonicalize fixture `{}`: {error}",
