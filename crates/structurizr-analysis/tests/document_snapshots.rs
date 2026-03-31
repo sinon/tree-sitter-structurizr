@@ -54,12 +54,10 @@ fn analyze_fixture(path: &Path) -> DocumentSnapshot {
 }
 
 fn relative_fixture_name(path: &Path) -> String {
-    let fixture_root =
-        fs::canonicalize(
-            Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("../structurizr-lsp/tests/fixtures"),
-        )
-            .unwrap_or_else(|error| panic!("failed to canonicalize fixture root: {error}"));
+    let fixture_root = fs::canonicalize(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../structurizr-lsp/tests/fixtures"),
+    )
+    .unwrap_or_else(|error| panic!("failed to canonicalize fixture root: {error}"));
     let fixture_path = fs::canonicalize(path).unwrap_or_else(|error| {
         panic!(
             "failed to canonicalize fixture `{}`: {error}",

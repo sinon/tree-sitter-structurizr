@@ -2,7 +2,7 @@
 
 use std::{fs, path::PathBuf, time::Instant};
 
-use structurizr_analysis::analyze_document;
+use structurizr_analysis::{DocumentId, analyze_document};
 use tower_lsp_server::ls_types::{
     DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams,
 };
@@ -104,7 +104,12 @@ pub async fn did_close(backend: &Backend, params: DidCloseTextDocumentParams) {
 
 async fn publish_latest_snapshot(backend: &Backend, document: DocumentState) {
     let uri = document.uri().clone();
-    let snapshot = analyze_document(document.to_input());
+    let workspace_facts = recompute_workspace_facts(backend, Some(&document)).await;
+    // When workspace recomputation already analyzed this file-backed document
+    // through `WorkspaceLoader`, reuse that snapshot instead of immediately
+    // parsing and extracting the same document a second time.
+    let snapshot = snapshot_from_workspace_facts(&document, workspace_facts.as_ref())
+        .unwrap_or_else(|| analyze_document(document.to_input()));
     debug!(
         uri = uri.as_str(),
         syntax_diagnostic_count = snapshot.syntax_diagnostics().len(),
@@ -112,7 +117,6 @@ async fn publish_latest_snapshot(backend: &Backend, document: DocumentState) {
         reference_count = snapshot.references().len(),
         "analyzed latest document snapshot"
     );
-    let workspace_facts = recompute_workspace_facts(backend, Some(&document)).await;
 
     {
         let mut state = backend.state().write().await;
@@ -243,6 +247,20 @@ async fn recompute_workspace_facts(
     }
 }
 
+fn snapshot_from_workspace_facts(
+    document: &DocumentState,
+    workspace_facts: Option<&WorkspaceFacts>,
+) -> Option<structurizr_analysis::DocumentSnapshot> {
+    let document_id = workspace_document_id(document)?;
+    workspace_facts
+        .and_then(|facts| facts.document(&document_id))
+        .map(|workspace_document| workspace_document.snapshot().clone())
+}
+
+fn workspace_document_id(document: &DocumentState) -> Option<DocumentId> {
+    document.workspace_document_id().cloned()
+}
+
 fn add_document_override(loader: &mut WorkspaceLoader, document: &DocumentState) {
     if let Some(path) = canonical_document_path(document) {
         loader.set_document_override(path, document.text().to_owned());
@@ -250,7 +268,7 @@ fn add_document_override(loader: &mut WorkspaceLoader, document: &DocumentState)
 }
 
 fn canonical_document_path(document: &DocumentState) -> Option<PathBuf> {
-    canonical_file_path_from_uri(document.uri())
+    document.canonical_path().cloned()
 }
 
 fn canonical_file_path_from_uri(uri: &tower_lsp_server::ls_types::Uri) -> Option<PathBuf> {

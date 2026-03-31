@@ -125,7 +125,7 @@ impl DocumentInput {
 /// A snapshot groups the original source, parse tree, and extracted facts so
 /// downstream tooling can answer syntax and navigation queries from one shared
 /// object.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DocumentSnapshot {
     id: DocumentId,
     location: Option<DocumentLocation>,

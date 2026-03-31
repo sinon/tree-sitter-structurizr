@@ -1,7 +1,5 @@
 //! Convert analysis diagnostics into LSP diagnostics.
 
-use std::fs;
-
 use structurizr_analysis::{
     DocumentId, DocumentSnapshot, IncludeDiagnostic, IncludeDiagnosticKind, SemanticDiagnostic,
     SyntaxDiagnostic, WorkspaceFacts,
@@ -104,9 +102,5 @@ fn semantic_diagnostic(
 }
 
 fn workspace_document_id(document: &DocumentState) -> Option<DocumentId> {
-    let path = document.uri().to_file_path()?;
-    let canonical_path = fs::canonicalize(&path).ok()?;
-    Some(DocumentId::new(
-        canonical_path.to_string_lossy().into_owned(),
-    ))
+    document.workspace_document_id().cloned()
 }
