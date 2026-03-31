@@ -21,6 +21,40 @@ const SMALL_SESSION_SOURCE: &str =
     include_str!("../tests/fixtures/relationships/named-relationships-ok.dsl");
 const LARGE_SESSION_SOURCE: &str =
     include_str!("../../../tests/lsp/workspaces/big-bank-plc/internet-banking-system.dsl");
+const MEGA_DOCUMENT_SYMBOL_SOURCE: &str =
+    include_str!("../../../tests/lsp/workspaces/benchmark-mega/workspace_data/ws-12/model/10-systems.dsl");
+const MEGA_DYNAMIC_SOURCE: &str =
+    include_str!("../../../tests/lsp/workspaces/benchmark-mega/global-views.dsl");
+const MEGA_MULTI_ROOT_SOURCE: &str =
+    include_str!("../../../tests/lsp/workspaces/benchmark-mega-multi-root/ws-12/model.dsl");
+
+const MEGA_WORKSPACE_ROOTS: &[&str] = &["tests/lsp/workspaces/benchmark-mega"];
+const MEGA_MULTI_ROOTS: &[&str] = &[
+    "tests/lsp/workspaces/benchmark-mega-multi-root/ws-00",
+    "tests/lsp/workspaces/benchmark-mega-multi-root/ws-01",
+    "tests/lsp/workspaces/benchmark-mega-multi-root/ws-02",
+    "tests/lsp/workspaces/benchmark-mega-multi-root/ws-03",
+    "tests/lsp/workspaces/benchmark-mega-multi-root/ws-04",
+    "tests/lsp/workspaces/benchmark-mega-multi-root/ws-05",
+    "tests/lsp/workspaces/benchmark-mega-multi-root/ws-06",
+    "tests/lsp/workspaces/benchmark-mega-multi-root/ws-07",
+    "tests/lsp/workspaces/benchmark-mega-multi-root/ws-08",
+    "tests/lsp/workspaces/benchmark-mega-multi-root/ws-09",
+    "tests/lsp/workspaces/benchmark-mega-multi-root/ws-10",
+    "tests/lsp/workspaces/benchmark-mega-multi-root/ws-11",
+    "tests/lsp/workspaces/benchmark-mega-multi-root/ws-12",
+    "tests/lsp/workspaces/benchmark-mega-multi-root/ws-13",
+    "tests/lsp/workspaces/benchmark-mega-multi-root/ws-14",
+    "tests/lsp/workspaces/benchmark-mega-multi-root/ws-15",
+    "tests/lsp/workspaces/benchmark-mega-multi-root/ws-16",
+    "tests/lsp/workspaces/benchmark-mega-multi-root/ws-17",
+    "tests/lsp/workspaces/benchmark-mega-multi-root/ws-18",
+    "tests/lsp/workspaces/benchmark-mega-multi-root/ws-19",
+    "tests/lsp/workspaces/benchmark-mega-multi-root/ws-20",
+    "tests/lsp/workspaces/benchmark-mega-multi-root/ws-21",
+    "tests/lsp/workspaces/benchmark-mega-multi-root/ws-22",
+    "tests/lsp/workspaces/benchmark-mega-multi-root/ws-23",
+];
 
 type BenchService = LspService<Backend>;
 
@@ -38,7 +72,7 @@ struct SessionCase {
     name: &'static str,
     relative_document_path: &'static str,
     source: &'static str,
-    workspace_root: Option<&'static str>,
+    workspace_roots: &'static [&'static str],
     request: SessionRequest,
 }
 
@@ -47,7 +81,7 @@ const SESSION_CASES: &[SessionCase] = &[
         name: "small_named_relationship_definition",
         relative_document_path: "crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl",
         source: SMALL_SESSION_SOURCE,
-        workspace_root: None,
+        workspace_roots: &[],
         request: SessionRequest::Definition {
             needle: "include rel",
             byte_offset_within_needle: 8,
@@ -57,13 +91,39 @@ const SESSION_CASES: &[SessionCase] = &[
         name: "large_big_bank_document_symbols",
         relative_document_path: "tests/lsp/workspaces/big-bank-plc/internet-banking-system.dsl",
         source: LARGE_SESSION_SOURCE,
-        workspace_root: Some("tests/lsp/workspaces/big-bank-plc"),
+        workspace_roots: &["tests/lsp/workspaces/big-bank-plc"],
+        request: SessionRequest::DocumentSymbols,
+    },
+    SessionCase {
+        name: "mega_benchmark_document_symbols",
+        relative_document_path: "tests/lsp/workspaces/benchmark-mega/workspace_data/ws-12/model/10-systems.dsl",
+        source: MEGA_DOCUMENT_SYMBOL_SOURCE,
+        workspace_roots: MEGA_WORKSPACE_ROOTS,
+        request: SessionRequest::DocumentSymbols,
+    },
+    SessionCase {
+        name: "mega_benchmark_dynamic_definition",
+        relative_document_path: "tests/lsp/workspaces/benchmark-mega/global-views.dsl",
+        source: MEGA_DYNAMIC_SOURCE,
+        workspace_roots: MEGA_WORKSPACE_ROOTS,
+        request: SessionRequest::Definition {
+            needle: "w13_sys00_api_comp00",
+            byte_offset_within_needle: 5,
+        },
+    },
+    SessionCase {
+        name: "mega_multi_root_document_symbols",
+        relative_document_path: "tests/lsp/workspaces/benchmark-mega-multi-root/ws-12/model.dsl",
+        source: MEGA_MULTI_ROOT_SOURCE,
+        workspace_roots: MEGA_MULTI_ROOTS,
         request: SessionRequest::DocumentSymbols,
     },
 ];
 
 // These sessions measure the exact LSP flow contributors feel in practice:
-// initialize, open, full-document change, and one bounded follow-up request.
+// initialize, open, full-document change, and one bounded follow-up request,
+// while scaling from tiny single-file edits to a generated mega corpus and a
+// multi-root workspace-folder session.
 fn bench_lsp_sessions(c: &mut Criterion) {
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -88,9 +148,10 @@ async fn run_session(case: SessionCase) {
     let document_path = repo_root.join(case.relative_document_path);
     let document_uri = file_uri_from_path(&document_path);
     let workspace_folders = case
-        .workspace_root
-        .map(|relative_root| vec![file_uri_from_path(&repo_root.join(relative_root))])
-        .unwrap_or_default();
+        .workspace_roots
+        .iter()
+        .map(|relative_root| file_uri_from_path(&repo_root.join(relative_root)))
+        .collect::<Vec<_>>();
     let changed_text = format!("{}\n", case.source);
     let (mut service, mut socket) = new_service();
 

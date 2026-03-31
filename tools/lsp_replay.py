@@ -15,7 +15,7 @@ from typing import Any, BinaryIO
 @dataclass(frozen=True)
 class ReplayCase:
     document_path: Path
-    workspace_root: Path | None
+    workspace_roots: tuple[Path, ...]
 
 
 REPLAY_TIMEOUT_SECONDS = 30.0
@@ -30,11 +30,22 @@ def replay_cases(root: Path) -> dict[str, ReplayCase]:
     return {
         "small": ReplayCase(
             document_path=root / "crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl",
-            workspace_root=None,
+            workspace_roots=(),
         ),
         "large": ReplayCase(
             document_path=root / "tests/lsp/workspaces/big-bank-plc/internet-banking-system.dsl",
-            workspace_root=root / "tests/lsp/workspaces/big-bank-plc",
+            workspace_roots=(root / "tests/lsp/workspaces/big-bank-plc",),
+        ),
+        "mega": ReplayCase(
+            document_path=root / "tests/lsp/workspaces/benchmark-mega/global-views.dsl",
+            workspace_roots=(root / "tests/lsp/workspaces/benchmark-mega",),
+        ),
+        "mega-multi-root": ReplayCase(
+            document_path=root / "tests/lsp/workspaces/benchmark-mega-multi-root/ws-12/model.dsl",
+            workspace_roots=tuple(
+                root / f"tests/lsp/workspaces/benchmark-mega-multi-root/ws-{index:02d}"
+                for index in range(24)
+            ),
         ),
     }
 
@@ -106,10 +117,10 @@ def run_replay(server_binary: Path, case: ReplayCase) -> None:
     document_path = case.document_path.resolve()
     source = document_path.read_text(encoding="utf-8")
     document_uri = document_path.as_uri()
-    workspace_folders = []
-    if case.workspace_root is not None:
-        workspace_root = case.workspace_root.resolve()
-        workspace_folders.append({"uri": workspace_root.as_uri(), "name": workspace_root.name})
+    workspace_folders = [
+        {"uri": workspace_root.resolve().as_uri(), "name": workspace_root.name}
+        for workspace_root in case.workspace_roots
+    ]
 
     server = subprocess.Popen(
         [str(server_binary), "server"],
@@ -245,7 +256,7 @@ def parse_arguments() -> argparse.Namespace:
     )
     parser.add_argument(
         "--case",
-        choices=("small", "large"),
+        choices=("small", "large", "mega", "mega-multi-root"),
         default="small",
         help="Which checked-in session case to replay",
     )

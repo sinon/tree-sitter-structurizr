@@ -14,6 +14,8 @@ const MEDIUM_DOCUMENT_SOURCE: &str = include_str!(
 );
 const LARGE_DOCUMENT_SOURCE: &str =
     include_str!("../../../tests/lsp/workspaces/big-bank-plc/internet-banking-system.dsl");
+const MEGA_DOCUMENT_SOURCE: &str =
+    include_str!("../../../tests/lsp/workspaces/benchmark-mega/workspace_data/ws-12/model/10-systems.dsl");
 
 #[derive(Clone, Copy)]
 struct DocumentCase {
@@ -31,15 +33,20 @@ impl DocumentCase {
 #[derive(Clone, Copy)]
 struct WorkspaceCase {
     name: &'static str,
-    relative_root: &'static str,
+    relative_roots: &'static [&'static str],
     dsl_file_count: u64,
 }
 
 impl WorkspaceCase {
-    fn root(self) -> PathBuf {
-        Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../..")
-            .join(self.relative_root)
+    fn roots(self) -> Vec<PathBuf> {
+        self.relative_roots
+            .iter()
+            .map(|relative_root| {
+                Path::new(env!("CARGO_MANIFEST_DIR"))
+                    .join("../..")
+                    .join(relative_root)
+            })
+            .collect()
     }
 }
 
@@ -59,30 +66,69 @@ const DOCUMENT_CASES: &[DocumentCase] = &[
         id: "large_big_bank_workspace",
         source: LARGE_DOCUMENT_SOURCE,
     },
+    DocumentCase {
+        name: "mega_workspace_systems",
+        id: "mega_workspace_systems",
+        source: MEGA_DOCUMENT_SOURCE,
+    },
 ];
 
 const WORKSPACE_CASES: &[WorkspaceCase] = &[
     WorkspaceCase {
         name: "small_minimal_scan",
-        relative_root: "tests/lsp/workspaces/minimal-scan",
+        relative_roots: &["tests/lsp/workspaces/minimal-scan"],
         dsl_file_count: 3,
     },
     WorkspaceCase {
         name: "medium_directory_include",
-        relative_root: "tests/lsp/workspaces/directory-include",
+        relative_roots: &["tests/lsp/workspaces/directory-include"],
         dsl_file_count: 4,
     },
     WorkspaceCase {
         name: "large_big_bank_plc",
-        relative_root: "tests/lsp/workspaces/big-bank-plc",
+        relative_roots: &["tests/lsp/workspaces/big-bank-plc"],
         dsl_file_count: 6,
+    },
+    WorkspaceCase {
+        name: "mega_benchmark_estate",
+        relative_roots: &["tests/lsp/workspaces/benchmark-mega"],
+        dsl_file_count: 252,
+    },
+    WorkspaceCase {
+        name: "mega_benchmark_multi_root",
+        relative_roots: &[
+            "tests/lsp/workspaces/benchmark-mega-multi-root/ws-00/workspace.dsl",
+            "tests/lsp/workspaces/benchmark-mega-multi-root/ws-01/workspace.dsl",
+            "tests/lsp/workspaces/benchmark-mega-multi-root/ws-02/workspace.dsl",
+            "tests/lsp/workspaces/benchmark-mega-multi-root/ws-03/workspace.dsl",
+            "tests/lsp/workspaces/benchmark-mega-multi-root/ws-04/workspace.dsl",
+            "tests/lsp/workspaces/benchmark-mega-multi-root/ws-05/workspace.dsl",
+            "tests/lsp/workspaces/benchmark-mega-multi-root/ws-06/workspace.dsl",
+            "tests/lsp/workspaces/benchmark-mega-multi-root/ws-07/workspace.dsl",
+            "tests/lsp/workspaces/benchmark-mega-multi-root/ws-08/workspace.dsl",
+            "tests/lsp/workspaces/benchmark-mega-multi-root/ws-09/workspace.dsl",
+            "tests/lsp/workspaces/benchmark-mega-multi-root/ws-10/workspace.dsl",
+            "tests/lsp/workspaces/benchmark-mega-multi-root/ws-11/workspace.dsl",
+            "tests/lsp/workspaces/benchmark-mega-multi-root/ws-12/workspace.dsl",
+            "tests/lsp/workspaces/benchmark-mega-multi-root/ws-13/workspace.dsl",
+            "tests/lsp/workspaces/benchmark-mega-multi-root/ws-14/workspace.dsl",
+            "tests/lsp/workspaces/benchmark-mega-multi-root/ws-15/workspace.dsl",
+            "tests/lsp/workspaces/benchmark-mega-multi-root/ws-16/workspace.dsl",
+            "tests/lsp/workspaces/benchmark-mega-multi-root/ws-17/workspace.dsl",
+            "tests/lsp/workspaces/benchmark-mega-multi-root/ws-18/workspace.dsl",
+            "tests/lsp/workspaces/benchmark-mega-multi-root/ws-19/workspace.dsl",
+            "tests/lsp/workspaces/benchmark-mega-multi-root/ws-20/workspace.dsl",
+            "tests/lsp/workspaces/benchmark-mega-multi-root/ws-21/workspace.dsl",
+            "tests/lsp/workspaces/benchmark-mega-multi-root/ws-22/workspace.dsl",
+            "tests/lsp/workspaces/benchmark-mega-multi-root/ws-23/workspace.dsl",
+        ],
+        dsl_file_count: 72,
     },
 ];
 
-// The benchmark matrix intentionally mirrors the plan's first-pass sizing:
-// a tiny single-file editor case, a multi-file include case, and a realistic
-// larger workspace. This keeps the performance surface stable as the analysis
-// crate grows.
+// The benchmark matrix keeps the original tiny and realistic cases, then adds a
+// generated mega corpus to expose superlinear behavior in document extraction
+// and workspace discovery before it reaches user-visible regressions.
 fn bench_document_analysis(c: &mut Criterion) {
     let mut group = c.benchmark_group("analysis/document");
 
@@ -111,13 +157,13 @@ fn bench_workspace_loading(c: &mut Criterion) {
     let mut group = c.benchmark_group("analysis/workspace");
 
     for case in WORKSPACE_CASES {
-        let root = case.root();
+        let roots = case.roots();
         group.throughput(Throughput::Elements(case.dsl_file_count));
         group.bench_with_input(BenchmarkId::from_parameter(case.name), case, |b, _case| {
             b.iter(|| {
                 let mut loader = WorkspaceLoader::new();
                 let facts = loader
-                    .load_paths([root.as_path()])
+                    .load_paths(roots.iter().map(PathBuf::as_path))
                     .expect("workspace benchmark fixture should load");
                 black_box(facts);
             });

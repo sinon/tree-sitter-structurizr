@@ -113,11 +113,16 @@ history stays comparable over time:
 - small document: [`crates/structurizr-lsp/tests/fixtures/identifiers/direct-references-ok.dsl`](crates/structurizr-lsp/tests/fixtures/identifiers/direct-references-ok.dsl)
 - medium document: [`tests/lsp/workspaces/big-bank-plc/model/people-and-software-systems.dsl`](tests/lsp/workspaces/big-bank-plc/model/people-and-software-systems.dsl)
 - large document: [`tests/lsp/workspaces/big-bank-plc/internet-banking-system.dsl`](tests/lsp/workspaces/big-bank-plc/internet-banking-system.dsl)
+- mega document: [`tests/lsp/workspaces/benchmark-mega/workspace_data/ws-12/model/10-systems.dsl`](tests/lsp/workspaces/benchmark-mega/workspace_data/ws-12/model/10-systems.dsl)
 - small workspace: [`tests/lsp/workspaces/minimal-scan`](tests/lsp/workspaces/minimal-scan/)
 - medium workspace: [`tests/lsp/workspaces/directory-include`](tests/lsp/workspaces/directory-include/)
 - large workspace: [`tests/lsp/workspaces/big-bank-plc`](tests/lsp/workspaces/big-bank-plc/)
+- mega workspace: [`tests/lsp/workspaces/benchmark-mega/mega.dsl`](tests/lsp/workspaces/benchmark-mega/mega.dsl)
+- mega multi-root workspace set: [`tests/lsp/workspaces/benchmark-mega-multi-root/`](tests/lsp/workspaces/benchmark-mega-multi-root/)
 - small LSP session: [`crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl`](crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl)
 - large LSP session: [`tests/lsp/workspaces/big-bank-plc/internet-banking-system.dsl`](tests/lsp/workspaces/big-bank-plc/internet-banking-system.dsl)
+- mega LSP session: [`tests/lsp/workspaces/benchmark-mega/global-views.dsl`](tests/lsp/workspaces/benchmark-mega/global-views.dsl)
+- mega multi-root LSP session: [`tests/lsp/workspaces/benchmark-mega-multi-root/ws-12/model.dsl`](tests/lsp/workspaces/benchmark-mega-multi-root/ws-12/model.dsl)
 
 Useful commands from the repository root:
 
@@ -126,6 +131,7 @@ just bench-rust
 just bench-black-box
 just bench-perf
 just bench-perf-stable
+just generate-bench-fixtures
 ```
 
 Use `just bench-rust` when you want the in-process analysis and LSP benchmark
@@ -134,6 +140,18 @@ when you want Hyperfine measurements for `strz check`, `strz dump workspace`,
 and a replayed `strz server` session against the checked-in fixtures. Use
 `just bench-perf` or `just bench-perf-stable` when you want the combined flow
 plus environment capture written to `tmp/benchmark-results/`.
+
+The large synthetic benchmark fixtures under
+[`tests/lsp/workspaces/benchmark-mega/`](tests/lsp/workspaces/benchmark-mega/)
+and
+[`tests/lsp/workspaces/benchmark-mega-multi-root/`](tests/lsp/workspaces/benchmark-mega-multi-root/)
+are generated from [`tools/generate_benchmark_fixtures.py`](tools/generate_benchmark_fixtures.py).
+If you change the generator or intentionally resize that corpus, regenerate it
+with:
+
+```sh
+just generate-bench-fixtures
+```
 
 For a more detailed workflow with targeted `cargo bench` filters, CodSpeed
 parity commands, and profiler examples, see [`docs/performance-testing.md`](docs/performance-testing.md).
