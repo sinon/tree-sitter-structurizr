@@ -252,10 +252,12 @@ pub enum ReferenceResolutionStatus {
     DeferredByScopePolicy,
 }
 
-/// Derived semantic index for one workspace instance.
-#[derive(Debug)]
-pub struct WorkspaceIndex {
-    id: WorkspaceInstanceId,
+// The semantic payload for one workspace instance is reusable across loads, but
+// `WorkspaceInstanceId` is intentionally load-local. Keeping the payload in its
+// own packet lets repeated loads share expensive binding/reference work without
+// smuggling a stale per-load id through the cache.
+#[derive(Debug, Clone)]
+struct DerivedWorkspaceInstance {
     root_document: DocumentId,
     documents: Vec<DocumentId>,
     unique_element_bindings: BTreeMap<String, SymbolHandle>,
@@ -269,7 +271,18 @@ pub struct WorkspaceIndex {
     semantic_diagnostics: Vec<SemanticDiagnostic>,
 }
 
+/// Derived semantic index for one workspace instance.
+#[derive(Debug)]
+pub struct WorkspaceIndex {
+    id: WorkspaceInstanceId,
+    derived: Arc<DerivedWorkspaceInstance>,
+}
+
 impl WorkspaceIndex {
+    const fn from_derived(id: WorkspaceInstanceId, derived: Arc<DerivedWorkspaceInstance>) -> Self {
+        Self { id, derived }
+    }
+
     /// Returns this index's stable instance identity.
     #[must_use]
     pub const fn id(&self) -> WorkspaceInstanceId {
@@ -278,50 +291,50 @@ impl WorkspaceIndex {
 
     /// Returns the root document that defines this workspace instance.
     #[must_use]
-    pub const fn root_document(&self) -> &DocumentId {
-        &self.root_document
+    pub fn root_document(&self) -> &DocumentId {
+        &self.derived.root_document
     }
 
     /// Returns the discovered documents that participate in this instance.
     #[must_use]
     pub fn documents(&self) -> &[DocumentId] {
-        &self.documents
+        &self.derived.documents
     }
 
     /// Returns the unique element-binding table keyed by canonical binding key.
     #[must_use]
-    pub const fn unique_element_bindings(&self) -> &BTreeMap<String, SymbolHandle> {
-        &self.unique_element_bindings
+    pub fn unique_element_bindings(&self) -> &BTreeMap<String, SymbolHandle> {
+        &self.derived.unique_element_bindings
     }
 
     /// Returns the duplicate element-binding sets keyed by canonical binding key.
     #[must_use]
-    pub const fn duplicate_element_bindings(&self) -> &BTreeMap<String, Vec<SymbolHandle>> {
-        &self.duplicate_element_bindings
+    pub fn duplicate_element_bindings(&self) -> &BTreeMap<String, Vec<SymbolHandle>> {
+        &self.derived.duplicate_element_bindings
     }
 
     /// Returns the unique deployment-binding table keyed by binding identifier.
     #[must_use]
-    pub const fn unique_deployment_bindings(&self) -> &BTreeMap<String, SymbolHandle> {
-        &self.unique_deployment_bindings
+    pub fn unique_deployment_bindings(&self) -> &BTreeMap<String, SymbolHandle> {
+        &self.derived.unique_deployment_bindings
     }
 
     /// Returns the duplicate deployment-binding sets keyed by binding identifier.
     #[must_use]
-    pub const fn duplicate_deployment_bindings(&self) -> &BTreeMap<String, Vec<SymbolHandle>> {
-        &self.duplicate_deployment_bindings
+    pub fn duplicate_deployment_bindings(&self) -> &BTreeMap<String, Vec<SymbolHandle>> {
+        &self.derived.duplicate_deployment_bindings
     }
 
     /// Returns the unique relationship-binding table keyed by canonical binding key.
     #[must_use]
-    pub const fn unique_relationship_bindings(&self) -> &BTreeMap<String, SymbolHandle> {
-        &self.unique_relationship_bindings
+    pub fn unique_relationship_bindings(&self) -> &BTreeMap<String, SymbolHandle> {
+        &self.derived.unique_relationship_bindings
     }
 
     /// Returns the duplicate relationship-binding sets keyed by canonical key.
     #[must_use]
-    pub const fn duplicate_relationship_bindings(&self) -> &BTreeMap<String, Vec<SymbolHandle>> {
-        &self.duplicate_relationship_bindings
+    pub fn duplicate_relationship_bindings(&self) -> &BTreeMap<String, Vec<SymbolHandle>> {
+        &self.derived.duplicate_relationship_bindings
     }
 
     /// Returns the resolution status recorded for one reference handle.
@@ -330,7 +343,7 @@ impl WorkspaceIndex {
         &self,
         handle: &ReferenceHandle,
     ) -> Option<&ReferenceResolutionStatus> {
-        self.reference_resolutions.get(handle)
+        self.derived.reference_resolutions.get(handle)
     }
 
     /// Returns every resolved reference that points at one symbol.
@@ -338,19 +351,19 @@ impl WorkspaceIndex {
         &self,
         handle: &SymbolHandle,
     ) -> impl Iterator<Item = &ReferenceHandle> + '_ {
-        self.references_by_target.get(handle).into_iter().flatten()
+        self.derived.references_by_target.get(handle).into_iter().flatten()
     }
 
     /// Returns the semantic diagnostics derived for this workspace instance.
     #[must_use]
     pub fn semantic_diagnostics(&self) -> &[SemanticDiagnostic] {
-        &self.semantic_diagnostics
+        &self.derived.semantic_diagnostics
     }
 
     /// Returns whether the workspace instance includes one document.
     #[must_use]
     pub fn contains_document(&self, document: &DocumentId) -> bool {
-        self.documents.contains(document)
+        self.derived.documents.contains(document)
     }
 }
 
@@ -523,6 +536,7 @@ struct WorkspaceAnalysisSession {
     document_overrides: BTreeMap<PathBuf, String>,
     document_cache: BTreeMap<PathBuf, CachedWorkspaceDocument>,
     processed_context_cache: BTreeMap<DocumentContextKey, CachedProcessedDocumentContext>,
+    workspace_instance_cache: BTreeMap<DocumentContextKey, CachedWorkspaceInstance>,
     next_document_generation: u64,
     next_context_revision: u64,
 }
@@ -541,6 +555,12 @@ struct CachedProcessedDocumentContext {
     child_context_revisions: Vec<u64>,
     include_validations: Vec<CachedIncludeValidation>,
     revision: u64,
+}
+
+#[derive(Debug, Clone)]
+struct CachedWorkspaceInstance {
+    root_context_revision: u64,
+    derived: Arc<DerivedWorkspaceInstance>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -640,6 +660,10 @@ impl WorkspaceAnalysisSession {
         self.processed_context_cache.get(key).cloned()
     }
 
+    fn cached_workspace_instance(&self, key: &DocumentContextKey) -> Option<CachedWorkspaceInstance> {
+        self.workspace_instance_cache.get(key).cloned()
+    }
+
     fn store_processed_context(&mut self, context: &DocumentContext, processed: ProcessedDocumentContext) {
         let child_context_revisions = processed
             .included_contexts
@@ -665,6 +689,21 @@ impl WorkspaceAnalysisSession {
         };
 
         self.processed_context_cache.insert(context.key.clone(), cached);
+    }
+
+    fn store_workspace_instance(
+        &mut self,
+        root_context_key: &DocumentContextKey,
+        root_context_revision: u64,
+        derived: Arc<DerivedWorkspaceInstance>,
+    ) {
+        let cached = CachedWorkspaceInstance {
+            root_context_revision,
+            derived,
+        };
+
+        self.workspace_instance_cache
+            .insert(root_context_key.clone(), cached);
     }
 
     fn include_validation(&self, include: &ResolvedInclude) -> CachedIncludeValidation {
@@ -715,6 +754,12 @@ impl WorkspaceAnalysisSession {
             .checked_add(1)
             .expect("context revision counter should not overflow");
         self.next_context_revision
+    }
+}
+
+impl CachedWorkspaceInstance {
+    fn workspace_index(&self, id: WorkspaceInstanceId) -> WorkspaceIndex {
+        WorkspaceIndex::from_derived(id, Arc::clone(&self.derived))
     }
 }
 
@@ -797,8 +842,15 @@ impl<'loader> WorkspaceBuildSession<'loader> {
                 .then_with(|| left.target_text().cmp(right.target_text()))
         });
         let include_diagnostics = include_diagnostics(&resolved_includes);
-        let (workspace_indexes, document_instances, semantic_diagnostics) =
-            build_workspace_indexes(&self.loaded_documents, start_contexts, &self.processed_contexts);
+        let workspace_indexes = build_workspace_indexes(
+            self.session,
+            &self.loaded_documents,
+            start_contexts,
+            &self.processed_contexts,
+        );
+        let document_instances = build_document_instances(&workspace_indexes);
+        let semantic_diagnostics =
+            merge_semantic_diagnostics(&workspace_indexes, &document_instances);
 
         WorkspaceFacts {
             documents: self.loaded_documents.into_values().collect(),
@@ -1600,56 +1652,130 @@ enum ElementIdentifierMode {
 }
 
 fn build_workspace_indexes(
+    session: &mut WorkspaceAnalysisSession,
     loaded_documents: &BTreeMap<PathBuf, WorkspaceDocument>,
     start_contexts: &[DocumentContext],
     processed_contexts: &BTreeMap<DocumentContextKey, ProcessedDocumentContext>,
-) -> (
-    Vec<WorkspaceIndex>,
-    BTreeMap<DocumentId, Vec<WorkspaceInstanceId>>,
-    Vec<SemanticDiagnostic>,
-) {
+) -> Vec<WorkspaceIndex> {
     let documents_by_id = loaded_documents
         .values()
         .map(|document| (document.id().clone(), document))
         .collect::<BTreeMap<_, _>>();
 
-    let mut workspace_indexes = Vec::new();
+    start_contexts
+        .iter()
+        .enumerate()
+        .map(|(ordinal, start_context)| {
+            let instance_id = WorkspaceInstanceId(ordinal);
+            build_workspace_index(
+                session,
+                instance_id,
+                start_context,
+                processed_contexts,
+                &documents_by_id,
+            )
+        })
+        .collect()
+}
+
+fn build_document_instances(
+    workspace_indexes: &[WorkspaceIndex],
+) -> BTreeMap<DocumentId, Vec<WorkspaceInstanceId>> {
     let mut document_instances = BTreeMap::<DocumentId, Vec<WorkspaceInstanceId>>::new();
 
-    for (ordinal, start_context) in start_contexts.iter().enumerate() {
-        let instance_id = WorkspaceInstanceId(ordinal);
-        let mut visited_contexts = BTreeSet::new();
-        let mut seen_documents = BTreeSet::new();
-        let mut instance_documents = Vec::new();
-        collect_instance_documents(
-            &start_context.key,
-            processed_contexts,
-            &mut visited_contexts,
-            &mut seen_documents,
-            &mut instance_documents,
-        );
-
-        let root_document = document_id_from_path(&start_context.path);
-        let index = build_workspace_index(
-            instance_id,
-            root_document,
-            &instance_documents,
-            &documents_by_id,
-        );
-
-        for document in index.documents() {
+    for workspace_index in workspace_indexes {
+        for document in workspace_index.documents() {
             document_instances
                 .entry(document.clone())
                 .or_default()
-                .push(index.id());
+                .push(workspace_index.id());
         }
-
-        workspace_indexes.push(index);
     }
 
-    let semantic_diagnostics = merge_semantic_diagnostics(&workspace_indexes, &document_instances);
+    document_instances
+}
 
-    (workspace_indexes, document_instances, semantic_diagnostics)
+fn build_workspace_index(
+    session: &mut WorkspaceAnalysisSession,
+    instance_id: WorkspaceInstanceId,
+    start_context: &DocumentContext,
+    processed_contexts: &BTreeMap<DocumentContextKey, ProcessedDocumentContext>,
+    documents_by_id: &BTreeMap<DocumentId, &WorkspaceDocument>,
+) -> WorkspaceIndex {
+    let root_context_revision = session
+        .processed_context_revision(&start_context.key)
+        .expect("BUG: start context should be processed before building indexes");
+
+    if let Some(cached) = session.cached_workspace_instance(&start_context.key)
+        && cached.root_context_revision == root_context_revision
+    {
+        return cached.workspace_index(instance_id);
+    }
+
+    let mut visited_contexts = BTreeSet::new();
+    let mut seen_documents = BTreeSet::new();
+    let mut instance_documents = Vec::new();
+    collect_instance_documents(
+        &start_context.key,
+        processed_contexts,
+        &mut visited_contexts,
+        &mut seen_documents,
+        &mut instance_documents,
+    );
+
+    let root_document = document_id_from_path(&start_context.path);
+    let derived = Arc::new(build_derived_workspace_instance(
+        root_document,
+        &instance_documents,
+        documents_by_id,
+    ));
+    session.store_workspace_instance(
+        &start_context.key,
+        root_context_revision,
+        Arc::clone(&derived),
+    );
+    WorkspaceIndex::from_derived(instance_id, derived)
+}
+
+fn build_derived_workspace_instance(
+    root_document: DocumentId,
+    documents: &[DocumentId],
+    documents_by_id: &BTreeMap<DocumentId, &WorkspaceDocument>,
+) -> DerivedWorkspaceInstance {
+    let root_snapshot = documents_by_id
+        .get(&root_document)
+        .expect("BUG: workspace-index root document should exist")
+        .snapshot();
+    let inherited_workspace_mode = document_workspace_identifier_mode(root_snapshot);
+    let bindings = build_binding_tables(
+        documents,
+        documents_by_id,
+        inherited_workspace_mode.as_ref(),
+    );
+    let mut semantic_diagnostics = bindings.semantic_diagnostics.clone();
+    let reference_tables = build_reference_resolution_tables(documents, documents_by_id, &bindings);
+    semantic_diagnostics.extend(reference_tables.semantic_diagnostics);
+
+    let mut references_by_target = reference_tables.references_by_target;
+    for references in references_by_target.values_mut() {
+        references.sort();
+        references.dedup();
+    }
+    sort_semantic_diagnostics(&mut semantic_diagnostics);
+
+    DerivedWorkspaceInstance {
+        root_document,
+        documents: documents.to_vec(),
+        unique_element_bindings: bindings.unique_elements,
+        duplicate_element_bindings: bindings.duplicate_elements,
+        unique_deployment_bindings: bindings.unique_deployments,
+        duplicate_deployment_bindings: bindings.duplicate_deployments,
+        unique_relationship_bindings: bindings.unique_relationships,
+        duplicate_relationship_bindings: bindings.duplicate_relationships,
+        reference_resolutions: reference_tables.resolutions,
+        references_by_target,
+        semantic_diagnostics,
+    }
 }
 
 fn collect_instance_documents(
@@ -1683,48 +1809,6 @@ fn collect_instance_documents(
     }
 }
 
-fn build_workspace_index(
-    id: WorkspaceInstanceId,
-    root_document: DocumentId,
-    documents: &[DocumentId],
-    documents_by_id: &BTreeMap<DocumentId, &WorkspaceDocument>,
-) -> WorkspaceIndex {
-    let root_snapshot = documents_by_id
-        .get(&root_document)
-        .expect("BUG: workspace-index root document should exist")
-        .snapshot();
-    let inherited_workspace_mode = document_workspace_identifier_mode(root_snapshot);
-    let bindings = build_binding_tables(
-        documents,
-        documents_by_id,
-        inherited_workspace_mode.as_ref(),
-    );
-    let mut semantic_diagnostics = bindings.semantic_diagnostics.clone();
-    let reference_tables = build_reference_resolution_tables(documents, documents_by_id, &bindings);
-    semantic_diagnostics.extend(reference_tables.semantic_diagnostics);
-
-    let mut references_by_target = reference_tables.references_by_target;
-    for references in references_by_target.values_mut() {
-        references.sort();
-        references.dedup();
-    }
-    sort_semantic_diagnostics(&mut semantic_diagnostics);
-
-    WorkspaceIndex {
-        id,
-        root_document,
-        documents: documents.to_vec(),
-        unique_element_bindings: bindings.unique_elements,
-        duplicate_element_bindings: bindings.duplicate_elements,
-        unique_deployment_bindings: bindings.unique_deployments,
-        duplicate_deployment_bindings: bindings.duplicate_deployments,
-        unique_relationship_bindings: bindings.unique_relationships,
-        duplicate_relationship_bindings: bindings.duplicate_relationships,
-        reference_resolutions: reference_tables.resolutions,
-        references_by_target,
-        semantic_diagnostics,
-    }
-}
 
 struct WorkspaceBindingTables {
     unique_elements: BTreeMap<String, SymbolHandle>,
@@ -2189,12 +2273,13 @@ mod tests {
     use std::{
         fs, ptr,
         path::{Path, PathBuf},
+        sync::Arc,
     };
 
     use indoc::indoc;
     use tempfile::TempDir;
 
-    use super::{WorkspaceLoader, document_id_from_path};
+    use super::{WorkspaceFacts, WorkspaceIndex, WorkspaceLoader, document_id_from_path};
 
     #[test]
     fn loader_reuses_cached_document_snapshots_across_identical_loads() {
@@ -2232,6 +2317,39 @@ mod tests {
             .document(&document_id_from_path(&fixture.model_path()))
             .expect("included model document should exist");
         assert!(ptr::eq(first_model.snapshot(), second_model.snapshot()));
+    }
+
+    #[test]
+    fn loader_reuses_cached_workspace_instance_payloads_across_identical_loads() {
+        let fixture = TemporaryWorkspace::new(indoc! {r#"
+            workspace {
+                !include "model.dsl"
+            }
+        "#});
+        fixture.write_model(indoc! {r#"
+            model {
+                user = person "User"
+            }
+        "#});
+
+        let mut loader = WorkspaceLoader::new();
+        let first = loader
+            .load_paths([fixture.root()])
+            .expect("first load should succeed");
+        let second = loader
+            .load_paths([fixture.root()])
+            .expect("second load should succeed");
+
+        let first_index = first
+            .workspace_indexes()
+            .first()
+            .expect("workspace index should exist");
+        let second_index = second
+            .workspace_indexes()
+            .first()
+            .expect("workspace index should exist");
+
+        assert!(Arc::ptr_eq(&first_index.derived, &second_index.derived));
     }
 
     #[test]
@@ -2460,6 +2578,79 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec!["admin"]
         );
+    }
+
+    #[test]
+    fn sibling_root_changes_only_refresh_the_affected_workspace_instance() {
+        let fixture = TemporaryWorkspace::new(indoc! {r#"
+            workspace {
+                model {
+                    user = person "User"
+                }
+            }
+        "#});
+        fixture.write_file(
+            "other.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        admin = person "Admin"
+                    }
+                }
+            "#},
+        );
+        let other_path = fixture
+            .root()
+            .join("other.dsl")
+            .canonicalize()
+            .expect("other workspace path should canonicalize");
+
+        let mut loader = WorkspaceLoader::new();
+        let first = loader
+            .load_paths([fixture.root()])
+            .expect("first load should succeed");
+
+        fixture.write_file(
+            "other.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        support = person "Support"
+                    }
+                }
+            "#},
+        );
+
+        let second = loader
+            .load_paths([fixture.root()])
+            .expect("second load should succeed");
+
+        let first_workspace = workspace_index_for_root(&first, fixture.workspace_path());
+        let second_workspace = workspace_index_for_root(&second, fixture.workspace_path());
+        let first_other = workspace_index_for_root(&first, &other_path);
+        let second_other = workspace_index_for_root(&second, &other_path);
+
+        assert!(Arc::ptr_eq(
+            &first_workspace.derived,
+            &second_workspace.derived
+        ));
+        assert!(!Arc::ptr_eq(&first_other.derived, &second_other.derived));
+        assert_eq!(
+            second_other
+                .unique_element_bindings()
+                .keys()
+                .cloned()
+                .collect::<Vec<_>>(),
+            vec!["support"]
+        );
+    }
+
+    fn workspace_index_for_root<'a>(facts: &'a WorkspaceFacts, root_path: &Path) -> &'a WorkspaceIndex {
+        let root_document = document_id_from_path(root_path);
+        facts.workspace_indexes()
+            .iter()
+            .find(|index| index.root_document() == &root_document)
+            .expect("workspace index for root should exist")
     }
 
     struct TemporaryWorkspace {
