@@ -120,6 +120,93 @@ impl DocumentInput {
     }
 }
 
+/// Stable syntax-level facts extracted from one analyzed document.
+///
+/// This is the Salsa-friendly boundary for document analysis: everything here is
+/// derived from one document's source text and is reusable without needing to
+/// expose the Tree-sitter parse tree itself as the main cache boundary.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DocumentSyntaxFacts {
+    is_workspace_entry: bool,
+    syntax_diagnostics: Vec<SyntaxDiagnostic>,
+    include_directives: Vec<IncludeDirective>,
+    constant_definitions: Vec<ConstantDefinition>,
+    identifier_modes: Vec<IdentifierModeFact>,
+    symbols: Vec<Symbol>,
+    references: Vec<Reference>,
+}
+
+impl DocumentSyntaxFacts {
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) const fn new(
+        is_workspace_entry: bool,
+        syntax_diagnostics: Vec<SyntaxDiagnostic>,
+        include_directives: Vec<IncludeDirective>,
+        constant_definitions: Vec<ConstantDefinition>,
+        identifier_modes: Vec<IdentifierModeFact>,
+        symbols: Vec<Symbol>,
+        references: Vec<Reference>,
+    ) -> Self {
+        Self {
+            is_workspace_entry,
+            syntax_diagnostics,
+            include_directives,
+            constant_definitions,
+            identifier_modes,
+            symbols,
+            references,
+        }
+    }
+
+    /// Returns whether the document contains a top-level `workspace` block.
+    #[must_use]
+    pub const fn is_workspace_entry(&self) -> bool {
+        self.is_workspace_entry
+    }
+
+    /// Returns whether any syntax diagnostics were extracted from the parse tree.
+    #[must_use]
+    pub const fn has_syntax_errors(&self) -> bool {
+        !self.syntax_diagnostics.is_empty()
+    }
+
+    /// Returns all syntax diagnostics found while traversing the parse tree.
+    #[must_use]
+    pub fn syntax_diagnostics(&self) -> &[SyntaxDiagnostic] {
+        &self.syntax_diagnostics
+    }
+
+    /// Returns all raw `!include` directives found in the document.
+    #[must_use]
+    pub fn include_directives(&self) -> &[IncludeDirective] {
+        &self.include_directives
+    }
+
+    /// Returns all ordered string-constant definitions extracted from the document.
+    #[must_use]
+    pub fn constant_definitions(&self) -> &[ConstantDefinition] {
+        &self.constant_definitions
+    }
+
+    /// Returns all extracted `!identifiers` mode directives in the document.
+    #[must_use]
+    pub fn identifier_modes(&self) -> &[IdentifierModeFact] {
+        &self.identifier_modes
+    }
+
+    /// Returns all declaration symbols extracted from the document.
+    #[must_use]
+    pub fn symbols(&self) -> &[Symbol] {
+        &self.symbols
+    }
+
+    /// Returns all symbol references extracted from the document.
+    #[must_use]
+    pub fn references(&self) -> &[Reference] {
+        &self.references
+    }
+}
+
 /// Immutable snapshot produced by analyzing one Structurizr document.
 ///
 /// A snapshot groups the original source, parse tree, and extracted facts so
@@ -131,12 +218,7 @@ pub struct DocumentSnapshot {
     location: Option<DocumentLocation>,
     source: String,
     tree: Tree,
-    syntax_diagnostics: Vec<SyntaxDiagnostic>,
-    include_directives: Vec<IncludeDirective>,
-    constant_definitions: Vec<ConstantDefinition>,
-    identifier_modes: Vec<IdentifierModeFact>,
-    symbols: Vec<Symbol>,
-    references: Vec<Reference>,
+    syntax_facts: DocumentSyntaxFacts,
 }
 
 impl DocumentSnapshot {
@@ -146,24 +228,14 @@ impl DocumentSnapshot {
         location: Option<DocumentLocation>,
         source: String,
         tree: Tree,
-        syntax_diagnostics: Vec<SyntaxDiagnostic>,
-        include_directives: Vec<IncludeDirective>,
-        constant_definitions: Vec<ConstantDefinition>,
-        identifier_modes: Vec<IdentifierModeFact>,
-        symbols: Vec<Symbol>,
-        references: Vec<Reference>,
+        syntax_facts: DocumentSyntaxFacts,
     ) -> Self {
         Self {
             id,
             location,
             source,
             tree,
-            syntax_diagnostics,
-            include_directives,
-            constant_definitions,
-            identifier_modes,
-            symbols,
-            references,
+            syntax_facts,
         }
     }
 
@@ -191,55 +263,57 @@ impl DocumentSnapshot {
         &self.tree
     }
 
+    /// Returns the stable syntax-level facts extracted from the document.
+    #[must_use]
+    pub const fn syntax_facts(&self) -> &DocumentSyntaxFacts {
+        &self.syntax_facts
+    }
+
     #[must_use]
     /// Returns whether the document contains a top-level `workspace` block.
-    pub fn is_workspace_entry(&self) -> bool {
-        let root = self.tree.root_node();
-        let mut cursor = root.walk();
-
-        root.named_children(&mut cursor)
-            .any(|child| matches!(child.kind(), "workspace" | "workspace_block"))
+    pub const fn is_workspace_entry(&self) -> bool {
+        self.syntax_facts.is_workspace_entry()
     }
 
     #[must_use]
     /// Returns whether any syntax diagnostics were extracted from the parse tree.
     pub const fn has_syntax_errors(&self) -> bool {
-        !self.syntax_diagnostics.is_empty()
+        self.syntax_facts.has_syntax_errors()
     }
 
     #[must_use]
     /// Returns all syntax diagnostics found while traversing the parse tree.
     pub fn syntax_diagnostics(&self) -> &[SyntaxDiagnostic] {
-        &self.syntax_diagnostics
+        self.syntax_facts.syntax_diagnostics()
     }
 
     #[must_use]
     /// Returns all raw `!include` directives found in the document.
     pub fn include_directives(&self) -> &[IncludeDirective] {
-        &self.include_directives
+        self.syntax_facts.include_directives()
     }
 
     #[must_use]
     /// Returns all ordered string-constant definitions extracted from the document.
     pub fn constant_definitions(&self) -> &[ConstantDefinition] {
-        &self.constant_definitions
+        self.syntax_facts.constant_definitions()
     }
 
     #[must_use]
     /// Returns all extracted `!identifiers` mode directives in the document.
     pub fn identifier_modes(&self) -> &[IdentifierModeFact] {
-        &self.identifier_modes
+        self.syntax_facts.identifier_modes()
     }
 
     #[must_use]
     /// Returns all declaration symbols extracted from the document.
     pub fn symbols(&self) -> &[Symbol] {
-        &self.symbols
+        self.syntax_facts.symbols()
     }
 
     #[must_use]
     /// Returns all symbol references extracted from the document.
     pub fn references(&self) -> &[Reference] {
-        &self.references
+        self.syntax_facts.references()
     }
 }

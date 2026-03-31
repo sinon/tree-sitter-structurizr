@@ -17,3 +17,4 @@
 - The `tree-sitter` CLI still warns about missing parser directories during local `parse` / `query` / `highlight` debugging even when `-p .` is provided, so contributor docs may need a clearer local grammar-debugging workflow.
 - [`crates/structurizr-analysis/README.md`](crates/structurizr-analysis/README.md) still frames the language server as future work and understates the current workspace/indexing surface, so it should be synced with the newer top-level docs.
 - `DocumentSnapshot` currently stores a `tree_sitter::Tree` directly, which makes future Salsa-backed incremental caching awkward; splitting stable document facts from tree-backed parse/debug state would make that migration cleaner.
+- The first private Salsa cache in `DocumentAnalyzer` currently memoizes a private parsed payload keyed by stable document id plus source, but workspace loading still rebuilds from scratch and the public `DocumentSnapshot` still clones the cached `Tree` on each analyze call.

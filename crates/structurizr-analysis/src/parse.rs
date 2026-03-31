@@ -1,13 +1,139 @@
 //! Parser orchestration and the snapshot-producing analysis entrypoints.
 
+use std::collections::{HashMap, hash_map::Entry};
+use std::sync::Mutex;
+
+use salsa::Setter as _;
 use tree_sitter::{Parser, Tree};
 
 use crate::extract;
-use crate::snapshot::{DocumentInput, DocumentSnapshot};
+use crate::snapshot::{DocumentInput, DocumentSnapshot, DocumentSyntaxFacts};
+
+// =============================================================================
+// Salsa-backed parsed-document cache
+// =============================================================================
+//
+// The first Salsa integration stays behind `DocumentAnalyzer` so downstream
+// crates can keep using `DocumentSnapshot` unchanged. We memoize one parsed
+// document per stable caller-provided document id and source revision, while
+// still returning an owned snapshot that includes a Tree-sitter tree.
+
+#[salsa::input]
+struct IncrementalDocument {
+    #[returns(ref)]
+    source: String,
+}
+
+#[derive(Clone)]
+struct ParsedDocument {
+    tree: Tree,
+    syntax_facts: DocumentSyntaxFacts,
+}
+
+#[salsa::db]
+trait IncrementalAnalysisDb: salsa::Database {
+    fn parser(&self) -> &Mutex<Parser>;
+}
+
+#[salsa::tracked(returns(ref), no_eq, unsafe(non_update_types))]
+fn parsed_document(
+    db: &dyn IncrementalAnalysisDb,
+    document: IncrementalDocument,
+) -> ParsedDocument {
+    let source = document.source(db);
+    let tree = parse_source(db, source);
+    let syntax_facts = extract_syntax_facts(&tree, source);
+
+    ParsedDocument { tree, syntax_facts }
+}
+
+#[salsa::db]
+struct IncrementalAnalysisDatabase {
+    storage: salsa::Storage<Self>,
+    parser: Mutex<Parser>,
+    #[cfg(test)]
+    logs: std::sync::Arc<std::sync::Mutex<Option<Vec<String>>>>,
+}
+
+#[salsa::db]
+impl salsa::Database for IncrementalAnalysisDatabase {}
+
+#[salsa::db]
+impl IncrementalAnalysisDb for IncrementalAnalysisDatabase {
+    fn parser(&self) -> &Mutex<Parser> {
+        &self.parser
+    }
+}
+
+impl Default for IncrementalAnalysisDatabase {
+    fn default() -> Self {
+        #[cfg(test)]
+        {
+            let logs: std::sync::Arc<std::sync::Mutex<Option<Vec<String>>>> =
+                std::sync::Arc::new(std::sync::Mutex::new(None));
+
+            Self {
+                storage: salsa::Storage::new(Some(Box::new({
+                    let logs = logs.clone();
+                    move |event| {
+                        if let salsa::EventKind::WillExecute { .. } = event.kind
+                            && let Some(logs) = &mut *logs
+                                .lock()
+                                .expect("Salsa log mutex should not be poisoned")
+                        {
+                            logs.push(format!("{event:?}"));
+                        }
+                    }
+                }))),
+                parser: Mutex::new(structurizr_parser()),
+                logs,
+            }
+        }
+
+        #[cfg(not(test))]
+        {
+            Self {
+                storage: salsa::Storage::new(None),
+                parser: Mutex::new(structurizr_parser()),
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+impl IncrementalAnalysisDatabase {
+    fn enable_logging(&self) {
+        let mut logs = self
+            .logs
+            .lock()
+            .expect("Salsa log mutex should not be poisoned");
+        if logs.is_none() {
+            *logs = Some(Vec::new());
+        }
+    }
+
+    fn take_logs(&self) -> Vec<String> {
+        let mut logs = self
+            .logs
+            .lock()
+            .expect("Salsa log mutex should not be poisoned");
+        logs.as_mut().map_or_else(Vec::new, std::mem::take)
+    }
+}
+
+// =============================================================================
+// Public analyzer API
+// =============================================================================
 
 /// Reusable parser-backed entrypoint for analyzing Structurizr documents.
 pub struct DocumentAnalyzer {
-    parser: Parser,
+    db: IncrementalAnalysisDatabase,
+    documents: HashMap<crate::DocumentId, CachedDocument>,
+}
+
+struct CachedDocument {
+    tracked: IncrementalDocument,
+    source: String,
 }
 
 impl DocumentAnalyzer {
@@ -18,12 +144,10 @@ impl DocumentAnalyzer {
     /// Panics if the checked-in Structurizr Tree-sitter language cannot be loaded.
     #[must_use]
     pub fn new() -> Self {
-        let mut parser = Parser::new();
-        parser
-            .set_language(&tree_sitter_structurizr::LANGUAGE.into())
-            .expect("Structurizr language should load");
-
-        Self { parser }
+        Self {
+            db: IncrementalAnalysisDatabase::default(),
+            documents: HashMap::new(),
+        }
     }
 
     /// Parses one document and returns an immutable snapshot of extracted facts.
@@ -35,38 +159,43 @@ impl DocumentAnalyzer {
     #[must_use]
     pub fn analyze(&mut self, input: DocumentInput) -> DocumentSnapshot {
         let (id, location, source) = input.into_parts();
-        let tree = self.parse(&source);
-        let syntax_diagnostics = extract::diagnostics::collect(&tree);
-        let include_directives = extract::includes::collect(&tree, &source);
-        let constant_definitions = extract::constants::collect(&tree, &source);
-        let identifier_modes = extract::symbols::collect_identifier_modes(&tree, &source);
-        let (symbols, references) =
-            extract::symbols::collect_symbols_and_references(&tree, &source);
+        let document = self.tracked_document(&id, &source);
+        let parsed = parsed_document(&self.db, document);
 
         DocumentSnapshot::new(
             id,
             location,
             source,
-            tree,
-            syntax_diagnostics,
-            include_directives,
-            constant_definitions,
-            identifier_modes,
-            symbols,
-            references,
+            parsed.tree.clone(),
+            parsed.syntax_facts.clone(),
         )
     }
 
-    /// Parses source text into a syntax tree for one analysis run.
-    ///
-    /// # Panics
-    ///
-    /// Panics if Tree-sitter fails to produce a tree, which would indicate a
-    /// parser invariant violation rather than invalid user input.
-    fn parse(&mut self, source: &str) -> Tree {
-        self.parser
-            .parse(source, None)
-            .expect("Parser should return a tree")
+    fn tracked_document(
+        &mut self,
+        id: &crate::DocumentId,
+        source: &str,
+    ) -> IncrementalDocument {
+        match self.documents.entry(id.clone()) {
+            Entry::Occupied(entry) => {
+                let cached = entry.into_mut();
+                if cached.source != source {
+                    let updated_source = source.to_owned();
+                    cached.tracked.set_source(&mut self.db).to(updated_source.clone());
+                    cached.source = updated_source;
+                }
+                cached.tracked
+            }
+            Entry::Vacant(entry) => {
+                let source = source.to_owned();
+                let tracked = IncrementalDocument::new(&self.db, source.clone());
+                entry.insert(CachedDocument {
+                    tracked,
+                    source,
+                });
+                tracked
+            }
+        }
     }
 }
 
@@ -80,4 +209,101 @@ impl Default for DocumentAnalyzer {
 /// Convenience helper for analyzing a single document with a fresh parser.
 pub fn analyze_document(input: DocumentInput) -> DocumentSnapshot {
     DocumentAnalyzer::new().analyze(input)
+}
+
+fn structurizr_parser() -> Parser {
+    let mut parser = Parser::new();
+    parser
+        .set_language(&tree_sitter_structurizr::LANGUAGE.into())
+        .expect("Structurizr language should load");
+    parser
+}
+
+/// Parses source text into a syntax tree for one analysis run.
+///
+/// # Panics
+///
+/// Panics if Tree-sitter fails to produce a tree, which would indicate a
+/// parser invariant violation rather than invalid user input.
+fn parse_source(db: &dyn IncrementalAnalysisDb, source: &str) -> Tree {
+    db.parser()
+        .lock()
+        .expect("Structurizr parser mutex should not be poisoned")
+        .parse(source, None)
+        .expect("Parser should return a tree")
+}
+
+fn extract_syntax_facts(tree: &Tree, source: &str) -> DocumentSyntaxFacts {
+    let syntax_diagnostics = extract::diagnostics::collect(tree);
+    let include_directives = extract::includes::collect(tree, source);
+    let constant_definitions = extract::constants::collect(tree, source);
+    let identifier_modes = extract::symbols::collect_identifier_modes(tree, source);
+    let (symbols, references) = extract::symbols::collect_symbols_and_references(tree, source);
+
+    DocumentSyntaxFacts::new(
+        is_workspace_entry(tree),
+        syntax_diagnostics,
+        include_directives,
+        constant_definitions,
+        identifier_modes,
+        symbols,
+        references,
+    )
+}
+
+fn is_workspace_entry(tree: &Tree) -> bool {
+    let root = tree.root_node();
+    let mut cursor = root.walk();
+
+    root.named_children(&mut cursor)
+        .any(|child| matches!(child.kind(), "workspace" | "workspace_block"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::DocumentAnalyzer;
+    use crate::snapshot::DocumentInput;
+
+    fn parse_execution_logs(logs: &[String]) -> usize {
+        logs.iter()
+            .filter(|log| log.contains("parsed_document"))
+            .count()
+    }
+
+    #[test]
+    fn repeated_analysis_of_same_document_reuses_cached_query_result() {
+        let mut analyzer = DocumentAnalyzer::new();
+        analyzer.db.enable_logging();
+
+        let input = DocumentInput::new(
+            "workspace.dsl",
+            "workspace { model { user = person \"User\" } }",
+        );
+
+        let first = analyzer.analyze(input.clone());
+        let second = analyzer.analyze(input);
+
+        assert_eq!(first.symbols(), second.symbols());
+        assert_eq!(parse_execution_logs(&analyzer.db.take_logs()), 1);
+    }
+
+    #[test]
+    fn source_changes_reexecute_cached_query() {
+        let mut analyzer = DocumentAnalyzer::new();
+        analyzer.db.enable_logging();
+
+        let _first = analyzer.analyze(DocumentInput::new(
+            "workspace.dsl",
+            "workspace { model { user = person \"User\" } }",
+        ));
+        let _ = analyzer.db.take_logs();
+
+        let second = analyzer.analyze(DocumentInput::new(
+            "workspace.dsl",
+            "workspace { model { admin = person \"Admin\" } }",
+        ));
+
+        assert_eq!(second.symbols().len(), 1);
+        assert_eq!(parse_execution_logs(&analyzer.db.take_logs()), 1);
+    }
 }
