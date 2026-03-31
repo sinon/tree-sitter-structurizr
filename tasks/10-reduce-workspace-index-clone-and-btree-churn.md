@@ -4,7 +4,7 @@ The workspace-index construction path still does a lot of ordered-map, set, clon
 
 ## Root Cause
 
-`crates/structurizr-analysis/src/workspace.rs` builds the final workspace facts through several clone-heavy phases:
+[`crates/structurizr-analysis/src/workspace.rs`](../crates/structurizr-analysis/src/workspace.rs) builds the final workspace facts through several clone-heavy phases:
 
 - `cycle_include_indices(...)`
 - `build_workspace_indexes(...)`

@@ -377,10 +377,10 @@ The main boundary is not parser capability; it is discipline about what the firs
 
 ## Sources
 
-- `crates/structurizr-grammar/grammar.js`
-- `crates/structurizr-grammar/src/node-types.json`
-- `crates/structurizr-grammar/test/corpus/workspace.txt`
-- `crates/structurizr-grammar/test/corpus/views.txt`
-- `crates/structurizr-grammar/test/corpus/model.txt`
-- `fixtures/views/dynamic-explicit-relationships-ok.dsl`
-- `fixtures/deployment/instance_bodies-ok.dsl`
+- [`crates/structurizr-grammar/grammar.js`](../../../crates/structurizr-grammar/grammar.js)
+- [`crates/structurizr-grammar/src/node-types.json`](../../../crates/structurizr-grammar/src/node-types.json)
+- [`crates/structurizr-grammar/test/corpus/workspace.txt`](../../../crates/structurizr-grammar/test/corpus/workspace.txt)
+- [`crates/structurizr-grammar/test/corpus/views.txt`](../../../crates/structurizr-grammar/test/corpus/views.txt)
+- [`crates/structurizr-grammar/test/corpus/model.txt`](../../../crates/structurizr-grammar/test/corpus/model.txt)
+- [`fixtures/views/dynamic-explicit-relationships-ok.dsl`](../../../fixtures/views/dynamic-explicit-relationships-ok.dsl)
+- [`fixtures/deployment/instance_bodies-ok.dsl`](../../../fixtures/deployment/instance_bodies-ok.dsl)

@@ -8,7 +8,7 @@
 
 This note defines how the future analysis crate and LSP should discover `.dsl` files and handle `!include` without drifting into full runtime behavior.
 
-It is meant to make Phase 3 of `docs/lsp/03-delivery/roadmap.md` concrete enough that future implementation work can start from a stable model instead of re-deciding filesystem and include semantics ad hoc.
+It is meant to make Phase 3 of [`docs/lsp/03-delivery/roadmap.md`](../03-delivery/roadmap.md) concrete enough that future implementation work can start from a stable model instead of re-deciding filesystem and include semantics ad hoc.
 
 ## Why this needs its own note
 
@@ -161,7 +161,7 @@ It is for “find likely Structurizr files in the project”, not “resolve eve
 
 Explicit `!include` targets should be resolved even if they would not have been found by the general scan.
 
-This is already called out in `docs/lsp/03-delivery/roadmap.md`, and it is the right rule.
+This is already called out in [`docs/lsp/03-delivery/roadmap.md`](../03-delivery/roadmap.md), and it is the right rule.
 
 Implications:
 
@@ -368,7 +368,7 @@ This is another reason the include graph belongs in the analysis layer rather th
 
 ## Testing shape to aim for
 
-The current fixture slice under `crates/structurizr-lsp/tests/fixtures/` is enough for syntax-oriented include coverage, but not yet for analysis/workspace behavior.
+The current fixture slice under [`crates/structurizr-lsp/tests/fixtures/`](../../../crates/structurizr-lsp/tests/fixtures/) is enough for syntax-oriented include coverage, but not yet for analysis/workspace behavior.
 
 When the analysis crate starts, add workspace-level tests that cover at least:
 
@@ -418,10 +418,10 @@ That keeps workspace discovery and include handling foundational instead of bolt
 
 ## Sources
 
-- `docs/lsp/03-delivery/roadmap.md`
-- `docs/lsp/01-foundations/overview.md`
-- `docs/lsp/01-foundations/capability-matrix.md`
-- `docs/lsp/90-history/syntax-audit-directive-nodes.md`
-- `crates/structurizr-lsp/tests/fixtures/includes/`
+- [`docs/lsp/03-delivery/roadmap.md`](../03-delivery/roadmap.md)
+- [`docs/lsp/01-foundations/overview.md`](../01-foundations/overview.md)
+- [`docs/lsp/01-foundations/capability-matrix.md`](../01-foundations/capability-matrix.md)
+- [`docs/lsp/90-history/syntax-audit-directive-nodes.md`](../90-history/syntax-audit-directive-nodes.md)
+- [`crates/structurizr-lsp/tests/fixtures/includes/`](../../../crates/structurizr-lsp/tests/fixtures/includes/)
 - `https://raw.githubusercontent.com/structurizr/structurizr.github.io/main/dsl/71-language.md`
 - `https://docs.structurizr.com/dsl/includes`

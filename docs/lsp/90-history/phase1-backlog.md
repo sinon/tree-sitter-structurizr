@@ -1,6 +1,6 @@
 # Structurizr DSL LSP Phase 1 backlog
 
-This document turns Phase 1 from `docs/lsp/03-delivery/roadmap.md` into a tighter execution backlog.
+This document turns Phase 1 from [`docs/lsp/03-delivery/roadmap.md`](../03-delivery/roadmap.md) into a tighter execution backlog.
 
 Its job is not to redesign the project again. Its job is to make the first implementation slice executable without another round of broad planning.
 
@@ -53,8 +53,8 @@ Confirm which node kinds and named fields the future analyzer can rely on.
 
 ### Files to inspect
 
-- `crates/structurizr-grammar/grammar.js`
-- `crates/structurizr-grammar/src/node-types.json`
+- [`crates/structurizr-grammar/grammar.js`](../../../crates/structurizr-grammar/grammar.js)
+- [`crates/structurizr-grammar/src/node-types.json`](../../../crates/structurizr-grammar/src/node-types.json)
 - `fixtures/**/*.dsl`
 - `crates/structurizr-grammar/test/corpus/*.txt`
 
@@ -81,9 +81,9 @@ A future doc or note containing:
 
 Current output from this audit slice:
 
-- `docs/lsp/90-history/syntax-audit-assignment-declarations.md`
-- `docs/lsp/90-history/syntax-audit-reference-relationship-nodes.md`
-- `docs/lsp/90-history/syntax-audit-directive-nodes.md`
+- [`docs/lsp/90-history/syntax-audit-assignment-declarations.md`](syntax-audit-assignment-declarations.md)
+- [`docs/lsp/90-history/syntax-audit-reference-relationship-nodes.md`](syntax-audit-reference-relationship-nodes.md)
+- [`docs/lsp/90-history/syntax-audit-directive-nodes.md`](syntax-audit-directive-nodes.md)
 
 ### Exit condition
 
@@ -159,14 +159,14 @@ crates/structurizr-lsp/tests/fixtures/directives/identifiers-directive-ok.dsl
 
 ### Current output from this fixture slice
 
-- `crates/structurizr-lsp/tests/fixtures/includes/workspace_fragments-ok.dsl`
-- `crates/structurizr-lsp/tests/fixtures/includes/model-fragment-ok.dsl`
-- `crates/structurizr-lsp/tests/fixtures/includes/views-fragment-ok.dsl`
-- `crates/structurizr-lsp/tests/fixtures/identifiers/assigned-identifiers-ok.dsl`
-- `crates/structurizr-lsp/tests/fixtures/identifiers/direct-references-ok.dsl`
-- `crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl`
-- `crates/structurizr-lsp/tests/fixtures/relationships/named-relationship-dynamic-reference-ok.dsl`
-- `crates/structurizr-lsp/tests/fixtures/directives/identifiers-directive-ok.dsl`
+- [`crates/structurizr-lsp/tests/fixtures/includes/workspace_fragments-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/includes/workspace_fragments-ok.dsl)
+- [`crates/structurizr-lsp/tests/fixtures/includes/model-fragment-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/includes/model-fragment-ok.dsl)
+- [`crates/structurizr-lsp/tests/fixtures/includes/views-fragment-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/includes/views-fragment-ok.dsl)
+- [`crates/structurizr-lsp/tests/fixtures/identifiers/assigned-identifiers-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/identifiers/assigned-identifiers-ok.dsl)
+- [`crates/structurizr-lsp/tests/fixtures/identifiers/direct-references-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/identifiers/direct-references-ok.dsl)
+- [`crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl)
+- [`crates/structurizr-lsp/tests/fixtures/relationships/named-relationship-dynamic-reference-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/relationships/named-relationship-dynamic-reference-ok.dsl)
+- [`crates/structurizr-lsp/tests/fixtures/directives/identifiers-directive-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/directives/identifiers-directive-ok.dsl)
 
 ### Exit condition
 
@@ -207,7 +207,7 @@ A short decision table answering:
 
 Current output from this work package:
 
-- `docs/lsp/01-foundations/query-ownership.md`
+- [`docs/lsp/01-foundations/query-ownership.md`](../01-foundations/query-ownership.md)
 
 ### Exit condition
 
@@ -256,7 +256,7 @@ just test-rust-fast
 just test-grammar
 ```
 
-If `crates/structurizr-grammar/grammar.js` changes:
+If [`crates/structurizr-grammar/grammar.js`](../../../crates/structurizr-grammar/grammar.js) changes:
 
 ```sh
 just generate

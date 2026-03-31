@@ -104,16 +104,16 @@ For the current LSP architecture, status, and doc map, start with [`docs/lsp/REA
 
 ## License and upstream provenance
 
-Original code in this repository is available under either the MIT License (`LICENSE-MIT`) or the Apache License, Version 2.0 (`LICENSE-APACHE`).
+Original code in this repository is available under either the MIT License ([`LICENSE-MIT`](LICENSE-MIT)) or the Apache License, Version 2.0 ([`LICENSE-APACHE`](LICENSE-APACHE)).
 
 This repository also includes material copied or adapted from the Apache-2.0 licensed Structurizr DSL project in [`structurizr/structurizr`](https://github.com/structurizr/structurizr), predominantly consisting of checked-in `.dsl` samples and fixtures.
 
 These consist of:
 
-- Structurizr DSL corpus material under `crates/structurizr-grammar/test/corpus/`
-- General Structurizr DSL fixtures under `fixtures/`
-- LSP-specific single-document fixtures under `crates/structurizr-lsp/tests/fixtures/`
-- Multi-file workspace fixtures under `tests/lsp/workspaces/`
+- Structurizr DSL corpus material under [`crates/structurizr-grammar/test/corpus/`](crates/structurizr-grammar/test/corpus/)
+- General Structurizr DSL fixtures under [`fixtures/`](fixtures/)
+- LSP-specific single-document fixtures under [`crates/structurizr-lsp/tests/fixtures/`](crates/structurizr-lsp/tests/fixtures/)
+- Multi-file workspace fixtures under [`tests/lsp/workspaces/`](tests/lsp/workspaces/)
 
 ## References
 

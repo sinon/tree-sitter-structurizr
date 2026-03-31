@@ -4,9 +4,9 @@ The local LSP benchmark still puts `lsp/session/large_big_bank_document_symbols`
 
 ## Root Cause
 
-`crates/structurizr-lsp/src/handlers/text_sync.rs` currently calls `recompute_workspace_facts(...)` from both `publish_latest_snapshot(...)` and `did_close(...)`.
+[`crates/structurizr-lsp/src/handlers/text_sync.rs`](../crates/structurizr-lsp/src/handlers/text_sync.rs) currently calls `recompute_workspace_facts(...)` from both `publish_latest_snapshot(...)` and `did_close(...)`.
 
-That path clones the open-document set, reapplies overrides, creates a fresh `WorkspaceLoader`, and reloads the workspace from scratch for each buffer transition. The `documentSymbol` handler in `crates/structurizr-lsp/src/handlers/symbols.rs` itself is relatively small; the expensive part is the full rebuild and diagnostic republish path that happens before the request is answered.
+That path clones the open-document set, reapplies overrides, creates a fresh `WorkspaceLoader`, and reloads the workspace from scratch for each buffer transition. The `documentSymbol` handler in [`crates/structurizr-lsp/src/handlers/symbols.rs`](../crates/structurizr-lsp/src/handlers/symbols.rs) itself is relatively small; the expensive part is the full rebuild and diagnostic republish path that happens before the request is answered.
 
 ## Options
 

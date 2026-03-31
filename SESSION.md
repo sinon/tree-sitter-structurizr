@@ -1,9 +1,9 @@
-- Add one explicit `docs/lsp/` readiness note that states whether bounded-MVP analysis has any blocking grammar gaps; right now that conclusion must be inferred across several docs.
+- Add one explicit [`docs/lsp/`](docs/lsp/) readiness note that states whether bounded-MVP analysis has any blocking grammar gaps; right now that conclusion must be inferred across several docs.
 - The current syntax-diagnostic extractor can emit duplicate diagnostics for the same recovery region on some parse-error fixtures.
 - The bounded analysis extractor currently records only the first identifier in a multi-value view `include` statement.
 - The LSP's new include-diagnostic path currently recomputes workspace discovery for all open-buffer updates; that is acceptable for the bounded MVP, but future workspace indexing should replace it with cached invalidation rather than whole-workspace reloads.
 - Workspace include resolution now expands inherited `!const`/`!constant` values in `!include` targets, but it still does not substitute environment variables documented by the DSL.
-- `tools/upstream_audit.rs` currently slices excerpt strings by raw byte windows around parse issues, which can still panic if an excerpt boundary lands inside a multibyte UTF-8 codepoint.
+- [`tools/upstream_audit.rs`](tools/upstream_audit.rs) currently slices excerpt strings by raw byte windows around parse issues, which can still panic if an excerpt boundary lands inside a multibyte UTF-8 codepoint.
 - The LSP's workspace recomputation path currently drops `WorkspaceLoader` errors with `.ok()`, so filesystem failures silently suppress include diagnostics instead of surfacing actionable feedback.
 - The LSP integration-test harness can deadlock if `publishDiagnostics` notifications are left unread between `didOpen`/`didClose` calls, so multi-document tests should explicitly drain diagnostics before the next document transition.
 - Bare root-level view syntax in included fragments still does not behave like a supported "views fragment"; fixtures currently need `views { ... }` wrappers for view references to participate in bounded workspace analysis.
@@ -14,4 +14,4 @@
 - Workspace loading and LSP request translation still canonicalize, clone, and sort aggressively enough that future performance work should focus on cached path identities, precomputed directive ordering, and incremental workspace invalidation.
 - An assigned `softwareSystemInstance` form produced parse errors in an ad-hoc task 03 fixture even though the grammar source and node-types appear to allow one, so that syntax shape likely needs a focused grammar/parity check before relying on it in future navigation work.
 - The `tree-sitter` CLI still warns about missing parser directories during local `parse` / `query` / `highlight` debugging even when `-p .` is provided, so contributor docs may need a clearer local grammar-debugging workflow.
-- `crates/structurizr-analysis/README.md` still frames the language server as future work and understates the current workspace/indexing surface, so it should be synced with the newer top-level docs.
+- [`crates/structurizr-analysis/README.md`](crates/structurizr-analysis/README.md) still frames the language server as future work and understates the current workspace/indexing surface, so it should be synced with the newer top-level docs.

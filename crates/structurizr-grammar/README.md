@@ -32,4 +32,4 @@ assert!(!tree.root_node().has_error());
 ```
 
 For repository-level contributor workflow, LSP context, and downstream editor
-integration notes, see the workspace root `README.md`.
+integration notes, see the workspace root [`README.md`](README.md).

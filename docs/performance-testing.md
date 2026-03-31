@@ -46,7 +46,7 @@ The black-box suite adds release-binary checks for:
 
 - `strz check`
 - `strz dump workspace`
-- replayed `strz server` sessions via `tools/lsp_replay.py`
+- replayed `strz server` sessions via [`tools/lsp_replay.py`](../tools/lsp_replay.py)
 
 ## Quick start
 
@@ -66,7 +66,7 @@ Choose the loop based on the question:
 - use `just bench-perf` when you want both plus captured environment metadata
 - use `just bench-perf-stable` when you want the same combined flow with the most reproducible local setup the repo currently offers
 
-`tools/run_benchmarks.sh` writes environment capture and benchmark output under `tmp/benchmark-results/` by default, so comparison artifacts stay project-local.
+[`tools/run_benchmarks.sh`](../tools/run_benchmarks.sh) writes environment capture and benchmark output under `tmp/benchmark-results/` by default, so comparison artifacts stay project-local.
 
 ## Targeted in-process benches
 

@@ -32,7 +32,7 @@ This creates an important constraint:
 - the grammar must remain buildable from a standard Tree-sitter grammar directory that Zed can target explicitly
 
 That no longer means the grammar has to live at the repository root. Zed can pin
-this repository and build the grammar from `crates/structurizr-grammar/` via the
+this repository and build the grammar from [`crates/structurizr-grammar/`](../../../crates/structurizr-grammar/) via the
 grammar entry's `path` field, so the Cargo workspace can use a clearer internal
 layout without making extension development awkward.
 
@@ -151,7 +151,7 @@ This keeps fast iteration local without forcing every experiment through git tag
 
 Own:
 
-- `crates/structurizr-grammar/grammar.js`
+- [`crates/structurizr-grammar/grammar.js`](../../../crates/structurizr-grammar/grammar.js)
 - generated parser artifacts
 - Rust bindings
 - portable query surfaces that make sense outside Zed
@@ -179,7 +179,7 @@ That split is not necessarily wrong, but it means future work should decide cons
 - which queries are portable and should live with the grammar
 - which queries are editor-specific and should remain in the Zed extension
 
-The current recommended split is captured in `docs/lsp/01-foundations/query-ownership.md`.
+The current recommended split is captured in [`docs/lsp/01-foundations/query-ownership.md`](query-ownership.md).
 
 ## Release-flow suggestion
 
@@ -193,4 +193,4 @@ For actual releases:
 
 This preserves loose coupling in releases without slowing down day-to-day development.
 
-The concrete launcher and packaging recommendation for that flow is captured in `docs/lsp/03-delivery/zed-extension-language-server-wiring.md`.
+The concrete launcher and packaging recommendation for that flow is captured in [`docs/lsp/03-delivery/zed-extension-language-server-wiring.md`](../03-delivery/zed-extension-language-server-wiring.md).

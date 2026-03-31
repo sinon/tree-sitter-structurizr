@@ -19,9 +19,9 @@ The goal is to avoid accidental duplication, conflicting changes, and “which r
 
 Today this repository owns:
 
-- `crates/structurizr-grammar/queries/highlights.scm`
-- `crates/structurizr-grammar/queries/folds.scm`
-- `crates/structurizr-grammar/queries/indents.scm`
+- [`crates/structurizr-grammar/queries/highlights.scm`](../../../crates/structurizr-grammar/queries/highlights.scm)
+- [`crates/structurizr-grammar/queries/folds.scm`](../../../crates/structurizr-grammar/queries/folds.scm)
+- [`crates/structurizr-grammar/queries/indents.scm`](../../../crates/structurizr-grammar/queries/indents.scm)
 
 And the Rust bindings already have a portable export path for:
 
@@ -79,7 +79,7 @@ Why:
 
 Implication:
 
-- `tags.scm` should be added under `crates/structurizr-grammar/queries/` in this repository when the symbol-extraction work begins
+- `tags.scm` should be added under [`crates/structurizr-grammar/queries/`](../../../crates/structurizr-grammar/queries/) in this repository when the symbol-extraction work begins
 - the LSP/analyzer should consume it from the grammar crate rather than depending on the Zed extension repo
 
 ## `outline.scm` stays in the Zed extension
@@ -151,8 +151,8 @@ This decision means the next phases can proceed with a clear split:
 
 ## Sources
 
-- `crates/structurizr-grammar/bindings/rust/build.rs`
-- `crates/structurizr-grammar/bindings/rust/lib.rs`
-- `crates/structurizr-grammar/queries/`
+- [`crates/structurizr-grammar/bindings/rust/build.rs`](../../../crates/structurizr-grammar/bindings/rust/build.rs)
+- [`crates/structurizr-grammar/bindings/rust/lib.rs`](../../../crates/structurizr-grammar/bindings/rust/lib.rs)
+- [`crates/structurizr-grammar/queries/`](../../../crates/structurizr-grammar/queries/)
 - `/Users/rob/dev/zed-structurizr/languages/structurizr/`
-- `docs/lsp/01-foundations/repository-topology.md`
+- [`docs/lsp/01-foundations/repository-topology.md`](repository-topology.md)

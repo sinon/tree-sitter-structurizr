@@ -27,7 +27,7 @@ The analyzer should **not** expect a standalone “assignment statement” wrapp
 
 ## Shared declaration pattern
 
-The core element rules in `crates/structurizr-grammar/grammar.js` all follow the same structure:
+The core element rules in [`crates/structurizr-grammar/grammar.js`](../../../crates/structurizr-grammar/grammar.js) all follow the same structure:
 
 1. optional identifier assignment
 2. element keyword
@@ -354,8 +354,8 @@ The main follow-up questions are semantic rather than syntactic:
 
 ## Sources
 
-- `crates/structurizr-grammar/grammar.js`
-- `crates/structurizr-grammar/src/node-types.json`
-- `crates/structurizr-grammar/test/corpus/model.txt`
-- `crates/structurizr-grammar/test/corpus/workspace.txt`
-- `fixtures/model/nested_elements-ok.dsl`
+- [`crates/structurizr-grammar/grammar.js`](../../../crates/structurizr-grammar/grammar.js)
+- [`crates/structurizr-grammar/src/node-types.json`](../../../crates/structurizr-grammar/src/node-types.json)
+- [`crates/structurizr-grammar/test/corpus/model.txt`](../../../crates/structurizr-grammar/test/corpus/model.txt)
+- [`crates/structurizr-grammar/test/corpus/workspace.txt`](../../../crates/structurizr-grammar/test/corpus/workspace.txt)
+- [`fixtures/model/nested_elements-ok.dsl`](../../../fixtures/model/nested_elements-ok.dsl)

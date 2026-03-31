@@ -70,14 +70,14 @@ tables or cross-file semantic resolution.
 The crate is organized around a small public surface and private tree-walking
 extractors:
 
-- `src/parse.rs` - parser setup and analysis entrypoints
-- `src/snapshot.rs` - immutable document input and snapshot types
-- `src/span.rs` - owned byte and point span types
-- `src/diagnostics.rs` - syntax-diagnostic facts
-- `src/includes.rs` - raw directive facts for `!include`
-- `src/symbols.rs` - symbol, reference, and `!identifiers` facts
-- `src/workspace.rs` - workspace discovery and include-following
-- `src/extract/` - private Tree-sitter walks that populate the public facts
+- [`src/parse.rs`](src/parse.rs) - parser setup and analysis entrypoints
+- [`src/snapshot.rs`](src/snapshot.rs) - immutable document input and snapshot types
+- [`src/span.rs`](src/span.rs) - owned byte and point span types
+- [`src/diagnostics.rs`](src/diagnostics.rs) - syntax-diagnostic facts
+- [`src/includes.rs`](src/includes.rs) - raw directive facts for `!include`
+- [`src/symbols.rs`](src/symbols.rs) - symbol, reference, and `!identifiers` facts
+- [`src/workspace.rs`](src/workspace.rs) - workspace discovery and include-following
+- [`src/extract/`](src/extract/) - private Tree-sitter walks that populate the public facts
 
 ## Typical usage
 
@@ -108,9 +108,9 @@ parser setup stays in one place.
 
 This crate follows the repository's existing fixture-and-snapshot testing style.
 
-- integration tests live in `crates/structurizr-analysis/tests/`
+- integration tests live in [`crates/structurizr-analysis/tests/`](tests/)
 - LSP-specific single-document DSL inputs live under
-  `crates/structurizr-lsp/tests/fixtures/`
+  [`crates/structurizr-lsp/tests/fixtures/`](../structurizr-lsp/tests/fixtures/)
 - snapshots assert higher-level analysis outputs rather than raw parse trees
 
 The main snapshot test currently exercises:
@@ -122,8 +122,8 @@ The main snapshot test currently exercises:
 - references
 
 Workspace discovery has its own integration tests under
-`crates/structurizr-analysis/tests/workspace_discovery.rs`, using shared
-workspace fixtures under `tests/lsp/workspaces/`.
+[`crates/structurizr-analysis/tests/workspace_discovery.rs`](tests/workspace_discovery.rs), using shared
+workspace fixtures under [`tests/lsp/workspaces/`](../../tests/lsp/workspaces/).
 
 Useful commands from the repository root:
 

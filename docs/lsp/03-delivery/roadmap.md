@@ -7,9 +7,9 @@ This roadmap is no longer about proving that an in-repo bounded MVP can exist. T
 The repository already contains:
 
 - the checked-in Tree-sitter grammar, bindings, and query files
-- `crates/structurizr-analysis/` for extracted document and workspace facts
-- `crates/structurizr-lsp/` for the stdio language server
-- `crates/structurizr-cli/` for `strz check`, `strz dump`, and `strz server`
+- [`crates/structurizr-analysis/`](../../../crates/structurizr-analysis/) for extracted document and workspace facts
+- [`crates/structurizr-lsp/`](../../../crates/structurizr-lsp/) for the stdio language server
+- [`crates/structurizr-cli/`](../../../crates/structurizr-cli/) for `strz check`, `strz dump`, and `strz server`
 - multi-file fixtures and LSP integration tests that cover the current bounded semantic surface
 
 ## Status of the original roadmap phases

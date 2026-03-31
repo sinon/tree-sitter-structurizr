@@ -4,9 +4,9 @@ This note defines the recommended packaging model and contributor loops for the 
 
 It is the operational companion to:
 
-- `docs/lsp/01-foundations/repository-topology.md`
-- `docs/lsp/02-design/lsp-crate-skeleton.md`
-- `docs/lsp/03-delivery/zed-extension-language-server-wiring.md`
+- [`docs/lsp/01-foundations/repository-topology.md`](../01-foundations/repository-topology.md)
+- [`docs/lsp/02-design/lsp-crate-skeleton.md`](../02-design/lsp-crate-skeleton.md)
+- [`docs/lsp/03-delivery/zed-extension-language-server-wiring.md`](zed-extension-language-server-wiring.md)
 
 Its job is to answer:
 
@@ -306,7 +306,7 @@ This loop does not require an LSP yet.
 
 ## Loop 2: LSP implementation work
 
-Now that `crates/structurizr-analysis/`, `crates/structurizr-lsp/`, and `crates/structurizr-cli/` exist, the day-to-day loop should stay mostly in this repository.
+Now that [`crates/structurizr-analysis/`](../../../crates/structurizr-analysis/), [`crates/structurizr-lsp/`](../../../crates/structurizr-lsp/), and [`crates/structurizr-cli/`](../../../crates/structurizr-cli/) exist, the day-to-day loop should stay mostly in this repository.
 
 Recommended loop:
 
@@ -447,9 +447,9 @@ And validate:
 Use:
 
 - `/Users/rob/dev/zed-structurizr/big-bank.dsl`
-- `crates/structurizr-lsp/tests/fixtures/includes/`
-- `crates/structurizr-lsp/tests/fixtures/identifiers/`
-- `crates/structurizr-lsp/tests/fixtures/relationships/`
+- [`crates/structurizr-lsp/tests/fixtures/includes/`](../../../crates/structurizr-lsp/tests/fixtures/includes/)
+- [`crates/structurizr-lsp/tests/fixtures/identifiers/`](../../../crates/structurizr-lsp/tests/fixtures/identifiers/)
+- [`crates/structurizr-lsp/tests/fixtures/relationships/`](../../../crates/structurizr-lsp/tests/fixtures/relationships/)
 
 as the first representative smoke-test set.
 
@@ -521,10 +521,10 @@ That keeps the project practical for day-to-day work as the LSP starts becoming 
 
 ## Sources
 
-- `docs/lsp/01-foundations/repository-topology.md`
-- `docs/lsp/02-design/lsp-crate-skeleton.md`
-- `docs/lsp/03-delivery/zed-extension-language-server-wiring.md`
-- `docs/lsp/01-foundations/overview.md`
+- [`docs/lsp/01-foundations/repository-topology.md`](../01-foundations/repository-topology.md)
+- [`docs/lsp/02-design/lsp-crate-skeleton.md`](../02-design/lsp-crate-skeleton.md)
+- [`docs/lsp/03-delivery/zed-extension-language-server-wiring.md`](zed-extension-language-server-wiring.md)
+- [`docs/lsp/01-foundations/overview.md`](../01-foundations/overview.md)
 - `/Users/rob/dev/tree-sitter-structurizr/Justfile`
 - `/Users/rob/dev/zed-structurizr/README.md`
 - `https://zed.dev/docs/extensions/languages`

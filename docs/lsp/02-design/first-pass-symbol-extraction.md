@@ -465,7 +465,7 @@ Why:
 
 The current fixture slice gives us a good minimum contract.
 
-### `crates/structurizr-lsp/tests/fixtures/identifiers/assigned-identifiers-ok.dsl`
+### [`crates/structurizr-lsp/tests/fixtures/identifiers/assigned-identifiers-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/identifiers/assigned-identifiers-ok.dsl)
 
 Expected first-pass extraction:
 
@@ -473,7 +473,7 @@ Expected first-pass extraction:
 - parent/child structure linking `system -> api -> worker`
 - no references required from this fixture
 
-### `crates/structurizr-lsp/tests/fixtures/identifiers/direct-references-ok.dsl`
+### [`crates/structurizr-lsp/tests/fixtures/identifiers/direct-references-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/identifiers/direct-references-ok.dsl)
 
 Expected first-pass extraction:
 
@@ -491,7 +491,7 @@ Expected first-pass extraction:
   - `include api`
   - `include worker`
 
-### `crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl`
+### [`crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl)
 
 Expected first-pass extraction:
 
@@ -500,7 +500,7 @@ Expected first-pass extraction:
 - relationship endpoint references for `user` and `system`
 - a `ViewInclude` reference for `include rel`
 
-### `crates/structurizr-lsp/tests/fixtures/identifiers/dynamic-views-ok.dsl`
+### [`crates/structurizr-lsp/tests/fixtures/identifiers/dynamic-views-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/identifiers/dynamic-views-ok.dsl)
 
 Expected first-pass extraction:
 
@@ -511,7 +511,7 @@ Expected first-pass extraction:
   - `signin -> security`
   - `security -> database`
 
-### `crates/structurizr-lsp/tests/fixtures/relationships/named-relationship-dynamic-reference-ok.dsl`
+### [`crates/structurizr-lsp/tests/fixtures/relationships/named-relationship-dynamic-reference-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/relationships/named-relationship-dynamic-reference-ok.dsl)
 
 Expected first-pass extraction:
 
@@ -567,13 +567,13 @@ Once this extraction contract exists, the next implementation steps have a much 
 
 ## Sources
 
-- `docs/lsp/02-design/analysis-crate-skeleton.md`
-- `docs/lsp/90-history/syntax-audit-assignment-declarations.md`
-- `docs/lsp/90-history/syntax-audit-reference-relationship-nodes.md`
-- `docs/lsp/90-history/syntax-audit-directive-nodes.md`
-- `docs/lsp/90-history/phase1-backlog.md`
-- `crates/structurizr-lsp/tests/fixtures/identifiers/assigned-identifiers-ok.dsl`
-- `crates/structurizr-lsp/tests/fixtures/identifiers/direct-references-ok.dsl`
-- `crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl`
-- `crates/structurizr-lsp/tests/fixtures/relationships/named-relationship-dynamic-reference-ok.dsl`
-- corresponding snapshots under `crates/structurizr-grammar/tests/snapshots/`
+- [`docs/lsp/02-design/analysis-crate-skeleton.md`](analysis-crate-skeleton.md)
+- [`docs/lsp/90-history/syntax-audit-assignment-declarations.md`](../90-history/syntax-audit-assignment-declarations.md)
+- [`docs/lsp/90-history/syntax-audit-reference-relationship-nodes.md`](../90-history/syntax-audit-reference-relationship-nodes.md)
+- [`docs/lsp/90-history/syntax-audit-directive-nodes.md`](../90-history/syntax-audit-directive-nodes.md)
+- [`docs/lsp/90-history/phase1-backlog.md`](../90-history/phase1-backlog.md)
+- [`crates/structurizr-lsp/tests/fixtures/identifiers/assigned-identifiers-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/identifiers/assigned-identifiers-ok.dsl)
+- [`crates/structurizr-lsp/tests/fixtures/identifiers/direct-references-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/identifiers/direct-references-ok.dsl)
+- [`crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl)
+- [`crates/structurizr-lsp/tests/fixtures/relationships/named-relationship-dynamic-reference-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/relationships/named-relationship-dynamic-reference-ok.dsl)
+- corresponding snapshots under [`crates/structurizr-grammar/tests/snapshots/`](../../../crates/structurizr-grammar/tests/snapshots/)

@@ -19,9 +19,9 @@ This layering is deliberate. We want good editor support for real `.dsl` files w
 The repository already contains:
 
 - the checked-in grammar, parser artifacts, bindings, and query files
-- `crates/structurizr-analysis/` for document snapshots, symbol/reference extraction, diagnostics, and workspace discovery
-- `crates/structurizr-lsp/` for the stdio language server and handler layer
-- `crates/structurizr-cli/` for `strz check`, `strz dump`, and `strz server`
+- [`crates/structurizr-analysis/`](../../crates/structurizr-analysis/) for document snapshots, symbol/reference extraction, diagnostics, and workspace discovery
+- [`crates/structurizr-lsp/`](../../crates/structurizr-lsp/) for the stdio language server and handler layer
+- [`crates/structurizr-cli/`](../../crates/structurizr-cli/) for `strz check`, `strz dump`, and `strz server`
 - realistic multi-file fixtures and integration tests that exercise the bounded semantic surface
 
 The question is no longer whether an in-repo bounded slice is feasible. That slice already exists. The useful question now is how to make the current editor-tooling stack easier to understand, easier to ship downstream, and broader without losing architectural discipline.
