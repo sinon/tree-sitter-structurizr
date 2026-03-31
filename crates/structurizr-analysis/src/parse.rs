@@ -6,8 +6,7 @@ use std::sync::Mutex;
 use salsa::Setter as _;
 use tree_sitter::{Parser, Tree};
 
-use crate::extract;
-use crate::snapshot::{DocumentInput, DocumentSnapshot, DocumentSyntaxFacts};
+use crate::snapshot::{DocumentInput, DocumentSnapshot, DocumentSyntaxFacts, ParsedDocument};
 
 // =============================================================================
 // Salsa-backed parsed-document cache
@@ -24,12 +23,6 @@ struct IncrementalDocument {
     source: String,
 }
 
-#[derive(Clone)]
-struct ParsedDocument {
-    tree: Tree,
-    syntax_facts: DocumentSyntaxFacts,
-}
-
 #[salsa::db]
 trait IncrementalAnalysisDb: salsa::Database {
     fn parser(&self) -> &Mutex<Parser>;
@@ -42,9 +35,9 @@ fn parsed_document(
 ) -> ParsedDocument {
     let source = document.source(db);
     let tree = parse_source(db, source);
-    let syntax_facts = extract_syntax_facts(&tree, source);
+    let syntax_facts = DocumentSyntaxFacts::collect(&tree, source);
 
-    ParsedDocument { tree, syntax_facts }
+    ParsedDocument::new(tree, syntax_facts)
 }
 
 #[salsa::db]
@@ -158,17 +151,10 @@ impl DocumentAnalyzer {
     /// answer queries without re-parsing immediately.
     #[must_use]
     pub fn analyze(&mut self, input: DocumentInput) -> DocumentSnapshot {
-        let (id, location, source) = input.into_parts();
-        let document = self.tracked_document(&id, &source);
+        let document = self.tracked_document(input.id(), input.source());
         let parsed = parsed_document(&self.db, document);
 
-        DocumentSnapshot::new(
-            id,
-            location,
-            source,
-            parsed.tree.clone(),
-            parsed.syntax_facts.clone(),
-        )
+        parsed.to_snapshot(input)
     }
 
     fn tracked_document(
@@ -231,32 +217,6 @@ fn parse_source(db: &dyn IncrementalAnalysisDb, source: &str) -> Tree {
         .expect("Structurizr parser mutex should not be poisoned")
         .parse(source, None)
         .expect("Parser should return a tree")
-}
-
-fn extract_syntax_facts(tree: &Tree, source: &str) -> DocumentSyntaxFacts {
-    let syntax_diagnostics = extract::diagnostics::collect(tree);
-    let include_directives = extract::includes::collect(tree, source);
-    let constant_definitions = extract::constants::collect(tree, source);
-    let identifier_modes = extract::symbols::collect_identifier_modes(tree, source);
-    let (symbols, references) = extract::symbols::collect_symbols_and_references(tree, source);
-
-    DocumentSyntaxFacts::new(
-        is_workspace_entry(tree),
-        syntax_diagnostics,
-        include_directives,
-        constant_definitions,
-        identifier_modes,
-        symbols,
-        references,
-    )
-}
-
-fn is_workspace_entry(tree: &Tree) -> bool {
-    let root = tree.root_node();
-    let mut cursor = root.walk();
-
-    root.named_children(&mut cursor)
-        .any(|child| matches!(child.kind(), "workspace" | "workspace_block"))
 }
 
 #[cfg(test)]

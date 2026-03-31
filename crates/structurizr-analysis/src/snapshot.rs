@@ -6,6 +6,7 @@ use tree_sitter::Tree;
 
 use crate::constants::ConstantDefinition;
 use crate::diagnostics::SyntaxDiagnostic;
+use crate::extract;
 use crate::includes::IncludeDirective;
 use crate::symbols::{IdentifierModeFact, Reference, Symbol};
 
@@ -137,18 +138,16 @@ pub struct DocumentSyntaxFacts {
 }
 
 impl DocumentSyntaxFacts {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) const fn new(
-        is_workspace_entry: bool,
-        syntax_diagnostics: Vec<SyntaxDiagnostic>,
-        include_directives: Vec<IncludeDirective>,
-        constant_definitions: Vec<ConstantDefinition>,
-        identifier_modes: Vec<IdentifierModeFact>,
-        symbols: Vec<Symbol>,
-        references: Vec<Reference>,
-    ) -> Self {
+    /// Extracts the stable syntax-level facts from one parsed document.
+    pub(crate) fn collect(tree: &Tree, source: &str) -> Self {
+        let syntax_diagnostics = extract::diagnostics::collect(tree);
+        let include_directives = extract::includes::collect(tree, source);
+        let constant_definitions = extract::constants::collect(tree, source);
+        let identifier_modes = extract::symbols::collect_identifier_modes(tree, source);
+        let (symbols, references) = extract::symbols::collect_symbols_and_references(tree, source);
+
         Self {
-            is_workspace_entry,
+            is_workspace_entry: contains_workspace_entry(tree),
             syntax_diagnostics,
             include_directives,
             constant_definitions,
@@ -207,6 +206,33 @@ impl DocumentSyntaxFacts {
     }
 }
 
+/// Private parsed-document payload cached behind the public snapshot facade.
+#[derive(Debug, Clone)]
+pub struct ParsedDocument {
+    tree: Tree,
+    syntax_facts: DocumentSyntaxFacts,
+}
+
+impl ParsedDocument {
+    pub(crate) const fn new(tree: Tree, syntax_facts: DocumentSyntaxFacts) -> Self {
+        Self { tree, syntax_facts }
+    }
+
+    /// Clones the cached parsed result into the public snapshot shape expected by
+    /// current callers.
+    pub(crate) fn to_snapshot(&self, input: DocumentInput) -> DocumentSnapshot {
+        let (id, location, source) = input.into_parts();
+
+        DocumentSnapshot {
+            id,
+            location,
+            source,
+            tree: self.tree.clone(),
+            syntax_facts: self.syntax_facts.clone(),
+        }
+    }
+}
+
 /// Immutable snapshot produced by analyzing one Structurizr document.
 ///
 /// A snapshot groups the original source, parse tree, and extracted facts so
@@ -222,23 +248,6 @@ pub struct DocumentSnapshot {
 }
 
 impl DocumentSnapshot {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) const fn new(
-        id: DocumentId,
-        location: Option<DocumentLocation>,
-        source: String,
-        tree: Tree,
-        syntax_facts: DocumentSyntaxFacts,
-    ) -> Self {
-        Self {
-            id,
-            location,
-            source,
-            tree,
-            syntax_facts,
-        }
-    }
-
     #[must_use]
     /// Returns the document identifier carried through analysis.
     pub const fn id(&self) -> &DocumentId {
@@ -316,4 +325,12 @@ impl DocumentSnapshot {
     pub fn references(&self) -> &[Reference] {
         self.syntax_facts.references()
     }
+}
+
+fn contains_workspace_entry(tree: &Tree) -> bool {
+    let root = tree.root_node();
+    let mut cursor = root.walk();
+
+    root.named_children(&mut cursor)
+        .any(|child| matches!(child.kind(), "workspace" | "workspace_block"))
 }
