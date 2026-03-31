@@ -8,13 +8,11 @@ use std::{
 };
 
 use ignore::WalkBuilder;
-use salsa::Setter as _;
 
 use crate::{
-    ConstantDefinition, DocumentAnalyzer, DocumentId, DocumentInput, DocumentSnapshot,
-    DocumentSyntaxFacts, IdentifierMode, IdentifierModeFact, IncludeDiagnostic, IncludeDirective,
-    Reference, ReferenceKind, ReferenceTargetHint, SemanticDiagnostic, Symbol, SymbolId,
-    SymbolKind, TextSpan,
+    ConstantDefinition, DocumentAnalyzer, DocumentId, DocumentInput, IdentifierMode,
+    IdentifierModeFact, IncludeDiagnostic, IncludeDirective, Reference, ReferenceKind,
+    ReferenceTargetHint, SemanticDiagnostic, Symbol, SymbolId, SymbolKind, TextSpan,
     includes::{DirectiveContainer, normalized_directive_value},
 };
 
@@ -31,19 +29,25 @@ pub enum WorkspaceDocumentKind {
 #[derive(Debug)]
 pub struct WorkspaceDocument {
     snapshot: Arc<crate::DocumentSnapshot>,
+    semantic_facts: Arc<WorkspaceSemanticDocumentFacts>,
     kind: WorkspaceDocumentKind,
+    semantic_generation: u64,
     discovered_by_scan: bool,
 }
 
 impl WorkspaceDocument {
     const fn new(
         snapshot: Arc<crate::DocumentSnapshot>,
+        semantic_facts: Arc<WorkspaceSemanticDocumentFacts>,
         kind: WorkspaceDocumentKind,
+        semantic_generation: u64,
         discovered_by_scan: bool,
     ) -> Self {
         Self {
             snapshot,
+            semantic_facts,
             kind,
+            semantic_generation,
             discovered_by_scan,
         }
     }
@@ -58,6 +62,14 @@ impl WorkspaceDocument {
     #[must_use]
     pub fn snapshot(&self) -> &crate::DocumentSnapshot {
         self.snapshot.as_ref()
+    }
+
+    fn semantic_facts(&self) -> &WorkspaceSemanticDocumentFacts {
+        self.semantic_facts.as_ref()
+    }
+
+    const fn semantic_generation(&self) -> u64 {
+        self.semantic_generation
     }
 
     /// Returns the document's role in the discovered workspace set.
@@ -273,12 +285,10 @@ struct DerivedWorkspaceInstance {
     semantic_diagnostics: Vec<SemanticDiagnostic>,
 }
 
-// The first workspace-level Salsa expansion caches semantic instance derivation
-// from stable syntax facts. Include traversal, constant propagation, and final
-// assembly stay host-side for now, but once the loader has determined which
-// documents participate in one workspace instance, the expensive binding and
-// reference-resolution pass can now reuse results across source revisions that
-// leave those stable facts unchanged.
+// Keep the expensive per-instance binding/reference pass anchored to a stable
+// semantic packet derived from `DocumentSyntaxFacts`. When a document source edit
+// produces the same semantic packet, the host-side workspace caches can now
+// reuse the derived instance payload without paying the full rebuild cost again.
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct WorkspaceSemanticDocumentFacts {
     document_id: DocumentId,
@@ -289,245 +299,14 @@ struct WorkspaceSemanticDocumentFacts {
 }
 
 impl WorkspaceSemanticDocumentFacts {
-    fn from_snapshot(snapshot: &DocumentSnapshot) -> Self {
-        Self::from_syntax_facts(snapshot.id().clone(), snapshot.syntax_facts())
-    }
-
-    fn from_syntax_facts(document_id: DocumentId, syntax_facts: &DocumentSyntaxFacts) -> Self {
+    fn from_snapshot(snapshot: &crate::DocumentSnapshot) -> Self {
         Self {
-            document_id,
-            has_syntax_errors: syntax_facts.has_syntax_errors(),
-            identifier_modes: syntax_facts.identifier_modes().to_vec(),
-            symbols: syntax_facts.symbols().to_vec(),
-            references: syntax_facts.references().to_vec(),
+            document_id: snapshot.id().clone(),
+            has_syntax_errors: snapshot.has_syntax_errors(),
+            identifier_modes: snapshot.identifier_modes().to_vec(),
+            symbols: snapshot.symbols().to_vec(),
+            references: snapshot.references().to_vec(),
         }
-    }
-}
-
-// =============================================================================
-// Salsa-backed workspace semantics
-// =============================================================================
-
-#[salsa::input]
-struct IncrementalWorkspaceDocument {
-    #[returns(ref)]
-    facts: WorkspaceSemanticDocumentFacts,
-}
-
-#[salsa::input]
-struct IncrementalWorkspaceInstance {
-    root_document: IncrementalWorkspaceDocument,
-    #[returns(ref)]
-    documents: Vec<IncrementalWorkspaceDocument>,
-}
-
-#[salsa::db]
-trait WorkspaceSemanticsDb: salsa::Database {}
-
-#[salsa::tracked(returns(ref))]
-fn derived_workspace_instance_query(
-    db: &dyn WorkspaceSemanticsDb,
-    instance: IncrementalWorkspaceInstance,
-) -> DerivedWorkspaceInstance {
-    let root_document = instance.root_document(db);
-    let documents = instance
-        .documents(db)
-        .iter()
-        .map(|document| document.facts(db))
-        .collect::<Vec<_>>();
-
-    build_derived_workspace_instance(root_document.facts(db), &documents)
-}
-
-#[salsa::db]
-struct WorkspaceSemanticsDatabase {
-    storage: salsa::Storage<Self>,
-    #[cfg(test)]
-    logs: std::sync::Arc<std::sync::Mutex<Option<Vec<String>>>>,
-}
-
-#[salsa::db]
-impl salsa::Database for WorkspaceSemanticsDatabase {}
-
-#[salsa::db]
-impl WorkspaceSemanticsDb for WorkspaceSemanticsDatabase {}
-
-impl Default for WorkspaceSemanticsDatabase {
-    fn default() -> Self {
-        #[cfg(test)]
-        {
-            let logs: std::sync::Arc<std::sync::Mutex<Option<Vec<String>>>> =
-                std::sync::Arc::new(std::sync::Mutex::new(None));
-
-            Self {
-                storage: salsa::Storage::new(Some(Box::new({
-                    let logs = logs.clone();
-                    move |event| {
-                        if let salsa::EventKind::WillExecute { .. } = event.kind
-                            && let Some(logs) = &mut *logs
-                                .lock()
-                                .expect("Salsa log mutex should not be poisoned")
-                        {
-                            logs.push(format!("{event:?}"));
-                        }
-                    }
-                }))),
-                logs,
-            }
-        }
-
-        #[cfg(not(test))]
-        {
-            Self {
-                storage: salsa::Storage::new(None),
-            }
-        }
-    }
-}
-
-#[cfg(test)]
-impl WorkspaceSemanticsDatabase {
-    fn enable_logging(&self) {
-        let mut logs = self
-            .logs
-            .lock()
-            .expect("Salsa log mutex should not be poisoned");
-        if logs.is_none() {
-            *logs = Some(Vec::new());
-        }
-    }
-
-    fn take_logs(&self) -> Vec<String> {
-        let mut logs = self
-            .logs
-            .lock()
-            .expect("Salsa log mutex should not be poisoned");
-        logs.as_mut().map_or_else(Vec::new, std::mem::take)
-    }
-}
-
-#[derive(Default)]
-struct WorkspaceSemanticsAnalyzer {
-    db: WorkspaceSemanticsDatabase,
-    documents: BTreeMap<DocumentId, CachedWorkspaceSemanticsDocument>,
-    instances: BTreeMap<DocumentId, CachedWorkspaceSemanticsInstance>,
-    derived_instances: BTreeMap<DocumentId, Arc<DerivedWorkspaceInstance>>,
-}
-
-struct CachedWorkspaceSemanticsDocument {
-    tracked: IncrementalWorkspaceDocument,
-    facts: WorkspaceSemanticDocumentFacts,
-}
-
-struct CachedWorkspaceSemanticsInstance {
-    tracked: IncrementalWorkspaceInstance,
-    root_document: IncrementalWorkspaceDocument,
-    documents: Vec<IncrementalWorkspaceDocument>,
-}
-
-impl WorkspaceSemanticsAnalyzer {
-    fn derive_workspace_instance(
-        &mut self,
-        root_document: &DocumentId,
-        documents: &[DocumentId],
-        documents_by_id: &BTreeMap<DocumentId, &WorkspaceDocument>,
-    ) -> Arc<DerivedWorkspaceInstance> {
-        let root_document = documents_by_id
-            .get(root_document)
-            .expect("BUG: workspace-instance root document should exist");
-        let root_tracked = self.tracked_document(root_document);
-        let tracked_documents = documents
-            .iter()
-            .map(|document_id| {
-                let document = documents_by_id
-                    .get(document_id)
-                    .expect("BUG: workspace-instance document should exist");
-                self.tracked_document(document)
-            })
-            .collect::<Vec<_>>();
-        let root_id = root_document.id().clone();
-        let tracked_instance = self.tracked_instance(&root_id, root_tracked, tracked_documents);
-        let derived = derived_workspace_instance_query(&self.db, tracked_instance);
-
-        if let Some(cached) = self.derived_instances.get(&root_id)
-            && cached.as_ref() == derived
-        {
-            return Arc::clone(cached);
-        }
-
-        let derived = Arc::new(derived.clone());
-        self.derived_instances
-            .insert(root_id, Arc::clone(&derived));
-        derived
-    }
-
-    fn tracked_document(&mut self, document: &WorkspaceDocument) -> IncrementalWorkspaceDocument {
-        let document_id = document.id().clone();
-        let facts = WorkspaceSemanticDocumentFacts::from_snapshot(document.snapshot());
-
-        if let Some(cached) = self.documents.get_mut(&document_id) {
-            if cached.facts != facts {
-                cached.tracked.set_facts(&mut self.db).to(facts);
-                cached.facts = cached.tracked.facts(&self.db).clone();
-            }
-            return cached.tracked;
-        }
-
-        let tracked = IncrementalWorkspaceDocument::new(&self.db, facts.clone());
-        self.documents.insert(
-            document_id,
-            CachedWorkspaceSemanticsDocument {
-                tracked,
-                facts,
-            },
-        );
-        tracked
-    }
-
-    fn tracked_instance(
-        &mut self,
-        root_document_id: &DocumentId,
-        root_document: IncrementalWorkspaceDocument,
-        documents: Vec<IncrementalWorkspaceDocument>,
-    ) -> IncrementalWorkspaceInstance {
-        if let Some(cached) = self.instances.get_mut(root_document_id) {
-            if cached.root_document != root_document {
-                cached
-                    .tracked
-                    .set_root_document(&mut self.db)
-                    .to(root_document);
-                cached.root_document = root_document;
-            }
-            if cached.documents != documents {
-                cached
-                    .tracked
-                    .set_documents(&mut self.db)
-                    .to(documents.clone());
-                cached.documents = documents;
-            }
-            return cached.tracked;
-        }
-
-        let tracked = IncrementalWorkspaceInstance::new(&self.db, root_document, documents.clone());
-        self.instances.insert(
-            root_document_id.clone(),
-            CachedWorkspaceSemanticsInstance {
-                tracked,
-                root_document,
-                documents,
-            },
-        );
-        tracked
-    }
-
-    #[cfg(test)]
-    fn enable_logging(&self) {
-        self.db.enable_logging();
-    }
-
-    #[cfg(test)]
-    fn take_logs(&self) -> Vec<String> {
-        self.db.take_logs()
     }
 }
 
@@ -805,21 +584,23 @@ impl std::fmt::Debug for WorkspaceLoader {
 #[derive(Default)]
 struct WorkspaceAnalysisSession {
     analyzer: DocumentAnalyzer,
-    semantics: WorkspaceSemanticsAnalyzer,
     document_overrides: BTreeMap<PathBuf, String>,
     document_cache: BTreeMap<PathBuf, CachedWorkspaceDocument>,
     processed_context_cache: BTreeMap<DocumentContextKey, CachedProcessedDocumentContext>,
     workspace_instance_cache: BTreeMap<DocumentContextKey, CachedWorkspaceInstance>,
     workspace_facts_assembly_cache: Option<CachedWorkspaceFactsAssembly>,
     next_document_generation: u64,
+    next_semantic_generation: u64,
     next_context_revision: u64,
 }
 
 #[derive(Debug)]
 struct CachedWorkspaceDocument {
     snapshot: Arc<crate::DocumentSnapshot>,
+    semantic_facts: Arc<WorkspaceSemanticDocumentFacts>,
     kind: WorkspaceDocumentKind,
     generation: u64,
+    semantic_generation: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -833,7 +614,7 @@ struct CachedProcessedDocumentContext {
 
 #[derive(Debug, Clone)]
 struct CachedWorkspaceInstance {
-    root_context_revision: u64,
+    document_semantic_generations: Vec<(DocumentId, u64)>,
     derived: Arc<DerivedWorkspaceInstance>,
 }
 
@@ -877,7 +658,12 @@ enum CachedIncludeValidation {
 }
 
 impl CachedWorkspaceDocument {
-    fn new(snapshot: crate::DocumentSnapshot, generation: u64) -> Self {
+    fn new(
+        snapshot: crate::DocumentSnapshot,
+        semantic_facts: Arc<WorkspaceSemanticDocumentFacts>,
+        generation: u64,
+        semantic_generation: u64,
+    ) -> Self {
         let kind = if snapshot.is_workspace_entry() {
             WorkspaceDocumentKind::Entry
         } else {
@@ -886,13 +672,21 @@ impl CachedWorkspaceDocument {
 
         Self {
             snapshot: Arc::new(snapshot),
+            semantic_facts,
             kind,
             generation,
+            semantic_generation,
         }
     }
 
     fn workspace_document(&self, discovered_by_scan: bool) -> WorkspaceDocument {
-        WorkspaceDocument::new(Arc::clone(&self.snapshot), self.kind, discovered_by_scan)
+        WorkspaceDocument::new(
+            Arc::clone(&self.snapshot),
+            Arc::clone(&self.semantic_facts),
+            self.kind,
+            self.semantic_generation,
+            discovered_by_scan,
+        )
     }
 }
 
@@ -920,10 +714,18 @@ impl WorkspaceAnalysisSession {
             let snapshot = self.analyzer.analyze(
                 DocumentInput::new(document_id_from_path(path), source).with_location(path.to_path_buf()),
             );
+            let semantic_facts = Arc::new(WorkspaceSemanticDocumentFacts::from_snapshot(&snapshot));
             let generation = self.next_document_generation();
+            let previous_semantic_generation = self
+                .document_cache
+                .get(path)
+                .filter(|cached| cached.semantic_facts.as_ref() == semantic_facts.as_ref())
+                .map(|cached| cached.semantic_generation);
+            let semantic_generation =
+                previous_semantic_generation.unwrap_or_else(|| self.next_semantic_generation());
             self.document_cache.insert(
                 path.to_path_buf(),
-                CachedWorkspaceDocument::new(snapshot, generation),
+                CachedWorkspaceDocument::new(snapshot, semantic_facts, generation, semantic_generation),
             );
         }
 
@@ -996,11 +798,11 @@ impl WorkspaceAnalysisSession {
     fn store_workspace_instance(
         &mut self,
         root_context_key: &DocumentContextKey,
-        root_context_revision: u64,
+        document_semantic_generations: Vec<(DocumentId, u64)>,
         derived: Arc<DerivedWorkspaceInstance>,
     ) {
         let cached = CachedWorkspaceInstance {
-            root_context_revision,
+            document_semantic_generations,
             derived,
         };
 
@@ -1056,6 +858,14 @@ impl WorkspaceAnalysisSession {
             .checked_add(1)
             .expect("document generation counter should not overflow");
         self.next_document_generation
+    }
+
+    const fn next_semantic_generation(&mut self) -> u64 {
+        self.next_semantic_generation = self
+            .next_semantic_generation
+            .checked_add(1)
+            .expect("semantic generation counter should not overflow");
+        self.next_semantic_generation
     }
 
     const fn next_context_revision(&mut self) -> u64 {
@@ -2000,15 +1810,9 @@ fn build_workspace_index(
     processed_contexts: &BTreeMap<DocumentContextKey, ProcessedDocumentContext>,
     documents_by_id: &BTreeMap<DocumentId, &WorkspaceDocument>,
 ) -> WorkspaceIndex {
-    let root_context_revision = session
+    let _root_context_revision = session
         .processed_context_revision(&start_context.key)
         .expect("BUG: start context should be processed before building indexes");
-
-    if let Some(cached) = session.cached_workspace_instance(&start_context.key)
-        && cached.root_context_revision == root_context_revision
-    {
-        return cached.workspace_index(instance_id);
-    }
 
     let mut visited_contexts = BTreeSet::new();
     let mut seen_documents = BTreeSet::new();
@@ -2020,14 +1824,42 @@ fn build_workspace_index(
         &mut seen_documents,
         &mut instance_documents,
     );
+    let document_semantic_generations = instance_documents
+        .iter()
+        .map(|document_id| {
+            let document = documents_by_id
+                .get(document_id)
+                .expect("BUG: workspace-index document should exist");
+            (document_id.clone(), document.semantic_generation())
+        })
+        .collect::<Vec<_>>();
+
+    if let Some(cached) = session.cached_workspace_instance(&start_context.key)
+        && cached.document_semantic_generations == document_semantic_generations
+    {
+        return cached.workspace_index(instance_id);
+    }
 
     let root_document = document_id_from_path(&start_context.path);
-    let derived = session
-        .semantics
-        .derive_workspace_instance(&root_document, &instance_documents, documents_by_id);
+    let root_document = documents_by_id
+        .get(&root_document)
+        .expect("BUG: workspace-index root document should exist");
+    let instance_semantic_documents = instance_documents
+        .iter()
+        .map(|document_id| {
+            documents_by_id
+                .get(document_id)
+                .expect("BUG: workspace-index document should exist")
+                .semantic_facts()
+        })
+        .collect::<Vec<_>>();
+    let derived = Arc::new(build_derived_workspace_instance(
+        root_document.semantic_facts(),
+        &instance_semantic_documents,
+    ));
     session.store_workspace_instance(
         &start_context.key,
-        root_context_revision,
+        document_semantic_generations,
         Arc::clone(&derived),
     );
     WorkspaceIndex::from_derived(instance_id, derived)
@@ -2631,12 +2463,6 @@ mod tests {
 
     use super::{WorkspaceFacts, WorkspaceIndex, WorkspaceLoader, document_id_from_path};
 
-    fn workspace_query_execution_logs(logs: &[String]) -> usize {
-        logs.iter()
-            .filter(|log| log.contains("derived_workspace_instance_query"))
-            .count()
-    }
-
     #[test]
     fn loader_reuses_cached_document_snapshots_across_identical_loads() {
         let fixture = TemporaryWorkspace::new(indoc! {r#"
@@ -2720,21 +2546,16 @@ mod tests {
         let fixture = TemporaryWorkspace::new(source);
 
         let mut loader = WorkspaceLoader::new();
-        loader.session.semantics.enable_logging();
 
         let first = loader
             .load_paths([fixture.workspace_path().as_path()])
             .expect("first load should succeed");
-        let first_logs = loader.session.semantics.take_logs();
-        assert_eq!(workspace_query_execution_logs(&first_logs), 1);
 
         loader.set_document_override(fixture.workspace_path().clone(), format!("{source}\n"));
 
         let second = loader
             .load_paths([fixture.workspace_path().as_path()])
             .expect("override-backed load should succeed");
-        let second_logs = loader.session.semantics.take_logs();
-        assert_eq!(workspace_query_execution_logs(&second_logs), 0);
 
         let first_index = first
             .workspace_indexes()
