@@ -2,6 +2,7 @@
 
 use std::sync::Arc;
 
+use structurizr_analysis::WorkspaceLoader;
 use tokio::sync::RwLock;
 use tower_lsp_server::ls_types::{
     CompletionParams, CompletionResponse, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
@@ -19,6 +20,7 @@ use crate::{handlers, state::ServerState};
 pub struct Backend {
     client: Client,
     state: Arc<RwLock<ServerState>>,
+    workspace_loader: Arc<std::sync::Mutex<WorkspaceLoader>>,
 }
 
 impl Backend {
@@ -28,6 +30,7 @@ impl Backend {
         Self {
             client,
             state: Arc::new(RwLock::new(ServerState::default())),
+            workspace_loader: Arc::new(std::sync::Mutex::new(WorkspaceLoader::new())),
         }
     }
 
@@ -41,6 +44,12 @@ impl Backend {
     #[must_use]
     pub const fn state(&self) -> &Arc<RwLock<ServerState>> {
         &self.state
+    }
+
+    /// Returns the reusable workspace loader host for workspace recomputation.
+    #[must_use]
+    pub const fn workspace_loader(&self) -> &Arc<std::sync::Mutex<WorkspaceLoader>> {
+        &self.workspace_loader
     }
 }
 

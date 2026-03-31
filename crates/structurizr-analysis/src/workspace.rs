@@ -4,6 +4,7 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fs, io,
     path::{Component, Path, PathBuf},
+    sync::Arc,
 };
 
 use ignore::WalkBuilder;
@@ -27,22 +28,34 @@ pub enum WorkspaceDocumentKind {
 /// One discovered document plus the metadata gathered during workspace loading.
 #[derive(Debug)]
 pub struct WorkspaceDocument {
-    snapshot: crate::DocumentSnapshot,
+    snapshot: Arc<crate::DocumentSnapshot>,
     kind: WorkspaceDocumentKind,
     discovered_by_scan: bool,
 }
 
 impl WorkspaceDocument {
+    const fn new(
+        snapshot: Arc<crate::DocumentSnapshot>,
+        kind: WorkspaceDocumentKind,
+        discovered_by_scan: bool,
+    ) -> Self {
+        Self {
+            snapshot,
+            kind,
+            discovered_by_scan,
+        }
+    }
+
     /// Returns the stable document identifier for the discovered document.
     #[must_use]
-    pub const fn id(&self) -> &DocumentId {
+    pub fn id(&self) -> &DocumentId {
         self.snapshot.id()
     }
 
     /// Returns the analyzed snapshot for the discovered document.
     #[must_use]
-    pub const fn snapshot(&self) -> &crate::DocumentSnapshot {
-        &self.snapshot
+    pub fn snapshot(&self) -> &crate::DocumentSnapshot {
+        self.snapshot.as_ref()
     }
 
     /// Returns the document's role in the discovered workspace set.
@@ -436,8 +449,7 @@ impl WorkspaceFacts {
 /// Loader that scans workspace roots and follows explicit include targets.
 #[derive(Default)]
 pub struct WorkspaceLoader {
-    analyzer: DocumentAnalyzer,
-    document_overrides: BTreeMap<PathBuf, String>,
+    session: WorkspaceAnalysisSession,
 }
 
 impl WorkspaceLoader {
@@ -452,7 +464,14 @@ impl WorkspaceLoader {
     /// This is useful for editor integrations that need workspace loading to
     /// observe unsaved buffer contents instead of only on-disk text.
     pub fn set_document_override(&mut self, path: PathBuf, source: String) {
-        self.document_overrides.insert(path, source);
+        self.session.set_document_override(path, source);
+    }
+
+    /// Clears all registered in-memory source overrides.
+    ///
+    /// This keeps a long-lived loader aligned with the current open-buffer set.
+    pub fn clear_document_overrides(&mut self) {
+        self.session.clear_document_overrides();
     }
 
     /// Scans one or more workspace roots for `.dsl` files and follows explicit
@@ -478,10 +497,224 @@ impl WorkspaceLoader {
         normalized_roots.sort();
         normalized_roots.dedup();
 
-        let analyzer = &mut self.analyzer;
-        let document_overrides = &self.document_overrides;
+        WorkspaceBuildSession::new(&mut self.session).build_from_roots(&normalized_roots)
+    }
+}
 
-        WorkspaceBuildSession::new(analyzer, document_overrides).build_from_roots(&normalized_roots)
+impl std::fmt::Debug for WorkspaceLoader {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("WorkspaceLoader").finish_non_exhaustive()
+    }
+}
+
+// =============================================================================
+// Private analysis session
+// =============================================================================
+//
+// The public loader remains a compatibility facade, but a longer-lived internal
+// session now owns document analysis state, open-buffer overrides, and a
+// per-path cache of analyzed document packets. This gives future incremental
+// work one stable host object rather than rebuilding every internal packet from
+// scratch on each load.
+
+#[derive(Default)]
+struct WorkspaceAnalysisSession {
+    analyzer: DocumentAnalyzer,
+    document_overrides: BTreeMap<PathBuf, String>,
+    document_cache: BTreeMap<PathBuf, CachedWorkspaceDocument>,
+    processed_context_cache: BTreeMap<DocumentContextKey, CachedProcessedDocumentContext>,
+    next_document_generation: u64,
+    next_context_revision: u64,
+}
+
+#[derive(Debug)]
+struct CachedWorkspaceDocument {
+    snapshot: Arc<crate::DocumentSnapshot>,
+    kind: WorkspaceDocumentKind,
+    generation: u64,
+}
+
+#[derive(Debug, Clone)]
+struct CachedProcessedDocumentContext {
+    processed: ProcessedDocumentContext,
+    document_generation: u64,
+    child_context_revisions: Vec<u64>,
+    include_validations: Vec<CachedIncludeValidation>,
+    revision: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum CachedIncludeValidation {
+    RemoteUrl {
+        url: String,
+    },
+    UnsupportedLocalPath {
+        path: PathBuf,
+    },
+    MissingLocalPath {
+        path: PathBuf,
+    },
+    LocalFile {
+        path: PathBuf,
+        document_generation: u64,
+    },
+    LocalDirectory {
+        path: PathBuf,
+        discovered_paths: Vec<(PathBuf, u64)>,
+    },
+}
+
+impl CachedWorkspaceDocument {
+    fn new(snapshot: crate::DocumentSnapshot, generation: u64) -> Self {
+        let kind = if snapshot.is_workspace_entry() {
+            WorkspaceDocumentKind::Entry
+        } else {
+            WorkspaceDocumentKind::Fragment
+        };
+
+        Self {
+            snapshot: Arc::new(snapshot),
+            kind,
+            generation,
+        }
+    }
+
+    fn workspace_document(&self, discovered_by_scan: bool) -> WorkspaceDocument {
+        WorkspaceDocument::new(Arc::clone(&self.snapshot), self.kind, discovered_by_scan)
+    }
+}
+
+impl WorkspaceAnalysisSession {
+    fn set_document_override(&mut self, path: PathBuf, source: String) {
+        self.document_overrides.insert(path, source);
+    }
+
+    fn clear_document_overrides(&mut self) {
+        self.document_overrides.clear();
+    }
+
+    fn workspace_document(
+        &mut self,
+        path: &Path,
+        discovered_by_scan: bool,
+    ) -> io::Result<WorkspaceDocument> {
+        let source = self.document_source(path)?;
+        let needs_refresh = self
+            .document_cache
+            .get(path)
+            .is_none_or(|cached| cached.snapshot.source() != source);
+
+        if needs_refresh {
+            let snapshot = self.analyzer.analyze(
+                DocumentInput::new(document_id_from_path(path), source).with_location(path.to_path_buf()),
+            );
+            let generation = self.next_document_generation();
+            self.document_cache.insert(
+                path.to_path_buf(),
+                CachedWorkspaceDocument::new(snapshot, generation),
+            );
+        }
+
+        Ok(self
+            .document_cache
+            .get(path)
+            .expect("BUG: workspace document cache entry should exist after refresh")
+            .workspace_document(discovered_by_scan))
+    }
+
+    fn document_source(&self, path: &Path) -> io::Result<String> {
+        self.document_overrides
+            .get(path)
+            .map_or_else(|| fs::read_to_string(path), |source| Ok(source.clone()))
+    }
+
+    fn document_generation(&self, path: &Path) -> Option<u64> {
+        self.document_cache.get(path).map(|cached| cached.generation)
+    }
+
+    fn processed_context_revision(&self, key: &DocumentContextKey) -> Option<u64> {
+        self.processed_context_cache.get(key).map(|cached| cached.revision)
+    }
+
+    fn cached_processed_context(&self, key: &DocumentContextKey) -> Option<CachedProcessedDocumentContext> {
+        self.processed_context_cache.get(key).cloned()
+    }
+
+    fn store_processed_context(&mut self, context: &DocumentContext, processed: ProcessedDocumentContext) {
+        let child_context_revisions = processed
+            .included_contexts
+            .iter()
+            .map(|child_context| {
+                self.processed_context_revision(child_context)
+                    .expect("BUG: child context should be cached before its parent")
+            })
+            .collect();
+        let include_validations = processed
+            .direct_includes
+            .iter()
+            .map(|include| self.include_validation(include))
+            .collect();
+        let cached = CachedProcessedDocumentContext {
+            document_generation: self
+                .document_generation(&context.path)
+                .expect("BUG: processed context document should already be loaded"),
+            processed,
+            child_context_revisions,
+            include_validations,
+            revision: self.next_context_revision(),
+        };
+
+        self.processed_context_cache.insert(context.key.clone(), cached);
+    }
+
+    fn include_validation(&self, include: &ResolvedInclude) -> CachedIncludeValidation {
+        match include.target() {
+            WorkspaceIncludeTarget::RemoteUrl { url } => CachedIncludeValidation::RemoteUrl {
+                url: url.clone(),
+            },
+            WorkspaceIncludeTarget::UnsupportedLocalPath { path } => {
+                CachedIncludeValidation::UnsupportedLocalPath { path: path.clone() }
+            }
+            WorkspaceIncludeTarget::MissingLocalPath { path } => {
+                CachedIncludeValidation::MissingLocalPath { path: path.clone() }
+            }
+            WorkspaceIncludeTarget::LocalFile { path } => CachedIncludeValidation::LocalFile {
+                path: path.clone(),
+                document_generation: self
+                    .document_generation(path)
+                    .expect("BUG: local include file should already be loaded"),
+            },
+            WorkspaceIncludeTarget::LocalDirectory { path } => CachedIncludeValidation::LocalDirectory {
+                path: path.clone(),
+                discovered_paths: include
+                    .discovered_documents()
+                    .iter()
+                    .map(|document_id| {
+                        let path = PathBuf::from(document_id.as_str());
+                        let generation = self
+                            .document_generation(&path)
+                            .expect("BUG: directory include child should already be loaded");
+                        (path, generation)
+                    })
+                    .collect(),
+            },
+        }
+    }
+
+    const fn next_document_generation(&mut self) -> u64 {
+        self.next_document_generation = self
+            .next_document_generation
+            .checked_add(1)
+            .expect("document generation counter should not overflow");
+        self.next_document_generation
+    }
+
+    const fn next_context_revision(&mut self) -> u64 {
+        self.next_context_revision = self
+            .next_context_revision
+            .checked_add(1)
+            .expect("context revision counter should not overflow");
+        self.next_context_revision
     }
 }
 
@@ -495,21 +728,16 @@ impl WorkspaceLoader {
 // instance results can hang off this session without changing existing callers.
 
 struct WorkspaceBuildSession<'loader> {
-    analyzer: &'loader mut DocumentAnalyzer,
-    document_overrides: &'loader BTreeMap<PathBuf, String>,
+    session: &'loader mut WorkspaceAnalysisSession,
     loaded_documents: BTreeMap<PathBuf, WorkspaceDocument>,
     processed_contexts: BTreeMap<DocumentContextKey, ProcessedDocumentContext>,
     active_stack: Vec<PathBuf>,
 }
 
 impl<'loader> WorkspaceBuildSession<'loader> {
-    const fn new(
-        analyzer: &'loader mut DocumentAnalyzer,
-        document_overrides: &'loader BTreeMap<PathBuf, String>,
-    ) -> Self {
+    const fn new(session: &'loader mut WorkspaceAnalysisSession) -> Self {
         Self {
-            analyzer,
-            document_overrides,
+            session,
             loaded_documents: BTreeMap::new(),
             processed_contexts: BTreeMap::new(),
             active_stack: Vec::new(),
@@ -590,31 +818,8 @@ impl<'loader> WorkspaceBuildSession<'loader> {
             return Ok(());
         }
 
-        // Prefer unsaved editor text when one has been registered for this
-        // document, and only hit the filesystem when discovery has no override.
-        // This keeps workspace discovery aligned with live editor buffers.
-        let source = if let Some(source) = self.document_overrides.get(&path).cloned() {
-            source
-        } else {
-            fs::read_to_string(&path)?
-        };
-        let snapshot = self.analyzer.analyze(
-            DocumentInput::new(document_id_from_path(&path), source).with_location(path.clone()),
-        );
-        let kind = if snapshot.is_workspace_entry() {
-            WorkspaceDocumentKind::Entry
-        } else {
-            WorkspaceDocumentKind::Fragment
-        };
-
-        self.loaded_documents.insert(
-            path,
-            WorkspaceDocument {
-                snapshot,
-                kind,
-                discovered_by_scan,
-            },
-        );
+        let document = self.session.workspace_document(&path, discovered_by_scan)?;
+        self.loaded_documents.insert(path, document);
         Ok(())
     }
 
@@ -626,6 +831,14 @@ impl<'loader> WorkspaceBuildSession<'loader> {
         }
 
         self.load_document(context.path.clone(), false)?;
+
+        if let Some(cached) = self.session.cached_processed_context(&context.key)
+            && self.cached_context_is_fresh(&context, &cached)?
+        {
+            let exported_constants = cached.processed.exported_constants.clone();
+            self.processed_contexts.insert(context.key.clone(), cached.processed);
+            return Ok(exported_constants);
+        }
 
         let (document_id, constant_definitions, include_directives) = {
             let document = self
@@ -695,8 +908,89 @@ impl<'loader> WorkspaceBuildSession<'loader> {
 
         let processed = processed?;
         let exported_constants = processed.exported_constants.clone();
+        self.session.store_processed_context(&context, processed.clone());
         self.processed_contexts.insert(context.key, processed);
         Ok(exported_constants)
+    }
+
+    fn cached_context_is_fresh(
+        &mut self,
+        context: &DocumentContext,
+        cached: &CachedProcessedDocumentContext,
+    ) -> io::Result<bool> {
+        let Some(current_generation) = self.session.document_generation(&context.path) else {
+            return Ok(false);
+        };
+        if current_generation != cached.document_generation {
+            return Ok(false);
+        }
+
+        for (child_context, expected_revision) in cached
+            .processed
+            .included_contexts
+            .iter()
+            .zip(&cached.child_context_revisions)
+        {
+            let Some(current_revision) = self.session.processed_context_revision(child_context) else {
+                return Ok(false);
+            };
+            if current_revision != *expected_revision {
+                return Ok(false);
+            }
+        }
+
+        cached
+            .include_validations
+            .iter()
+            .try_fold(true, |is_still_fresh, validation| {
+                if !is_still_fresh {
+                    return Ok(false);
+                }
+
+                self.include_validation_is_fresh(validation)
+            })
+    }
+
+    fn include_validation_is_fresh(&mut self, validation: &CachedIncludeValidation) -> io::Result<bool> {
+        match validation {
+            CachedIncludeValidation::RemoteUrl { .. }
+            | CachedIncludeValidation::UnsupportedLocalPath { .. } => Ok(true),
+            CachedIncludeValidation::MissingLocalPath { path } => {
+                Ok(fs::metadata(path).is_err_and(|error| error.kind() == io::ErrorKind::NotFound))
+            }
+            CachedIncludeValidation::LocalFile {
+                path,
+                document_generation,
+            } => {
+                self.load_document(path.clone(), false)?;
+                Ok(self.session.document_generation(path) == Some(*document_generation))
+            }
+            CachedIncludeValidation::LocalDirectory {
+                path,
+                discovered_paths,
+            } => {
+                let allowed_root = path.parent().expect("directory include path should have a parent");
+                let current_paths = collect_directory_include_paths(path, allowed_root)?;
+                if current_paths.len() != discovered_paths.len() {
+                    return Ok(false);
+                }
+
+                for (current_path, (expected_path, expected_generation)) in
+                    current_paths.iter().zip(discovered_paths)
+                {
+                    if current_path != expected_path {
+                        return Ok(false);
+                    }
+
+                    self.load_document(current_path.clone(), false)?;
+                    if self.session.document_generation(current_path) != Some(*expected_generation) {
+                        return Ok(false);
+                    }
+                }
+
+                Ok(true)
+            }
+        }
     }
 }
 
@@ -772,7 +1066,7 @@ struct DocumentContextKey {
     inherited_constants: Vec<(String, String)>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct ProcessedDocumentContext {
     exported_constants: ConstantEnvironment,
     direct_includes: Vec<ResolvedInclude>,
@@ -1856,4 +2150,259 @@ fn sort_semantic_diagnostics(diagnostics: &mut [SemanticDiagnostic]) {
             .then_with(|| left.kind.cmp(&right.kind))
             .then_with(|| left.message.cmp(&right.message))
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{
+        fs, ptr,
+        path::{Path, PathBuf},
+    };
+
+    use indoc::indoc;
+    use tempfile::TempDir;
+
+    use super::{WorkspaceLoader, document_id_from_path};
+
+    #[test]
+    fn loader_reuses_cached_document_snapshots_across_identical_loads() {
+        let fixture = TemporaryWorkspace::new(indoc! {r#"
+            workspace {
+                !include "model.dsl"
+            }
+        "#});
+        fixture.write_model(indoc! {r#"
+            model {
+                user = person "User"
+            }
+        "#});
+
+        let mut loader = WorkspaceLoader::new();
+        let first = loader
+            .load_paths([fixture.root()])
+            .expect("first load should succeed");
+        let second = loader
+            .load_paths([fixture.root()])
+            .expect("second load should succeed");
+
+        let first_workspace = first
+            .document(&document_id_from_path(fixture.workspace_path()))
+            .expect("workspace document should exist");
+        let second_workspace = second
+            .document(&document_id_from_path(fixture.workspace_path()))
+            .expect("workspace document should exist");
+        assert!(ptr::eq(first_workspace.snapshot(), second_workspace.snapshot()));
+
+        let first_model = first
+            .document(&document_id_from_path(&fixture.model_path()))
+            .expect("included model document should exist");
+        let second_model = second
+            .document(&document_id_from_path(&fixture.model_path()))
+            .expect("included model document should exist");
+        assert!(ptr::eq(first_model.snapshot(), second_model.snapshot()));
+    }
+
+    #[test]
+    fn loader_refreshes_cached_snapshot_when_override_changes() {
+        let fixture = TemporaryWorkspace::new(indoc! {r#"
+            workspace {
+                model {
+                    user = person "User"
+                }
+            }
+        "#});
+
+        let mut loader = WorkspaceLoader::new();
+        let first = loader
+            .load_paths([fixture.workspace_path().as_path()])
+            .expect("first load should succeed");
+
+        loader.set_document_override(
+            fixture.workspace_path().clone(),
+            indoc! {r#"
+                workspace {
+                    model {
+                        admin = person "Admin"
+                    }
+                }
+            "#}
+            .to_owned(),
+        );
+
+        let second = loader
+            .load_paths([fixture.workspace_path().as_path()])
+            .expect("override-backed load should succeed");
+
+        let first_document = first
+            .document(&document_id_from_path(fixture.workspace_path()))
+            .expect("workspace document should exist");
+        let second_document = second
+            .document(&document_id_from_path(fixture.workspace_path()))
+            .expect("workspace document should exist");
+
+        assert!(!ptr::eq(
+            first_document.snapshot(),
+            second_document.snapshot()
+        ));
+        assert_eq!(
+            second_document
+                .snapshot()
+                .symbols()
+                .iter()
+                .filter_map(|symbol| symbol.binding_name.as_deref())
+                .collect::<Vec<_>>(),
+            vec!["admin"]
+        );
+    }
+
+    #[test]
+    fn clearing_document_overrides_restores_disk_backed_snapshot() {
+        let fixture = TemporaryWorkspace::new(indoc! {r#"
+            workspace {
+                model {
+                    user = person "User"
+                }
+            }
+        "#});
+
+        let mut loader = WorkspaceLoader::new();
+        loader.set_document_override(
+            fixture.workspace_path().clone(),
+            indoc! {r#"
+                workspace {
+                    model {
+                        admin = person "Admin"
+                    }
+                }
+            "#}
+            .to_owned(),
+        );
+        let override_backed = loader
+            .load_paths([fixture.workspace_path().as_path()])
+            .expect("override-backed load should succeed");
+
+        loader.clear_document_overrides();
+        let disk_backed = loader
+            .load_paths([fixture.workspace_path().as_path()])
+            .expect("disk-backed reload should succeed");
+
+        let override_document = override_backed
+            .document(&document_id_from_path(fixture.workspace_path()))
+            .expect("workspace document should exist");
+        let disk_document = disk_backed
+            .document(&document_id_from_path(fixture.workspace_path()))
+            .expect("workspace document should exist");
+
+        assert_eq!(
+            override_document
+                .snapshot()
+                .symbols()
+                .iter()
+                .filter_map(|symbol| symbol.binding_name.as_deref())
+                .collect::<Vec<_>>(),
+            vec!["admin"]
+        );
+        assert_eq!(
+            disk_document
+                .snapshot()
+                .symbols()
+                .iter()
+                .filter_map(|symbol| symbol.binding_name.as_deref())
+                .collect::<Vec<_>>(),
+            vec!["user"]
+        );
+    }
+
+    #[test]
+    fn cached_parent_context_refreshes_when_included_child_changes() {
+        let fixture = TemporaryWorkspace::new(indoc! {r#"
+            workspace {
+                !include "model.dsl"
+            }
+        "#});
+        fixture.write_model(indoc! {r#"
+            model {
+                user = person "User"
+            }
+        "#});
+
+        let mut loader = WorkspaceLoader::new();
+        let first = loader
+            .load_paths([fixture.root()])
+            .expect("first load should succeed");
+        let first_index = first
+            .workspace_indexes()
+            .first()
+            .expect("workspace index should exist");
+        assert_eq!(
+            first_index
+                .unique_element_bindings()
+                .keys()
+                .cloned()
+                .collect::<Vec<_>>(),
+            vec!["user"]
+        );
+
+        fixture.write_model(indoc! {r#"
+            model {
+                admin = person "Admin"
+            }
+        "#});
+
+        let second = loader
+            .load_paths([fixture.root()])
+            .expect("second load should succeed");
+        let second_index = second
+            .workspace_indexes()
+            .first()
+            .expect("workspace index should exist");
+        assert_eq!(
+            second_index
+                .unique_element_bindings()
+                .keys()
+                .cloned()
+                .collect::<Vec<_>>(),
+            vec!["admin"]
+        );
+    }
+
+    struct TemporaryWorkspace {
+        _root_dir: TempDir,
+        root: PathBuf,
+        workspace_path: PathBuf,
+    }
+
+    impl TemporaryWorkspace {
+        fn new(workspace_source: &str) -> Self {
+            let root_dir = tempfile::tempdir().expect("tempdir should create");
+            let root = root_dir
+                .path()
+                .canonicalize()
+                .expect("tempdir path should canonicalize");
+            let workspace_path = root.join("workspace.dsl");
+            fs::write(&workspace_path, workspace_source).expect("workspace source should write");
+
+            Self {
+                _root_dir: root_dir,
+                root,
+                workspace_path,
+            }
+        }
+
+        fn write_model(&self, source: &str) {
+            fs::write(self.model_path(), source).expect("model source should write");
+        }
+
+        fn root(&self) -> &Path {
+            &self.root
+        }
+
+        fn workspace_path(&self) -> &PathBuf {
+            &self.workspace_path
+        }
+
+        fn model_path(&self) -> PathBuf {
+            self.root.join("model.dsl")
+        }
+    }
 }

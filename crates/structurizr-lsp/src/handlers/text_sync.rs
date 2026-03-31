@@ -212,7 +212,11 @@ async fn recompute_workspace_facts(
         "recomputing workspace facts"
     );
 
-    let mut loader = WorkspaceLoader::new();
+    let mut loader = backend
+        .workspace_loader()
+        .lock()
+        .expect("workspace loader mutex should not be poisoned");
+    loader.clear_document_overrides();
 
     for open_document in &open_documents {
         add_document_override(&mut loader, open_document);
