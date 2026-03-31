@@ -149,16 +149,70 @@ fi
 run_hyperfine \
     "${OUTPUT_DIR}/check.json" \
     "$(build_command "${BINARY}" check "${REPO_ROOT}/tests/lsp/workspaces/directory-include")" \
-    "$(build_command "${BINARY}" check "${REPO_ROOT}/tests/lsp/workspaces/big-bank-plc")"
+    "$(build_command "${BINARY}" check "${REPO_ROOT}/tests/lsp/workspaces/big-bank-plc")" \
+    "$(build_command "${BINARY}" check "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega/mega.dsl")" \
+    "$(build_command "${BINARY}" check \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-00/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-01/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-02/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-03/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-04/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-05/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-06/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-07/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-08/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-09/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-10/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-11/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-12/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-13/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-14/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-15/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-16/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-17/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-18/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-19/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-20/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-21/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-22/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-23/workspace.dsl")"
 
 run_hyperfine \
     "${OUTPUT_DIR}/dump-workspace.json" \
     "$(build_command "${BINARY}" dump workspace "${REPO_ROOT}/tests/lsp/workspaces/directory-include")" \
-    "$(build_command "${BINARY}" dump workspace "${REPO_ROOT}/tests/lsp/workspaces/big-bank-plc")"
+    "$(build_command "${BINARY}" dump workspace "${REPO_ROOT}/tests/lsp/workspaces/big-bank-plc")" \
+    "$(build_command "${BINARY}" dump workspace "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega/mega.dsl")" \
+    "$(build_command "${BINARY}" dump workspace \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-00/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-01/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-02/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-03/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-04/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-05/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-06/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-07/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-08/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-09/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-10/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-11/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-12/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-13/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-14/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-15/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-16/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-17/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-18/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-19/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-20/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-21/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-22/workspace.dsl" \
+        "${REPO_ROOT}/tests/lsp/workspaces/benchmark-mega-multi-root/ws-23/workspace.dsl")"
 
 run_hyperfine \
     "${OUTPUT_DIR}/lsp-session.json" \
     "$(build_lsp_replay_command small)" \
-    "$(build_lsp_replay_command large)"
+    "$(build_lsp_replay_command large)" \
+    "$(build_lsp_replay_command mega)" \
+    "$(build_lsp_replay_command mega-multi-root)"
 
 printf 'black-box benchmark results written to %s\n' "${OUTPUT_DIR}"

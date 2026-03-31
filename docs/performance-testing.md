@@ -34,13 +34,19 @@ The checked-in benchmark matrix is intentionally small and stable:
   - `small_direct_references`
   - `medium_people_and_software_systems`
   - `large_big_bank_workspace`
+  - `mega_workspace_systems`
 - `analysis/workspace`
   - `small_minimal_scan`
   - `medium_directory_include`
   - `large_big_bank_plc`
+  - `mega_benchmark_estate`
+  - `mega_benchmark_multi_root`
 - `lsp/session`
   - `small_named_relationship_definition`
   - `large_big_bank_document_symbols`
+  - `mega_benchmark_document_symbols`
+  - `mega_benchmark_dynamic_definition`
+  - `mega_multi_root_document_symbols`
 
 The black-box suite adds release-binary checks for:
 
@@ -75,8 +81,10 @@ Use targeted `cargo bench` commands when you already know which benchmark case y
 ```sh
 cargo bench -p structurizr-analysis --bench analysis small_minimal_scan -- --noplot
 cargo bench -p structurizr-analysis --bench analysis large_big_bank_workspace -- --noplot
+cargo bench -p structurizr-analysis --bench analysis mega_benchmark_estate -- --noplot
 cargo bench -p structurizr-lsp --bench session small_named_relationship_definition -- --noplot
 cargo bench -p structurizr-lsp --bench session large_big_bank_document_symbols -- --noplot
+cargo bench -p structurizr-lsp --bench session mega_benchmark_dynamic_definition -- --noplot
 ```
 
 This is the best loop for verifying whether a code change affects one benchmarked path without rerunning unrelated release-binary work.
@@ -136,6 +144,13 @@ samply record --save-only --no-open -o tmp/lsp-large-session.json.gz -- \
   cargo bench -p structurizr-lsp --bench session large_big_bank_document_symbols -- --noplot
 ```
 
+For the generated mega corpus:
+
+```sh
+samply record --save-only --no-open -o tmp/lsp-mega-session.json.gz -- \
+  cargo bench -p structurizr-lsp --bench session mega_benchmark_dynamic_definition -- --noplot
+```
+
 These saved artifacts stay in `tmp/` so they are easy to compare or discard after the investigation.
 
 ### Direct LSP replay
@@ -144,9 +159,11 @@ If you want to profile the release-binary LSP path outside Criterion:
 
 ```sh
 uv run --python 3.12 tools/lsp_replay.py --server target/release/strz --case large
+uv run --python 3.12 tools/lsp_replay.py --server target/release/strz --case mega
+uv run --python 3.12 tools/lsp_replay.py --server target/release/strz --case mega-multi-root
 ```
 
-This follows the same small/large session shapes the black-box benchmark script uses.
+This follows the same small/large/mega session shapes the black-box benchmark script uses.
 
 ## Stable comparisons
 
