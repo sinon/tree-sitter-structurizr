@@ -6,15 +6,15 @@ This repository now has three areas of focus:
 - transport-agnostic analysis and workspace work
 - LSP, CLI, and downstream editor-integration work
 
-If you are starting on the semantic or editor-facing side, read `docs/lsp/00-current-state.md` first. It is the quickest summary of the current architecture, shipped bounded surface, and remaining path to feature completeness.
+If you are starting on the semantic or editor-facing side, read [`docs/lsp/00-current-state.md`](docs/lsp/00-current-state.md) first. It is the quickest summary of the current architecture, shipped bounded surface, and remaining path to feature completeness.
 
 ## Choosing a starting point
 
 Pick the layer before you pick the code:
 
-- grammar or query work: start with `README.md`, then use this file's recommended grammar workflow and test surfaces
-- analysis or LSP work: start with `docs/lsp/00-current-state.md`, then `docs/lsp/01-foundations/overview.md`, then the relevant design note under `docs/lsp/02-design/`
-- downstream editor wiring or release work: start with `docs/lsp/03-delivery/roadmap.md` and the packaging/wiring notes under `docs/lsp/03-delivery/`
+- grammar or query work: start with [`README.md`](README.md), then use this file's recommended grammar workflow and test surfaces
+- analysis or LSP work: start with [`docs/lsp/00-current-state.md`](docs/lsp/00-current-state.md), then [`docs/lsp/01-foundations/overview.md`](docs/lsp/01-foundations/overview.md), then the relevant design note under [`docs/lsp/02-design/`](docs/lsp/02-design/)
+- downstream editor wiring or release work: start with [`docs/lsp/03-delivery/roadmap.md`](docs/lsp/03-delivery/roadmap.md) and the packaging/wiring notes under [`docs/lsp/03-delivery/`](docs/lsp/03-delivery/)
 
 ## Prerequisites
 
@@ -45,8 +45,8 @@ INSTA_UPDATE=always just test-rust
 ```
 
 When you change docs, run `just check-links` to verify relative markdown links
-and fragment anchors across `README.md`, `CONTRIBUTING.md`, `AGENTS.md`,
-`docs/**`, and markdown docs under `crates/**`.
+and fragment anchors across [`README.md`](README.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), [`AGENTS.md`](AGENTS.md),
+[`SESSION.md`](SESSION.md), `docs/**`, markdown docs under `crates/**`, and [`tasks/`](tasks/).
 
 Use `just audit-upstream` when you are hardening coverage against upstream Structurizr examples. It is useful for maintainers and focused grammar work, but it is not required for every consumer-facing change.
 
@@ -67,16 +67,16 @@ just test-cli
 cargo test -p structurizr-lsp --test navigation
 just run-strz check
 just run-strz dump workspace tests/lsp/workspaces/directory-include
-just run-strz dump document tests/fixtures/lsp/identifiers/direct-references-ok.dsl
+just run-strz dump document crates/structurizr-lsp/tests/fixtures/identifiers/direct-references-ok.dsl
 just run-strz server
 ```
 
-If you are changing semantic behavior, read `docs/lsp/00-current-state.md`
-first, then `docs/lsp/01-foundations/overview.md`, and then the specific
+If you are changing semantic behavior, read [`docs/lsp/00-current-state.md`](docs/lsp/00-current-state.md)
+first, then [`docs/lsp/01-foundations/overview.md`](docs/lsp/01-foundations/overview.md), and then the specific
 design note for the slice you are touching.
 
-For crate-local context, see `crates/structurizr-cli/README.md` for the `strz`
-binary surface and logging knobs, and `crates/structurizr-lsp/README.md` for
+For crate-local context, see [`crates/structurizr-cli/README.md`](crates/structurizr-cli/README.md) for the `strz`
+binary surface and logging knobs, and [`crates/structurizr-lsp/README.md`](crates/structurizr-lsp/README.md) for
 the server crate layout and test entry points.
 
 Use `check` when you want aggregated syntax and include diagnostics for a file
@@ -110,14 +110,14 @@ artifact when you need to debug one hanging case.
 The benchmark surface deliberately tracks a small fixed matrix so performance
 history stays comparable over time:
 
-- small document: `tests/fixtures/lsp/identifiers/direct-references-ok.dsl`
-- medium document: `tests/lsp/workspaces/big-bank-plc/model/people-and-software-systems.dsl`
-- large document: `tests/lsp/workspaces/big-bank-plc/internet-banking-system.dsl`
-- small workspace: `tests/lsp/workspaces/minimal-scan`
-- medium workspace: `tests/lsp/workspaces/directory-include`
-- large workspace: `tests/lsp/workspaces/big-bank-plc`
-- small LSP session: `tests/fixtures/lsp/relationships/named-relationships-ok.dsl`
-- large LSP session: `tests/lsp/workspaces/big-bank-plc/internet-banking-system.dsl`
+- small document: [`crates/structurizr-lsp/tests/fixtures/identifiers/direct-references-ok.dsl`](crates/structurizr-lsp/tests/fixtures/identifiers/direct-references-ok.dsl)
+- medium document: [`tests/lsp/workspaces/big-bank-plc/model/people-and-software-systems.dsl`](tests/lsp/workspaces/big-bank-plc/model/people-and-software-systems.dsl)
+- large document: [`tests/lsp/workspaces/big-bank-plc/internet-banking-system.dsl`](tests/lsp/workspaces/big-bank-plc/internet-banking-system.dsl)
+- small workspace: [`tests/lsp/workspaces/minimal-scan`](tests/lsp/workspaces/minimal-scan/)
+- medium workspace: [`tests/lsp/workspaces/directory-include`](tests/lsp/workspaces/directory-include/)
+- large workspace: [`tests/lsp/workspaces/big-bank-plc`](tests/lsp/workspaces/big-bank-plc/)
+- small LSP session: [`crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl`](crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl)
+- large LSP session: [`tests/lsp/workspaces/big-bank-plc/internet-banking-system.dsl`](tests/lsp/workspaces/big-bank-plc/internet-banking-system.dsl)
 
 Useful commands from the repository root:
 
@@ -136,7 +136,7 @@ and a replayed `strz server` session against the checked-in fixtures. Use
 plus environment capture written to `tmp/benchmark-results/`.
 
 For a more detailed workflow with targeted `cargo bench` filters, CodSpeed
-parity commands, and profiler examples, see `docs/performance-testing.md`.
+parity commands, and profiler examples, see [`docs/performance-testing.md`](docs/performance-testing.md).
 
 The stable mode is still best-effort rather than perfectly reproducible. On
 Linux, you can set `STRZ_BENCH_CPUSET=2` (or another CPU set) before running
@@ -157,7 +157,7 @@ cargo codspeed run -p structurizr-lsp
 
 ## Upstream audit workflow
 
-The upstream audit lives in `tools/upstream_audit.rs` as a single-file Rust package with an embedded manifest.
+The upstream audit lives in [`tools/upstream_audit.rs`](tools/upstream_audit.rs) as a single-file Rust package with an embedded manifest.
 
 It is run through nightly Cargo's `-Zscript` support:
 
@@ -189,21 +189,21 @@ The audit downloads sample `.dsl` files from the upstream [structurizr/structuri
 
 ## Generated artifacts
 
-- `src/parser.c`
-- `src/grammar.json`
-- `src/node-types.json`
-- `bindings/rust/**` - generated by `tree-sitter init` these are not re-generated by changes to `grammar.js`
+- [`crates/structurizr-grammar/src/parser.c`](crates/structurizr-grammar/src/parser.c)
+- [`crates/structurizr-grammar/src/grammar.json`](crates/structurizr-grammar/src/grammar.json)
+- [`crates/structurizr-grammar/src/node-types.json`](crates/structurizr-grammar/src/node-types.json)
+- `crates/structurizr-grammar/bindings/rust/**` - generated by `tree-sitter init` these are not re-generated by changes to [`crates/structurizr-grammar/grammar.js`](crates/structurizr-grammar/grammar.js)
 
-When `grammar.js` changes, run `just generate` before testing or opening a PR.
+When [`crates/structurizr-grammar/grammar.js`](crates/structurizr-grammar/grammar.js) changes, run `just generate` before testing or opening a PR.
 
 ## Test surfaces and how to use them
 
 ## Property-test workflow
 
 The repository now keeps Proptest's default failure persistence enabled for the
-property suites in `tests/property_parser.rs`,
-`crates/structurizr-analysis/tests/property_analysis.rs`, and
-`crates/structurizr-analysis/tests/property_workspace.rs`.
+property suites in [`crates/structurizr-grammar/tests/property_parser.rs`](crates/structurizr-grammar/tests/property_parser.rs),
+[`crates/structurizr-analysis/tests/property_analysis.rs`](crates/structurizr-analysis/tests/property_analysis.rs), and
+[`crates/structurizr-analysis/tests/property_workspace.rs`](crates/structurizr-analysis/tests/property_workspace.rs).
 
 That means:
 
@@ -231,7 +231,7 @@ Capture notes:
 Promotion notes:
 
 - Start by capturing into `tmp/proptest-captures/`.
-- If the minimized case is worth keeping, promote it into `tests/fixtures/`, `tests/lsp/workspaces/`, or `test/corpus/` depending on whether it is best represented as a realistic fixture, a workspace discovery regression, or a small syntax teaching example.
+- If the minimized case is worth keeping, promote it into [`fixtures/`](fixtures/), [`tests/lsp/workspaces/`](tests/lsp/workspaces/), or [`crates/structurizr-grammar/test/corpus/`](crates/structurizr-grammar/test/corpus/) depending on whether it is best represented as a realistic fixture, a workspace discovery regression, or a small syntax teaching example.
 - Commit any useful `proptest-regressions/` updates alongside the curated fixture or corpus promotion when they still add value.
 
 ## Grammar fuzzing
@@ -248,7 +248,7 @@ just fuzz-grammar 25 4
 just fuzz-grammar-stress
 ```
 
-### `test/corpus/`
+### [`crates/structurizr-grammar/test/corpus/`](crates/structurizr-grammar/test/corpus/)
 
 This is the cleanest place to see the DSL built up by concept. Prefer adding small, concept-focused grammar regressions here.
 
@@ -265,7 +265,7 @@ Current corpus layout:
 
 When adding a new concept, prefer making the corpus mapping clearer rather than adding another catch-all example if a narrow example will do.
 
-### `tests/fixtures/`
+### [`fixtures/`](fixtures/)
 
 This is the broader Rust snapshot suite. Keep using it for realistic, multi-block, or integration-style examples.
 
@@ -284,7 +284,7 @@ When changing grammar support:
 
 1. Pick a narrow syntax slice from the upstream audit or a clearly scoped local gap.
 2. Add or adjust local coverage first.
-3. Update `grammar.js`.
+3. Update [`crates/structurizr-grammar/grammar.js`](crates/structurizr-grammar/grammar.js).
 4. Regenerate parser artifacts with `just generate`.
 5. Run local validation:
    - `just test-grammar`
@@ -297,12 +297,12 @@ When changing grammar support:
 
 The repository uses three complementary views of coverage:
 
-- `test/corpus/` for gradual concept-oriented grammar coverage
-- `tests/fixtures/` for richer snapshot-backed regression coverage
-- `tools/upstream_audit.rs` as the backlog generator for broader Structurizr DSL parity work
+- [`crates/structurizr-grammar/test/corpus/`](crates/structurizr-grammar/test/corpus/) for gradual concept-oriented grammar coverage
+- [`fixtures/`](fixtures/) for richer snapshot-backed regression coverage
+- [`tools/upstream_audit.rs`](tools/upstream_audit.rs) as the backlog generator for broader Structurizr DSL parity work
 
 If you are deciding where to add coverage, use this rule of thumb:
 
-- choose `test/corpus/` when the concept should be easy to discover and teach
-- choose `tests/fixtures/` when the example is more realistic, broader, or valuable as a regression snapshot
+- choose [`crates/structurizr-grammar/test/corpus/`](crates/structurizr-grammar/test/corpus/) when the concept should be easy to discover and teach
+- choose [`fixtures/`](fixtures/) when the example is more realistic, broader, or valuable as a regression snapshot
 - use the upstream audit to choose the next syntax slice, not as a substitute for local tests

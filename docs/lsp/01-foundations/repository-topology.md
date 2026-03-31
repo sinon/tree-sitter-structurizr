@@ -21,7 +21,7 @@ That could become painful if grammar changes, LSP changes, and extension changes
 
 Today the Zed extension:
 
-- declares the grammar in `extension.toml` via `[grammars.structurizr]`
+- declares the grammar in `extensions.toml` via `[grammars.structurizr]`
 - pins this grammar repository by git revision
 - keeps Zed-side language config and editor query files in `languages/structurizr/`
 
@@ -29,9 +29,12 @@ That means the extension is consuming this repository as a **grammar repository*
 
 This creates an important constraint:
 
-- the grammar must remain buildable from the repository root in the standard Tree-sitter layout Zed expects
+- the grammar must remain buildable from a standard Tree-sitter grammar directory that Zed can target explicitly
 
-So any future repo shape should avoid hiding the grammar behind an LSP-specific layout that would make Zed integration awkward.
+That no longer means the grammar has to live at the repository root. Zed can pin
+this repository and build the grammar from [`crates/structurizr-grammar/`](../../../crates/structurizr-grammar/) via the
+grammar entry's `path` field, so the Cargo workspace can use a clearer internal
+layout without making extension development awkward.
 
 ## Option A: keep grammar and LSP together, keep Zed extension separate
 
@@ -99,7 +102,7 @@ One repository contains:
 - the Tree-sitter grammar at the root
 - Rust bindings
 - future analysis/LSP crates
-- `extension.toml`
+- `extensions.toml`
 - `languages/structurizr/`
 
 ### Why it is tempting
@@ -136,7 +139,7 @@ Zed's docs allow grammar repositories to be loaded from `file://` URLs during lo
 That gives a good workflow:
 
 1. keep working on grammar and LSP in this repository
-2. point the dev extension at `file:///Users/rob/dev/tree-sitter-structurizr` for grammar changes
+2. point the dev extension at `file:///Users/rob/dev/tree-sitter-structurizr` with `path = "crates/structurizr-grammar"` for grammar changes
 3. point the extension at a locally built LSP binary for server changes
 4. only pin commit SHAs and package binaries when preparing a real extension release
 
@@ -148,7 +151,7 @@ This keeps fast iteration local without forcing every experiment through git tag
 
 Own:
 
-- `grammar.js`
+- [`crates/structurizr-grammar/grammar.js`](../../../crates/structurizr-grammar/grammar.js)
 - generated parser artifacts
 - Rust bindings
 - portable query surfaces that make sense outside Zed
@@ -159,7 +162,7 @@ Own:
 
 Own:
 
-- `extension.toml`
+- `extensions.toml`
 - `languages/structurizr/config.toml`
 - Zed-specific query surfaces and editor tuning
 - LSP launch wiring and packaging decisions
@@ -176,7 +179,7 @@ That split is not necessarily wrong, but it means future work should decide cons
 - which queries are portable and should live with the grammar
 - which queries are editor-specific and should remain in the Zed extension
 
-The current recommended split is captured in `docs/lsp/01-foundations/query-ownership.md`.
+The current recommended split is captured in [`docs/lsp/01-foundations/query-ownership.md`](query-ownership.md).
 
 ## Release-flow suggestion
 
@@ -190,4 +193,4 @@ For actual releases:
 
 This preserves loose coupling in releases without slowing down day-to-day development.
 
-The concrete launcher and packaging recommendation for that flow is captured in `docs/lsp/03-delivery/zed-extension-language-server-wiring.md`.
+The concrete launcher and packaging recommendation for that flow is captured in [`docs/lsp/03-delivery/zed-extension-language-server-wiring.md`](../03-delivery/zed-extension-language-server-wiring.md).

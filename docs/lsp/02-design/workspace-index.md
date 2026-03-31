@@ -6,14 +6,14 @@
 > contract for the current bounded workspace view and the rationale for what is
 > still intentionally deferred.
 
-This note turns Phase 3.4 of `docs/lsp/03-delivery/roadmap.md` into a concrete design for how the future analysis crate should merge per-document facts into one bounded semantic workspace view.
+This note turns Phase 3.4 of [`docs/lsp/03-delivery/roadmap.md`](../03-delivery/roadmap.md) into a concrete design for how the future analysis crate should merge per-document facts into one bounded semantic workspace view.
 
 It sits on top of:
 
-- `docs/lsp/02-design/workspace-discovery-includes.md`
-- `docs/lsp/02-design/analysis-crate-skeleton.md`
-- `docs/lsp/02-design/first-pass-symbol-extraction.md`
-- `docs/lsp/02-design/scope-rules.md`
+- [`docs/lsp/02-design/workspace-discovery-includes.md`](workspace-discovery-includes.md)
+- [`docs/lsp/02-design/analysis-crate-skeleton.md`](analysis-crate-skeleton.md)
+- [`docs/lsp/02-design/first-pass-symbol-extraction.md`](first-pass-symbol-extraction.md)
+- [`docs/lsp/02-design/scope-rules.md`](scope-rules.md)
 
 The goal is to define a workspace-layer semantic model that is strong enough for bounded cross-file definition, references, and include diagnostics without drifting into a Structurizr runtime.
 
@@ -159,7 +159,7 @@ This is the structural expansion rooted at one entry document:
 - resolved include edges
 - stable document order for deterministic processing
 
-This is already implied by `docs/lsp/02-design/workspace-discovery-includes.md`.
+This is already implied by [`docs/lsp/02-design/workspace-discovery-includes.md`](workspace-discovery-includes.md).
 
 ## `WorkspaceIndex`
 
@@ -520,7 +520,7 @@ Later profiling can decide whether narrower recompute is worthwhile.
 
 The current fixtures already suggest the first useful cross-file case:
 
-`tests/fixtures/lsp/includes/workspace_fragments-ok.dsl`
+[`crates/structurizr-lsp/tests/fixtures/includes/workspace_fragments-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/includes/workspace_fragments-ok.dsl)
 
 ```dsl
 workspace {
@@ -529,7 +529,7 @@ workspace {
 }
 ```
 
-`tests/fixtures/lsp/includes/model-fragment-ok.dsl`
+[`crates/structurizr-lsp/tests/fixtures/includes/model-fragment-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/includes/model-fragment-ok.dsl)
 
 ```dsl
 model {
@@ -542,7 +542,7 @@ model {
 }
 ```
 
-`tests/fixtures/lsp/includes/views-fragment-ok.dsl`
+[`crates/structurizr-lsp/tests/fixtures/includes/views-fragment-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/includes/views-fragment-ok.dsl)
 
 ```dsl
 views {
@@ -616,13 +616,13 @@ That is the semantic step that makes the planned LSP genuinely useful across mul
 
 ## Sources
 
-- `docs/lsp/03-delivery/roadmap.md`
-- `docs/lsp/02-design/workspace-discovery-includes.md`
-- `docs/lsp/02-design/analysis-crate-skeleton.md`
-- `docs/lsp/02-design/first-pass-symbol-extraction.md`
-- `docs/lsp/02-design/scope-rules.md`
-- `docs/lsp/02-design/bounded-mvp-handlers.md`
-- `docs/lsp/90-history/syntax-audit-directive-nodes.md`
-- `tests/fixtures/lsp/includes/workspace_fragments-ok.dsl`
-- `tests/fixtures/lsp/includes/model-fragment-ok.dsl`
-- `tests/fixtures/lsp/includes/views-fragment-ok.dsl`
+- [`docs/lsp/03-delivery/roadmap.md`](../03-delivery/roadmap.md)
+- [`docs/lsp/02-design/workspace-discovery-includes.md`](workspace-discovery-includes.md)
+- [`docs/lsp/02-design/analysis-crate-skeleton.md`](analysis-crate-skeleton.md)
+- [`docs/lsp/02-design/first-pass-symbol-extraction.md`](first-pass-symbol-extraction.md)
+- [`docs/lsp/02-design/scope-rules.md`](scope-rules.md)
+- [`docs/lsp/02-design/bounded-mvp-handlers.md`](bounded-mvp-handlers.md)
+- [`docs/lsp/90-history/syntax-audit-directive-nodes.md`](../90-history/syntax-audit-directive-nodes.md)
+- [`crates/structurizr-lsp/tests/fixtures/includes/workspace_fragments-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/includes/workspace_fragments-ok.dsl)
+- [`crates/structurizr-lsp/tests/fixtures/includes/model-fragment-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/includes/model-fragment-ok.dsl)
+- [`crates/structurizr-lsp/tests/fixtures/includes/views-fragment-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/includes/views-fragment-ok.dsl)

@@ -27,7 +27,7 @@ enum FixtureExpectation {
 }
 
 #[rstest]
-fn fixtures_match_expected_parse_outcomes(#[files("tests/fixtures/**/*.dsl")] path: PathBuf) {
+fn fixtures_match_expected_parse_outcomes(#[files("../../fixtures/**/*.dsl")] path: PathBuf) {
     let fixture = load_fixture(&path);
     let tree = parse(&fixture.source);
 
@@ -81,13 +81,19 @@ fn assert_has_errors(label: &str, tree: &Tree, source: &str) {
 }
 
 fn relative_fixture_name(path: &Path) -> String {
-    let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
-    let relative = path
+    let fixture_root = fs::canonicalize(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures"))
+        .unwrap_or_else(|error| panic!("failed to canonicalize fixture root: {error}"));
+    let fixture_path = fs::canonicalize(path).unwrap_or_else(|error| {
+        panic!(
+            "failed to canonicalize fixture `{}`: {error}",
+            path.display()
+        )
+    });
+    let relative = fixture_path
         .strip_prefix(&fixture_root)
-        .or_else(|_| path.strip_prefix("tests/fixtures"))
         .unwrap_or_else(|_| {
             panic!(
-                "fixture path should live under tests/fixtures: {}",
+                "fixture path should live under fixtures: {}",
                 path.display()
             )
         })

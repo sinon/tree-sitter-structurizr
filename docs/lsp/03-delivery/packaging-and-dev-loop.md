@@ -4,9 +4,9 @@ This note defines the recommended packaging model and contributor loops for the 
 
 It is the operational companion to:
 
-- `docs/lsp/01-foundations/repository-topology.md`
-- `docs/lsp/02-design/lsp-crate-skeleton.md`
-- `docs/lsp/03-delivery/zed-extension-language-server-wiring.md`
+- [`docs/lsp/01-foundations/repository-topology.md`](../01-foundations/repository-topology.md)
+- [`docs/lsp/02-design/lsp-crate-skeleton.md`](../02-design/lsp-crate-skeleton.md)
+- [`docs/lsp/03-delivery/zed-extension-language-server-wiring.md`](zed-extension-language-server-wiring.md)
 
 Its job is to answer:
 
@@ -241,7 +241,7 @@ The project should treat grammar and LSP version references as related but separ
 
 The Zed extension should continue to pin:
 
-- a grammar git revision in `extension.toml`
+- a grammar git revision in `extensions.toml`
 
 That pin controls:
 
@@ -299,14 +299,14 @@ when you want the broader Rust + grammar validation pass before landing or relea
 For local Zed iteration:
 
 - install `/Users/rob/dev/zed-structurizr` as a dev extension
-- temporarily point its grammar entry at `file:///Users/rob/dev/tree-sitter-structurizr`
+- temporarily point its grammar entry at `file:///Users/rob/dev/tree-sitter-structurizr` with `path = "crates/structurizr-grammar"`
 - open a representative `.dsl` file such as `big-bank.dsl`
 
 This loop does not require an LSP yet.
 
 ## Loop 2: LSP implementation work
 
-Now that `crates/structurizr-analysis/`, `crates/structurizr-lsp/`, and `crates/structurizr-cli/` exist, the day-to-day loop should stay mostly in this repository.
+Now that [`crates/structurizr-analysis/`](../../../crates/structurizr-analysis/), [`crates/structurizr-lsp/`](../../../crates/structurizr-lsp/), and [`crates/structurizr-cli/`](../../../crates/structurizr-cli/) exist, the day-to-day loop should stay mostly in this repository.
 
 Recommended loop:
 
@@ -447,9 +447,9 @@ And validate:
 Use:
 
 - `/Users/rob/dev/zed-structurizr/big-bank.dsl`
-- `tests/fixtures/lsp/includes/`
-- `tests/fixtures/lsp/identifiers/`
-- `tests/fixtures/lsp/relationships/`
+- [`crates/structurizr-lsp/tests/fixtures/includes/`](../../../crates/structurizr-lsp/tests/fixtures/includes/)
+- [`crates/structurizr-lsp/tests/fixtures/identifiers/`](../../../crates/structurizr-lsp/tests/fixtures/identifiers/)
+- [`crates/structurizr-lsp/tests/fixtures/relationships/`](../../../crates/structurizr-lsp/tests/fixtures/relationships/)
 
 as the first representative smoke-test set.
 
@@ -521,10 +521,10 @@ That keeps the project practical for day-to-day work as the LSP starts becoming 
 
 ## Sources
 
-- `docs/lsp/01-foundations/repository-topology.md`
-- `docs/lsp/02-design/lsp-crate-skeleton.md`
-- `docs/lsp/03-delivery/zed-extension-language-server-wiring.md`
-- `docs/lsp/01-foundations/overview.md`
+- [`docs/lsp/01-foundations/repository-topology.md`](../01-foundations/repository-topology.md)
+- [`docs/lsp/02-design/lsp-crate-skeleton.md`](../02-design/lsp-crate-skeleton.md)
+- [`docs/lsp/03-delivery/zed-extension-language-server-wiring.md`](zed-extension-language-server-wiring.md)
+- [`docs/lsp/01-foundations/overview.md`](../01-foundations/overview.md)
 - `/Users/rob/dev/tree-sitter-structurizr/Justfile`
 - `/Users/rob/dev/zed-structurizr/README.md`
 - `https://zed.dev/docs/extensions/languages`

@@ -4,13 +4,13 @@ The local benchmark matrix still puts `analysis/workspace` at roughly `0.91 ms` 
 
 ## Root Cause
 
-`crates/structurizr-analysis/src/workspace.rs` normalizes roots up front and then canonicalizes many paths again while scanning workspaces and following includes:
+[`crates/structurizr-analysis/src/workspace.rs`](../crates/structurizr-analysis/src/workspace.rs) normalizes roots up front and then canonicalizes many paths again while scanning workspaces and following includes:
 
 - `scan_workspace_root(...)`
 - `resolve_local_include(...)`
 - `collect_directory_include_paths(...)`
 
-On the LSP side, `crates/structurizr-lsp/src/handlers/text_sync.rs`, `src/handlers/navigation.rs`, and `src/convert/diagnostics.rs` also call `fs::canonicalize(...)` when turning URIs back into workspace document identities. The same path normalization work is therefore repeated both within one workspace load and again on request/diagnostic paths.
+On the LSP side, [`crates/structurizr-lsp/src/handlers/text_sync.rs`](../crates/structurizr-lsp/src/handlers/text_sync.rs), `src/handlers/navigation.rs`, and `src/convert/diagnostics.rs` also call `fs::canonicalize(...)` when turning URIs back into workspace document identities. The same path normalization work is therefore repeated both within one workspace load and again on request/diagnostic paths.
 
 ## Options
 

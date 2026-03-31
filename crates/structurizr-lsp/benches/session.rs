@@ -18,7 +18,7 @@ use tower_lsp_server::{
 };
 
 const SMALL_SESSION_SOURCE: &str =
-    include_str!("../../../tests/fixtures/lsp/relationships/named-relationships-ok.dsl");
+    include_str!("../tests/fixtures/relationships/named-relationships-ok.dsl");
 const LARGE_SESSION_SOURCE: &str =
     include_str!("../../../tests/lsp/workspaces/big-bank-plc/internet-banking-system.dsl");
 
@@ -45,7 +45,7 @@ struct SessionCase {
 const SESSION_CASES: &[SessionCase] = &[
     SessionCase {
         name: "small_named_relationship_definition",
-        relative_document_path: "tests/fixtures/lsp/relationships/named-relationships-ok.dsl",
+        relative_document_path: "crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl",
         source: SMALL_SESSION_SOURCE,
         workspace_root: None,
         request: SessionRequest::Definition {

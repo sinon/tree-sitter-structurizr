@@ -6,7 +6,7 @@ This is outside the current fixed-vocabulary completion MVP.
 
 ## Root Cause
 
-The current completion implementation in `crates/structurizr-lsp/src/convert/completion.rs` only offers a static set of keywords and directives such as `workspace`, `model`, `!include`, and `autoLayout`.
+The current completion implementation in [`crates/structurizr-lsp/src/convert/completion.rs`](../crates/structurizr-lsp/src/convert/completion.rs) only offers a static set of keywords and directives such as `workspace`, `model`, `!include`, and `autoLayout`.
 
 The roadmap and bounded handler note deliberately stop short of context-aware property completion, and there is not yet a dedicated table describing which style-setting names should be offered in which block contexts.
 

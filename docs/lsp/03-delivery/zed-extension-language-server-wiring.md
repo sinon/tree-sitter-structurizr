@@ -1,6 +1,6 @@
 # Structurizr DSL Zed extension language-server wiring
 
-This note turns Phase 5 of `docs/lsp/03-delivery/roadmap.md` into a concrete integration plan for `/Users/rob/dev/zed-structurizr`.
+This note turns Phase 5 of [`docs/lsp/03-delivery/roadmap.md`](roadmap.md) into a concrete integration plan for `/Users/rob/dev/zed-structurizr`.
 
 Its job is to answer:
 
@@ -30,10 +30,10 @@ Without that, “wire it into Zed” stays vague and tends to drift into acciden
 
 Today `/Users/rob/dev/zed-structurizr` is a static language extension:
 
-- `extension.toml` registers the grammar
+- `extensions.toml` registers the grammar
 - `languages/structurizr/config.toml` defines the language metadata
 - `languages/structurizr/` owns Zed-side queries
-- there is currently **no** `Cargo.toml`
+- there is currently **no** [`Cargo.toml`](../../../Cargo.toml)
 - there is currently **no** `src/lib.rs`
 - there is currently **no** `language_server_command` implementation
 
@@ -65,7 +65,7 @@ It should:
 
 The extension should **not** try to absorb analysis logic or become the semantic source of truth.
 
-The broader artifact/release lifecycle that sits around this launcher behavior is captured in `docs/lsp/03-delivery/packaging-and-dev-loop.md`.
+The broader artifact/release lifecycle that sits around this launcher behavior is captured in [`docs/lsp/03-delivery/packaging-and-dev-loop.md`](packaging-and-dev-loop.md).
 
 ## Responsibility split at wiring time
 
@@ -83,8 +83,8 @@ Owns:
 
 Owns:
 
-- grammar pin in `extension.toml`
-- language server registration in `extension.toml`
+- grammar pin in `extensions.toml`
+- language server registration in `extensions.toml`
 - extension-side Rust/Wasm launcher code
 - binary resolution/download policy
 - Zed-specific query files and editor tuning
@@ -99,8 +99,8 @@ When a directive target is a directory, that fallback must resolve to concrete f
 
 The extension repo should gain exactly three new pieces:
 
-1. a language-server registration in `extension.toml`
-2. a small Rust extension crate (`Cargo.toml` + `src/lib.rs`)
+1. a language-server registration in `extensions.toml`
+2. a small Rust extension crate ([`Cargo.toml`](../../../Cargo.toml) + `src/lib.rs`)
 3. a documented local-dev and release workflow
 
 Nothing about the current query ownership decision should change:
@@ -144,7 +144,7 @@ Recommended shape:
 
 ```text
 zed-structurizr/
-  extension.toml
+  extensions.toml
   Cargo.toml
   src/
     lib.rs
@@ -159,7 +159,7 @@ zed-structurizr/
       textobjects.scm
 ```
 
-Recommended `Cargo.toml` shape:
+Recommended [`Cargo.toml`](../../../Cargo.toml) shape:
 
 ```toml
 [package]
@@ -285,7 +285,7 @@ The published extension should use a **pinned server release tag**, not “alway
 
 For each extension release:
 
-- pin a grammar commit in `extension.toml`
+- pin a grammar commit in `extensions.toml`
 - pin an LSP release tag in the extension Rust code
 
 Example conceptual pairing:
@@ -420,11 +420,12 @@ The local workflow should optimize for changing grammar and server code together
 Concrete example:
 
 1. in `/Users/rob/dev/tree-sitter-structurizr`, build `target/debug/strz`
-2. in `/Users/rob/dev/zed-structurizr/extension.toml`, temporarily use:
+2. in `/Users/rob/dev/zed-structurizr/extensions.toml`, temporarily use:
 
 ```toml
 [grammars.structurizr]
 repository = "file:///Users/rob/dev/tree-sitter-structurizr"
+path = "crates/structurizr-grammar"
 rev = "<local-commit-sha>"
 ```
 
@@ -485,13 +486,13 @@ Use `/Users/rob/dev/zed-structurizr/big-bank.dsl` to confirm:
 
 Use the fixture slice in this repository to confirm:
 
-- `tests/fixtures/lsp/identifiers/direct-references-ok.dsl`
+- [`crates/structurizr-lsp/tests/fixtures/identifiers/direct-references-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/identifiers/direct-references-ok.dsl)
   - bounded definition works for assigned identifiers
-- `tests/fixtures/lsp/relationships/named-relationships-ok.dsl`
+- [`crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl)
   - named relationship navigation works when implemented
-- `tests/fixtures/lsp/includes/workspace_fragments-ok.dsl`
+- [`crates/structurizr-lsp/tests/fixtures/includes/workspace_fragments-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/includes/workspace_fragments-ok.dsl)
   - include-aware diagnostics resolve against the parent directive site
-- `tests/fixtures/lsp/directives/identifiers-directive-ok.dsl`
+- [`crates/structurizr-lsp/tests/fixtures/directives/identifiers-directive-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/directives/identifiers-directive-ok.dsl)
   - hierarchical identifier mode does not crash or produce overconfident results
 
 ### Logging
@@ -565,11 +566,11 @@ Once this wiring note is followed:
 
 ## Sources
 
-- `docs/lsp/01-foundations/repository-topology.md`
-- `docs/lsp/01-foundations/query-ownership.md`
-- `docs/lsp/02-design/lsp-crate-skeleton.md`
-- `docs/lsp/02-design/bounded-mvp-handlers.md`
-- `/Users/rob/dev/zed-structurizr/extension.toml`
+- [`docs/lsp/01-foundations/repository-topology.md`](../01-foundations/repository-topology.md)
+- [`docs/lsp/01-foundations/query-ownership.md`](../01-foundations/query-ownership.md)
+- [`docs/lsp/02-design/lsp-crate-skeleton.md`](../02-design/lsp-crate-skeleton.md)
+- [`docs/lsp/02-design/bounded-mvp-handlers.md`](../02-design/bounded-mvp-handlers.md)
+- `/Users/rob/dev/zed-structurizr/extensions.toml`
 - `/Users/rob/dev/zed-structurizr/languages/structurizr/config.toml`
 - `/Users/rob/dev/zed-structurizr/README.md`
 - `https://zed.dev/docs/extensions/languages`

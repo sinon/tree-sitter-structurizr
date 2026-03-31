@@ -4,16 +4,16 @@
 >
 > Read this as the design contract for the shipped bounded handler slice, not as
 > a greenfield plan. If you need current status or the remaining path to
-> feature-complete editor support, start with `../00-current-state.md` and
-> `../03-delivery/roadmap.md`.
+> feature-complete editor support, start with [`../00-current-state.md`](../00-current-state.md) and
+> [`../03-delivery/roadmap.md`](../03-delivery/roadmap.md).
 
 This note defines the first user-visible LSP handler slice for the in-repo Structurizr server.
 
 It sits on top of:
 
-- `docs/lsp/02-design/analysis-crate-skeleton.md`
-- `docs/lsp/02-design/first-pass-symbol-extraction.md`
-- `docs/lsp/02-design/lsp-crate-skeleton.md`
+- [`docs/lsp/02-design/analysis-crate-skeleton.md`](analysis-crate-skeleton.md)
+- [`docs/lsp/02-design/first-pass-symbol-extraction.md`](first-pass-symbol-extraction.md)
+- [`docs/lsp/02-design/lsp-crate-skeleton.md`](lsp-crate-skeleton.md)
 
 The goal is to make the first handler implementation concrete enough that future work can implement the server feature-by-feature without re-deciding scope for every request type.
 
@@ -311,7 +311,7 @@ The presence of `IdentifierModeFact` should be recorded now, but the initial com
 That means:
 
 - do not let `!identifiers` force identifier completion behavior before the scope-rules note exists
-- follow the later policy captured in `docs/lsp/02-design/scope-rules.md` once identifier completion is intentionally introduced
+- follow the later policy captured in [`docs/lsp/02-design/scope-rules.md`](scope-rules.md) once identifier completion is intentionally introduced
 - keep the first completion slice keyword/directive-oriented
 
 Later work can expand completion deliberately once the semantic rules are documented.
@@ -561,10 +561,10 @@ Once this handler contract exists, the future implementation path becomes much c
 
 ## Sources
 
-- `docs/lsp/02-design/lsp-crate-skeleton.md`
-- `docs/lsp/02-design/first-pass-symbol-extraction.md`
-- `docs/lsp/01-foundations/capability-matrix.md`
-- `docs/lsp/01-foundations/overview.md`
-- `docs/lsp/01-foundations/repository-topology.md`
+- [`docs/lsp/02-design/lsp-crate-skeleton.md`](lsp-crate-skeleton.md)
+- [`docs/lsp/02-design/first-pass-symbol-extraction.md`](first-pass-symbol-extraction.md)
+- [`docs/lsp/01-foundations/capability-matrix.md`](../01-foundations/capability-matrix.md)
+- [`docs/lsp/01-foundations/overview.md`](../01-foundations/overview.md)
+- [`docs/lsp/01-foundations/repository-topology.md`](../01-foundations/repository-topology.md)
 - `/Users/rob/dev/zed-structurizr/languages/structurizr/outline.scm`
-- `tests/fixtures/lsp/`
+- [`crates/structurizr-lsp/tests/fixtures/`](../../../crates/structurizr-lsp/tests/fixtures/)

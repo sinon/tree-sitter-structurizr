@@ -10,11 +10,6 @@ on:
       - "Cargo.toml"
       - "Cargo.lock"
       - "crates/**"
-      - "grammar.js"
-      - "bindings/rust/**"
-      - "queries/**"
-      - "src/**"
-      - "test/**"
       - "tests/**"
       - "tools/**"
   pull_request:
@@ -24,11 +19,6 @@ on:
       - "Cargo.toml"
       - "Cargo.lock"
       - "crates/**"
-      - "grammar.js"
-      - "bindings/rust/**"
-      - "queries/**"
-      - "src/**"
-      - "test/**"
       - "tests/**"
       - "tools/**"
 
@@ -107,7 +97,7 @@ jobs:
         run: just generate
 
       - name: Check generated files are in sync
-        run: git diff --exit-code -- src/parser.c src/grammar.json src/node-types.json
+        run: git diff --exit-code -- crates/structurizr-grammar/src/parser.c crates/structurizr-grammar/src/grammar.json crates/structurizr-grammar/src/node-types.json
 
       - name: Run grammar tests
         run: just test-grammar

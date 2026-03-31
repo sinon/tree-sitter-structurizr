@@ -15,27 +15,28 @@ This project is not trying to become a Structurizr runtime. It should preserve a
 
 ## Current LSP work and boundaries
 
-- `docs/lsp/README.md` and `docs/lsp/00-current-state.md` are the entry points for the current LSP architecture, status, and roadmap docs.
-- This repo now already contains `crates/structurizr-analysis/`, `crates/structurizr-lsp/`, and `crates/structurizr-cli/` alongside the grammar.
+- [`docs/lsp/README.md`](docs/lsp/README.md) and [`docs/lsp/00-current-state.md`](docs/lsp/00-current-state.md) are the entry points for the current LSP architecture, status, and roadmap docs.
+- This repo now already contains [`crates/structurizr-analysis/`](crates/structurizr-analysis/), [`crates/structurizr-lsp/`](crates/structurizr-lsp/), and [`crates/structurizr-cli/`](crates/structurizr-cli/) alongside the grammar.
 - Keep `/Users/rob/dev/zed-structurizr` as a separate downstream editor integration repo.
 - Treat the grammar as the syntax layer and the LSP as a separate semantic layer; do not distort grammar rules just to model runtime semantics.
 - Prefer transport-agnostic analysis logic and keep protocol/editor glue thin.
 
 ## Core files and layout
 
-- `CONTRIBUTING.md` — contributor workflow and canonical command surface
-- `grammar.js` — source of truth for the grammar
-- `src/parser.c`, `src/grammar.json`, `src/node-types.json` — generated artifacts
-- `crates/structurizr-analysis/` — transport-agnostic document and workspace facts
-- `crates/structurizr-lsp/` — language server implementation
-- `crates/structurizr-cli/` — `strz` CLI including `strz server`
-- `tools/upstream_audit.rs` — contributor-only single-file Cargo script for downloading upstream Structurizr DSL fixtures and auditing parser coverage
-- `tests/fixtures.rs` — fixture-driven Rust tests with snapshots
-- `test/corpus/` — Tree-sitter CLI corpus tests
-- `tests/fixtures/` — the main Rust fixture tree, organized by feature area
-- `queries/` — checked-in highlighting/folding/indentation queries
-- `docs/lsp/` — current LSP architecture, status, and delivery docs
-- `Justfile` — canonical command surface
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — contributor workflow and canonical command surface
+- [`crates/structurizr-grammar/grammar.js`](crates/structurizr-grammar/grammar.js) — source of truth for the grammar
+- [`crates/structurizr-grammar/src/parser.c`](crates/structurizr-grammar/src/parser.c), [`crates/structurizr-grammar/src/grammar.json`](crates/structurizr-grammar/src/grammar.json), [`crates/structurizr-grammar/src/node-types.json`](crates/structurizr-grammar/src/node-types.json) — generated artifacts
+- [`crates/structurizr-analysis/`](crates/structurizr-analysis/) — transport-agnostic document and workspace facts
+- [`crates/structurizr-lsp/`](crates/structurizr-lsp/) — language server implementation
+- [`crates/structurizr-cli/`](crates/structurizr-cli/) — `strz` CLI including `strz server`
+- [`tools/upstream_audit.rs`](tools/upstream_audit.rs) — contributor-only single-file Cargo script for downloading upstream Structurizr DSL fixtures and auditing parser coverage
+- [`crates/structurizr-grammar/tests/fixtures.rs`](crates/structurizr-grammar/tests/fixtures.rs) — fixture-driven Rust tests with snapshots
+- [`crates/structurizr-grammar/test/corpus/`](crates/structurizr-grammar/test/corpus/) — Tree-sitter CLI corpus tests
+- [`fixtures/`](fixtures/) — the main Rust fixture tree, organized by feature area
+- [`crates/structurizr-lsp/tests/fixtures/`](crates/structurizr-lsp/tests/fixtures/) — LSP-specific single-document fixtures
+- [`crates/structurizr-grammar/queries/`](crates/structurizr-grammar/queries/) — checked-in highlighting/folding/indentation queries
+- [`docs/lsp/`](docs/lsp/) — current LSP architecture, status, and delivery docs
+- [`Justfile`](Justfile) — canonical command surface
 
 ## Specification references
 
@@ -50,7 +51,8 @@ This project is not trying to become a Structurizr runtime. It should preserve a
 - For ad-hoc debugging, create a temporary Rust example in examples/ and run it with cargo run --example <name>. Remove the example after use.
 - Use tmp/ (project-local) for intermediate files and comparison artifacts, not /tmp. This keeps outputs discoverable and project-scoped. The tmp/ directory is gitignored.
 - Use `gh` for fetching files from github instead of fetching web content.
-- Run `just check-links` after doc edits. It uses `lychee` with local file and fragment checking so relative markdown links inside `README.md`, `CONTRIBUTING.md`, `AGENTS.md`, `docs/**`, and markdown docs under `crates/**` stay valid.
+- When you include a reference to a markdown doc in another markdown file include a fragment link so that lychee can catch drift
+- Run `just check-links` after doc edits. It uses `lychee` with local file and fragment checking so relative markdown links inside [`README.md`](README.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), [`AGENTS.md`](AGENTS.md), [`SESSION.md`](SESSION.md), `docs/**`, markdown docs under `crates/**`, and [`tasks/`](tasks/) stay valid.
 
 ## Test harnesses and why they exist
 
@@ -62,7 +64,7 @@ Command:
 just test-grammar
 ```
 
-This runs `tree-sitter test` against `test/corpus/`.
+This runs `tree-sitter test` against [`crates/structurizr-grammar/test/corpus/`](crates/structurizr-grammar/test/corpus/).
 
 Use this harness for:
 
@@ -85,7 +87,7 @@ This is the main local correctness harness.
 
 It is fixture-first:
 
-- `tests/fixtures.rs` loads file-based fixtures under `tests/fixtures/`
+- `fixtures.rs` loads file-based fixtures under [`fixtures/`](fixtures/)
 - fixture filenames encode expectation:
   - `-ok.dsl` means the fixture should parse without errors
   - `-err.dsl` means the fixture should continue to produce parse errors
@@ -114,7 +116,7 @@ Command:
 just audit-upstream
 ```
 
-This runs the contributor-only Rust audit script in `tools/upstream_audit.rs`.
+This runs the contributor-only Rust audit script in [`tools/upstream_audit.rs`](tools/upstream_audit.rs).
 
 It currently relies on nightly Cargo's unstable `-Zscript` support, so it is development-only and should be documented as such in `CONTRIBUTORS.md`.
 
@@ -151,10 +153,10 @@ When changing the grammar, use this loop:
 1. Pick a narrow syntax slice from the upstream audit.
 2. Read the failing upstream examples for that slice.
 3. Add or adjust local coverage first:
-   - fixture files under `tests/fixtures/`, organized by feature area
+   - fixture files under [`fixtures/`](fixtures/), organized by feature area
    - use `-ok.dsl` or `-err.dsl` suffixes to express expected outcome
-   - corpus coverage under `test/corpus/` if the syntax belongs in the compact CLI suite
-4. Update `grammar.js`.
+   - corpus coverage under [`crates/structurizr-grammar/test/corpus/`](crates/structurizr-grammar/test/corpus/) if the syntax belongs in the compact CLI suite
+4. Update [`crates/structurizr-grammar/grammar.js`](crates/structurizr-grammar/grammar.js).
 5. Regenerate parser artifacts:
 
 ```sh
@@ -177,19 +179,19 @@ just audit-upstream
 ```
 
 9. Update docs if support status changed:
-   - `README.md`
+   - [`README.md`](README.md)
    - `CONTRIBUTORS.md`
-   - this `AGENTS.md` if the workflow itself changed
+   - this [`AGENTS.md`](AGENTS.md) if the workflow itself changed
 
 ## How to decide where a test belongs
 
-Use `test/corpus/` when:
+Use [`crates/structurizr-grammar/test/corpus/`](crates/structurizr-grammar/test/corpus/) when:
 
 - the example is small
 - the tree shape is important
 - the syntax belongs in the stable Tree-sitter-native regression suite
 
-Use `tests/fixtures/` when:
+Use [`fixtures/`](fixtures/) when:
 
 - the example is more realistic or multi-block
 - you want snapshot coverage for a representative DSL file
@@ -245,8 +247,8 @@ Avoid trying to “solve the DSL” in one pass. The grammar is intentionally be
 - Keep changes surgical and feature-scoped.
 - Prefer adding representative fixtures from upstream examples over inventing synthetic mega-tests.
 - If a grammar rule becomes too permissive, tighten it rather than silently reclassifying broken tests.
-- When support moves from pending to implemented, update `README.md`.
-- When the audit filtering policy changes, update `tools/upstream_audit.rs`, `CONTRIBUTORS.md`, `README.md`, and any affected command docs.
+- When support moves from pending to implemented, update [`README.md`](README.md).
+- When the audit filtering policy changes, update [`tools/upstream_audit.rs`](tools/upstream_audit.rs), `CONTRIBUTORS.md`, [`README.md`](README.md), and any affected command docs.
 - Before ending work, leave the repo in a validated state:
 
 ```sh

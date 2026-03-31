@@ -6,7 +6,7 @@
 > contract and rationale for keeping the server thin rather than as a greenfield
 > proposal.
 
-This note turns Phase 4 of `docs/lsp/03-delivery/roadmap.md` into a concrete crate shape.
+This note turns Phase 4 of [`docs/lsp/03-delivery/roadmap.md`](../03-delivery/roadmap.md) into a concrete crate shape.
 
 Its job is to define the first language-server crate that:
 
@@ -345,7 +345,7 @@ That is an LSP concern, so `line-index` belongs here even if `ropey` is deferred
 
 ## Server capability surface for the bounded MVP
 
-The current design note for the first user-visible handler slice is `docs/lsp/02-design/bounded-mvp-handlers.md`.
+The current design note for the first user-visible handler slice is [`docs/lsp/02-design/bounded-mvp-handlers.md`](bounded-mvp-handlers.md).
 
 The first server should advertise only the bounded MVP protocol surface:
 
@@ -605,7 +605,7 @@ The first LSP crate should not:
 
 ## Recommended implementation sequence
 
-1. Add the workspace member for `crates/structurizr-lsp/`.
+1. Add the workspace member for [`crates/structurizr-lsp/`](../../../crates/structurizr-lsp/).
 2. Create the library + binary skeleton with `tower-lsp-server` stdio bootstrap.
 3. Add state, capability, and text-sync scaffolding.
 4. Wire document open/change/close to whole-document analysis snapshots.
@@ -629,10 +629,10 @@ It gives the project a clean top-layer crate that is editor-facing without becom
 
 ## Sources
 
-- `docs/lsp/03-delivery/roadmap.md`
-- `docs/lsp/01-foundations/overview.md`
-- `docs/lsp/01-foundations/capability-matrix.md`
-- `docs/lsp/01-foundations/repository-topology.md`
-- `docs/lsp/02-design/analysis-crate-skeleton.md`
-- `docs/lsp/02-design/workspace-discovery-includes.md`
-- `/Users/rob/dev/zed-structurizr/extension.toml`
+- [`docs/lsp/03-delivery/roadmap.md`](../03-delivery/roadmap.md)
+- [`docs/lsp/01-foundations/overview.md`](../01-foundations/overview.md)
+- [`docs/lsp/01-foundations/capability-matrix.md`](../01-foundations/capability-matrix.md)
+- [`docs/lsp/01-foundations/repository-topology.md`](../01-foundations/repository-topology.md)
+- [`docs/lsp/02-design/analysis-crate-skeleton.md`](analysis-crate-skeleton.md)
+- [`docs/lsp/02-design/workspace-discovery-includes.md`](workspace-discovery-includes.md)
+- `/Users/rob/dev/zed-structurizr/extensions.toml`

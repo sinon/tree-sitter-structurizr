@@ -1,10 +1,11 @@
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
+grammar_dir := "crates/structurizr-grammar"
 
 default:
     @just --list
 
 generate:
-    tree-sitter generate
+    cd {{grammar_dir}} && tree-sitter generate
 
 build:
     cargo build
@@ -17,10 +18,10 @@ lint-fix:
     cargo clippy --fix --workspace --all-targets -- -D warnings -W clippy::pedantic -W clippy::nursery -A clippy::const_is_empty
 
 check-links:
-    lychee --no-progress --scheme file --include-fragments --root-dir "$PWD" README.md CONTRIBUTING.md AGENTS.md "docs/**/*.md" "crates/**/*.md"
+    lychee --no-progress --scheme file --include-fragments --root-dir "$PWD" README.md CONTRIBUTING.md AGENTS.md SESSION.md "docs/**/*.md" "crates/**/*.md" "tasks/**/*.md"
 
 build-wasm:
-    tree-sitter build --wasm
+    tree-sitter build --wasm {{grammar_dir}} --output {{grammar_dir}}/tree-sitter-structurizr.wasm
 
 build-strz:
     cargo build -p structurizr-cli --bin strz --release
@@ -93,13 +94,13 @@ zizmor-fix:
     zizmor --gh-token="$(gh auth token)" .github/ --persona pedantic --fix
 
 test-grammar:
-    tree-sitter test
+    tree-sitter test --grammar-path {{grammar_dir}}
 
 fuzz-grammar iterations="10" edits="3":
-    tree-sitter fuzz --iterations {{iterations}} --edits {{edits}}
+    tree-sitter fuzz --grammar-path {{grammar_dir}} --iterations {{iterations}} --edits {{edits}}
 
 fuzz-grammar-stress iterations="100" edits="5":
-    tree-sitter fuzz --iterations {{iterations}} --edits {{edits}}
+    tree-sitter fuzz --grammar-path {{grammar_dir}} --iterations {{iterations}} --edits {{edits}}
 
 check: generate test
     @just lint
@@ -108,5 +109,5 @@ run-strz *args:
     cargo run -p structurizr-cli --bin strz -- {{args}}
 
 playground:
-    tree-sitter build --wasm
-    tree-sitter playground
+    tree-sitter build --wasm {{grammar_dir}} --output {{grammar_dir}}/tree-sitter-structurizr.wasm
+    tree-sitter playground --grammar-path {{grammar_dir}}

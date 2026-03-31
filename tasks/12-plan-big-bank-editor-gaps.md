@@ -1,6 +1,6 @@
 ## Issue
 
-The remaining `# TODO:` markers in `tests/lsp/workspaces/big-bank-plc/` no longer point at one single "grammar gap."
+The remaining `# TODO:` markers in [`tests/lsp/workspaces/big-bank-plc/`](../tests/lsp/workspaces/big-bank-plc/) no longer point at one single "grammar gap."
 
 They currently fall into three buckets:
 
@@ -12,10 +12,10 @@ Most of this surface already parses cleanly. The task is therefore mainly about 
 
 ## Root Cause
 
-- `crates/structurizr-lsp/src/convert/completion.rs` now offers style-property-name completion inside `element` and `relationship` style blocks, but it intentionally suppresses completions once the cursor moves into a style value. `crates/structurizr-lsp/tests/navigation.rs` locks that behavior in today.
-- `grammar.js` allows repeated `field("value", $._view_value)` children inside `include_statement`, but `crates/structurizr-analysis/src/extract/symbols.rs` currently reads only `node.child_by_field_name("value")`. That means only the first identifier in `include a b c` becomes a `ReferenceKind::ViewInclude`.
-- `grammar.js` also parses identifier-valued `animation` steps, but `queries/highlights.scm` has no capture for animation values and the analysis crate does not yet emit bounded reference facts for them.
-- Direct `dynamic_relationship` endpoints already parse and highlight, but the bounded-MVP docs in `docs/lsp/02-design/` and `docs/lsp/03-delivery/roadmap.md` explicitly defer dynamic-view relationship references. Broadening that support would change a documented boundary rather than just fill an isolated bug.
+- [`crates/structurizr-lsp/src/convert/completion.rs`](../crates/structurizr-lsp/src/convert/completion.rs) now offers style-property-name completion inside `element` and `relationship` style blocks, but it intentionally suppresses completions once the cursor moves into a style value. [`crates/structurizr-lsp/tests/navigation.rs`](../crates/structurizr-lsp/tests/navigation.rs) locks that behavior in today.
+- [`crates/structurizr-grammar/grammar.js`](../crates/structurizr-grammar/grammar.js) allows repeated `field("value", $._view_value)` children inside `include_statement`, but [`crates/structurizr-analysis/src/extract/symbols.rs`](../crates/structurizr-analysis/src/extract/symbols.rs) currently reads only `node.child_by_field_name("value")`. That means only the first identifier in `include a b c` becomes a `ReferenceKind::ViewInclude`.
+- [`crates/structurizr-grammar/grammar.js`](../crates/structurizr-grammar/grammar.js) also parses identifier-valued `animation` steps, but [`crates/structurizr-grammar/queries/highlights.scm`](../crates/structurizr-grammar/queries/highlights.scm) has no capture for animation values and the analysis crate does not yet emit bounded reference facts for them.
+- Direct `dynamic_relationship` endpoints already parse and highlight, but the bounded-MVP docs in [`docs/lsp/02-design/`](../docs/lsp/02-design/) and [`docs/lsp/03-delivery/roadmap.md`](../docs/lsp/03-delivery/roadmap.md) explicitly defer dynamic-view relationship references. Broadening that support would change a documented boundary rather than just fill an isolated bug.
 
 ## Options
 
@@ -28,7 +28,7 @@ Most of this surface already parses cleanly. The task is therefore mainly about 
 Take the split option.
 
 Style-value completion should stay separate from reference navigation.
-It belongs with the existing style-completion work in `tasks/06-plan-style-property-completion.md`, which already closed the property-name half of the problem.
+It belongs with the existing style-completion work in [`tasks/06-plan-style-property-completion.md`](06-plan-style-property-completion.md), which already closed the property-name half of the problem.
 Reopening that task for value completion would blur two different completion scopes.
 
 The next bounded-navigation slice should focus on the lower-risk gaps that already fit the current model:

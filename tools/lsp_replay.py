@@ -29,7 +29,7 @@ def repository_root() -> Path:
 def replay_cases(root: Path) -> dict[str, ReplayCase]:
     return {
         "small": ReplayCase(
-            document_path=root / "tests/fixtures/lsp/relationships/named-relationships-ok.dsl",
+            document_path=root / "crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl",
             workspace_root=None,
         ),
         "large": ReplayCase(

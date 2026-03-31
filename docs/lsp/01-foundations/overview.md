@@ -20,9 +20,9 @@ without trying to become a general Structurizr execution environment.
 The current in-repo architecture is:
 
 - repo root grammar crate: syntax, parser artifacts, Rust bindings, and portable query files
-- `crates/structurizr-analysis/`: owned document snapshots, extracted facts, and workspace/include modeling
-- `crates/structurizr-lsp/`: protocol-facing server state and request handlers
-- `crates/structurizr-cli/`: the `strz` binary for local checks, dumps, and `strz server`
+- [`crates/structurizr-analysis/`](../../../crates/structurizr-analysis/): owned document snapshots, extracted facts, and workspace/include modeling
+- [`crates/structurizr-lsp/`](../../../crates/structurizr-lsp/): protocol-facing server state and request handlers
+- [`crates/structurizr-cli/`](../../../crates/structurizr-cli/): the `strz` binary for local checks, dumps, and `strz server`
 - downstream editor integration such as `zed-structurizr`: grammar pinning, launcher behavior, and editor-specific packaging
 
 ## Why the layers stay separate

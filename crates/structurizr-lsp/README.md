@@ -19,11 +19,11 @@ It stays intentionally thin:
 
 ## Crate shape
 
-- `src/lib.rs` - `serve_stdio()`
-- `src/capabilities.rs` - advertised server capabilities
-- `src/server.rs`, `src/state.rs`, `src/documents.rs` - runtime state and wiring
-- `src/handlers/` - request handlers
-- `src/convert/` - analysis-to-LSP conversions
+- [`src/lib.rs`](src/lib.rs) - `serve_stdio()`
+- [`src/capabilities.rs`](src/capabilities.rs) - advertised server capabilities
+- [`src/server.rs`](src/server.rs), [`src/state.rs`](src/state.rs), [`src/documents.rs`](src/documents.rs) - runtime state and wiring
+- [`src/handlers/`](src/handlers/) - request handlers
+- [`src/convert/`](src/convert/) - analysis-to-LSP conversions
 
 ## Useful repo-root commands
 

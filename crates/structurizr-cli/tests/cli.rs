@@ -111,13 +111,13 @@ fn dump_document_text_reports_symbols_and_references() {
         command()
             .arg("dump")
             .arg("document")
-            .arg("tests/fixtures/lsp/identifiers/direct-references-ok.dsl"),
+            .arg("crates/structurizr-lsp/tests/fixtures/identifiers/direct-references-ok.dsl"),
         @r###"
     success: true
     exit_code: 0
     ----- stdout -----
     document:
-    path: tests/fixtures/lsp/identifiers/direct-references-ok.dsl
+    path: crates/structurizr-lsp/tests/fixtures/identifiers/direct-references-ok.dsl
     workspace_entry: true
     syntax diagnostics:
     - none

@@ -4,7 +4,7 @@ Phase 2 workspace loading still allocates and sorts intermediary directive data 
 
 ## Root Cause
 
-In `crates/structurizr-analysis/src/workspace.rs`, `process_document_context(...)` clones a document's constant definitions and include directives out of the snapshot and then feeds them through `document_directive_events(...)`, which allocates and sorts a merged event vector every time a context is processed.
+In [`crates/structurizr-analysis/src/workspace.rs`](../crates/structurizr-analysis/src/workspace.rs), `process_document_context(...)` clones a document's constant definitions and include directives out of the snapshot and then feeds them through `document_directive_events(...)`, which allocates and sorts a merged event vector every time a context is processed.
 
 At the same time, `DocumentContextKey::new(...)` clones the full inherited constant environment into `Vec<(String, String)>` entries so the memoization key stays ordered and comparable.
 

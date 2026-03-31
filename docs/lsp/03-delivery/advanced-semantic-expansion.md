@@ -3,17 +3,17 @@
 > Status: forward-looking design for the post-bounded phases.
 >
 > The in-repo bounded handler slice already exists. Read this after
-> `../00-current-state.md` and `roadmap.md` when you want to plan what should
+> [`../00-current-state.md`](../00-current-state.md) and [`roadmap.md`](roadmap.md) when you want to plan what should
 > come after the current delivery work.
 
 This note defines how the Structurizr DSL server should grow **after** the shipped bounded slice is stable enough to broaden safely.
 
 It is the Phase 6 companion to:
 
-- `docs/lsp/02-design/bounded-mvp-handlers.md`
-- `docs/lsp/02-design/scope-rules.md`
-- `docs/lsp/02-design/workspace-index.md`
-- `docs/lsp/01-foundations/query-ownership.md`
+- [`docs/lsp/02-design/bounded-mvp-handlers.md`](../02-design/bounded-mvp-handlers.md)
+- [`docs/lsp/02-design/scope-rules.md`](../02-design/scope-rules.md)
+- [`docs/lsp/02-design/workspace-index.md`](../02-design/workspace-index.md)
+- [`docs/lsp/01-foundations/query-ownership.md`](../01-foundations/query-ownership.md)
 
 Its job is to keep post-MVP work deliberate instead of letting the server expand through ad hoc requests for “just one more feature”.
 
@@ -218,7 +218,7 @@ Add extraction + resolution for:
 
 - hierarchical element selectors like `system.api`
 
-Use the existing canonical key model from `docs/lsp/02-design/scope-rules.md`.
+Use the existing canonical key model from [`docs/lsp/02-design/scope-rules.md`](../02-design/scope-rules.md).
 
 Important rule:
 
@@ -452,7 +452,7 @@ Only when:
 - the target has one known workspace instance, or all candidate instances produce the same edit set
 - all known reference sites for that target are in supported reference kinds
 
-This is the safest first rename slice and already follows the logic in `docs/lsp/02-design/scope-rules.md`.
+This is the safest first rename slice and already follows the logic in [`docs/lsp/02-design/scope-rules.md`](../02-design/scope-rules.md).
 
 #### Step 2: named relationship rename
 
@@ -718,11 +718,11 @@ That is the final planning boundary the current research set was missing.
 
 ## Sources
 
-- `docs/lsp/03-delivery/roadmap.md`
-- `docs/lsp/01-foundations/capability-matrix.md`
-- `docs/lsp/02-design/bounded-mvp-handlers.md`
-- `docs/lsp/02-design/scope-rules.md`
-- `docs/lsp/02-design/workspace-index.md`
-- `docs/lsp/01-foundations/query-ownership.md`
-- `docs/lsp/03-delivery/zed-extension-language-server-wiring.md`
+- [`docs/lsp/03-delivery/roadmap.md`](roadmap.md)
+- [`docs/lsp/01-foundations/capability-matrix.md`](../01-foundations/capability-matrix.md)
+- [`docs/lsp/02-design/bounded-mvp-handlers.md`](../02-design/bounded-mvp-handlers.md)
+- [`docs/lsp/02-design/scope-rules.md`](../02-design/scope-rules.md)
+- [`docs/lsp/02-design/workspace-index.md`](../02-design/workspace-index.md)
+- [`docs/lsp/01-foundations/query-ownership.md`](../01-foundations/query-ownership.md)
+- [`docs/lsp/03-delivery/zed-extension-language-server-wiring.md`](zed-extension-language-server-wiring.md)
 - `https://zed.dev/docs/extensions/languages`

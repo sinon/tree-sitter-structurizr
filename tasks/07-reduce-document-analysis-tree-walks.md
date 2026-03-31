@@ -4,9 +4,9 @@ Local `just bench-rust` runs still put `analysis/document/large_big_bank_workspa
 
 ## Root Cause
 
-`crates/structurizr-analysis/src/parse.rs` parses once and then fans out into separate extraction passes for syntax diagnostics, includes, constants, identifier modes, and symbols/references.
+[`crates/structurizr-analysis/src/parse.rs`](../crates/structurizr-analysis/src/parse.rs) parses once and then fans out into separate extraction passes for syntax diagnostics, includes, constants, identifier modes, and symbols/references.
 
-The extractors in `crates/structurizr-analysis/src/extract/diagnostics.rs`, `extract/includes.rs`, `extract/constants.rs`, and `extract/symbols.rs` all recurse from the tree root again and eagerly allocate owned `String` values from node text. That keeps the implementation simple, but it means the document benchmark pays for several full-tree walks and repeated text extraction for every analysis run.
+The extractors in [`crates/structurizr-analysis/src/extract/diagnostics.rs`](../crates/structurizr-analysis/src/extract/diagnostics.rs), `extract/includes.rs`, `extract/constants.rs`, and `extract/symbols.rs` all recurse from the tree root again and eagerly allocate owned `String` values from node text. That keeps the implementation simple, but it means the document benchmark pays for several full-tree walks and repeated text extraction for every analysis run.
 
 ## Options
 

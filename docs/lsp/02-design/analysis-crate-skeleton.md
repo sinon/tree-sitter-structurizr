@@ -5,7 +5,7 @@
 > `structurizr-analysis` now exists in-repo. Read this note as the architectural
 > contract for that crate shape and as background for future expansion work.
 
-This note turns Phase 2 of `docs/lsp/03-delivery/roadmap.md` into a concrete crate shape.
+This note turns Phase 2 of [`docs/lsp/03-delivery/roadmap.md`](../03-delivery/roadmap.md) into a concrete crate shape.
 
 Its job is to define the first reusable semantic layer that sits:
 
@@ -41,9 +41,9 @@ So the analysis crate should become the first place where “Structurizr editor 
 
 This repository already has an important packaging shape:
 
-- the root `Cargo.toml` is the parser crate package
-- the parser crate's library entry point is `bindings/rust/lib.rs`
-- there is **not** a separate `bindings/rust/Cargo.toml`
+- the root [`Cargo.toml`](../../../Cargo.toml) is the parser crate package
+- the parser crate's library entry point is [`crates/structurizr-grammar/bindings/rust/lib.rs`](../../../crates/structurizr-grammar/bindings/rust/lib.rs)
+- there is **not** a separate `crates/structurizr-grammar/bindings/rust/Cargo.toml`
 - the repository root must remain a normal Tree-sitter grammar repo for Zed and other grammar consumers
 
 That means the analysis crate should be added **alongside** the existing parser crate, not by moving the parser into a new nested Cargo package.
@@ -54,11 +54,11 @@ The recommended near-term layout is:
 
 ```text
 Cargo.toml                      existing parser crate package at repo root
-bindings/rust/lib.rs            existing parser crate entry point
+crates/structurizr-grammar/bindings/rust/lib.rs            existing parser crate entry point
 crates/structurizr-analysis/    new analysis crate
 ```
 
-The root `Cargo.toml` should eventually become a combined package + workspace:
+The root [`Cargo.toml`](../../../Cargo.toml) should eventually become a combined package + workspace:
 
 ```toml
 [package]
@@ -84,7 +84,7 @@ edition = "2021"
 
 [dependencies]
 tree-sitter = { workspace = true }
-tree-sitter-structurizr = { path = "../.." }
+tree-sitter-structurizr = { path = "../structurizr-grammar" }
 
 [dev-dependencies]
 insta = { workspace = true }
@@ -95,7 +95,7 @@ indoc = "2.0"
 Important implications:
 
 - the parser crate stays exactly where Zed expects it
-- `cargo build`, `cargo nextest run`, and the existing `Justfile` commands can keep running from repo root
+- `cargo build`, `cargo nextest run`, and the existing [`Justfile`](../../../Justfile) commands can keep running from repo root
 - the analysis crate can depend directly on the checked-in parser crate without introducing a repo split
 
 If package naming needs refinement before publication, that can be revisited later.
@@ -271,7 +271,7 @@ crates/structurizr-analysis/
 - `workspace.rs` is the natural home for later workspace-instance types
 - `extract/` keeps tree-walking logic private and feature-sliced
 
-The concrete design for that later workspace layer is captured in `docs/lsp/02-design/workspace-index.md`.
+The concrete design for that later workspace layer is captured in [`docs/lsp/02-design/workspace-index.md`](workspace-index.md).
 
 ## A note on `queries.rs`
 
@@ -282,7 +282,7 @@ That should stay **private or absent** until a real portable query surface exist
 In practice:
 
 - the initial symbol and directive extractors should be handwritten tree walks based on the audit docs
-- when `queries/tags.scm` lands, a private query helper can be introduced without forcing the whole analysis architecture to depend on queries from day one
+- when `crates/structurizr-grammar/queries/tags.scm` lands, a private query helper can be introduced without forcing the whole analysis architecture to depend on queries from day one
 
 This keeps the skeleton honest about the current repo state.
 
@@ -395,7 +395,7 @@ When Phase 3 starts, a separate `WorkspaceBuilder` or `WorkspaceAnalyzer` can la
 
 ## First extracted fact surface
 
-The current design note for this extraction slice is `docs/lsp/02-design/first-pass-symbol-extraction.md`.
+The current design note for this extraction slice is [`docs/lsp/02-design/first-pass-symbol-extraction.md`](first-pass-symbol-extraction.md).
 
 The first implementation slice should only extract facts we have already audited and fixture-covered:
 
@@ -424,8 +424,8 @@ The analysis crate should reuse the repository's existing testing style rather t
 
 Continue treating repo-root fixtures as the canonical DSL inputs:
 
-- `tests/fixtures/`
-- `tests/fixtures/lsp/`
+- [`fixtures/`](../../../fixtures/)
+- [`crates/structurizr-lsp/tests/fixtures/`](../../../crates/structurizr-lsp/tests/fixtures/)
 
 Do **not** duplicate the same DSL files under the crate directory.
 
@@ -462,7 +462,7 @@ That will keep test failures readable and avoid churn where one parser change re
 
 When workspace indexing begins, add scenario-focused workspace tests rather than stuffing multi-file behavior into the single-document fixture test.
 
-That should align with the future shape already described in `docs/lsp/02-design/workspace-discovery-includes.md`.
+That should align with the future shape already described in [`docs/lsp/02-design/workspace-discovery-includes.md`](workspace-discovery-includes.md).
 
 ## What this crate should not freeze too early
 
@@ -481,7 +481,7 @@ Those are real future concerns, but they are not required to get the first trans
 ## Recommended implementation sequence
 
 1. Add the Cargo workspace metadata without moving the parser crate.
-2. Create `crates/structurizr-analysis/` with `lib.rs` plus the core type modules.
+2. Create [`crates/structurizr-analysis/`](../../../crates/structurizr-analysis/) with `lib.rs` plus the core type modules.
 3. Implement single-document parsing and syntax-diagnostic extraction.
 4. Implement raw `!include` and `!identifiers` fact extraction.
 5. Implement bounded-MVP symbol/reference extraction from the audited node shapes.
@@ -503,15 +503,15 @@ It gives us:
 
 ## Sources
 
-- `Cargo.toml`
-- `bindings/rust/lib.rs`
-- `bindings/rust/build.rs`
-- `Justfile`
-- `README.md`
-- `docs/lsp/03-delivery/roadmap.md`
-- `docs/lsp/01-foundations/overview.md`
-- `docs/lsp/01-foundations/capability-matrix.md`
-- `docs/lsp/90-history/syntax-audit-assignment-declarations.md`
-- `docs/lsp/90-history/syntax-audit-reference-relationship-nodes.md`
-- `docs/lsp/90-history/syntax-audit-directive-nodes.md`
-- `docs/lsp/02-design/workspace-discovery-includes.md`
+- [`Cargo.toml`](../../../Cargo.toml)
+- [`crates/structurizr-grammar/bindings/rust/lib.rs`](../../../crates/structurizr-grammar/bindings/rust/lib.rs)
+- [`crates/structurizr-grammar/bindings/rust/build.rs`](../../../crates/structurizr-grammar/bindings/rust/build.rs)
+- [`Justfile`](../../../Justfile)
+- [`README.md`](../../../README.md)
+- [`docs/lsp/03-delivery/roadmap.md`](../03-delivery/roadmap.md)
+- [`docs/lsp/01-foundations/overview.md`](../01-foundations/overview.md)
+- [`docs/lsp/01-foundations/capability-matrix.md`](../01-foundations/capability-matrix.md)
+- [`docs/lsp/90-history/syntax-audit-assignment-declarations.md`](../90-history/syntax-audit-assignment-declarations.md)
+- [`docs/lsp/90-history/syntax-audit-reference-relationship-nodes.md`](../90-history/syntax-audit-reference-relationship-nodes.md)
+- [`docs/lsp/90-history/syntax-audit-directive-nodes.md`](../90-history/syntax-audit-directive-nodes.md)
+- [`docs/lsp/02-design/workspace-discovery-includes.md`](workspace-discovery-includes.md)
