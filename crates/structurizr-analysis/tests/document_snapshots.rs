@@ -2,7 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use rstest::rstest;
-use structurizr_analysis::{DocumentInput, DocumentSnapshot, analyze_document};
+use structurizr_analysis::{DocumentAnalyzer, DocumentInput, DocumentSnapshot};
 
 macro_rules! set_snapshot_suffix {
     ($($expr:expr),* $(,)?) => {
@@ -50,7 +50,8 @@ fn analyze_fixture(path: &Path) -> DocumentSnapshot {
     let source = fs::read_to_string(path)
         .unwrap_or_else(|error| panic!("failed to read fixture `{}`: {error}", path.display()));
 
-    analyze_document(DocumentInput::new(relative_fixture_name(path), source).with_location(path))
+    let mut analyzer = DocumentAnalyzer::new();
+    analyzer.analyze(DocumentInput::new(relative_fixture_name(path), source).with_location(path))
 }
 
 fn relative_fixture_name(path: &Path) -> String {

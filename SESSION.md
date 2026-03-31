@@ -19,3 +19,4 @@
 - `DocumentSnapshot` currently stores a `tree_sitter::Tree` directly, which makes future Salsa-backed incremental caching awkward; splitting stable document facts from tree-backed parse/debug state would make that migration cleaner.
 - The first private Salsa cache in `DocumentAnalyzer` currently memoizes a private parsed payload keyed by stable document id plus source, but workspace loading still rebuilds from scratch and the public `DocumentSnapshot` still clones the cached `Tree` on each analyze call.
 - The reusable `WorkspaceLoader` session cannot live inside LSP `ServerState` because the current Salsa-backed analysis internals are not `Sync`; the loader has to be hosted separately (for now on `Backend` behind its own mutex).
+- Persistent `DocumentContextKey` reuse has to validate and rematerialize cached subtrees transitively; checking only immediate child revisions can miss grandchild include changes and produce stale workspace indexes.

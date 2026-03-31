@@ -27,7 +27,7 @@ and analyzing one document.
 
 Today the crate owns:
 
-- parser orchestration via `DocumentAnalyzer` and `analyze_document`
+- parser orchestration via `DocumentAnalyzer`
 - immutable document inputs and outputs:
   `DocumentInput`, `DocumentId`, `DocumentLocation`, and `DocumentSnapshot`
 - transport-agnostic span types: `TextSpan` and `TextPoint`
@@ -81,10 +81,11 @@ extractors:
 
 ## Typical usage
 
-For one-off analysis, call `analyze_document`:
+Create a `DocumentAnalyzer` and analyze one or more documents through that
+stateful entrypoint:
 
 ```rust
-use structurizr_analysis::{DocumentInput, analyze_document};
+use structurizr_analysis::{DocumentAnalyzer, DocumentInput};
 
 let source = r#"
 workspace {
@@ -94,15 +95,17 @@ workspace {
 }
 "#;
 
-let snapshot = analyze_document(DocumentInput::new("workspace.dsl", source));
+let mut analyzer = DocumentAnalyzer::new();
+let snapshot = analyzer.analyze(DocumentInput::new("workspace.dsl", source));
 
 assert_eq!(snapshot.id().as_str(), "workspace.dsl");
 println!("symbols: {}", snapshot.symbols().len());
 println!("diagnostics: {}", snapshot.syntax_diagnostics().len());
 ```
 
-If you are analyzing many documents in one process, reuse `DocumentAnalyzer` so
-parser setup stays in one place.
+If you are analyzing many documents or repeated edits in one process, keep one
+`DocumentAnalyzer` alive so its parser setup and incremental cache stay in one
+place.
 
 ## Testing
 

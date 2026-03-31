@@ -191,12 +191,6 @@ impl Default for DocumentAnalyzer {
     }
 }
 
-#[must_use]
-/// Convenience helper for analyzing a single document with a fresh parser.
-pub fn analyze_document(input: DocumentInput) -> DocumentSnapshot {
-    DocumentAnalyzer::new().analyze(input)
-}
-
 fn structurizr_parser() -> Parser {
     let mut parser = Parser::new();
     parser

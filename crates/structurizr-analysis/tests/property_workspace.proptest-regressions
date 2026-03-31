@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 00a970412b31edb9a552ce5203f9ed671b0ec1b47c285419f4b10644467b54a4 # shrinks to model = GeneratedWorkspaceGraph { scenario: Cycle, include_unrelated_neighbor: false, detail_file_name: "a-details.dsl" }

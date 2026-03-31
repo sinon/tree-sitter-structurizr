@@ -832,12 +832,14 @@ impl<'loader> WorkspaceBuildSession<'loader> {
 
         self.load_document(context.path.clone(), false)?;
 
-        if let Some(cached) = self.session.cached_processed_context(&context.key)
-            && self.cached_context_is_fresh(&context, &cached)?
-        {
-            let exported_constants = cached.processed.exported_constants.clone();
-            self.processed_contexts.insert(context.key.clone(), cached.processed);
-            return Ok(exported_constants);
+        if self.cached_context_tree_is_fresh(&context.key, &mut BTreeSet::new())? {
+            self.materialize_cached_context_tree(&context.key, &mut BTreeSet::new())?;
+            return Ok(self
+                .processed_contexts
+                .get(&context.key)
+                .expect("BUG: fresh cached context should materialize into the current load")
+                .exported_constants
+                .clone());
         }
 
         let (document_id, constant_definitions, include_directives) = {
@@ -913,42 +915,88 @@ impl<'loader> WorkspaceBuildSession<'loader> {
         Ok(exported_constants)
     }
 
-    fn cached_context_is_fresh(
+    fn cached_context_tree_is_fresh(
         &mut self,
-        context: &DocumentContext,
-        cached: &CachedProcessedDocumentContext,
+        context_key: &DocumentContextKey,
+        visiting: &mut BTreeSet<DocumentContextKey>,
     ) -> io::Result<bool> {
-        let Some(current_generation) = self.session.document_generation(&context.path) else {
-            return Ok(false);
-        };
-        if current_generation != cached.document_generation {
-            return Ok(false);
+        if !visiting.insert(context_key.clone()) {
+            return Ok(true);
         }
 
-        for (child_context, expected_revision) in cached
-            .processed
-            .included_contexts
-            .iter()
-            .zip(&cached.child_context_revisions)
-        {
-            let Some(current_revision) = self.session.processed_context_revision(child_context) else {
+        let freshness = (|| -> io::Result<bool> {
+            let Some(cached) = self.session.cached_processed_context(context_key) else {
                 return Ok(false);
             };
-            if current_revision != *expected_revision {
+
+            self.load_document(context_key.path.clone(), false)?;
+
+            let Some(current_generation) = self.session.document_generation(&context_key.path) else {
+                return Ok(false);
+            };
+            if current_generation != cached.document_generation {
                 return Ok(false);
             }
-        }
 
-        cached
-            .include_validations
-            .iter()
-            .try_fold(true, |is_still_fresh, validation| {
-                if !is_still_fresh {
+            for (child_context, expected_revision) in cached
+                .processed
+                .included_contexts
+                .iter()
+                .zip(&cached.child_context_revisions)
+            {
+                let Some(current_revision) = self.session.processed_context_revision(child_context) else {
+                    return Ok(false);
+                };
+                if current_revision != *expected_revision {
                     return Ok(false);
                 }
+                if !self.cached_context_tree_is_fresh(child_context, visiting)? {
+                    return Ok(false);
+                }
+            }
 
-                self.include_validation_is_fresh(validation)
-            })
+            for validation in &cached.include_validations {
+                if !self.include_validation_is_fresh(validation)? {
+                    return Ok(false);
+                }
+            }
+
+            Ok(true)
+        })();
+        let _ = visiting.remove(context_key);
+        freshness
+    }
+
+    fn materialize_cached_context_tree(
+        &mut self,
+        context_key: &DocumentContextKey,
+        visiting: &mut BTreeSet<DocumentContextKey>,
+    ) -> io::Result<()> {
+        if self.processed_contexts.contains_key(context_key) {
+            return Ok(());
+        }
+        if !visiting.insert(context_key.clone()) {
+            return Ok(());
+        }
+
+        let materialized = (|| -> io::Result<()> {
+            self.load_document(context_key.path.clone(), false)?;
+
+            let cached = self
+                .session
+                .cached_processed_context(context_key)
+                .expect("BUG: fresh cached context should still exist while materializing");
+
+            for child_context in &cached.processed.included_contexts {
+                self.materialize_cached_context_tree(child_context, visiting)?;
+            }
+
+            self.processed_contexts
+                .insert(context_key.clone(), cached.processed);
+            Ok(())
+        })();
+        let _ = visiting.remove(context_key);
+        materialized
     }
 
     fn include_validation_is_fresh(&mut self, validation: &CachedIncludeValidation) -> io::Result<bool> {
@@ -992,22 +1040,6 @@ impl<'loader> WorkspaceBuildSession<'loader> {
             }
         }
     }
-}
-
-/// Convenience helper for scanning workspace roots with a fresh loader.
-///
-/// Equivalent to `WorkspaceLoader::new().load_paths(roots)`.
-///
-/// # Errors
-///
-/// Returns an I/O error when the loader cannot traverse a workspace root or
-/// read one of the discovered local files.
-pub fn load_workspace<I, P>(roots: I) -> io::Result<WorkspaceFacts>
-where
-    I: IntoIterator<Item = P>,
-    P: AsRef<Path>,
-{
-    WorkspaceLoader::new().load_paths(roots)
 }
 
 #[derive(Debug)]
@@ -2366,6 +2398,70 @@ mod tests {
         );
     }
 
+    #[test]
+    fn cached_parent_context_refreshes_when_grandchild_changes() {
+        let fixture = TemporaryWorkspace::new(indoc! {r#"
+            workspace {
+                !include "model.dsl"
+            }
+        "#});
+        fixture.write_model(indoc! {r#"
+            model {
+                !include "people.dsl"
+            }
+        "#});
+        fixture.write_file(
+            "people.dsl",
+            indoc! {r#"
+                model {
+                    user = person "User"
+                }
+            "#},
+        );
+
+        let mut loader = WorkspaceLoader::new();
+        let first = loader
+            .load_paths([fixture.root()])
+            .expect("first load should succeed");
+        let first_index = first
+            .workspace_indexes()
+            .first()
+            .expect("workspace index should exist");
+        assert_eq!(
+            first_index
+                .unique_element_bindings()
+                .keys()
+                .cloned()
+                .collect::<Vec<_>>(),
+            vec!["user"]
+        );
+
+        fixture.write_file(
+            "people.dsl",
+            indoc! {r#"
+                model {
+                    admin = person "Admin"
+                }
+            "#},
+        );
+
+        let second = loader
+            .load_paths([fixture.root()])
+            .expect("second load should succeed");
+        let second_index = second
+            .workspace_indexes()
+            .first()
+            .expect("workspace index should exist");
+        assert_eq!(
+            second_index
+                .unique_element_bindings()
+                .keys()
+                .cloned()
+                .collect::<Vec<_>>(),
+            vec!["admin"]
+        );
+    }
+
     struct TemporaryWorkspace {
         _root_dir: TempDir,
         root: PathBuf,
@@ -2391,6 +2487,10 @@ mod tests {
 
         fn write_model(&self, source: &str) {
             fs::write(self.model_path(), source).expect("model source should write");
+        }
+
+        fn write_file(&self, relative_path: &str, source: &str) {
+            fs::write(self.root.join(relative_path), source).expect("workspace file should write");
         }
 
         fn root(&self) -> &Path {

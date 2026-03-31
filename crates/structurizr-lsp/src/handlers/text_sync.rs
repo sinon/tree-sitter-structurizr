@@ -2,7 +2,7 @@
 
 use std::{fs, path::PathBuf, time::Instant};
 
-use structurizr_analysis::{DocumentId, analyze_document};
+use structurizr_analysis::{DocumentAnalyzer, DocumentId};
 use tower_lsp_server::ls_types::{
     DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams,
 };
@@ -109,7 +109,10 @@ async fn publish_latest_snapshot(backend: &Backend, document: DocumentState) {
     // through `WorkspaceLoader`, reuse that snapshot instead of immediately
     // parsing and extracting the same document a second time.
     let snapshot = snapshot_from_workspace_facts(&document, workspace_facts.as_ref())
-        .unwrap_or_else(|| analyze_document(document.to_input()));
+        .unwrap_or_else(|| {
+            let mut analyzer = DocumentAnalyzer::new();
+            analyzer.analyze(document.to_input())
+        });
     debug!(
         uri = uri.as_str(),
         syntax_diagnostic_count = snapshot.syntax_diagnostics().len(),

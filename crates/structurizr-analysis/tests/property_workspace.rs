@@ -8,7 +8,7 @@ use proptest::string::string_regex;
 use proptest::test_runner::{Config, TestCaseError};
 use structurizr_analysis::{
     IncludeDiagnosticKind, WorkspaceDocumentKind, WorkspaceFacts, WorkspaceIncludeTarget,
-    load_workspace,
+    WorkspaceLoader,
 };
 use tempfile::TempDir;
 
@@ -348,7 +348,8 @@ fn display_path(path: &Path, root: &Path) -> String {
 }
 
 fn workspace_view_for(root: &Path, roots: &[&Path]) -> WorkspaceView {
-    let facts = load_workspace(roots).expect("generated workspace should load");
+    let mut loader = WorkspaceLoader::new();
+    let facts = loader.load_paths(roots).expect("generated workspace should load");
     WorkspaceView::from_facts(&facts, root)
 }
 
@@ -505,9 +506,12 @@ proptest::proptest! {
     fn generated_workspaces_load_idempotently(model in generated_workspace_graph()) {
         let fixture = materialize_workspace(&model);
         maybe_capture_workspace("generated_workspaces_load_idempotently", &fixture);
-        let first_facts = load_workspace([fixture.workspace_path.as_path()])
+        let mut loader = WorkspaceLoader::new();
+        let first_facts = loader
+            .load_paths([fixture.workspace_path.as_path()])
             .expect("generated workspace should load");
-        let second_facts = load_workspace([fixture.workspace_path.as_path()])
+        let second_facts = loader
+            .load_paths([fixture.workspace_path.as_path()])
             .expect("generated workspace should load on repeat");
 
         let first_view = WorkspaceView::from_facts(&first_facts, &fixture.root_path);

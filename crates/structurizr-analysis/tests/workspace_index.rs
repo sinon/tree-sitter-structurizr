@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use rstest::rstest;
 use structurizr_analysis::{
     ReferenceHandle, ReferenceResolutionStatus, SemanticDiagnostic, SymbolHandle, TextSpan,
-    WorkspaceFacts, load_workspace,
+    WorkspaceFacts, WorkspaceLoader,
 };
 
 macro_rules! set_snapshot_suffix {
@@ -198,7 +198,8 @@ impl DiagnosticView {
 #[case("multi-instance-open-fragment")]
 fn workspace_fixtures_produce_stable_workspace_indexes(#[case] fixture_name: &str) {
     let fixture_root = workspace_fixture_root().join(fixture_name);
-    let facts = load_workspace([fixture_root.as_path()]).unwrap_or_else(|error| {
+    let mut loader = WorkspaceLoader::new();
+    let facts = loader.load_paths([fixture_root.as_path()]).unwrap_or_else(|error| {
         panic!("failed to load workspace-index fixture `{fixture_name}`: {error}")
     });
 
