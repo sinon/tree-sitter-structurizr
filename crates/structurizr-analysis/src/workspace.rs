@@ -367,18 +367,28 @@ impl WorkspaceIndex {
     }
 }
 
-/// Multi-file discovery facts gathered from one or more workspace roots.
-#[derive(Debug, Default)]
-pub struct WorkspaceFacts {
-    documents: Vec<WorkspaceDocument>,
+#[derive(Debug, Clone, Default)]
+struct DerivedWorkspaceFactsAssembly {
     resolved_includes: Vec<ResolvedInclude>,
     include_diagnostics: Vec<IncludeDiagnostic>,
-    workspace_indexes: Vec<WorkspaceIndex>,
     document_instances: BTreeMap<DocumentId, Vec<WorkspaceInstanceId>>,
     semantic_diagnostics: Vec<SemanticDiagnostic>,
 }
 
+/// Multi-file discovery facts gathered from one or more workspace roots.
+#[derive(Debug, Default)]
+pub struct WorkspaceFacts {
+    documents: Vec<WorkspaceDocument>,
+    workspace_indexes: Vec<WorkspaceIndex>,
+    assembly: Arc<DerivedWorkspaceFactsAssembly>,
+}
+
 impl WorkspaceFacts {
+    #[cfg(test)]
+    const fn assembly_arc(&self) -> &Arc<DerivedWorkspaceFactsAssembly> {
+        &self.assembly
+    }
+
     /// Returns every discovered document in deterministic path order.
     #[must_use]
     pub fn documents(&self) -> &[WorkspaceDocument] {
@@ -388,13 +398,13 @@ impl WorkspaceFacts {
     /// Returns the discovered include-following results in deterministic order.
     #[must_use]
     pub fn includes(&self) -> &[ResolvedInclude] {
-        &self.resolved_includes
+        &self.assembly.resolved_includes
     }
 
     /// Returns include-resolution diagnostics in deterministic order.
     #[must_use]
     pub fn include_diagnostics(&self) -> &[IncludeDiagnostic] {
-        &self.include_diagnostics
+        &self.assembly.include_diagnostics
     }
 
     /// Returns include-resolution diagnostics for one document.
@@ -403,7 +413,8 @@ impl WorkspaceFacts {
         id: &DocumentId,
     ) -> impl Iterator<Item = &IncludeDiagnostic> + '_ {
         let id = id.clone();
-        self.include_diagnostics
+        self.assembly
+            .include_diagnostics
             .iter()
             .filter(move |diagnostic| diagnostic.document == id)
     }
@@ -438,13 +449,13 @@ impl WorkspaceFacts {
         &self,
         id: &DocumentId,
     ) -> impl Iterator<Item = &WorkspaceInstanceId> + '_ {
-        self.document_instances.get(id).into_iter().flatten()
+        self.assembly.document_instances.get(id).into_iter().flatten()
     }
 
     /// Returns every merged semantic diagnostic in deterministic order.
     #[must_use]
     pub fn semantic_diagnostics(&self) -> &[SemanticDiagnostic] {
-        &self.semantic_diagnostics
+        &self.assembly.semantic_diagnostics
     }
 
     /// Returns merged semantic diagnostics for one document.
@@ -453,7 +464,8 @@ impl WorkspaceFacts {
         id: &DocumentId,
     ) -> impl Iterator<Item = &SemanticDiagnostic> + '_ {
         let id = id.clone();
-        self.semantic_diagnostics
+        self.assembly
+            .semantic_diagnostics
             .iter()
             .filter(move |diagnostic| diagnostic.document == id)
     }
@@ -537,6 +549,7 @@ struct WorkspaceAnalysisSession {
     document_cache: BTreeMap<PathBuf, CachedWorkspaceDocument>,
     processed_context_cache: BTreeMap<DocumentContextKey, CachedProcessedDocumentContext>,
     workspace_instance_cache: BTreeMap<DocumentContextKey, CachedWorkspaceInstance>,
+    workspace_facts_assembly_cache: Option<CachedWorkspaceFactsAssembly>,
     next_document_generation: u64,
     next_context_revision: u64,
 }
@@ -561,6 +574,24 @@ struct CachedProcessedDocumentContext {
 struct CachedWorkspaceInstance {
     root_context_revision: u64,
     derived: Arc<DerivedWorkspaceInstance>,
+}
+
+#[derive(Debug, Clone)]
+struct CachedWorkspaceFactsAssembly {
+    key: WorkspaceFactsAssemblyKey,
+    derived: Arc<DerivedWorkspaceFactsAssembly>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct RevisionedContextKey {
+    context_key: DocumentContextKey,
+    revision: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct WorkspaceFactsAssemblyKey {
+    processed_contexts: Vec<RevisionedContextKey>,
+    workspace_instances: Vec<RevisionedContextKey>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -664,6 +695,16 @@ impl WorkspaceAnalysisSession {
         self.workspace_instance_cache.get(key).cloned()
     }
 
+    fn cached_workspace_facts_assembly(
+        &self,
+        key: &WorkspaceFactsAssemblyKey,
+    ) -> Option<Arc<DerivedWorkspaceFactsAssembly>> {
+        self.workspace_facts_assembly_cache
+            .as_ref()
+            .filter(|cached| cached.key == *key)
+            .map(|cached| Arc::clone(&cached.derived))
+    }
+
     fn store_processed_context(&mut self, context: &DocumentContext, processed: ProcessedDocumentContext) {
         let child_context_revisions = processed
             .included_contexts
@@ -704,6 +745,14 @@ impl WorkspaceAnalysisSession {
 
         self.workspace_instance_cache
             .insert(root_context_key.clone(), cached);
+    }
+
+    fn store_workspace_facts_assembly(
+        &mut self,
+        key: WorkspaceFactsAssemblyKey,
+        derived: Arc<DerivedWorkspaceFactsAssembly>,
+    ) {
+        self.workspace_facts_assembly_cache = Some(CachedWorkspaceFactsAssembly { key, derived });
     }
 
     fn include_validation(&self, include: &ResolvedInclude) -> CachedIncludeValidation {
@@ -828,37 +877,25 @@ impl<'loader> WorkspaceBuildSession<'loader> {
     }
 
     fn finish(self, start_contexts: &[DocumentContext]) -> WorkspaceFacts {
-        let mut resolved_includes = self
-            .processed_contexts
-            .values()
-            .flat_map(|context| context.direct_includes.iter().cloned())
-            .collect::<Vec<_>>();
-
-        resolved_includes.sort_by(|left, right| {
-            left.including_document()
-                .as_str()
-                .cmp(right.including_document().as_str())
-                .then_with(|| left.span().start_byte.cmp(&right.span().start_byte))
-                .then_with(|| left.target_text().cmp(right.target_text()))
-        });
-        let include_diagnostics = include_diagnostics(&resolved_includes);
         let workspace_indexes = build_workspace_indexes(
             self.session,
             &self.loaded_documents,
             start_contexts,
             &self.processed_contexts,
         );
-        let document_instances = build_document_instances(&workspace_indexes);
-        let semantic_diagnostics =
-            merge_semantic_diagnostics(&workspace_indexes, &document_instances);
+        let assembly_key =
+            workspace_facts_assembly_key(self.session, start_contexts, &self.processed_contexts);
+        let assembly = build_workspace_facts_assembly(
+            self.session,
+            assembly_key,
+            &self.processed_contexts,
+            &workspace_indexes,
+        );
 
         WorkspaceFacts {
             documents: self.loaded_documents.into_values().collect(),
-            resolved_includes,
-            include_diagnostics,
             workspace_indexes,
-            document_instances,
-            semantic_diagnostics,
+            assembly,
         }
     }
 
@@ -1737,6 +1774,73 @@ fn build_workspace_index(
     WorkspaceIndex::from_derived(instance_id, derived)
 }
 
+fn workspace_facts_assembly_key(
+    session: &WorkspaceAnalysisSession,
+    start_contexts: &[DocumentContext],
+    processed_contexts: &BTreeMap<DocumentContextKey, ProcessedDocumentContext>,
+) -> WorkspaceFactsAssemblyKey {
+    let workspace_instances = start_contexts
+        .iter()
+        .map(|start_context| RevisionedContextKey {
+            context_key: start_context.key.clone(),
+            revision: session
+                .processed_context_revision(&start_context.key)
+                .expect("BUG: start context should be processed before assembly"),
+        })
+        .collect();
+
+    let processed_contexts = processed_contexts
+        .keys()
+        .map(|context_key| RevisionedContextKey {
+            context_key: context_key.clone(),
+            revision: session
+                .processed_context_revision(context_key)
+                .expect("BUG: materialized processed context should have a cached revision"),
+        })
+        .collect();
+
+    WorkspaceFactsAssemblyKey {
+        processed_contexts,
+        workspace_instances,
+    }
+}
+
+fn build_workspace_facts_assembly(
+    session: &mut WorkspaceAnalysisSession,
+    assembly_key: WorkspaceFactsAssemblyKey,
+    processed_contexts: &BTreeMap<DocumentContextKey, ProcessedDocumentContext>,
+    workspace_indexes: &[WorkspaceIndex],
+) -> Arc<DerivedWorkspaceFactsAssembly> {
+    if let Some(cached) = session.cached_workspace_facts_assembly(&assembly_key) {
+        return cached;
+    }
+
+    let mut resolved_includes = processed_contexts
+        .values()
+        .flat_map(|context| context.direct_includes.iter().cloned())
+        .collect::<Vec<_>>();
+    resolved_includes.sort_by(|left, right| {
+        left.including_document()
+            .as_str()
+            .cmp(right.including_document().as_str())
+            .then_with(|| left.span().start_byte.cmp(&right.span().start_byte))
+            .then_with(|| left.target_text().cmp(right.target_text()))
+    });
+
+    let include_diagnostics = include_diagnostics(&resolved_includes);
+    let document_instances = build_document_instances(workspace_indexes);
+    let semantic_diagnostics = merge_semantic_diagnostics(workspace_indexes, &document_instances);
+
+    let assembly = Arc::new(DerivedWorkspaceFactsAssembly {
+        resolved_includes,
+        include_diagnostics,
+        document_instances,
+        semantic_diagnostics,
+    });
+    session.store_workspace_facts_assembly(assembly_key, Arc::clone(&assembly));
+    assembly
+}
+
 fn build_derived_workspace_instance(
     root_document: DocumentId,
     documents: &[DocumentId],
@@ -2353,6 +2457,30 @@ mod tests {
     }
 
     #[test]
+    fn loader_reuses_final_workspace_facts_assembly_across_identical_loads() {
+        let fixture = TemporaryWorkspace::new(indoc! {r#"
+            workspace {
+                !include "model.dsl"
+            }
+        "#});
+        fixture.write_model(indoc! {r#"
+            model {
+                user = person "User"
+            }
+        "#});
+
+        let mut loader = WorkspaceLoader::new();
+        let first = loader
+            .load_paths([fixture.root()])
+            .expect("first load should succeed");
+        let second = loader
+            .load_paths([fixture.root()])
+            .expect("second load should succeed");
+
+        assert!(Arc::ptr_eq(first.assembly_arc(), second.assembly_arc()));
+    }
+
+    #[test]
     fn loader_refreshes_cached_snapshot_when_override_changes() {
         let fixture = TemporaryWorkspace::new(indoc! {r#"
             workspace {
@@ -2642,6 +2770,61 @@ mod tests {
                 .cloned()
                 .collect::<Vec<_>>(),
             vec!["support"]
+        );
+    }
+
+    #[test]
+    fn sibling_root_changes_refresh_final_assembly_when_membership_changes() {
+        let fixture = TemporaryWorkspace::new(indoc! {r#"
+            workspace {
+                model {
+                    user = person "User"
+                }
+            }
+        "#});
+        fixture.write_file(
+            "other.dsl",
+            indoc! {r#"
+                workspace {
+                    !include "shared.dsl"
+                }
+            "#},
+        );
+        fixture.write_file(
+            "shared.dsl",
+            indoc! {r#"
+                model {
+                    admin = person "Admin"
+                }
+            "#},
+        );
+
+        let mut loader = WorkspaceLoader::new();
+        let first = loader
+            .load_paths([fixture.root()])
+            .expect("first load should succeed");
+
+        fixture.write_file(
+            "other.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        support = person "Support"
+                    }
+                }
+            "#},
+        );
+
+        let second = loader
+            .load_paths([fixture.root()])
+            .expect("second load should succeed");
+
+        assert!(!Arc::ptr_eq(first.assembly_arc(), second.assembly_arc()));
+        assert_eq!(
+            second
+                .candidate_instances_for(&document_id_from_path(&fixture.root().join("shared.dsl")))
+                .count(),
+            0
         );
     }
 
