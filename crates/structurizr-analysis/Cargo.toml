@@ -18,5 +18,5 @@ criterion = { version = "4.4.1", package = "codspeed-criterion-compat" }
 indoc = "2.0"
 insta = "1.43"
 proptest = "1.11.0"
-rstest = "0.25"
+rstest = "0.26"
 tempfile = "3.27.0"
