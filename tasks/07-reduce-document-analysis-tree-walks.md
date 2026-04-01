@@ -1,21 +1,31 @@
+> Status after recent Salsa merge: largely superseded. Keep only as a cold-path follow-up, not a top-level hot-path task.
+
 ## Issue
 
-Local `just bench-rust` runs still put `analysis/document/large_big_bank_workspace` at roughly `1.07-1.09 ms`, so the steady-state document-analysis loop is now one of the clearer remaining hot paths.
+The original motivation for this task is stale. Local reruns now put `analysis/document/large_big_bank_workspace` at roughly `16.17-16.35 µs`, not the earlier `~1.07-1.09 ms`.
 
-## Root Cause
+That benchmark now reuses one `DocumentAnalyzer` across iterations, and `DocumentAnalyzer` now holds a private Salsa-backed parsed-document cache in [`crates/structurizr-analysis/src/parse.rs`](../crates/structurizr-analysis/src/parse.rs). In practice, the checked-in benchmark is mostly measuring steady-state cache hits rather than cold or changed-source document analysis.
 
-[`crates/structurizr-analysis/src/parse.rs`](../crates/structurizr-analysis/src/parse.rs) parses once and then fans out into separate extraction passes for syntax diagnostics, includes, constants, identifier modes, and symbols/references.
+## Current State
 
-The extractors in [`crates/structurizr-analysis/src/extract/diagnostics.rs`](../crates/structurizr-analysis/src/extract/diagnostics.rs), `extract/includes.rs`, `extract/constants.rs`, and `extract/symbols.rs` all recurse from the tree root again and eagerly allocate owned `String` values from node text. That keeps the implementation simple, but it means the document benchmark pays for several full-tree walks and repeated text extraction for every analysis run.
+The underlying multi-pass extractor layout still exists. [`crates/structurizr-analysis/src/snapshot.rs`](../crates/structurizr-analysis/src/snapshot.rs) still fans out into separate passes for:
+
+- syntax diagnostics
+- includes
+- constants
+- identifier modes
+- symbols/references
+
+The extractors in [`crates/structurizr-analysis/src/extract/diagnostics.rs`](../crates/structurizr-analysis/src/extract/diagnostics.rs), `extract/includes.rs`, `extract/constants.rs`, and [`extract/symbols.rs`](../crates/structurizr-analysis/src/extract/symbols.rs) still recurse from the tree root independently and eagerly allocate owned `String` values from node text.
 
 ## Options
 
-- Keep the multi-pass extractor layout because it is easy to read and maintain.
-- Fuse the diagnostics/includes/constants/identifier-mode extractors into one preorder walk, while keeping the existing combined symbol/reference pass.
-- Go further and build one unified extraction walker that emits every snapshot fact in a single traversal, possibly delaying `String` allocation until the final snapshot assembly.
+- Close or defer the task because the measured hot paths have moved elsewhere.
+- Add a cold-path or changed-source benchmark first, then optimize only if document extraction still matters materially.
+- Still fuse directive-oriented passes now as a no-regret cleanup, even without a strong benchmark signal.
 
 ## Proposed Option
 
-Start with the middle path: merge the directive- and diagnostic-oriented passes first, keep symbol/reference extraction coherent, and only attempt a full single-pass extractor if benchmarks show there is still meaningful headroom.
+Do not treat this as a top-priority performance task anymore.
 
-That should trim the hottest repeated tree walks without making the extraction layer dramatically harder to reason about, and it preserves the current snapshot contract as the compatibility boundary.
+If document-analysis latency becomes important again, first add a benchmark that invalidates the source or recreates the analyzer so the measurement captures real extraction cost. From that better baseline, revisit a fused extractor that merges the diagnostic/include/constant/identifier-mode walks while keeping the symbol/reference pass coherent.

@@ -1,23 +1,43 @@
+> Status after recent Salsa merge: still open and likely the highest-impact remaining performance task.
+
 ## Issue
 
-The local LSP benchmark still puts `lsp/session/large_big_bank_document_symbols` at roughly `9.31-9.39 ms`, and the current request flow rebuilds workspace facts on every open, change, and close before serving the follow-up request.
+This task still applies, but the original writeup is partially stale. Local reruns now put `lsp/session/large_big_bank_document_symbols` at roughly `6.16-6.26 ms`, down substantially from the older `~9.31-9.39 ms`, because the recent merge landed persistent loader/session reuse and additional host-side caches.
 
-## Root Cause
+Even after that improvement, the LSP still rebuilds workspace facts on every open, change, and close before serving the follow-up request.
 
-[`crates/structurizr-lsp/src/handlers/text_sync.rs`](../crates/structurizr-lsp/src/handlers/text_sync.rs) currently calls `recompute_workspace_facts(...)` from both `publish_latest_snapshot(...)` and `did_close(...)`.
+## Current State
 
-That path clones the open-document set, reapplies overrides, creates a fresh `WorkspaceLoader`, and reloads the workspace from scratch for each buffer transition. The `documentSymbol` handler in [`crates/structurizr-lsp/src/handlers/symbols.rs`](../crates/structurizr-lsp/src/handlers/symbols.rs) itself is relatively small; the expensive part is the full rebuild and diagnostic republish path that happens before the request is answered.
+Recent performance work already changed the baseline materially:
+
+- `Backend` now holds a reusable `WorkspaceLoader` instead of constructing a fresh loader per edit.
+- `WorkspaceLoader` now owns a longer-lived internal session with document, processed-context, per-root derived-instance, and final-assembly caches.
+- file-backed `DocumentState` values cache canonical path and workspace identity.
+
+Those changes removed a large chunk of the stale work described in the original task, but they did not change the outer invalidation boundary.
+
+## Remaining Root Cause
+
+[`crates/structurizr-lsp/src/handlers/text_sync.rs`](../crates/structurizr-lsp/src/handlers/text_sync.rs) still calls `recompute_workspace_facts(...)` from both `publish_latest_snapshot(...)` and `did_close(...)`.
+
+That path still:
+
+- rebuilds load inputs from current workspace roots and open documents
+- clears and reapplies document overrides on the loader
+- calls `WorkspaceLoader::load_paths(...)`
+- stores a fresh `WorkspaceFacts` packet
+- republishes diagnostics for every open document
+
+The persistent loader makes repeated runs cheaper, but the invalidation model is still effectively "recompute whole workspace facts for every buffer transition" rather than "recompute only affected workspace instances/documents".
 
 ## Options
 
-- Keep full workspace recomputation for every open-buffer transition.
-- Cache only canonical document identities and open-document lookup state, but still rebuild workspace facts from scratch.
-- Add an incremental invalidation/update layer so one edited buffer can reuse most of the previously computed workspace state.
+- Keep full recomputation, accepting the new caches as good enough.
+- Add a lighter coarse invalidation layer so one edit can reuse unaffected workspace slices while still rebuilding affected instances as a whole.
+- Move the next invalidation boundary into `structurizr-analysis`, likely via an analysis-owned Salsa-backed workspace query or another semantics-aware derived packet boundary.
 
 ## Proposed Option
 
-Take this in two slices.
+Keep this task open and retarget it around coarse incremental invalidation, not loader reuse.
 
-First, cache canonical document identities and lookup state in the server so diagnostics and navigation helpers stop paying repeated filesystem normalization and linear open-document scans.
-
-Then design an incremental workspace-facts update path for `didChange` / `didClose` so a single edited document does not force a whole-workspace reload when the workspace roots themselves have not changed.
+The first milestone should be to stop rebuilding and republishing more than the affected workspace slice on `didChange` / `didClose`. If that still leaves the edited-root benchmark too high, the next meaningful experiment should be the first true analysis-owned workspace query rather than another coarse host-side cache layer.

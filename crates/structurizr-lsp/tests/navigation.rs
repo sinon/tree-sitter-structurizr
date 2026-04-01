@@ -4,15 +4,18 @@ use std::{fs, path::Path};
 
 use serde_json::json;
 use support::{
-    TestService, close_document, file_uri, file_uri_from_path, initialize,
+    TestService, change_document, close_document, file_uri, file_uri_from_path, initialize,
     initialize_with_workspace_folders, initialized, new_service, next_publish_diagnostics_for_uri,
-    open_document, position_in, request_json, workspace_fixture_path,
+    next_server_notification, open_document, position_in, request_json, workspace_fixture_path,
 };
 use tempfile::TempDir;
+use tokio::time::{Duration, timeout};
 use tower_lsp_server::ls_types::Uri;
 
 const DIRECT_REFERENCES_SOURCE: &str =
     include_str!("fixtures/relationships/named-relationships-ok.dsl");
+const INVALID_SOURCE: &str =
+    include_str!("fixtures/directives/identifiers-unexpected-tokens-err.dsl");
 const COMPLETION_SOURCE: &str = "workspace {\n  !i\n}\n";
 const ELEMENT_STYLE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      element \"Person\" {\n        ba\n      }\n    }\n  }\n}\n";
 const RELATIONSHIP_STYLE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      relationship \"Uses\" {\n        da\n      }\n    }\n  }\n}\n";
@@ -1374,6 +1377,61 @@ async fn diagnostics_publish_bounded_semantic_errors() {
     assert_eq!(
         workspace_messages,
         vec!["ambiguous identifier reference: api"]
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn did_change_republishes_current_document_even_when_diagnostics_are_unchanged() {
+    let (mut service, mut socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let uri = file_uri("identifiers-unexpected-tokens-err.dsl");
+    open_document(&mut service, &uri, INVALID_SOURCE).await;
+    let _ = next_publish_diagnostics_for_uri(&mut socket, uri.as_str()).await;
+
+    let changed_text = format!("{}\n", INVALID_SOURCE);
+    change_document(&mut service, &uri, 2, &changed_text).await;
+
+    let notification = next_publish_diagnostics_for_uri(&mut socket, uri.as_str()).await;
+    assert_eq!(notification["params"]["version"], 2);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn opening_second_document_does_not_republish_unchanged_diagnostics_for_first_document() {
+    let (mut service, mut socket) = new_service();
+    let workspace_root = workspace_fixture_path("duplicate-bindings");
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
+    initialized(&mut service).await;
+
+    let alpha_path = workspace_root.join("alpha.dsl");
+    let alpha_uri = file_uri_from_path(&alpha_path);
+    open_document(&mut service, &alpha_uri, &read_workspace_file(&alpha_path)).await;
+    let _ = next_publish_diagnostics_for_uri(&mut socket, alpha_uri.as_str()).await;
+
+    let workspace_path = workspace_root.join("workspace.dsl");
+    let workspace_uri = file_uri_from_path(&workspace_path);
+    open_document(
+        &mut service,
+        &workspace_uri,
+        &read_workspace_file(&workspace_path),
+    )
+    .await;
+
+    let workspace_notification =
+        next_publish_diagnostics_for_uri(&mut socket, workspace_uri.as_str()).await;
+    assert_eq!(workspace_notification["params"]["uri"], workspace_uri.as_str());
+
+    let notification = timeout(
+        Duration::from_millis(200),
+        next_server_notification(&mut socket),
+    )
+    .await;
+    assert!(
+        notification.is_err(),
+        "opening an unrelated second document should not republish unchanged diagnostics"
     );
 }
 

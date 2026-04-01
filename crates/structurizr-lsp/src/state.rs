@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use structurizr_analysis::{DocumentSnapshot, WorkspaceFacts};
-use tower_lsp_server::ls_types::{ClientCapabilities, Uri};
+use tower_lsp_server::ls_types::{ClientCapabilities, Diagnostic, Uri};
 
 use crate::documents::DocumentStore;
 
@@ -14,6 +14,7 @@ pub struct ServerState {
     workspace_roots: Vec<Uri>,
     documents: DocumentStore,
     snapshots: HashMap<Uri, DocumentSnapshot>,
+    published_diagnostics: HashMap<Uri, Vec<Diagnostic>>,
     workspace_facts: Option<WorkspaceFacts>,
 }
 
@@ -60,6 +61,22 @@ impl ServerState {
     /// Removes the cached analyzed snapshot for a document URI.
     pub fn remove_snapshot(&mut self, uri: &Uri) {
         self.snapshots.remove(uri);
+    }
+
+    /// Returns the last diagnostics published for one document URI.
+    #[must_use]
+    pub fn published_diagnostics(&self, uri: &Uri) -> Option<&[Diagnostic]> {
+        self.published_diagnostics.get(uri).map(Vec::as_slice)
+    }
+
+    /// Stores the latest diagnostics published for one document URI.
+    pub fn set_published_diagnostics(&mut self, uri: Uri, diagnostics: Vec<Diagnostic>) {
+        self.published_diagnostics.insert(uri, diagnostics);
+    }
+
+    /// Removes the cached published diagnostics for one document URI.
+    pub fn remove_published_diagnostics(&mut self, uri: &Uri) {
+        self.published_diagnostics.remove(uri);
     }
 
     /// Replaces the cached workspace discovery facts for the current session.

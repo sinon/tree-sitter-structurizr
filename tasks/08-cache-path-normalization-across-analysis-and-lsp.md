@@ -1,29 +1,40 @@
+> Status after recent Salsa merge: partially landed. Narrow this task to the remaining normalization edges.
+
 ## Issue
 
-The local benchmark matrix still puts `analysis/workspace` at roughly `0.91 ms` / `1.20 ms` / `3.38 ms` for the small, medium, and large workspace cases, and the recent CodSpeed regression already showed that this path is sensitive to extra filesystem work.
+This task still applies, but its original LSP-side scope is now too broad. Local reruns put `analysis/workspace/large_big_bank_plc` at roughly `3.22-3.30 ms`, and file-backed LSP documents now already cache canonical path and workspace document identity.
 
-## Root Cause
+The remaining path-normalization cost is now concentrated in workspace loading and a few LSP helper edges rather than every diagnostics/navigation path.
 
-[`crates/structurizr-analysis/src/workspace.rs`](../crates/structurizr-analysis/src/workspace.rs) normalizes roots up front and then canonicalizes many paths again while scanning workspaces and following includes:
+## Current State
 
-- `scan_workspace_root(...)`
-- `resolve_local_include(...)`
-- `collect_directory_include_paths(...)`
+On the LSP side, [`crates/structurizr-lsp/src/documents.rs`](../crates/structurizr-lsp/src/documents.rs) now caches both:
 
-On the LSP side, [`crates/structurizr-lsp/src/handlers/text_sync.rs`](../crates/structurizr-lsp/src/handlers/text_sync.rs), `src/handlers/navigation.rs`, and `src/convert/diagnostics.rs` also call `fs::canonicalize(...)` when turning URIs back into workspace document identities. The same path normalization work is therefore repeated both within one workspace load and again on request/diagnostic paths.
+- canonical filesystem path
+- canonical `DocumentId` / workspace identity
+
+That means the original task text overstates the remaining LSP work. [`crates/structurizr-lsp/src/convert/diagnostics.rs`](../crates/structurizr-lsp/src/convert/diagnostics.rs) and [`crates/structurizr-lsp/src/handlers/navigation.rs`](../crates/structurizr-lsp/src/handlers/navigation.rs) now mostly operate on cached `workspace_document_id()` data instead of calling `fs::canonicalize(...)` themselves.
+
+The remaining repeated normalization still shows up in:
+
+- [`crates/structurizr-analysis/src/workspace.rs`](../crates/structurizr-analysis/src/workspace.rs) via root normalization, include resolution, and directory-include traversal
+- [`crates/structurizr-lsp/src/handlers/text_sync.rs`](../crates/structurizr-lsp/src/handlers/text_sync.rs) when workspace roots are canonicalized during recomputation
+- [`crates/structurizr-lsp/src/handlers/directive_paths.rs`](../crates/structurizr-lsp/src/handlers/directive_paths.rs) when mapping include targets back to filesystem paths
 
 ## Options
 
-- Keep canonicalization at every call site for simplicity.
-- Add a per-load canonical-path cache in `structurizr-analysis` and store canonical path / `DocumentId` state alongside open documents in `structurizr-lsp`.
-- Relax some normalization boundaries and canonicalize only selected edges.
+- Keep canonicalization at the remaining call sites because the behavior is correct and the cost may already be acceptable.
+- Add a per-load or per-session canonical-path cache in `structurizr-analysis` and stop re-canonicalizing already-known workspace roots in `structurizr-lsp`.
+- Push canonical document/root identity more explicitly into the host-to-analysis boundary so helpers never need to hit the filesystem again for already-open files.
 
 ## Proposed Option
 
-Keep the current safety guarantees, but cache canonical forms aggressively so one discovered file or open document only pays for normalization once.
+Keep the current safety guarantees, but narrow this task to the call sites that still pay repeated normalization work.
 
-That means:
+The pragmatic slice now is:
 
-- a per-load cache for analysis-side path normalization and include traversal
-- cached canonical path / `DocumentId` data in `DocumentState` or adjacent server state
-- reusing that cached identity in diagnostics and navigation helpers instead of re-hitting the filesystem
+- a per-load normalization cache inside workspace loading and include traversal
+- reusing already-canonical workspace roots in `text_sync`
+- removing redundant canonicalization from directive-path helpers where cached document identity is already available
+
+Do not spend time reworking the diagnostics/navigation helpers that this task originally named; that part is largely already done.

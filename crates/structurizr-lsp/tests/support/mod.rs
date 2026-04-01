@@ -145,6 +145,26 @@ pub async fn close_document(service: &mut TestService, uri: &Uri) {
     .await;
 }
 
+pub async fn change_document(service: &mut TestService, uri: &Uri, version: i32, text: &str) {
+    call_notification(
+        service,
+        Request::build("textDocument/didChange")
+            .params(json!({
+                "textDocument": {
+                    "uri": uri.as_str(),
+                    "version": version,
+                },
+                "contentChanges": [
+                    {
+                        "text": text,
+                    }
+                ],
+            }))
+            .finish(),
+    )
+    .await;
+}
+
 pub async fn request_json(
     service: &mut TestService,
     method: &'static str,

@@ -4,7 +4,7 @@ use std::{fs, path::PathBuf, time::Instant};
 
 use structurizr_analysis::{DocumentAnalyzer, DocumentId};
 use tower_lsp_server::ls_types::{
-    DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams,
+    DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams, Uri,
 };
 use tracing::{debug, info, warn};
 
@@ -76,6 +76,7 @@ pub async fn did_close(backend: &Backend, params: DidCloseTextDocumentParams) {
         let mut state = backend.state().write().await;
         state.documents_mut().close(&params.text_document.uri);
         state.remove_snapshot(&params.text_document.uri);
+        state.remove_published_diagnostics(&params.text_document.uri);
         debug!(
             open_document_count = state.documents().len(),
             "removed closed document from server state"
@@ -99,7 +100,7 @@ pub async fn did_close(backend: &Backend, params: DidCloseTextDocumentParams) {
         "published clear-diagnostics notification for closed document"
     );
 
-    publish_open_document_diagnostics(backend).await;
+    publish_changed_open_document_diagnostics(backend, None).await;
 }
 
 async fn publish_latest_snapshot(backend: &Backend, document: DocumentState) {
@@ -133,10 +134,13 @@ async fn publish_latest_snapshot(backend: &Backend, document: DocumentState) {
         );
     }
 
-    publish_open_document_diagnostics(backend).await;
+    publish_changed_open_document_diagnostics(backend, Some(&uri)).await;
 }
 
-async fn publish_open_document_diagnostics(backend: &Backend) {
+async fn publish_changed_open_document_diagnostics(
+    backend: &Backend,
+    force_publish_uri: Option<&Uri>,
+) {
     let publish_jobs = {
         let state = backend.state().read().await;
         let workspace_facts = state.workspace_facts();
@@ -146,12 +150,21 @@ async fn publish_open_document_diagnostics(backend: &Backend) {
             .iter()
             .filter_map(|document| {
                 let snapshot = state.snapshot(document.uri())?;
+                let publishable_diagnostics =
+                    diagnostics::document_diagnostics(document, snapshot, workspace_facts);
+                let diagnostics_changed = match state.published_diagnostics(document.uri()) {
+                    Some(previous) => previous != publishable_diagnostics,
+                    None => true,
+                };
+                let should_publish = diagnostics_changed || Some(document.uri()) == force_publish_uri;
 
-                Some((
-                    document.uri().clone(),
-                    document.version(),
-                    diagnostics::document_diagnostics(document, snapshot, workspace_facts),
-                ))
+                should_publish.then(|| {
+                    (
+                        document.uri().clone(),
+                        document.version(),
+                        publishable_diagnostics,
+                    )
+                })
             })
             .collect::<Vec<_>>()
     };
@@ -167,8 +180,11 @@ async fn publish_open_document_diagnostics(backend: &Backend) {
         );
         backend
             .client()
-            .publish_diagnostics(uri, publishable_diagnostics, Some(version))
+            .publish_diagnostics(uri.clone(), publishable_diagnostics.clone(), Some(version))
             .await;
+
+        let mut state = backend.state().write().await;
+        state.set_published_diagnostics(uri, publishable_diagnostics);
     }
 }
 
