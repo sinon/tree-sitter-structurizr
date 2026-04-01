@@ -1,6 +1,6 @@
 //! Full-document sync handlers that keep the latest snapshot in server state.
 
-use std::{fs, path::PathBuf, time::Instant};
+use std::{collections::BTreeSet, fs, path::PathBuf, time::Instant};
 
 use structurizr_analysis::{DocumentAnalyzer, DocumentId};
 use tower_lsp_server::ls_types::{
@@ -8,7 +8,7 @@ use tower_lsp_server::ls_types::{
 };
 use tracing::{debug, info, warn};
 
-use structurizr_analysis::{WorkspaceFacts, WorkspaceLoader};
+use structurizr_analysis::{WorkspaceFacts, WorkspaceLoader, WorkspaceUpdate};
 
 use crate::{documents::DocumentState, handlers::diagnostics, server::Backend};
 
@@ -83,7 +83,12 @@ pub async fn did_close(backend: &Backend, params: DidCloseTextDocumentParams) {
         );
     }
 
-    let workspace_facts = recompute_workspace_facts(backend, None).await;
+    let workspace_update = recompute_workspace_facts(backend, None).await;
+    let affected_documents = workspace_update
+        .as_ref()
+        .map(WorkspaceUpdate::affected_documents)
+        .cloned();
+    let workspace_facts = workspace_update.map(WorkspaceUpdate::into_facts);
 
     {
         let mut state = backend.state().write().await;
@@ -100,20 +105,33 @@ pub async fn did_close(backend: &Backend, params: DidCloseTextDocumentParams) {
         "published clear-diagnostics notification for closed document"
     );
 
-    publish_changed_open_document_diagnostics(backend, None).await;
+    publish_changed_open_document_diagnostics(
+        backend,
+        None,
+        affected_documents.as_ref(),
+    )
+    .await;
 }
 
 async fn publish_latest_snapshot(backend: &Backend, document: DocumentState) {
     let uri = document.uri().clone();
-    let workspace_facts = recompute_workspace_facts(backend, Some(&document)).await;
+    let workspace_update = recompute_workspace_facts(backend, Some(&document)).await;
+    let affected_documents = workspace_update
+        .as_ref()
+        .map(WorkspaceUpdate::affected_documents)
+        .cloned();
     // When workspace recomputation already analyzed this file-backed document
     // through `WorkspaceLoader`, reuse that snapshot instead of immediately
     // parsing and extracting the same document a second time.
-    let snapshot = snapshot_from_workspace_facts(&document, workspace_facts.as_ref())
+    let snapshot = snapshot_from_workspace_facts(
+        &document,
+        workspace_update.as_ref().map(WorkspaceUpdate::facts),
+    )
         .unwrap_or_else(|| {
             let mut analyzer = DocumentAnalyzer::new();
             analyzer.analyze(document.to_input())
         });
+    let workspace_facts = workspace_update.map(WorkspaceUpdate::into_facts);
     debug!(
         uri = uri.as_str(),
         syntax_diagnostic_count = snapshot.syntax_diagnostics().len(),
@@ -134,12 +152,18 @@ async fn publish_latest_snapshot(backend: &Backend, document: DocumentState) {
         );
     }
 
-    publish_changed_open_document_diagnostics(backend, Some(&uri)).await;
+    publish_changed_open_document_diagnostics(
+        backend,
+        Some(&uri),
+        affected_documents.as_ref(),
+    )
+    .await;
 }
 
 async fn publish_changed_open_document_diagnostics(
     backend: &Backend,
     force_publish_uri: Option<&Uri>,
+    affected_documents: Option<&BTreeSet<DocumentId>>,
 ) {
     let publish_jobs = {
         let state = backend.state().read().await;
@@ -150,13 +174,17 @@ async fn publish_changed_open_document_diagnostics(
             .iter()
             .filter_map(|document| {
                 let snapshot = state.snapshot(document.uri())?;
+                let workspace_document_changed = affected_documents.is_none_or(|documents| {
+                    workspace_document_id(document).is_none_or(|document_id| documents.contains(&document_id))
+                });
                 let publishable_diagnostics =
                     diagnostics::document_diagnostics(document, snapshot, workspace_facts);
                 let diagnostics_changed = match state.published_diagnostics(document.uri()) {
                     Some(previous) => previous != publishable_diagnostics,
                     None => true,
                 };
-                let should_publish = diagnostics_changed || Some(document.uri()) == force_publish_uri;
+                let should_publish = Some(document.uri()) == force_publish_uri
+                    || (workspace_document_changed && diagnostics_changed);
 
                 should_publish.then(|| {
                     (
@@ -191,7 +219,7 @@ async fn publish_changed_open_document_diagnostics(
 async fn recompute_workspace_facts(
     backend: &Backend,
     current_document: Option<&DocumentState>,
-) -> Option<WorkspaceFacts> {
+) -> Option<WorkspaceUpdate> {
     let (workspace_roots, open_documents) = {
         let state = backend.state().read().await;
 
@@ -245,18 +273,20 @@ async fn recompute_workspace_facts(
         add_document_override(&mut loader, current_document);
     }
 
-    match loader.load_paths(load_paths) {
-        Ok(workspace_facts) => {
+    match loader.load_update(load_paths) {
+        Ok(workspace_update) => {
+            let workspace_facts = workspace_update.facts();
             info!(
                 current_document_uri = current_uri.as_deref(),
                 document_count = workspace_facts.documents().len(),
                 include_count = workspace_facts.includes().len(),
                 workspace_instance_count = workspace_facts.workspace_indexes().len(),
                 semantic_diagnostic_count = workspace_facts.semantic_diagnostics().len(),
+                affected_document_count = workspace_update.affected_documents().len(),
                 elapsed_ms = start.elapsed().as_millis(),
                 "recomputed workspace facts"
             );
-            Some(workspace_facts)
+            Some(workspace_update)
         }
         Err(error) => {
             warn!(

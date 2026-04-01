@@ -1435,6 +1435,51 @@ async fn opening_second_document_does_not_republish_unchanged_diagnostics_for_fi
     );
 }
 
+#[tokio::test(flavor = "current_thread")]
+async fn opening_second_unrelated_workspace_root_only_publishes_its_own_diagnostics() {
+    let temp_workspace = TempWorkspace::new(
+        "unrelated-roots",
+        "workspace {\n  model {\n    user = person \"User\"\n  }\n}\n",
+        &[],
+        &[(
+            Path::new("other.dsl"),
+            "workspace {\n  model {\n    admin = person \"Admin\"\n  }\n}\n",
+        )],
+    );
+    let (mut service, mut socket) = new_service();
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(temp_workspace.path())])
+        .await;
+    initialized(&mut service).await;
+
+    let workspace_path = temp_workspace.path().join("workspace.dsl");
+    let workspace_uri = file_uri_from_path(&workspace_path);
+    open_document(
+        &mut service,
+        &workspace_uri,
+        &read_workspace_file(&workspace_path),
+    )
+    .await;
+    let _ = next_publish_diagnostics_for_uri(&mut socket, workspace_uri.as_str()).await;
+
+    let other_path = temp_workspace.path().join("other.dsl");
+    let other_uri = file_uri_from_path(&other_path);
+    open_document(&mut service, &other_uri, &read_workspace_file(&other_path)).await;
+
+    let other_notification = next_publish_diagnostics_for_uri(&mut socket, other_uri.as_str()).await;
+    assert_eq!(other_notification["params"]["uri"], other_uri.as_str());
+
+    let notification = timeout(
+        Duration::from_millis(200),
+        next_server_notification(&mut socket),
+    )
+    .await;
+    assert!(
+        notification.is_err(),
+        "opening an unrelated workspace root should not republish the first root's diagnostics"
+    );
+}
+
 fn read_workspace_file(path: &Path) -> String {
     fs::read_to_string(path).unwrap_or_else(|error| {
         panic!(

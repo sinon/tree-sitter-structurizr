@@ -31,4 +31,5 @@ pub use workspace::{
     ReferenceHandle, ReferenceResolutionStatus, ResolvedInclude, SymbolHandle, WorkspaceDocument,
     WorkspaceDocumentKind, WorkspaceFacts, WorkspaceIncludeTarget, WorkspaceIndex,
     WorkspaceInstanceId, WorkspaceLoader,
+    WorkspaceUpdate,
 };
