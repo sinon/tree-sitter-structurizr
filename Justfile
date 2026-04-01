@@ -8,7 +8,7 @@ generate:
     cd {{grammar_dir}} && tree-sitter generate
 
 generate-bench-fixtures:
-    python3 tools/generate_benchmark_fixtures.py
+    tools/generate_benchmark_fixtures.py
 
 build:
     cargo build

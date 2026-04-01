@@ -1,4 +1,9 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = "==3.14.*"
+# dependencies = []
+# ///
+
 from __future__ import annotations
 
 import argparse
@@ -9,7 +14,7 @@ import sys
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, BinaryIO
+from typing import Any, IO
 
 
 @dataclass(frozen=True)
@@ -29,11 +34,13 @@ def repository_root() -> Path:
 def replay_cases(root: Path) -> dict[str, ReplayCase]:
     return {
         "small": ReplayCase(
-            document_path=root / "crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl",
+            document_path=root
+            / "crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl",
             workspace_roots=(),
         ),
         "large": ReplayCase(
-            document_path=root / "tests/lsp/workspaces/big-bank-plc/internet-banking-system.dsl",
+            document_path=root
+            / "tests/lsp/workspaces/big-bank-plc/internet-banking-system.dsl",
             workspace_roots=(root / "tests/lsp/workspaces/big-bank-plc",),
         ),
         "mega": ReplayCase(
@@ -41,7 +48,8 @@ def replay_cases(root: Path) -> dict[str, ReplayCase]:
             workspace_roots=(root / "tests/lsp/workspaces/benchmark-mega",),
         ),
         "mega-multi-root": ReplayCase(
-            document_path=root / "tests/lsp/workspaces/benchmark-mega-multi-root/ws-12/model.dsl",
+            document_path=root
+            / "tests/lsp/workspaces/benchmark-mega-multi-root/ws-12/model.dsl",
             workspace_roots=tuple(
                 root / f"tests/lsp/workspaces/benchmark-mega-multi-root/ws-{index:02d}"
                 for index in range(24)
@@ -56,7 +64,7 @@ def encode_message(payload: dict[str, Any]) -> bytes:
     return header + body
 
 
-def send_message(stream: BinaryIO, payload: dict[str, Any]) -> None:
+def send_message(stream: IO[bytes], payload: dict[str, Any]) -> None:
     stream.write(encode_message(payload))
     stream.flush()
 
@@ -75,7 +83,7 @@ def replay_deadline(seconds: float) -> Any:
         signal.signal(signal.SIGALRM, previous_handler)
 
 
-def read_message(stream: BinaryIO) -> dict[str, Any]:
+def read_message(stream: IO[bytes]) -> dict[str, Any]:
     headers: dict[str, str] = {}
 
     while True:
@@ -91,22 +99,26 @@ def read_message(stream: BinaryIO) -> dict[str, Any]:
     content_length = int(headers["content-length"])
     body = stream.read(content_length)
     if len(body) != content_length:
-        raise EOFError("language server closed stdout before the message body completed")
+        raise EOFError(
+            "language server closed stdout before the message body completed"
+        )
 
     return json.loads(body)
 
 
-def expect_response(stream: BinaryIO, request_id: int) -> dict[str, Any]:
+def expect_response(stream: IO[bytes], request_id: int) -> dict[str, Any]:
     while True:
         message = read_message(stream)
         if message.get("id") != request_id:
             continue
         if "error" in message:
-            raise RuntimeError(f"language server returned an error for request {request_id}: {message['error']}")
+            raise RuntimeError(
+                f"language server returned an error for request {request_id}: {message['error']}"
+            )
         return message
 
 
-def expect_notification(stream: BinaryIO, method: str) -> dict[str, Any]:
+def expect_notification(stream: IO[bytes], method: str) -> dict[str, Any]:
     while True:
         message = read_message(stream)
         if message.get("method") == method:
@@ -231,7 +243,9 @@ def run_replay(server_binary: Path, case: ReplayCase) -> None:
             return_code = server.wait(timeout=PROCESS_EXIT_TIMEOUT_SECONDS)
             stderr_output = server.stderr.read().decode("utf-8", errors="replace")
             if return_code != 0:
-                raise RuntimeError(f"language server exited with {return_code}: {stderr_output}")
+                raise RuntimeError(
+                    f"language server exited with {return_code}: {stderr_output}"
+                )
     finally:
         if server.stdin is not None and not server.stdin.closed:
             server.stdin.close()

@@ -133,13 +133,13 @@ The analysis crate skeleton already recommends owned facts.
 
 For the first extraction pass, the key types should conceptually look like:
 
-| Type | Role |
-| --- | --- |
-| `Symbol` | One declaration-like fact with kind, name, binding, span, and parent context |
-| `Reference` | One observed identifier reference site with kind, raw text, span, and container context |
-| `SymbolKind` | Domain-shaped declaration kind (`Person`, `SoftwareSystem`, `Container`, `Component`, `Relationship`) |
-| `ReferenceKind` | Syntax role of the reference site (`RelationshipSource`, `RelationshipDestination`, `ViewScope`, `ViewInclude`, `ViewAnimation`) |
-| `ReferenceTargetHint` | Narrow target-family hint (`Element`, `Deployment`, `Relationship`, `ElementOrRelationship`) where useful |
+| Type                  | Role                                                                                                                             |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `Symbol`              | One declaration-like fact with kind, name, binding, span, and parent context                                                     |
+| `Reference`           | One observed identifier reference site with kind, raw text, span, and container context                                          |
+| `SymbolKind`          | Domain-shaped declaration kind (`Person`, `SoftwareSystem`, `Container`, `Component`, `Relationship`)                            |
+| `ReferenceKind`       | Syntax role of the reference site (`RelationshipSource`, `RelationshipDestination`, `ViewScope`, `ViewInclude`, `ViewAnimation`) |
+| `ReferenceTargetHint` | Narrow target-family hint (`Element`, `Deployment`, `Relationship`, `ElementOrRelationship`) where useful                        |
 
 Important design choice:
 
@@ -434,22 +434,22 @@ Walk supported model containers in document order.
 For each supported declaration node:
 
 1. emit a `Symbol`
-2. push it onto the parent-symbol stack when it has a body that may contain supported declarations
-3. recurse into supported child containers
+1. push it onto the parent-symbol stack when it has a body that may contain supported declarations
+1. recurse into supported child containers
 
 For each `relationship` node:
 
 1. emit a `Relationship` symbol only if `identifier` exists
-2. emit endpoint reference facts only for plain identifier endpoints
+1. emit endpoint reference facts only for plain identifier endpoints
 
 ### Phase C: walk supported view references
 
 For each supported view node:
 
 1. emit a `ViewScope` reference when `scope` is a plain identifier
-2. emit `ViewInclude` references for identifier-valued include statements
-3. emit `ViewAnimation` references for identifier-valued animation steps
-4. for `dynamic_view`, emit `RelationshipSource` / `RelationshipDestination` references for plain-identifier `dynamic_relationship` endpoints
+1. emit `ViewInclude` references for identifier-valued include statements
+1. emit `ViewAnimation` references for identifier-valued animation steps
+1. for `dynamic_view`, emit `RelationshipSource` / `RelationshipDestination` references for plain-identifier `dynamic_relationship` endpoints
 
 ### Phase D: preserve pre-order output
 
@@ -549,11 +549,11 @@ Everything deferred should remain out of scope rather than partially guessed.
 ## Recommended implementation sequence
 
 1. Define `Symbol`, `Reference`, `SymbolKind`, `ReferenceKind`, and `ReferenceTargetHint`.
-2. Implement model-declaration walking for the supported declaration kinds.
-3. Add relationship-symbol and endpoint-reference extraction.
-4. Add supported view-scope and view-include reference extraction.
-5. Snapshot the extracted facts against the current LSP fixtures.
-6. Only then begin cross-file resolution or handler-level consumption.
+1. Implement model-declaration walking for the supported declaration kinds.
+1. Add relationship-symbol and endpoint-reference extraction.
+1. Add supported view-scope and view-include reference extraction.
+1. Snapshot the extracted facts against the current LSP fixtures.
+1. Only then begin cross-file resolution or handler-level consumption.
 
 That sequence keeps the first pass narrow and implementation-friendly.
 

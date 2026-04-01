@@ -60,11 +60,11 @@ This is exactly the kind of drift this decision is meant to reduce.
 
 ## Decision table
 
-| Query | Canonical home | Why | Relationship to the other repo |
-| --- | --- | --- | --- |
-| `tags.scm` | Grammar repo | Portable symbol extraction is useful for the future analysis crate, LSP, and non-Zed consumers. The Rust bindings are already prepared to expose `TAGS_QUERY`. | No extension copy is required initially. Revisit only if a specific editor flow needs it directly. |
-| `outline.scm` | Zed extension repo | Zed has a dedicated outline query surface and the current outline structure is editor-UX-oriented. It is not part of the grammar crate’s existing portable query/export story. | The grammar repo should not own `outline.scm` by default. Revisit only if another consumer needs a portable outline query distinct from tags. |
-| `brackets.scm` | Zed extension repo | Bracket matching and rainbow-bracket behavior are editor-facing concerns, and this query already exists as extension-owned behavior. There is no current Rust binding/export surface for it in the grammar crate. | Keep extension-owned unless another editor or consumer creates a real need for a portable shared version. |
+| Query          | Canonical home     | Why                                                                                                                                                                                                               | Relationship to the other repo                                                                                                                |
+| -------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tags.scm`     | Grammar repo       | Portable symbol extraction is useful for the future analysis crate, LSP, and non-Zed consumers. The Rust bindings are already prepared to expose `TAGS_QUERY`.                                                    | No extension copy is required initially. Revisit only if a specific editor flow needs it directly.                                            |
+| `outline.scm`  | Zed extension repo | Zed has a dedicated outline query surface and the current outline structure is editor-UX-oriented. It is not part of the grammar crate’s existing portable query/export story.                                    | The grammar repo should not own `outline.scm` by default. Revisit only if another consumer needs a portable outline query distinct from tags. |
+| `brackets.scm` | Zed extension repo | Bracket matching and rainbow-bracket behavior are editor-facing concerns, and this query already exists as extension-owned behavior. There is no current Rust binding/export surface for it in the grammar crate. | Keep extension-owned unless another editor or consumer creates a real need for a portable shared version.                                     |
 
 ## Decision details
 
@@ -136,8 +136,8 @@ These are allowed to evolve around Zed behavior without forcing the grammar crat
 ## Immediate follow-up from this decision
 
 1. Treat `tags.scm` as a grammar-repo task, not an extension-repo task.
-2. Keep `outline.scm` and `brackets.scm` in `zed-structurizr`.
-3. Reconcile the current `highlights.scm` drift by either:
+1. Keep `outline.scm` and `brackets.scm` in `zed-structurizr`.
+1. Reconcile the current `highlights.scm` drift by either:
    - upstreaming the extra extension captures into the grammar repo, or
    - explicitly documenting them as temporary extension-only deltas.
 

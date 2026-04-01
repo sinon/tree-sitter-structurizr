@@ -46,11 +46,11 @@ The bounded MVP should build a **derived workspace index per workspace instance*
 That index should:
 
 1. collect bindable element and relationship symbols from the instance's document set
-2. compute final canonical binding keys in **instance context**
-3. classify keys into unique bindings vs duplicate bindings
-4. resolve supported reference facts against those binding tables
-5. retain per-document include and semantic diagnostic facts
-6. expose reverse document-to-instance membership so fragment queries can stay conservative
+1. compute final canonical binding keys in **instance context**
+1. classify keys into unique bindings vs duplicate bindings
+1. resolve supported reference facts against those binding tables
+1. retain per-document include and semantic diagnostic facts
+1. expose reverse document-to-instance membership so fragment queries can stay conservative
 
 This makes the workspace layer the semantic bridge between single-document extraction and LSP handlers.
 
@@ -193,15 +193,15 @@ The workspace layer should keep reusing document-local facts rather than duplica
 
 Useful conceptual handle types:
 
-| Type | Role |
-| --- | --- |
-| `WorkspaceInstanceId` | Stable identity for one root-driven semantic instance |
-| `SymbolHandle` | Stable reference to one extracted `Symbol` in one document |
-| `ReferenceHandle` | Stable reference to one extracted `Reference` in one document |
-| `CanonicalBindingKey` | Final instance-scoped key used for exact-match lookup |
-| `ResolvedReference` | One supported reference site plus its resolved target symbol |
-| `ReferenceResolutionStatus` | Outcome of attempting bounded resolution |
-| `DuplicateBindingSet` | One canonical key plus all symbol handles claiming it |
+| Type                        | Role                                                          |
+| --------------------------- | ------------------------------------------------------------- |
+| `WorkspaceInstanceId`       | Stable identity for one root-driven semantic instance         |
+| `SymbolHandle`              | Stable reference to one extracted `Symbol` in one document    |
+| `ReferenceHandle`           | Stable reference to one extracted `Reference` in one document |
+| `CanonicalBindingKey`       | Final instance-scoped key used for exact-match lookup         |
+| `ResolvedReference`         | One supported reference site plus its resolved target symbol  |
+| `ReferenceResolutionStatus` | Outcome of attempting bounded resolution                      |
+| `DuplicateBindingSet`       | One canonical key plus all symbol handles claiming it         |
 
 Important rule:
 
@@ -216,8 +216,8 @@ The workspace index should process documents in a deterministic order.
 Recommended rule:
 
 1. root document first
-2. then included documents in resolved traversal order
-3. with directory includes already expanded deterministically as required by the include note
+1. then included documents in resolved traversal order
+1. with directory includes already expanded deterministically as required by the include note
 
 Why this matters:
 
@@ -359,7 +359,7 @@ Outcomes:
 Resolve against:
 
 1. unique element bindings
-2. unique relationship bindings
+1. unique relationship bindings
 
 Outcomes:
 
@@ -594,12 +594,12 @@ The exact directory names can change, but these scenarios should be represented.
 ## Recommended implementation order
 
 1. Keep `DocumentSnapshot` and extraction facts single-document and owned.
-2. Build `WorkspaceInstance` values from discovery/include resolution.
-3. Add `WorkspaceIndex` as a derived pass over one instance.
-4. Add unique/duplicate binding tables.
-5. Add supported reference resolution statuses.
-6. Add reverse document-to-instance membership.
-7. Only then layer cross-file definition/references and semantic diagnostics on top.
+1. Build `WorkspaceInstance` values from discovery/include resolution.
+1. Add `WorkspaceIndex` as a derived pass over one instance.
+1. Add unique/duplicate binding tables.
+1. Add supported reference resolution statuses.
+1. Add reverse document-to-instance membership.
+1. Only then layer cross-file definition/references and semantic diagnostics on top.
 
 This keeps the analysis model staged and testable instead of merging everything into one opaque “workspace pass”.
 

@@ -199,9 +199,11 @@ impl DiagnosticView {
 fn workspace_fixtures_produce_stable_workspace_indexes(#[case] fixture_name: &str) {
     let fixture_root = workspace_fixture_root().join(fixture_name);
     let mut loader = WorkspaceLoader::new();
-    let facts = loader.load_paths([fixture_root.as_path()]).unwrap_or_else(|error| {
-        panic!("failed to load workspace-index fixture `{fixture_name}`: {error}")
-    });
+    let facts = loader
+        .load_paths([fixture_root.as_path()])
+        .unwrap_or_else(|error| {
+            panic!("failed to load workspace-index fixture `{fixture_name}`: {error}")
+        });
 
     set_snapshot_suffix!("{}", fixture_name.replace('-', "_"));
     insta::assert_debug_snapshot!(

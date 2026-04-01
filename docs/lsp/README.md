@@ -16,8 +16,8 @@ Use this directory when you need to:
 ## Start here
 
 1. [`00-current-state.md`](./00-current-state.md)
-2. [`../../README.md`](../../README.md)
-3. [`../../CONTRIBUTING.md`](../../CONTRIBUTING.md)
+1. [`../../README.md`](../../README.md)
+1. [`../../CONTRIBUTING.md`](../../CONTRIBUTING.md)
 
 ## Directory layout
 
@@ -55,31 +55,31 @@ Keep these for evidence and historical reasoning trails, but do not treat them a
 ### Contributor path
 
 1. [`00-current-state.md`](./00-current-state.md)
-2. [`01-foundations/overview.md`](./01-foundations/overview.md)
-3. [`01-foundations/capability-matrix.md`](./01-foundations/capability-matrix.md)
-4. [`03-delivery/roadmap.md`](./03-delivery/roadmap.md)
-5. the specific design note in [`02-design/`](./02-design/) for the slice you are changing
+1. [`01-foundations/overview.md`](./01-foundations/overview.md)
+1. [`01-foundations/capability-matrix.md`](./01-foundations/capability-matrix.md)
+1. [`03-delivery/roadmap.md`](./03-delivery/roadmap.md)
+1. the specific design note in [`02-design/`](./02-design/) for the slice you are changing
 
 ### LSP user or integrator path
 
 1. [`00-current-state.md`](./00-current-state.md)
-2. [`03-delivery/roadmap.md`](./03-delivery/roadmap.md)
-3. [`03-delivery/packaging-and-dev-loop.md`](./03-delivery/packaging-and-dev-loop.md)
-4. [`03-delivery/zed-extension-language-server-wiring.md`](./03-delivery/zed-extension-language-server-wiring.md)
+1. [`03-delivery/roadmap.md`](./03-delivery/roadmap.md)
+1. [`03-delivery/packaging-and-dev-loop.md`](./03-delivery/packaging-and-dev-loop.md)
+1. [`03-delivery/zed-extension-language-server-wiring.md`](./03-delivery/zed-extension-language-server-wiring.md)
 
 ### Grammar/query consumer path
 
 1. [`../../README.md`](../../README.md)
-2. [`01-foundations/overview.md`](./01-foundations/overview.md)
-3. [`01-foundations/query-ownership.md`](./01-foundations/query-ownership.md)
+1. [`01-foundations/overview.md`](./01-foundations/overview.md)
+1. [`01-foundations/query-ownership.md`](./01-foundations/query-ownership.md)
 
 ### Maintainer/reviewer path
 
 1. [`00-current-state.md`](./00-current-state.md)
-2. [`03-delivery/roadmap.md`](./03-delivery/roadmap.md)
-3. [`01-foundations/repository-topology.md`](./01-foundations/repository-topology.md)
-4. [`02-design/`](./02-design/)
-5. [`90-history/`](./90-history/), only when you need the older reasoning trail
+1. [`03-delivery/roadmap.md`](./03-delivery/roadmap.md)
+1. [`01-foundations/repository-topology.md`](./01-foundations/repository-topology.md)
+1. [`02-design/`](./02-design/)
+1. [`90-history/`](./90-history/), only when you need the older reasoning trail
 
 ## Practical rule of thumb
 

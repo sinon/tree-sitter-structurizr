@@ -411,7 +411,7 @@ The important point is that handlers should read from cached analysis outputs ra
 The first server should normalize workspace roots from:
 
 1. `initialize.workspaceFolders` when present
-2. `initialize.rootUri` as fallback
+1. `initialize.rootUri` as fallback
 
 Those roots should be stored explicitly in state rather than being rediscovered in each handler.
 
@@ -606,13 +606,13 @@ The first LSP crate should not:
 ## Recommended implementation sequence
 
 1. Add the workspace member for [`crates/structurizr-lsp/`](../../../crates/structurizr-lsp/).
-2. Create the library + binary skeleton with `tower-lsp-server` stdio bootstrap.
-3. Add state, capability, and text-sync scaffolding.
-4. Wire document open/change/close to whole-document analysis snapshots.
-5. Publish syntax diagnostics first.
-6. Add document symbols and keyword/directive completion.
-7. Add bounded go-to-definition and find-references on top of analysis facts.
-8. Only then layer on richer workspace-driven semantic diagnostics and later features.
+1. Create the library + binary skeleton with `tower-lsp-server` stdio bootstrap.
+1. Add state, capability, and text-sync scaffolding.
+1. Wire document open/change/close to whole-document analysis snapshots.
+1. Publish syntax diagnostics first.
+1. Add document symbols and keyword/directive completion.
+1. Add bounded go-to-definition and find-references on top of analysis facts.
+1. Only then layer on richer workspace-driven semantic diagnostics and later features.
 
 This keeps the first server useful while preserving the clean analysis/LSP split.
 

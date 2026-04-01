@@ -158,9 +158,9 @@ These saved artifacts stay in `tmp/` so they are easy to compare or discard afte
 If you want to profile the release-binary LSP path outside Criterion:
 
 ```sh
-uv run --python 3.12 tools/lsp_replay.py --server target/release/strz --case large
-uv run --python 3.12 tools/lsp_replay.py --server target/release/strz --case mega
-uv run --python 3.12 tools/lsp_replay.py --server target/release/strz --case mega-multi-root
+tools/lsp_replay.py --server target/release/strz --case large
+tools/lsp_replay.py --server target/release/strz --case mega
+tools/lsp_replay.py --server target/release/strz --case mega-multi-root
 ```
 
 This follows the same small/large/mega session shapes the black-box benchmark script uses.
@@ -186,8 +186,8 @@ On macOS the same command still captures environment metadata, but there is no e
 ## Suggested investigation workflow
 
 1. Run `just bench-rust` to see which benchmark family moved.
-2. Narrow to one targeted `cargo bench` case.
-3. If the change affects CLI or server UX, run `just bench-black-box` or the direct `lsp_replay.py` command.
-4. If the regression needs CI-parity confirmation, run the CodSpeed-compatible build/run pair.
-5. Capture one profiler artifact for the narrowed case before making broader structural changes.
-6. After the optimization, rerun the same targeted benchmark first, then the broader suite you used as the baseline.
+1. Narrow to one targeted `cargo bench` case.
+1. If the change affects CLI or server UX, run `just bench-black-box` or the direct `lsp_replay.py` command.
+1. If the regression needs CI-parity confirmation, run the CodSpeed-compatible build/run pair.
+1. Capture one profiler artifact for the narrowed case before making broader structural changes.
+1. After the optimization, rerun the same targeted benchmark first, then the broader suite you used as the baseline.

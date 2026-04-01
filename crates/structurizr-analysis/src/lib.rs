@@ -21,7 +21,9 @@ pub use diagnostics::{
 };
 pub use includes::{DirectiveContainer, DirectiveValueKind, IncludeDirective};
 pub use parse::DocumentAnalyzer;
-pub use snapshot::{DocumentId, DocumentInput, DocumentLocation, DocumentSnapshot, DocumentSyntaxFacts};
+pub use snapshot::{
+    DocumentId, DocumentInput, DocumentLocation, DocumentSnapshot, DocumentSyntaxFacts,
+};
 pub use span::{TextPoint, TextSpan};
 pub use symbols::{
     IdentifierMode, IdentifierModeFact, Reference, ReferenceKind, ReferenceTargetHint, Symbol,

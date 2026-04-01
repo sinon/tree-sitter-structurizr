@@ -102,10 +102,10 @@ This is not a sign that the architecture is incomplete. It is a deliberate polic
 The current happy-path pipeline is:
 
 1. Tree-sitter parses source text into a syntax tree.
-2. `structurizr-analysis` turns that tree into owned document facts.
-3. The workspace layer merges per-file facts into include-aware workspace facts.
-4. `structurizr-lsp` turns those facts into diagnostics, navigation results, and completion items.
-5. `strz server` exposes the same LSP entrypoint that downstream editors should run.
+1. `structurizr-analysis` turns that tree into owned document facts.
+1. The workspace layer merges per-file facts into include-aware workspace facts.
+1. `structurizr-lsp` turns those facts into diagnostics, navigation results, and completion items.
+1. `strz server` exposes the same LSP entrypoint that downstream editors should run.
 
 ## Non-goals that should stay stable
 

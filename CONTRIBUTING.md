@@ -24,11 +24,28 @@ For normal grammar and test work, install:
 - [`just`](https://github.com/casey/just)
 - the Tree-sitter CLI
 - `cargo-nextest`
+- [`uv`](https://docs.astral.sh/uv/)
+- [`pkl`](https://pkl-lang.org/)
+- [`hk`](https://hk.jdx.dev/)
+- `lychee`
+
+After installing `uv`, install the repo's Python-backed developer tools once:
+
+```sh
+uv tool install ruff
+uv tool install mdformat --with mdformat-gfm --with mdformat-gfm-alerts
+uv tool install shellcheck-py
+```
+
+After installing `hk`, enable the repository hooks:
+
+```sh
+hk install
+```
 
 For performance benchmarking only, also install:
 
 - [`hyperfine`](https://github.com/sharkdp/hyperfine) for black-box CLI timing
-- [`uv`](https://docs.astral.sh/uv/) to run the replay helper with a pinned Python version
 
 For the upstream audit workflow only, you also need a nightly Cargo toolchain because the audit runs through `cargo +nightly -Zscript`.
 
@@ -42,7 +59,13 @@ Recommended baseline loop for grammar development:
 just generate
 just test-grammar
 INSTA_UPDATE=always just test-rust
+# update docs if support status changed
+hk fix
 ```
+
+Use `hk check` for a non-mutating pass over the repo's fast staged-file checks,
+and `hk fix` when you want the same surface with formatting and hygiene fixes
+applied. The pre-commit hook runs the same `hk` surface automatically.
 
 When you change docs, run `just check-links` to verify relative markdown links
 and fragment anchors across [`README.md`](README.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), [`AGENTS.md`](AGENTS.md),
@@ -162,10 +185,9 @@ Linux, you can set `STRZ_BENCH_CPUSET=2` (or another CPU set) before running
 same command still captures environment metadata, but it cannot offer the same
 level of scheduler control.
 
-The LSP replay helper prefers `uv run --python 3.12 tools/lsp_replay.py` so
-the interpreter version stays explicit, and falls back to `python3` only when
-`uv` is not available. If you want to sanity-check the CodSpeed-compatible
-bench harness locally, run:
+The LSP replay helper is a checked-in uv script pinned to Python 3.14, so run
+it directly from the repository root. If you want to sanity-check the
+CodSpeed-compatible bench harness locally, run:
 
 ```sh
 cargo codspeed build -p structurizr-analysis -p structurizr-lsp
@@ -272,14 +294,14 @@ This is the cleanest place to see the DSL built up by concept. Prefer adding sma
 
 Current corpus layout:
 
-| File | Main concepts |
-| --- | --- |
-| `smoke.txt` | minimal workspace envelope |
-| `model.txt` | model elements, relationships, groups, deployment flow |
-| `views.txt` | static views, filtered views, dynamic views, image/text sources |
-| `styles.txt` | styles, finite style values, comments with style-heavy examples |
-| `archetypes.txt` | archetypes, custom elements, selectors, grouped element updates |
-| `workspace.txt` | workspace directives, extension forms, configuration, mixed workspace-level forms |
+| File             | Main concepts                                                                     |
+| ---------------- | --------------------------------------------------------------------------------- |
+| `smoke.txt`      | minimal workspace envelope                                                        |
+| `model.txt`      | model elements, relationships, groups, deployment flow                            |
+| `views.txt`      | static views, filtered views, dynamic views, image/text sources                   |
+| `styles.txt`     | styles, finite style values, comments with style-heavy examples                   |
+| `archetypes.txt` | archetypes, custom elements, selectors, grouped element updates                   |
+| `workspace.txt`  | workspace directives, extension forms, configuration, mixed workspace-level forms |
 
 When adding a new concept, prefer making the corpus mapping clearer rather than adding another catch-all example if a narrow example will do.
 
@@ -301,15 +323,16 @@ If a concept already has useful coverage inside a broader fixture, you do not ne
 When changing grammar support:
 
 1. Pick a narrow syntax slice from the upstream audit or a clearly scoped local gap.
-2. Add or adjust local coverage first.
-3. Update [`crates/structurizr-grammar/grammar.js`](crates/structurizr-grammar/grammar.js).
-4. Regenerate parser artifacts with `just generate`.
-5. Run local validation:
+1. Add or adjust local coverage first.
+1. Update [`crates/structurizr-grammar/grammar.js`](crates/structurizr-grammar/grammar.js).
+1. Regenerate parser artifacts with `just generate`.
+1. Run local validation:
    - `just test-grammar`
    - `INSTA_UPDATE=always just test-rust`
-6. Review snapshot changes carefully.
-7. Re-run the upstream audit for the affected slice when relevant.
-8. Update docs if support status changed.
+1. Update docs if support status changed.
+1. Run `hk fix` as the final mutating step.
+1. Review snapshot changes carefully.
+1. Re-run the upstream audit for the affected slice when relevant.
 
 ## Coverage map for contributors
 

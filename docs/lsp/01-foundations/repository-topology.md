@@ -139,9 +139,9 @@ Zed's docs allow grammar repositories to be loaded from `file://` URLs during lo
 That gives a good workflow:
 
 1. keep working on grammar and LSP in this repository
-2. point the dev extension at `file:///Users/rob/dev/tree-sitter-structurizr` with `path = "crates/structurizr-grammar"` for grammar changes
-3. point the extension at a locally built LSP binary for server changes
-4. only pin commit SHAs and package binaries when preparing a real extension release
+1. point the dev extension at `file:///Users/rob/dev/tree-sitter-structurizr` with `path = "crates/structurizr-grammar"` for grammar changes
+1. point the extension at a locally built LSP binary for server changes
+1. only pin commit SHAs and package binaries when preparing a real extension release
 
 This keeps fast iteration local without forcing every experiment through git tags and published artifacts.
 
@@ -186,10 +186,10 @@ The current recommended split is captured in [`docs/lsp/01-foundations/query-own
 For actual releases:
 
 1. land grammar and LSP changes here
-2. cut a grammar/LSP release or at least a stable commit
-3. update the Zed extension's pinned grammar revision
-4. update the Zed extension's LSP packaging or binary reference
-5. smoke-test the extension against realistic `.dsl` files
+1. cut a grammar/LSP release or at least a stable commit
+1. update the Zed extension's pinned grammar revision
+1. update the Zed extension's LSP packaging or binary reference
+1. smoke-test the extension against realistic `.dsl` files
 
 This preserves loose coupling in releases without slowing down day-to-day development.
 

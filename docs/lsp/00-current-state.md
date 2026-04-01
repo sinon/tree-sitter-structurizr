@@ -63,10 +63,10 @@ Returning no answer for these cases is usually preferable to returning an answer
 For this repository, "feature complete" does not mean upstream runtime parity. It means:
 
 1. the downstream editor path is solid enough that users can reliably run the grammar and LSP in practice
-2. the most important Structurizr reference shapes are navigable without surprising gaps
-3. the read-only semantic UX feels whole enough to explain the model in-editor
-4. edit-capable features only ship when the scope model is strong enough to make them safe
-5. the workspace/indexing path is predictable enough to ship and maintain
+1. the most important Structurizr reference shapes are navigable without surprising gaps
+1. the read-only semantic UX feels whole enough to explain the model in-editor
+1. edit-capable features only ship when the scope model is strong enough to make them safe
+1. the workspace/indexing path is predictable enough to ship and maintain
 
 ## The main work still ahead
 
@@ -83,27 +83,27 @@ The remaining path to that state is roughly:
 ### I want to contribute
 
 1. [`../../README.md`](../../README.md)
-2. [`../../CONTRIBUTING.md`](../../CONTRIBUTING.md)
-3. [`01-foundations/overview.md`](./01-foundations/overview.md)
-4. [`01-foundations/capability-matrix.md`](./01-foundations/capability-matrix.md)
-5. [`03-delivery/roadmap.md`](./03-delivery/roadmap.md)
+1. [`../../CONTRIBUTING.md`](../../CONTRIBUTING.md)
+1. [`01-foundations/overview.md`](./01-foundations/overview.md)
+1. [`01-foundations/capability-matrix.md`](./01-foundations/capability-matrix.md)
+1. [`03-delivery/roadmap.md`](./03-delivery/roadmap.md)
 
 ### I want to use or integrate the LSP
 
 1. [`../../README.md`](../../README.md)
-2. [`03-delivery/roadmap.md`](./03-delivery/roadmap.md)
-3. [`03-delivery/packaging-and-dev-loop.md`](./03-delivery/packaging-and-dev-loop.md)
-4. [`03-delivery/zed-extension-language-server-wiring.md`](./03-delivery/zed-extension-language-server-wiring.md)
+1. [`03-delivery/roadmap.md`](./03-delivery/roadmap.md)
+1. [`03-delivery/packaging-and-dev-loop.md`](./03-delivery/packaging-and-dev-loop.md)
+1. [`03-delivery/zed-extension-language-server-wiring.md`](./03-delivery/zed-extension-language-server-wiring.md)
 
 ### I want to use only the grammar and queries
 
 1. [`../../README.md`](../../README.md)
-2. [`01-foundations/overview.md`](./01-foundations/overview.md)
-3. [`01-foundations/query-ownership.md`](./01-foundations/query-ownership.md)
+1. [`01-foundations/overview.md`](./01-foundations/overview.md)
+1. [`01-foundations/query-ownership.md`](./01-foundations/query-ownership.md)
 
 ### I want to understand why the architecture looks this way
 
 1. [`01-foundations/overview.md`](./01-foundations/overview.md)
-2. [`01-foundations/repository-topology.md`](./01-foundations/repository-topology.md)
-3. [`01-foundations/query-ownership.md`](./01-foundations/query-ownership.md)
-4. [`02-design/`](./02-design/)
+1. [`01-foundations/repository-topology.md`](./01-foundations/repository-topology.md)
+1. [`01-foundations/query-ownership.md`](./01-foundations/query-ownership.md)
+1. [`02-design/`](./02-design/)
