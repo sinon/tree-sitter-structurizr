@@ -70,9 +70,8 @@ impl Default for IncrementalAnalysisDatabase {
                     let logs = logs.clone();
                     move |event| {
                         if let salsa::EventKind::WillExecute { .. } = event.kind
-                            && let Some(logs) = &mut *logs
-                                .lock()
-                                .expect("Salsa log mutex should not be poisoned")
+                            && let Some(logs) =
+                                &mut *logs.lock().expect("Salsa log mutex should not be poisoned")
                         {
                             logs.push(format!("{event:?}"));
                         }
@@ -157,17 +156,16 @@ impl DocumentAnalyzer {
         parsed.to_snapshot(input)
     }
 
-    fn tracked_document(
-        &mut self,
-        id: &crate::DocumentId,
-        source: &str,
-    ) -> IncrementalDocument {
+    fn tracked_document(&mut self, id: &crate::DocumentId, source: &str) -> IncrementalDocument {
         match self.documents.entry(id.clone()) {
             Entry::Occupied(entry) => {
                 let cached = entry.into_mut();
                 if cached.source != source {
                     let updated_source = source.to_owned();
-                    cached.tracked.set_source(&mut self.db).to(updated_source.clone());
+                    cached
+                        .tracked
+                        .set_source(&mut self.db)
+                        .to(updated_source.clone());
                     cached.source = updated_source;
                 }
                 cached.tracked
@@ -175,10 +173,7 @@ impl DocumentAnalyzer {
             Entry::Vacant(entry) => {
                 let source = source.to_owned();
                 let tracked = IncrementalDocument::new(&self.db, source.clone());
-                entry.insert(CachedDocument {
-                    tracked,
-                    source,
-                });
+                entry.insert(CachedDocument { tracked, source });
                 tracked
             }
         }

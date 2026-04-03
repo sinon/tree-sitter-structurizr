@@ -45,14 +45,16 @@ This project is not trying to become a Structurizr runtime. It should preserve a
 - `https://github.com/structurizr/structurizr/tree/main/structurizr-dsl/src/test/resources/dsl` - the corpus of test `.dsl` files used to test the Java parser
 - `https://github.com/structurizr/structurizr/blob/main/structurizr-core/src/main/java/com/structurizr/view/Shape.java` - the valid set of values for `shape`
 - `https://github.com/structurizr/structurizr/blob/main/structurizr-core/src/main/java/com/structurizr/view/Color.java` - the valid set of colour names that upsteam parser supports.
-- `https://github.com/structurizr/structurizr/tree/main/structurizr-core/src/main/java/com/structurizr/view` - holds a lot of static values (such as colour and shape others might be relevant for future gap filling) 
+- `https://github.com/structurizr/structurizr/tree/main/structurizr-core/src/main/java/com/structurizr/view` - holds a lot of static values (such as colour and shape others might be relevant for future gap filling)
 
 ### General development notes
+
 - For ad-hoc debugging, create a temporary Rust example in examples/ and run it with cargo run --example <name>. Remove the example after use.
 - Use tmp/ (project-local) for intermediate files and comparison artifacts, not /tmp. This keeps outputs discoverable and project-scoped. The tmp/ directory is gitignored.
 - Use `gh` for fetching files from github instead of fetching web content.
 - When you include a reference to a markdown doc in another markdown file include a fragment link so that lychee can catch drift
 - Run `just check-links` after doc edits. It uses `lychee` with local file and fragment checking so relative markdown links inside [`README.md`](README.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), [`AGENTS.md`](AGENTS.md), [`SESSION.md`](SESSION.md), `docs/**`, markdown docs under `crates/**`, and [`tasks/`](tasks/) stay valid.
+- Use `hk fix` as the final mutating pass for repo hygiene and formatting. Keep it at the end of a workflow so agents do not need to re-read files after formatter churn.
 
 ## Test harnesses and why they exist
 
@@ -151,13 +153,13 @@ To narrow the audit to a slice:
 When changing the grammar, use this loop:
 
 1. Pick a narrow syntax slice from the upstream audit.
-2. Read the failing upstream examples for that slice.
-3. Add or adjust local coverage first:
+1. Read the failing upstream examples for that slice.
+1. Add or adjust local coverage first:
    - fixture files under [`fixtures/`](fixtures/), organized by feature area
    - use `-ok.dsl` or `-err.dsl` suffixes to express expected outcome
    - corpus coverage under [`crates/structurizr-grammar/test/corpus/`](crates/structurizr-grammar/test/corpus/) if the syntax belongs in the compact CLI suite
-4. Update [`crates/structurizr-grammar/grammar.js`](crates/structurizr-grammar/grammar.js).
-5. Regenerate parser artifacts:
+1. Update [`crates/structurizr-grammar/grammar.js`](crates/structurizr-grammar/grammar.js).
+1. Regenerate parser artifacts:
 
 ```sh
 just generate
@@ -170,18 +172,20 @@ just test-grammar
 INSTA_UPDATE=always just test-rust
 ```
 
-7. Review snapshot changes carefully.
-8. Run the upstream audit again for the narrow slice first, then more broadly:
+7. Update docs if support status changed:
+
+- [`README.md`](README.md)
+- `CONTRIBUTORS.md`
+- this [`AGENTS.md`](AGENTS.md) if the workflow itself changed
+
+8. Run `hk fix` as the final mutating step.
+1. Review snapshot changes carefully.
+1. Run the upstream audit again for the narrow slice first, then more broadly:
 
 ```sh
 STRUCTURIZR_UPSTREAM_FILTER=<slice> just audit-upstream
 just audit-upstream
 ```
-
-9. Update docs if support status changed:
-   - [`README.md`](README.md)
-   - `CONTRIBUTORS.md`
-   - this [`AGENTS.md`](AGENTS.md) if the workflow itself changed
 
 ## How to decide where a test belongs
 
@@ -233,12 +237,12 @@ Do not spend time implementing `!script` or `!plugin` unless the project scope c
 The preferred way to improve the grammar is incremental and audit-driven:
 
 1. Run `just audit-upstream`
-2. Choose one broad bucket
-3. Narrow to a smaller sub-slice by file or feature
-4. Implement only enough syntax to make that slice parse well
-5. Add local corpus/fixture coverage
-6. Regenerate and update snapshots
-7. Re-run the audit and measure the drop in failures
+1. Choose one broad bucket
+1. Narrow to a smaller sub-slice by file or feature
+1. Implement only enough syntax to make that slice parse well
+1. Add local corpus/fixture coverage
+1. Regenerate and update snapshots
+1. Re-run the audit and measure the drop in failures
 
 Avoid trying to “solve the DSL” in one pass. The grammar is intentionally being hardened in slices so node names, snapshots, and future editor queries remain understandable.
 
@@ -249,12 +253,13 @@ Avoid trying to “solve the DSL” in one pass. The grammar is intentionally be
 - If a grammar rule becomes too permissive, tighten it rather than silently reclassifying broken tests.
 - When support moves from pending to implemented, update [`README.md`](README.md).
 - When the audit filtering policy changes, update [`tools/upstream_audit.rs`](tools/upstream_audit.rs), `CONTRIBUTORS.md`, [`README.md`](README.md), and any affected command docs.
-- Before ending work, leave the repo in a validated state:
+- Before ending work, leave the repo in a validated state. Keep formatting last, then only run non-mutating validation after it:
 
 ```sh
 just generate
 just test-grammar
 INSTA_UPDATE=always just test-rust
+hk fix
 just audit-upstream
 ```
 

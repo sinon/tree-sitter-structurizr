@@ -290,20 +290,20 @@ This keeps the skeleton honest about the current repo state.
 
 The first pass should settle a stable type set even if not every type is fully used immediately.
 
-| Type | Purpose | First used in |
-| --- | --- | --- |
-| `DocumentId` | Opaque identifier for one analyzed document | Phase 2 |
-| `DocumentLocation` | Optional file-backed location metadata for local include resolution | Phase 2 |
-| `DocumentInput` | Full-text input to analysis | Phase 2 |
-| `TextSpan` | Owned location data using bytes + points | Phase 2 |
-| `DocumentSnapshot` | Immutable parse + fact result for one document | Phase 2 |
-| `SyntaxDiagnostic` | Parse-error fact with stable ranges and messages | Phase 2 |
-| `IncludeDirective` | Raw `!include` fact with raw value text/range and container context | Phase 2 |
-| `IdentifierModeFact` | Raw `!identifiers` fact with declared mode and scope/container | Phase 2 |
-| `Symbol` | Definition-like fact for bounded-MVP symbol extraction | Phase 2 |
-| `Reference` | Reference-like fact for bounded-MVP syntax sites, resolved later | Phase 2 |
-| `ResolvedInclude` | Include edge after path/url classification and local resolution | Phase 3 |
-| `WorkspaceInstance` | Rooted multi-file semantic expansion | Phase 3 |
+| Type                 | Purpose                                                             | First used in |
+| -------------------- | ------------------------------------------------------------------- | ------------- |
+| `DocumentId`         | Opaque identifier for one analyzed document                         | Phase 2       |
+| `DocumentLocation`   | Optional file-backed location metadata for local include resolution | Phase 2       |
+| `DocumentInput`      | Full-text input to analysis                                         | Phase 2       |
+| `TextSpan`           | Owned location data using bytes + points                            | Phase 2       |
+| `DocumentSnapshot`   | Immutable parse + fact result for one document                      | Phase 2       |
+| `SyntaxDiagnostic`   | Parse-error fact with stable ranges and messages                    | Phase 2       |
+| `IncludeDirective`   | Raw `!include` fact with raw value text/range and container context | Phase 2       |
+| `IdentifierModeFact` | Raw `!identifiers` fact with declared mode and scope/container      | Phase 2       |
+| `Symbol`             | Definition-like fact for bounded-MVP symbol extraction              | Phase 2       |
+| `Reference`          | Reference-like fact for bounded-MVP syntax sites, resolved later    | Phase 2       |
+| `ResolvedInclude`    | Include edge after path/url classification and local resolution     | Phase 3       |
+| `WorkspaceInstance`  | Rooted multi-file semantic expansion                                | Phase 3       |
 
 ## Important modeling decisions
 
@@ -493,12 +493,12 @@ Those are real future concerns, but they are not required to get the first trans
 ## Recommended implementation sequence
 
 1. Add the Cargo workspace metadata without moving the parser crate.
-2. Create [`crates/structurizr-analysis/`](../../../crates/structurizr-analysis/) with `lib.rs` plus the core type modules.
-3. Implement single-document parsing and syntax-diagnostic extraction.
-4. Implement raw `!include` and `!identifiers` fact extraction.
-5. Implement bounded-MVP symbol/reference extraction from the audited node shapes.
-6. Add snapshot tests for extracted facts.
-7. Only then begin workspace-instance and include-resolution logic.
+1. Create [`crates/structurizr-analysis/`](../../../crates/structurizr-analysis/) with `lib.rs` plus the core type modules.
+1. Implement single-document parsing and syntax-diagnostic extraction.
+1. Implement raw `!include` and `!identifiers` fact extraction.
+1. Implement bounded-MVP symbol/reference extraction from the audited node shapes.
+1. Add snapshot tests for extracted facts.
+1. Only then begin workspace-instance and include-resolution logic.
 
 This sequence keeps the crate useful early while preserving a clean path into the workspace-indexing phase.
 

@@ -1,4 +1,9 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = "==3.14.*"
+# dependencies = []
+# ///
+
 """Generate deterministic large benchmark fixtures for regression testing."""
 
 from __future__ import annotations
@@ -81,7 +86,11 @@ def generate_primary_corpus() -> None:
 
     write(
         PRIMARY_ROOT / "shared/model/00-people.dsl",
-        people_block(prefix="person", count=PRIMARY_PEOPLE, description_prefix="Primary benchmark"),
+        people_block(
+            prefix="person",
+            count=PRIMARY_PEOPLE,
+            description_prefix="Primary benchmark",
+        ),
     )
     write(PRIMARY_ROOT / "shared/model/10-platform.dsl", primary_platform_block())
     for workspace_index in range(WORKSPACE_COUNT):
@@ -100,7 +109,9 @@ def generate_primary_corpus() -> None:
             workspace_dir / "model/30-deployment.dsl",
             primary_deployment_block(workspace_index),
         )
-        write(workspace_dir / "views.dsl", primary_workspace_views_block(workspace_index))
+        write(
+            workspace_dir / "views.dsl", primary_workspace_views_block(workspace_index)
+        )
         write(
             PRIMARY_ROOT / f"workspace-{workspace_index:02d}-model.dsl",
             primary_workspace_model_wrapper_block(workspace_index),
@@ -111,7 +122,10 @@ def generate_primary_corpus() -> None:
         )
 
     write(PRIMARY_ROOT / "global_links/10-ring.dsl", primary_global_ring_links())
-    write(PRIMARY_ROOT / "global_links/20-components.dsl", primary_global_component_links())
+    write(
+        PRIMARY_ROOT / "global_links/20-components.dsl",
+        primary_global_component_links(),
+    )
     write(PRIMARY_ROOT / "mega-model.dsl", primary_mega_model_wrapper_block())
     write(PRIMARY_ROOT / "global-views.dsl", primary_global_views_block())
     write(PRIMARY_ROOT / "mega.dsl", primary_mega_root_block())
@@ -223,10 +237,15 @@ def primary_systems_block(workspace_index: int) -> str:
         if system_index == 0:
             lines.append('    tag "Critical"')
 
-        for container_index, (container_slug, container_name, technology, component_names) in enumerate(
-            CONTAINER_SPECS
-        ):
-            container_id = primary_container_identifier(workspace_index, system_index, container_slug)
+        for container_index, (
+            container_slug,
+            container_name,
+            technology,
+            component_names,
+        ) in enumerate(CONTAINER_SPECS):
+            container_id = primary_container_identifier(
+                workspace_index, system_index, container_slug
+            )
             lines.extend(
                 [
                     f'        {container_id} = container "{container_name}" "{container_name} tier for {workspace_label} System {system_index:02d}." "{technology}" {{',
@@ -259,17 +278,31 @@ def primary_relationships_block(workspace_index: int) -> str:
     lines = []
 
     for system_index in range(SYSTEMS_PER_WORKSPACE):
-        person_id = person_identifier("person", (workspace_index + system_index) % PRIMARY_PEOPLE)
+        person_id = person_identifier(
+            "person", (workspace_index + system_index) % PRIMARY_PEOPLE
+        )
         system_id = primary_system_identifier(workspace_index, system_index)
-        ingress_id = primary_container_identifier(workspace_index, system_index, "ingress")
+        ingress_id = primary_container_identifier(
+            workspace_index, system_index, "ingress"
+        )
         api_id = primary_container_identifier(workspace_index, system_index, "api")
-        worker_id = primary_container_identifier(workspace_index, system_index, "worker")
-        projection_id = primary_container_identifier(workspace_index, system_index, "projection")
+        worker_id = primary_container_identifier(
+            workspace_index, system_index, "worker"
+        )
+        projection_id = primary_container_identifier(
+            workspace_index, system_index, "projection"
+        )
         next_system_index = (system_index + 1) % SYSTEMS_PER_WORKSPACE
         next_system_id = primary_system_identifier(workspace_index, next_system_index)
-        next_api_id = primary_container_identifier(workspace_index, next_system_index, "api")
-        next_ingress_id = primary_container_identifier(workspace_index, next_system_index, "ingress")
-        platform_id = platform_identifier((workspace_index + system_index) % PLATFORM_COUNT)
+        next_api_id = primary_container_identifier(
+            workspace_index, next_system_index, "api"
+        )
+        next_ingress_id = primary_container_identifier(
+            workspace_index, next_system_index, "ingress"
+        )
+        platform_id = platform_identifier(
+            (workspace_index + system_index) % PLATFORM_COUNT
+        )
         future_suffix = " Future" if system_index % 4 == 3 else ""
 
         lines.extend(
@@ -301,10 +334,16 @@ def primary_deployment_block(workspace_index: int) -> str:
 
     for system_index in range(2):
         system_label = f"Workspace {workspace_index:02d} System {system_index:02d}"
-        ingress_instance = primary_instance_identifier(workspace_index, system_index, "ingress")
+        ingress_instance = primary_instance_identifier(
+            workspace_index, system_index, "ingress"
+        )
         api_instance = primary_instance_identifier(workspace_index, system_index, "api")
-        worker_instance = primary_instance_identifier(workspace_index, system_index, "worker")
-        projection_instance = primary_instance_identifier(workspace_index, system_index, "projection")
+        worker_instance = primary_instance_identifier(
+            workspace_index, system_index, "worker"
+        )
+        projection_instance = primary_instance_identifier(
+            workspace_index, system_index, "projection"
+        )
 
         lines.extend(
             [
@@ -343,7 +382,9 @@ def primary_landscape_views_block(workspace_index: int) -> str:
 def primary_context_views_block(workspace_index: int) -> str:
     workspace_tag = primary_workspace_tag(workspace_index)
     first_system = primary_system_identifier(workspace_index, 0)
-    middle_system = primary_system_identifier(workspace_index, SYSTEMS_PER_WORKSPACE // 2)
+    middle_system = primary_system_identifier(
+        workspace_index, SYSTEMS_PER_WORKSPACE // 2
+    )
     return "\n".join(
         [
             f'systemContext {first_system} {workspace_tag}_sys00_context "Workspace {workspace_index:02d} primary system context" {{',
@@ -688,10 +729,15 @@ def multi_root_model_block(workspace_index: int) -> str:
         if system_index % 4 == 3:
             lines.append('        tag "Future"')
 
-        for container_index, (container_slug, container_name, technology, component_names) in enumerate(
-            CONTAINER_SPECS
-        ):
-            container_id = multi_root_container_identifier(workspace_index, system_index, container_slug)
+        for container_index, (
+            container_slug,
+            container_name,
+            technology,
+            component_names,
+        ) in enumerate(CONTAINER_SPECS):
+            container_id = multi_root_container_identifier(
+                workspace_index, system_index, container_slug
+            )
             lines.extend(
                 [
                     f'        {container_id} = container "{container_name}" "{container_name} tier for multi-root workspace {workspace_index:02d} system {system_index:02d}." "{technology}" {{',
@@ -724,16 +770,24 @@ def multi_root_model_block(workspace_index: int) -> str:
     return "\n".join(lines)
 
 
-def multi_root_relationship_lines(workspace_index: int, people_prefix: str) -> list[str]:
+def multi_root_relationship_lines(
+    workspace_index: int, people_prefix: str
+) -> list[str]:
     lines: list[str] = []
 
     for system_index in range(SYSTEMS_PER_WORKSPACE):
         person_id = person_identifier(people_prefix, system_index % MULTI_ROOT_PEOPLE)
         system_id = multi_root_system_identifier(workspace_index, system_index)
-        ingress_id = multi_root_container_identifier(workspace_index, system_index, "ingress")
+        ingress_id = multi_root_container_identifier(
+            workspace_index, system_index, "ingress"
+        )
         api_id = multi_root_container_identifier(workspace_index, system_index, "api")
-        worker_id = multi_root_container_identifier(workspace_index, system_index, "worker")
-        projection_id = multi_root_container_identifier(workspace_index, system_index, "projection")
+        worker_id = multi_root_container_identifier(
+            workspace_index, system_index, "worker"
+        )
+        projection_id = multi_root_container_identifier(
+            workspace_index, system_index, "projection"
+        )
         next_system_index = (system_index + 1) % SYSTEMS_PER_WORKSPACE
         future_suffix = " Future" if system_index % 4 == 3 else ""
 
@@ -758,7 +812,9 @@ def multi_root_deployment_lines(workspace_index: int) -> list[str]:
     lines = [f'    deploymentEnvironment "{env_name}" {{']
 
     for system_index in range(2):
-        system_label = f"Multi-root Workspace {workspace_index:02d} System {system_index:02d}"
+        system_label = (
+            f"Multi-root Workspace {workspace_index:02d} System {system_index:02d}"
+        )
         lines.extend(
             [
                 f'        deploymentNode "{system_label} Edge" "" "Kubernetes" {{',
@@ -897,7 +953,9 @@ def primary_container_identifier(
     system_index: int,
     container_slug: str,
 ) -> str:
-    return f"{primary_system_identifier(workspace_index, system_index)}_{container_slug}"
+    return (
+        f"{primary_system_identifier(workspace_index, system_index)}_{container_slug}"
+    )
 
 
 def primary_component_identifier(

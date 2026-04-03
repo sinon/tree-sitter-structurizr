@@ -30,10 +30,10 @@ The analyzer should **not** expect a standalone “assignment statement” wrapp
 The core element rules in [`crates/structurizr-grammar/grammar.js`](../../../crates/structurizr-grammar/grammar.js) all follow the same structure:
 
 1. optional identifier assignment
-2. element keyword
-3. required `name`
-4. optional metadata fields
-5. optional body block
+1. element keyword
+1. required `name`
+1. optional metadata fields
+1. optional body block
 
 Representative grammar shape:
 
@@ -329,9 +329,9 @@ It should also record, even if later semantic support is phased in more cautious
 Recommended first-pass extraction behavior:
 
 1. walk the allowed declaration containers
-2. collect declaration nodes of the supported kinds
-3. read the optional `identifier` field when present
-4. store `name` separately from the identifier because they are not the same DSL concept
+1. collect declaration nodes of the supported kinds
+1. read the optional `identifier` field when present
+1. store `name` separately from the identifier because they are not the same DSL concept
 
 The analyzer should **not** assume yet that every declaration node with a body is always a valid symbol target for the bounded MVP. Scope and support rules will be tightened in the later scope-rules audit.
 

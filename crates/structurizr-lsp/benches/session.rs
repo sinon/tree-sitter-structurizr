@@ -21,8 +21,9 @@ const SMALL_SESSION_SOURCE: &str =
     include_str!("../tests/fixtures/relationships/named-relationships-ok.dsl");
 const LARGE_SESSION_SOURCE: &str =
     include_str!("../../../tests/lsp/workspaces/big-bank-plc/internet-banking-system.dsl");
-const MEGA_DOCUMENT_SYMBOL_SOURCE: &str =
-    include_str!("../../../tests/lsp/workspaces/benchmark-mega/workspace_data/ws-12/model/10-systems.dsl");
+const MEGA_DOCUMENT_SYMBOL_SOURCE: &str = include_str!(
+    "../../../tests/lsp/workspaces/benchmark-mega/workspace_data/ws-12/model/10-systems.dsl"
+);
 const MEGA_DYNAMIC_SOURCE: &str =
     include_str!("../../../tests/lsp/workspaces/benchmark-mega/global-views.dsl");
 const MEGA_MULTI_ROOT_SOURCE: &str =

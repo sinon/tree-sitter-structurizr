@@ -55,10 +55,10 @@ The Zed extension should stay a **thin launcher and packaging layer**.
 It should:
 
 1. keep consuming this repository as its pinned grammar source
-2. add one registered language server for **Structurizr DSL**
-3. add the minimum extension-side Rust/Wasm code needed to resolve and launch `strz server`
-4. keep Tree-sitter-native editor features in Zed query files
-5. treat the server binary as an external artifact that is either:
+1. add one registered language server for **Structurizr DSL**
+1. add the minimum extension-side Rust/Wasm code needed to resolve and launch `strz server`
+1. keep Tree-sitter-native editor features in Zed query files
+1. treat the server binary as an external artifact that is either:
    - explicitly overridden for local development
    - found on the user’s `PATH`
    - or downloaded from a GitHub release
@@ -100,8 +100,8 @@ When a directive target is a directory, that fallback must resolve to concrete f
 The extension repo should gain exactly three new pieces:
 
 1. a language-server registration in `extensions.toml`
-2. a small Rust extension crate ([`Cargo.toml`](../../../Cargo.toml) + `src/lib.rs`)
-3. a documented local-dev and release workflow
+1. a small Rust extension crate ([`Cargo.toml`](../../../Cargo.toml) + `src/lib.rs`)
+1. a documented local-dev and release workflow
 
 Nothing about the current query ownership decision should change:
 
@@ -412,15 +412,15 @@ The local workflow should optimize for changing grammar and server code together
 ## Recommended loop
 
 1. build the local server binary in this repository
-2. point the Zed extension at the local grammar repo with a `file://` grammar URL
-3. configure `lsp.structurizr-lsp.binary.path` to point at the local `strz` binary
-4. install `zed-structurizr` as a dev extension
-5. open representative `.dsl` files and inspect logs in foreground mode
+1. point the Zed extension at the local grammar repo with a `file://` grammar URL
+1. configure `lsp.structurizr-lsp.binary.path` to point at the local `strz` binary
+1. install `zed-structurizr` as a dev extension
+1. open representative `.dsl` files and inspect logs in foreground mode
 
 Concrete example:
 
 1. in `/Users/rob/dev/tree-sitter-structurizr`, build `target/debug/strz`
-2. in `/Users/rob/dev/zed-structurizr/extensions.toml`, temporarily use:
+1. in `/Users/rob/dev/zed-structurizr/extensions.toml`, temporarily use:
 
 ```toml
 [grammars.structurizr]
@@ -511,14 +511,14 @@ The release flow should keep grammar and LSP explicit instead of pretending ther
 ## Recommended flow
 
 1. land grammar/LSP changes in this repository
-2. cut or update an LSP release tag and platform assets here
-3. decide whether the Zed extension also needs a newer grammar rev
-4. update the Zed extension:
+1. cut or update an LSP release tag and platform assets here
+1. decide whether the Zed extension also needs a newer grammar rev
+1. update the Zed extension:
    - grammar `rev`
    - pinned LSP tag constant in extension code
    - extension version
-5. smoke-test locally
-6. publish/update the Zed extension
+1. smoke-test locally
+1. publish/update the Zed extension
 
 ## Why separate grammar rev and LSP tag
 

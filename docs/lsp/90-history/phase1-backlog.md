@@ -39,9 +39,9 @@ Phase 1 should **not** broaden into:
 Phase 1 should produce these concrete outputs:
 
 1. A symbol-bearing syntax checklist for the bounded-MVP surface.
-2. A realistic multi-file fixture set that analysis and LSP work can reuse later.
-3. An explicit query ownership decision for `tags`, `outline`, and `brackets`.
-4. A short list of grammar gaps, if any, that block bounded symbol extraction.
+1. A realistic multi-file fixture set that analysis and LSP work can reuse later.
+1. An explicit query ownership decision for `tags`, `outline`, and `brackets`.
+1. A short list of grammar gaps, if any, that block bounded symbol extraction.
 
 ## Ordered work packages
 
@@ -279,18 +279,18 @@ Phase 1 artifacts are validated using the repo's normal contributor flow, not a 
 Use this order unless a concrete discovery forces a change:
 
 1. audit symbol-bearing node shapes
-2. add or tighten realistic fixtures
-3. decide query ownership
-4. review grammar gaps against bounded MVP needs
-5. run the validation loop
+1. add or tighten realistic fixtures
+1. decide query ownership
+1. review grammar gaps against bounded MVP needs
+1. run the validation loop
 
 ## Suggested first implementation slice
 
 If someone wants the smallest useful Phase 1 slice, do this first:
 
 1. document the node shapes for top-level assigned identifiers, direct declarations, `!include`, and `!identifiers`
-2. add one real multi-file include fixture
-3. decide the home of `tags.scm`
+1. add one real multi-file include fixture
+1. decide the home of `tags.scm`
 
 That slice de-risks the future analysis crate much more than starting with broad query or LSP work.
 

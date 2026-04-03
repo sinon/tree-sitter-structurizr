@@ -30,9 +30,9 @@ But that still leaves a broader operational question:
 This matters because the project has four different layers:
 
 1. the Tree-sitter grammar/parser crate
-2. the analysis crate
-3. the shipped `strz` binary, which exposes the language server via `strz server`
-4. the separate Zed extension repo
+1. the analysis crate
+1. the shipped `strz` binary, which exposes the language server via `strz server`
+1. the separate Zed extension repo
 
 If those layers are not packaged deliberately, contributors will end up mixing:
 
@@ -48,13 +48,13 @@ in ways that are harder to test and harder to maintain.
 The near-term model should be:
 
 1. keep the grammar and Rust crates in this repository
-2. treat the analysis crate as an internal source-level workspace member, not a separately distributed editor artifact
-3. distribute `strz` as pinned GitHub release binaries from this repository
-4. keep the Zed extension in `/Users/rob/dev/zed-structurizr` as a separate published package that:
+1. treat the analysis crate as an internal source-level workspace member, not a separately distributed editor artifact
+1. distribute `strz` as pinned GitHub release binaries from this repository
+1. keep the Zed extension in `/Users/rob/dev/zed-structurizr` as a separate published package that:
    - pins a grammar commit
    - pins an LSP release tag
    - downloads or locates the LSP binary
-5. keep local development fast with:
+1. keep local development fast with:
    - `file://` grammar overrides
    - `lsp.structurizr-lsp.binary.path` local binary overrides
    - optional `STRUCTURIZR_LSP_BIN` terminal overrides
@@ -63,13 +63,13 @@ This preserves fast iteration while keeping published installs reproducible.
 
 ## Artifact matrix
 
-| Artifact | Home | Primary consumers | Distribution form | Release unit |
-| --- | --- | --- | --- | --- |
-| Tree-sitter grammar + parser crate | this repo root | Zed grammar loader, Rust parser consumers, `structurizr-analysis` | source repository | git commit / pinned `rev` |
-| `structurizr-analysis` | workspace crate in this repo | `structurizr-lsp`, `structurizr-cli` | source-only workspace member | none initially |
-| `structurizr-lsp` | workspace crate in this repo | `structurizr-cli` | source-only workspace member | none directly |
-| `strz` | `structurizr-cli` workspace crate in this repo | Zed extension, other editors, manual users | platform binaries / archives | GitHub release tag + assets |
-| `zed-structurizr` | separate repo | Zed users | Zed extension package | extension version |
+| Artifact                           | Home                                           | Primary consumers                                                 | Distribution form            | Release unit                |
+| ---------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------- | ---------------------------- | --------------------------- |
+| Tree-sitter grammar + parser crate | this repo root                                 | Zed grammar loader, Rust parser consumers, `structurizr-analysis` | source repository            | git commit / pinned `rev`   |
+| `structurizr-analysis`             | workspace crate in this repo                   | `structurizr-lsp`, `structurizr-cli`                              | source-only workspace member | none initially              |
+| `structurizr-lsp`                  | workspace crate in this repo                   | `structurizr-cli`                                                 | source-only workspace member | none directly               |
+| `strz`                             | `structurizr-cli` workspace crate in this repo | Zed extension, other editors, manual users                        | platform binaries / archives | GitHub release tag + assets |
+| `zed-structurizr`                  | separate repo                                  | Zed users                                                         | Zed extension package        | extension version           |
 
 ## Packaging decisions
 
@@ -311,14 +311,14 @@ Now that [`crates/structurizr-analysis/`](../../../crates/structurizr-analysis/)
 Recommended loop:
 
 1. update grammar, analysis, or LSP code here
-2. run grammar validation:
+1. run grammar validation:
    - `just test-grammar`
-3. run targeted Rust validation:
+1. run targeted Rust validation:
    - parser crate tests as already needed
    - analysis crate tests
    - LSP crate tests
-4. build the local `strz` binary
-5. point Zed at the local binary only when integration behavior needs checking
+1. build the local `strz` binary
+1. point Zed at the local binary only when integration behavior needs checking
 
 The important workflow principle is:
 
@@ -337,10 +337,10 @@ When a change spans:
 use the integrated dev loop:
 
 1. build the local `strz` binary in this repo
-2. set `lsp.structurizr-lsp.binary.path` to that binary
-3. point the Zed dev extension at the local grammar repo with `file://`
-4. run Zed in foreground mode
-5. smoke-test both editor-native and LSP-provided behavior
+1. set `lsp.structurizr-lsp.binary.path` to that binary
+1. point the Zed dev extension at the local grammar repo with `file://`
+1. run Zed in foreground mode
+1. smoke-test both editor-native and LSP-provided behavior
 
 For one-off terminal launches, step 2 can temporarily use
 `STRUCTURIZR_LSP_BIN=... zed --foreground` instead, but only when starting a
@@ -362,12 +362,12 @@ Before updating the published extension, test the exact packaging story that use
 Recommended rehearsal:
 
 1. create or identify the intended `strz` release assets
-2. ensure the extension is pinned to the intended LSP tag
-3. remove `lsp.structurizr-lsp.binary.path` and `STRUCTURIZR_LSP_BIN` overrides
-4. ensure the result works via:
+1. ensure the extension is pinned to the intended LSP tag
+1. remove `lsp.structurizr-lsp.binary.path` and `STRUCTURIZR_LSP_BIN` overrides
+1. ensure the result works via:
    - downloaded asset path
    - or, when explicitly testing it, `PATH` fallback
-5. smoke-test representative `.dsl` files
+1. smoke-test representative `.dsl` files
 
 This catches packaging mistakes that local override workflows can hide.
 
@@ -386,9 +386,9 @@ Examples:
 Recommended flow:
 
 1. land grammar change here
-2. validate with existing grammar/parser tests
-3. update the Zed extension's pinned grammar `rev` only if the extension should consume the new grammar immediately
-4. keep the LSP tag unchanged unless the server actually needs rebuilding or republishing
+1. validate with existing grammar/parser tests
+1. update the Zed extension's pinned grammar `rev` only if the extension should consume the new grammar immediately
+1. keep the LSP tag unchanged unless the server actually needs rebuilding or republishing
 
 This should be the cheapest release shape.
 
@@ -404,10 +404,10 @@ Examples:
 Recommended flow:
 
 1. land LSP/analysis changes here
-2. build and validate the LSP
-3. cut a new LSP release tag and platform assets
-4. update the Zed extension's pinned LSP tag
-5. keep the grammar `rev` unchanged unless the server depends on newer grammar behavior
+1. build and validate the LSP
+1. cut a new LSP release tag and platform assets
+1. update the Zed extension's pinned LSP tag
+1. keep the grammar `rev` unchanged unless the server depends on newer grammar behavior
 
 This is the main reason grammar and LSP pins should stay separate.
 
@@ -422,10 +422,10 @@ Examples:
 Recommended flow:
 
 1. land both changes here
-2. validate grammar and LSP behavior together
-3. cut or select the intended grammar commit and LSP release assets
-4. update both pins in the Zed extension
-5. smoke-test as one integrated release
+1. validate grammar and LSP behavior together
+1. cut or select the intended grammar commit and LSP release assets
+1. update both pins in the Zed extension
+1. smoke-test as one integrated release
 
 This is the heaviest but still normal shape.
 

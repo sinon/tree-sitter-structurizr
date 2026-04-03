@@ -37,10 +37,10 @@ This note is that contract.
 The bounded MVP handler slice should implement exactly these user-visible behaviors first:
 
 1. syntax diagnostics
-2. document symbols
-3. keyword/directive completion
-4. go-to-definition for the bounded identifier set
-5. find-references for the same bounded identifier set
+1. document symbols
+1. keyword/directive completion
+1. go-to-definition for the bounded identifier set
+1. find-references for the same bounded identifier set
 
 And it should do so by consuming analysis facts rather than re-walking syntax trees in handlers.
 
@@ -172,8 +172,8 @@ The handler design should reserve space for later semantic diagnostics, but the 
 When those later arrive, they should be added in this order:
 
 1. missing/cyclic include diagnostics
-2. unresolved-reference diagnostics for the bounded identifier set
-3. duplicate-definition diagnostics for the bounded identifier set
+1. unresolved-reference diagnostics for the bounded identifier set
+1. duplicate-definition diagnostics for the bounded identifier set
 
 ### Deferred behavior
 
@@ -531,10 +531,10 @@ That will keep failures easier to understand.
 ## Recommended implementation order inside the handler slice
 
 1. wire diagnostics publication from existing snapshots
-2. implement document symbols from structural `Symbol` facts
-3. add keyword/directive completion
-4. implement definition using bindable symbols plus supported reference kinds
-5. implement references using the same bounded set
+1. implement document symbols from structural `Symbol` facts
+1. add keyword/directive completion
+1. implement definition using bindable symbols plus supported reference kinds
+1. implement references using the same bounded set
 
 This order matches the usefulness and complexity curve already implied by the planning docs.
 

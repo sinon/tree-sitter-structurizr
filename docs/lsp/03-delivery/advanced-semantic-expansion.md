@@ -57,10 +57,10 @@ The server should grow in **ordered tracks**, not as one undifferentiated “adv
 Recommended order:
 
 1. allow narrow syntax-backed completion refinements that rely only on stable parse context
-2. complete the deferred core reference/scope model for the current bounded symbol families
-3. add richer **read-only** semantic features on top of that
-4. add **edit-capable** semantic features only when reference coverage is strong enough
-5. add presentation/polish features only if they provide value beyond Tree-sitter-native editor behavior
+1. complete the deferred core reference/scope model for the current bounded symbol families
+1. add richer **read-only** semantic features on top of that
+1. add **edit-capable** semantic features only when reference coverage is strong enough
+1. add presentation/polish features only if they provide value beyond Tree-sitter-native editor behavior
 
 The most important meta-rule is:
 
@@ -174,8 +174,8 @@ Before broader semantic expansion starts, the server can still add small complet
 ### Recommended rollout inside this track
 
 1. define activation contexts and non-semantic value tables first
-2. add value suggestions only when the grammar or fixtures already make the allowed values explicit
-3. leave arbitrary `properties {}` entries additive rather than trying to validate them semantically
+1. add value suggestions only when the grammar or fixtures already make the allowed values explicit
+1. leave arbitrary `properties {}` entries additive rather than trying to validate them semantically
 
 ### Important guardrail
 
@@ -610,18 +610,18 @@ Move it only if:
 
 The safest way to keep Phase 6 honest is to write down what each feature depends on.
 
-| Feature | Must already exist | First safe slice | Keep deferred until |
-| --- | --- | --- | --- |
-| Selector-based references | canonical key model, workspace index, explicit selector extraction | exact canonical selectors for current core element symbols | fuzzy or partial selector matching |
-| `!element` / `!relationship` lookup resolution | selector resolver | reuse same selector-resolution path | separate one-off resolver logic |
-| `this` / omitted-source relationships | containing-symbol context rules | current core element families in well-defined contexts | malformed or ambiguous containing contexts |
-| Named dynamic relationship references | relationship symbol model, view semantics, selector/reference stability | bounded dynamic-reference surfaces | broad dynamic-view heuristics |
-| Richer hover | stable symbol/reference resolution | core elements + named relationships | runtime-style model rendering |
-| Workspace symbols | workspace index, reverse document-to-instance membership | instance-scoped symbols with root context | folder-global symbol bags |
-| Identifier completion | stable canonical keys + supported insertion behavior | flat-mode element + relationship identifiers | hierarchical insertion before selector support |
-| Rename | supported reference coverage + unique binding resolution | flat-mode core element rename | hierarchical rename before selector rewrite coverage |
-| Semantic tokens | stable semantic categories | combined-mode semantic distinctions that Tree-sitter cannot express well | full replacement of Tree-sitter highlighting |
-| Code actions | stable diagnostics with deterministic edits | local, text-only fixes with one obvious answer | speculative project-wide rewrites |
+| Feature                                        | Must already exist                                                      | First safe slice                                                         | Keep deferred until                                  |
+| ---------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------- |
+| Selector-based references                      | canonical key model, workspace index, explicit selector extraction      | exact canonical selectors for current core element symbols               | fuzzy or partial selector matching                   |
+| `!element` / `!relationship` lookup resolution | selector resolver                                                       | reuse same selector-resolution path                                      | separate one-off resolver logic                      |
+| `this` / omitted-source relationships          | containing-symbol context rules                                         | current core element families in well-defined contexts                   | malformed or ambiguous containing contexts           |
+| Named dynamic relationship references          | relationship symbol model, view semantics, selector/reference stability | bounded dynamic-reference surfaces                                       | broad dynamic-view heuristics                        |
+| Richer hover                                   | stable symbol/reference resolution                                      | core elements + named relationships                                      | runtime-style model rendering                        |
+| Workspace symbols                              | workspace index, reverse document-to-instance membership                | instance-scoped symbols with root context                                | folder-global symbol bags                            |
+| Identifier completion                          | stable canonical keys + supported insertion behavior                    | flat-mode element + relationship identifiers                             | hierarchical insertion before selector support       |
+| Rename                                         | supported reference coverage + unique binding resolution                | flat-mode core element rename                                            | hierarchical rename before selector rewrite coverage |
+| Semantic tokens                                | stable semantic categories                                              | combined-mode semantic distinctions that Tree-sitter cannot express well | full replacement of Tree-sitter highlighting         |
+| Code actions                                   | stable diagnostics with deterministic edits                             | local, text-only fixes with one obvious answer                           | speculative project-wide rewrites                    |
 
 ## Testing expectations for advanced features
 
@@ -669,17 +669,17 @@ Use Zed for:
 If the project wants one practical order rather than a menu, use this:
 
 1. selector references for current core element symbols
-2. `!element` / `!relationship` lookup support
-3. `this` and omitted-source relationships
-4. richer hover
-5. workspace symbols
-6. diagnostics polish
-7. flat-mode identifier completion
-8. flat-mode element rename
-9. named relationship rename
-10. hierarchical completion/rename only after selector rewrite support
-11. semantic tokens if a real UX gap remains
-12. code actions only when a deterministic first class emerges
+1. `!element` / `!relationship` lookup support
+1. `this` and omitted-source relationships
+1. richer hover
+1. workspace symbols
+1. diagnostics polish
+1. flat-mode identifier completion
+1. flat-mode element rename
+1. named relationship rename
+1. hierarchical completion/rename only after selector rewrite support
+1. semantic tokens if a real UX gap remains
+1. code actions only when a deterministic first class emerges
 
 This order optimizes for:
 

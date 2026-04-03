@@ -23,8 +23,7 @@ use tree_sitter::{Node, Parser, Point, Tree};
 
 const DEFAULT_UNSUPPORTED_FILTERS: &[&str] = &["script", "plugin"];
 const ALWAYS_IGNORED_FILTERS: &[&str] = &["unexpected-", "multi-line-with-error"];
-const UPSTREAM_DSL_LISTING_URL: &str =
-    "https://api.github.com/repos/structurizr/structurizr/contents/structurizr-dsl/src/test/resources/dsl";
+const UPSTREAM_DSL_LISTING_URL: &str = "https://api.github.com/repos/structurizr/structurizr/contents/structurizr-dsl/src/test/resources/dsl";
 
 #[derive(Debug, Deserialize)]
 struct GitHubContent {
@@ -90,25 +89,40 @@ fn main() -> Result<()> {
 
     for entry in entries {
         let download_url = entry.download_url.as_deref().with_context(|| {
-            format!("while attempting to read the download URL for `{}`", entry.path)
+            format!(
+                "while attempting to read the download URL for `{}`",
+                entry.path
+            )
         })?;
         let source = client
             .get(download_url)
             .send()
             .with_context(|| format!("while attempting to download `{}`", entry.path))?
             .error_for_status()
-            .with_context(|| format!("while attempting to validate the response for `{}`", entry.path))?
+            .with_context(|| {
+                format!(
+                    "while attempting to validate the response for `{}`",
+                    entry.path
+                )
+            })?
             .text()
-            .with_context(|| format!("while attempting to read the response body for `{}`", entry.path))?;
+            .with_context(|| {
+                format!(
+                    "while attempting to read the response body for `{}`",
+                    entry.path
+                )
+            })?;
 
-        let tree =
-            parse(&source).with_context(|| format!("while attempting to parse `{}`", entry.path))?;
+        let tree = parse(&source)
+            .with_context(|| format!("while attempting to parse `{}`", entry.path))?;
         let issues = collect_parse_issues(&tree, &source);
 
         if issues.is_empty() {
             clean += 1;
         } else {
-            *breakdown.entry(feature_bucket(&entry.path).to_string()).or_default() += 1;
+            *breakdown
+                .entry(feature_bucket(&entry.path).to_string())
+                .or_default() += 1;
             failures.push(FileFailure {
                 path: entry.path,
                 issues,
@@ -204,7 +218,11 @@ fn collect_parse_issues(tree: &Tree, source: &str) -> Vec<ParseIssue> {
 fn collect_node_issues(node: Node, source: &str, issues: &mut Vec<ParseIssue>) {
     if node.is_error() || node.is_missing() {
         issues.push(ParseIssue {
-            kind: if node.is_missing() { "MISSING" } else { "ERROR" },
+            kind: if node.is_missing() {
+                "MISSING"
+            } else {
+                "ERROR"
+            },
             node_kind: node.kind().to_string(),
             start: node.start_position(),
             end: node.end_position(),
@@ -244,11 +262,15 @@ fn context_excerpt(source: &str, byte: usize) -> &str {
 
 fn feature_bucket(path: &str) -> &'static str {
     let lower = path.to_ascii_lowercase();
-    if lower.contains("archetype") || lower.contains("custom-element") || lower.contains("find-element") {
+    if lower.contains("archetype")
+        || lower.contains("custom-element")
+        || lower.contains("find-element")
+    {
         "archetypes and custom elements"
     } else if lower.contains("deployment") || lower.contains("amazon-web-services") {
         "deployment"
-    } else if lower.contains("dynamic") || lower.contains("parallel") || lower.contains("animation") {
+    } else if lower.contains("dynamic") || lower.contains("parallel") || lower.contains("animation")
+    {
         "dynamic views"
     } else if lower.contains("include") || lower.contains("workspace-extension") {
         "workspace extension and include"
@@ -256,9 +278,16 @@ fn feature_bucket(path: &str) -> &'static str {
         "scripts and plugins"
     } else if lower.contains("group") {
         "groups"
-    } else if lower.contains("relationship") || lower.contains("filtered") || lower.contains("exclude") {
+    } else if lower.contains("relationship")
+        || lower.contains("filtered")
+        || lower.contains("exclude")
+    {
         "relationships and expressions"
-    } else if lower.contains("style") || lower.contains("theme") || lower.contains("color") || lower.contains("shape") {
+    } else if lower.contains("style")
+        || lower.contains("theme")
+        || lower.contains("color")
+        || lower.contains("shape")
+    {
         "styles and themes"
     } else if lower.contains("identifier") || lower.contains("constant") {
         "identifiers and constants"
@@ -285,6 +314,11 @@ fn is_always_ignored(path: &str) -> bool {
 
 fn env_flag(name: &str) -> bool {
     env::var(name)
-        .map(|value| matches!(value.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on"))
+        .map(|value| {
+            matches!(
+                value.trim().to_ascii_lowercase().as_str(),
+                "1" | "true" | "yes" | "on"
+            )
+        })
         .unwrap_or(false)
 }

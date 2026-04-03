@@ -37,10 +37,10 @@ The bounded MVP should resolve identifiers against a **workspace instance** usin
 The first key rules are:
 
 1. element and relationship bindings are separate semantic tables
-2. element bindings are affected by the effective `!identifiers` mode
-3. relationship bindings are **not** affected by `!identifiers`
-4. groups do not contribute hierarchical path segments
-5. selector-based reference syntax remains deferred even if canonical hierarchical keys are computed internally
+1. element bindings are affected by the effective `!identifiers` mode
+1. relationship bindings are **not** affected by `!identifiers`
+1. groups do not contribute hierarchical path segments
+1. selector-based reference syntax remains deferred even if canonical hierarchical keys are computed internally
 
 This gives the project a stable semantic model without forcing the first handler slice to solve every reference surface immediately.
 
@@ -159,8 +159,8 @@ This keeps parser convenience separate from semantic policy.
 Use nearest applicable directive wins:
 
 1. model-level `!identifiers` overrides workspace-level `!identifiers`
-2. workspace-level `!identifiers` applies when no model-level override exists
-3. otherwise default to `flat`
+1. workspace-level `!identifiers` applies when no model-level override exists
+1. otherwise default to `flat`
 
 This is the cleanest bounded rule and fits the current grammar/reference split better than treating all observed directives as equal.
 
@@ -296,8 +296,8 @@ For:
 attempt resolution against:
 
 1. the element binding table when the reference carries `ReferenceTargetHint::ElementOrRelationship`
-2. the relationship binding table when the reference carries `ReferenceTargetHint::ElementOrRelationship`
-3. the deployment binding table when the reference carries `ReferenceTargetHint::Deployment`
+1. the relationship binding table when the reference carries `ReferenceTargetHint::ElementOrRelationship`
+1. the deployment binding table when the reference carries `ReferenceTargetHint::Deployment`
 
 using:
 
@@ -501,10 +501,10 @@ That is exactly the kind of “compute the internal model first, expose the synt
 ## Recommended implementation order for these rules
 
 1. compute canonical binding keys during analysis for bindable symbols
-2. keep element and relationship binding tables separate
-3. apply exact-match resolution for the supported bounded reference kinds
-4. gate completion and rename according to the rules above
-5. only then expand into selector reference handling
+1. keep element and relationship binding tables separate
+1. apply exact-match resolution for the supported bounded reference kinds
+1. gate completion and rename according to the rules above
+1. only then expand into selector reference handling
 
 This preserves a clean internal model without overextending the first external feature set.
 

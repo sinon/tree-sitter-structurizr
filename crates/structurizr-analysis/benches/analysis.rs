@@ -14,8 +14,9 @@ const MEDIUM_DOCUMENT_SOURCE: &str = include_str!(
 );
 const LARGE_DOCUMENT_SOURCE: &str =
     include_str!("../../../tests/lsp/workspaces/big-bank-plc/internet-banking-system.dsl");
-const MEGA_DOCUMENT_SOURCE: &str =
-    include_str!("../../../tests/lsp/workspaces/benchmark-mega/workspace_data/ws-12/model/10-systems.dsl");
+const MEGA_DOCUMENT_SOURCE: &str = include_str!(
+    "../../../tests/lsp/workspaces/benchmark-mega/workspace_data/ws-12/model/10-systems.dsl"
+);
 
 #[derive(Clone, Copy)]
 struct DocumentCase {

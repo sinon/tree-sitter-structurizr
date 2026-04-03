@@ -39,17 +39,10 @@ build_command() {
 }
 
 build_lsp_replay_command() {
-    if command -v uv >/dev/null 2>&1; then
-        build_command \
-            uv run --python 3.12 "${REPO_ROOT}/tools/lsp_replay.py" \
-            --server "${BINARY}" \
-            --case "$1"
-    else
-        build_command \
-            python3 "${REPO_ROOT}/tools/lsp_replay.py" \
-            --server "${BINARY}" \
-            --case "$1"
-    fi
+    build_command \
+        "${REPO_ROOT}/tools/lsp_replay.py" \
+        --server "${BINARY}" \
+        --case "$1"
 }
 
 run_hyperfine() {
@@ -136,8 +129,8 @@ if [[ "${DRY_RUN}" != "true" ]]; then
         printf 'hyperfine is required for black-box benchmarks\n' >&2
         exit 1
     fi
-    if ! command -v uv >/dev/null 2>&1 && ! command -v python3 >/dev/null 2>&1; then
-        printf 'uv or python3 is required for LSP replay benchmarks\n' >&2
+    if ! command -v uv >/dev/null 2>&1; then
+        printf 'uv is required for LSP replay benchmarks\n' >&2
         exit 1
     fi
     if [[ ! -x "${BINARY}" ]]; then

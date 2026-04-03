@@ -390,7 +390,11 @@ impl WorkspaceIndex {
         &self,
         handle: &SymbolHandle,
     ) -> impl Iterator<Item = &ReferenceHandle> + '_ {
-        self.derived.references_by_target.get(handle).into_iter().flatten()
+        self.derived
+            .references_by_target
+            .get(handle)
+            .into_iter()
+            .flatten()
     }
 
     /// Returns the semantic diagnostics derived for this workspace instance.
@@ -488,7 +492,11 @@ impl WorkspaceFacts {
         &self,
         id: &DocumentId,
     ) -> impl Iterator<Item = &WorkspaceInstanceId> + '_ {
-        self.assembly.document_instances.get(id).into_iter().flatten()
+        self.assembly
+            .document_instances
+            .get(id)
+            .into_iter()
+            .flatten()
     }
 
     /// Returns every merged semantic diagnostic in deterministic order.
@@ -712,7 +720,8 @@ impl WorkspaceAnalysisSession {
 
         if needs_refresh {
             let snapshot = self.analyzer.analyze(
-                DocumentInput::new(document_id_from_path(path), source).with_location(path.to_path_buf()),
+                DocumentInput::new(document_id_from_path(path), source)
+                    .with_location(path.to_path_buf()),
             );
             let semantic_facts = Arc::new(WorkspaceSemanticDocumentFacts::from_snapshot(&snapshot));
             let generation = self.next_document_generation();
@@ -725,7 +734,12 @@ impl WorkspaceAnalysisSession {
                 previous_semantic_generation.unwrap_or_else(|| self.next_semantic_generation());
             self.document_cache.insert(
                 path.to_path_buf(),
-                CachedWorkspaceDocument::new(snapshot, semantic_facts, generation, semantic_generation),
+                CachedWorkspaceDocument::new(
+                    snapshot,
+                    semantic_facts,
+                    generation,
+                    semantic_generation,
+                ),
             );
         }
 
@@ -743,18 +757,28 @@ impl WorkspaceAnalysisSession {
     }
 
     fn document_generation(&self, path: &Path) -> Option<u64> {
-        self.document_cache.get(path).map(|cached| cached.generation)
+        self.document_cache
+            .get(path)
+            .map(|cached| cached.generation)
     }
 
     fn processed_context_revision(&self, key: &DocumentContextKey) -> Option<u64> {
-        self.processed_context_cache.get(key).map(|cached| cached.revision)
+        self.processed_context_cache
+            .get(key)
+            .map(|cached| cached.revision)
     }
 
-    fn cached_processed_context(&self, key: &DocumentContextKey) -> Option<CachedProcessedDocumentContext> {
+    fn cached_processed_context(
+        &self,
+        key: &DocumentContextKey,
+    ) -> Option<CachedProcessedDocumentContext> {
         self.processed_context_cache.get(key).cloned()
     }
 
-    fn cached_workspace_instance(&self, key: &DocumentContextKey) -> Option<CachedWorkspaceInstance> {
+    fn cached_workspace_instance(
+        &self,
+        key: &DocumentContextKey,
+    ) -> Option<CachedWorkspaceInstance> {
         self.workspace_instance_cache.get(key).cloned()
     }
 
@@ -768,7 +792,11 @@ impl WorkspaceAnalysisSession {
             .map(|cached| Arc::clone(&cached.derived))
     }
 
-    fn store_processed_context(&mut self, context: &DocumentContext, processed: ProcessedDocumentContext) {
+    fn store_processed_context(
+        &mut self,
+        context: &DocumentContext,
+        processed: ProcessedDocumentContext,
+    ) {
         let child_context_revisions = processed
             .included_contexts
             .iter()
@@ -792,7 +820,8 @@ impl WorkspaceAnalysisSession {
             revision: self.next_context_revision(),
         };
 
-        self.processed_context_cache.insert(context.key.clone(), cached);
+        self.processed_context_cache
+            .insert(context.key.clone(), cached);
     }
 
     fn store_workspace_instance(
@@ -820,9 +849,9 @@ impl WorkspaceAnalysisSession {
 
     fn include_validation(&self, include: &ResolvedInclude) -> CachedIncludeValidation {
         match include.target() {
-            WorkspaceIncludeTarget::RemoteUrl { url } => CachedIncludeValidation::RemoteUrl {
-                url: url.clone(),
-            },
+            WorkspaceIncludeTarget::RemoteUrl { url } => {
+                CachedIncludeValidation::RemoteUrl { url: url.clone() }
+            }
             WorkspaceIncludeTarget::UnsupportedLocalPath { path } => {
                 CachedIncludeValidation::UnsupportedLocalPath { path: path.clone() }
             }
@@ -835,20 +864,22 @@ impl WorkspaceAnalysisSession {
                     .document_generation(path)
                     .expect("BUG: local include file should already be loaded"),
             },
-            WorkspaceIncludeTarget::LocalDirectory { path } => CachedIncludeValidation::LocalDirectory {
-                path: path.clone(),
-                discovered_paths: include
-                    .discovered_documents()
-                    .iter()
-                    .map(|document_id| {
-                        let path = PathBuf::from(document_id.as_str());
-                        let generation = self
-                            .document_generation(&path)
-                            .expect("BUG: directory include child should already be loaded");
-                        (path, generation)
-                    })
-                    .collect(),
-            },
+            WorkspaceIncludeTarget::LocalDirectory { path } => {
+                CachedIncludeValidation::LocalDirectory {
+                    path: path.clone(),
+                    discovered_paths: include
+                        .discovered_documents()
+                        .iter()
+                        .map(|document_id| {
+                            let path = PathBuf::from(document_id.as_str());
+                            let generation = self
+                                .document_generation(&path)
+                                .expect("BUG: directory include child should already be loaded");
+                            (path, generation)
+                        })
+                        .collect(),
+                }
+            }
         }
     }
 
@@ -983,7 +1014,10 @@ impl<'loader> WorkspaceBuildSession<'loader> {
         Ok(())
     }
 
-    fn process_document_context(&mut self, context: DocumentContext) -> io::Result<ConstantEnvironment> {
+    fn process_document_context(
+        &mut self,
+        context: DocumentContext,
+    ) -> io::Result<ConstantEnvironment> {
         // Memoize by `(path, inherited constants)` so repeated includes can
         // share the same processed result without rewalking the document.
         if let Some(processed_context) = self.processed_contexts.get(&context.key) {
@@ -1070,7 +1104,8 @@ impl<'loader> WorkspaceBuildSession<'loader> {
 
         let processed = processed?;
         let exported_constants = processed.exported_constants.clone();
-        self.session.store_processed_context(&context, processed.clone());
+        self.session
+            .store_processed_context(&context, processed.clone());
         self.processed_contexts.insert(context.key, processed);
         Ok(exported_constants)
     }
@@ -1091,7 +1126,8 @@ impl<'loader> WorkspaceBuildSession<'loader> {
 
             self.load_document(context_key.path.clone(), false)?;
 
-            let Some(current_generation) = self.session.document_generation(&context_key.path) else {
+            let Some(current_generation) = self.session.document_generation(&context_key.path)
+            else {
                 return Ok(false);
             };
             if current_generation != cached.document_generation {
@@ -1104,7 +1140,8 @@ impl<'loader> WorkspaceBuildSession<'loader> {
                 .iter()
                 .zip(&cached.child_context_revisions)
             {
-                let Some(current_revision) = self.session.processed_context_revision(child_context) else {
+                let Some(current_revision) = self.session.processed_context_revision(child_context)
+                else {
                     return Ok(false);
                 };
                 if current_revision != *expected_revision {
@@ -1159,7 +1196,10 @@ impl<'loader> WorkspaceBuildSession<'loader> {
         materialized
     }
 
-    fn include_validation_is_fresh(&mut self, validation: &CachedIncludeValidation) -> io::Result<bool> {
+    fn include_validation_is_fresh(
+        &mut self,
+        validation: &CachedIncludeValidation,
+    ) -> io::Result<bool> {
         match validation {
             CachedIncludeValidation::RemoteUrl { .. }
             | CachedIncludeValidation::UnsupportedLocalPath { .. } => Ok(true),
@@ -1177,7 +1217,9 @@ impl<'loader> WorkspaceBuildSession<'loader> {
                 path,
                 discovered_paths,
             } => {
-                let allowed_root = path.parent().expect("directory include path should have a parent");
+                let allowed_root = path
+                    .parent()
+                    .expect("directory include path should have a parent");
                 let current_paths = collect_directory_include_paths(path, allowed_root)?;
                 if current_paths.len() != discovered_paths.len() {
                     return Ok(false);
@@ -1191,7 +1233,8 @@ impl<'loader> WorkspaceBuildSession<'loader> {
                     }
 
                     self.load_document(current_path.clone(), false)?;
-                    if self.session.document_generation(current_path) != Some(*expected_generation) {
+                    if self.session.document_generation(current_path) != Some(*expected_generation)
+                    {
                         return Ok(false);
                     }
                 }
@@ -1998,7 +2041,6 @@ fn collect_instance_documents(
     }
 }
 
-
 struct WorkspaceBindingTables {
     unique_elements: BTreeMap<String, SymbolHandle>,
     duplicate_elements: BTreeMap<String, Vec<SymbolHandle>>,
@@ -2339,7 +2381,9 @@ fn effective_element_identifier_mode(
     }
 }
 
-fn document_model_identifier_mode(document: &WorkspaceSemanticDocumentFacts) -> Option<IdentifierMode> {
+fn document_model_identifier_mode(
+    document: &WorkspaceSemanticDocumentFacts,
+) -> Option<IdentifierMode> {
     last_identifier_mode_for_container(document, &DirectiveContainer::Model)
 }
 
@@ -2453,8 +2497,9 @@ fn sort_semantic_diagnostics(diagnostics: &mut [SemanticDiagnostic]) {
 #[cfg(test)]
 mod tests {
     use std::{
-        fs, ptr,
+        fs,
         path::{Path, PathBuf},
+        ptr,
         sync::Arc,
     };
 
@@ -2490,7 +2535,10 @@ mod tests {
         let second_workspace = second
             .document(&document_id_from_path(fixture.workspace_path()))
             .expect("workspace document should exist");
-        assert!(ptr::eq(first_workspace.snapshot(), second_workspace.snapshot()));
+        assert!(ptr::eq(
+            first_workspace.snapshot(),
+            second_workspace.snapshot()
+        ));
 
         let first_model = first
             .document(&document_id_from_path(&fixture.model_path()))
@@ -2941,9 +2989,13 @@ mod tests {
         );
     }
 
-    fn workspace_index_for_root<'a>(facts: &'a WorkspaceFacts, root_path: &Path) -> &'a WorkspaceIndex {
+    fn workspace_index_for_root<'a>(
+        facts: &'a WorkspaceFacts,
+        root_path: &Path,
+    ) -> &'a WorkspaceIndex {
         let root_document = document_id_from_path(root_path);
-        facts.workspace_indexes()
+        facts
+            .workspace_indexes()
             .iter()
             .find(|index| index.root_document() == &root_document)
             .expect("workspace index for root should exist")

@@ -29,11 +29,11 @@ That would be wrong because included fragments can be reused by multiple root wo
 The bounded MVP for workspace discovery and includes should do only this:
 
 1. find candidate Structurizr files in the editor workspace
-2. parse those files and extract `!include` facts
-3. resolve explicit local include targets
-4. record remote include targets without fetching them
-5. detect missing local targets and simple include cycles
-6. build per-workspace-instance facts that later definition/reference logic can consume
+1. parse those files and extract `!include` facts
+1. resolve explicit local include targets
+1. record remote include targets without fetching them
+1. detect missing local targets and simple include cycles
+1. build per-workspace-instance facts that later definition/reference logic can consume
 
 It should **not** try to do all of the following yet:
 
@@ -319,8 +319,8 @@ Semantic features should run against a chosen workspace instance:
 An included fragment can be in one of three states:
 
 1. included by no known workspace instance
-2. included by exactly one workspace instance
-3. included by multiple workspace instances
+1. included by exactly one workspace instance
+1. included by multiple workspace instances
 
 Recommended bounded-MVP behavior:
 
@@ -408,11 +408,11 @@ Those are adjacent concerns, but mixing them into the first workspace-discovery 
 ## Recommended next implementation sequence
 
 1. Create the analysis crate skeleton with stable document/include fact types.
-2. Implement parse + include-fact extraction for single documents.
-3. Add workspace scanning with `ignore`.
-4. Add explicit local include resolution and cycle detection.
-5. Build workspace instances rooted at entry documents.
-6. Only then layer definition/reference logic on top of those workspace-instance facts.
+1. Implement parse + include-fact extraction for single documents.
+1. Add workspace scanning with `ignore`.
+1. Add explicit local include resolution and cycle detection.
+1. Build workspace instances rooted at entry documents.
+1. Only then layer definition/reference logic on top of those workspace-instance facts.
 
 That keeps workspace discovery and include handling foundational instead of bolted on after symbol logic already exists.
 

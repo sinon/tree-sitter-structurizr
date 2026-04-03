@@ -14,33 +14,37 @@ Structurizr editor tooling built around the `strz` language server and a Tree-si
 Today the most reliable setup is local and explicit: install a Rust toolchain, build `strz`, then point Zed at that binary.
 
 1. Build the binary:
-  ```sh
-  cargo build -p structurizr-cli --bin strz --release
-  ```
+
+```sh
+cargo build -p structurizr-cli --bin strz --release
+```
 
 2. Verify the binary works:
-  ```sh
-  ./target/release/strz check your-workspace.dsl
-  ./target/release/strz server
-  ```
+
+```sh
+./target/release/strz check your-workspace.dsl
+./target/release/strz server
+```
 
 3. Install the [`zed-structurizr`](https://github.com/sinon/zed-structurizr) extension.
-  > [!NOTE]
-  > The extension currently needs to be installed manually as it is pre-release.
-  > In the future the extension will download `strz` if not installed on the system.
+
+> [!NOTE]
+> The extension currently needs to be installed manually as it is pre-release.
+> In the future the extension will download `strz` if not installed on the system.
 
 4. Point Zed at it:
-  ```json
-  {
-    "lsp": {
-      "structurizr-lsp": {
-        "binary": {
-          "path": "~/path/to/tree-sitter-structurizr/target/release/strz"
-        }
+
+```json
+{
+  "lsp": {
+    "structurizr-lsp": {
+      "binary": {
+        "path": "~/path/to/tree-sitter-structurizr/target/release/strz"
       }
     }
   }
-  ```
+}
+```
 
 ### What works today
 

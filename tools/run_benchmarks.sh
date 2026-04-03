@@ -68,9 +68,6 @@ capture_environment() {
         if command -v uv >/dev/null 2>&1; then
             uv --version
         fi
-        if command -v python3 >/dev/null 2>&1; then
-            python3 --version
-        fi
         if [[ -n "${STRZ_BENCH_CPUSET:-}" ]]; then
             printf 'requested_cpuset: %s\n' "${STRZ_BENCH_CPUSET}"
         fi

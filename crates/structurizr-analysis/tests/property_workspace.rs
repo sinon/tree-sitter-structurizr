@@ -349,7 +349,9 @@ fn display_path(path: &Path, root: &Path) -> String {
 
 fn workspace_view_for(root: &Path, roots: &[&Path]) -> WorkspaceView {
     let mut loader = WorkspaceLoader::new();
-    let facts = loader.load_paths(roots).expect("generated workspace should load");
+    let facts = loader
+        .load_paths(roots)
+        .expect("generated workspace should load");
     WorkspaceView::from_facts(&facts, root)
 }
 
