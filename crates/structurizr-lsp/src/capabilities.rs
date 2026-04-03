@@ -22,7 +22,7 @@ pub fn server_capabilities() -> ServerCapabilities {
         document_symbol_provider: Some(OneOf::Left(true)),
         completion_provider: Some(CompletionOptions {
             resolve_provider: Some(false),
-            trigger_characters: Some(vec!["!".to_owned()]),
+            trigger_characters: Some(completion_trigger_characters()),
             ..CompletionOptions::default()
         }),
         document_link_provider: Some(DocumentLinkOptions {
@@ -35,4 +35,13 @@ pub fn server_capabilities() -> ServerCapabilities {
         references_provider: Some(OneOf::Left(true)),
         ..ServerCapabilities::default()
     }
+}
+
+fn completion_trigger_characters() -> Vec<String> {
+    ('a'..='z')
+        .chain('A'..='Z')
+        .chain('0'..='9')
+        .chain(['!', '_', '.', '-'])
+        .map(|character| character.to_string())
+        .collect()
 }

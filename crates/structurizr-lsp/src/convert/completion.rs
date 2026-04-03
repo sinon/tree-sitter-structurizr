@@ -1,9 +1,19 @@
 //! Context-aware completion for the bounded LSP slice.
 
-use structurizr_analysis::DocumentSnapshot;
-use tower_lsp_server::ls_types::{CompletionItem, CompletionItemKind, Position};
+use std::collections::BTreeMap;
 
-use crate::{convert::positions::position_to_byte_offset, documents::DocumentState};
+use structurizr_analysis::{
+    DirectiveContainer, DocumentId, DocumentSnapshot, ElementIdentifierMode, IdentifierMode,
+    Symbol, SymbolHandle, SymbolKind, WorkspaceFacts, WorkspaceIndex, WorkspaceInstanceId,
+};
+use tower_lsp_server::ls_types::{
+    CompletionItem, CompletionItemKind, CompletionTextEdit, Position, Range, TextEdit,
+};
+
+use crate::{
+    convert::positions::{byte_offsets_to_range, position_to_byte_offset},
+    documents::DocumentState,
+};
 
 // =============================================================================
 // Fixed vocabulary outside style blocks
@@ -53,14 +63,23 @@ const RELATIONSHIP_STYLE_PROPERTY_ITEMS: &[(&str, &str)] = &[
     ("jump", "Relationship style property"),
 ];
 
+const CORE_ELEMENT_KINDS: &[SymbolKind] = &[
+    SymbolKind::Person,
+    SymbolKind::SoftwareSystem,
+    SymbolKind::Container,
+    SymbolKind::Component,
+];
+
 // =============================================================================
-// Style-block completion
+// Completion context detection
 // =============================================================================
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 enum CompletionContext {
     FixedVocabulary,
     StyleProperties(StyleBlockKind),
+    RelationshipIdentifier(RelationshipCompletionContext),
+    FreshRelationshipSource,
     Suppress,
 }
 
@@ -70,11 +89,36 @@ enum StyleBlockKind {
     Relationship,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct RelationshipCompletionContext {
+    endpoint: RelationshipEndpoint,
+    source_text: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum RelationshipEndpoint {
+    Source,
+    Destination,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct IdentifierCompletionCandidate {
+    label: String,
+    detail: String,
+}
+
+enum WorkspaceCompletionOutcome {
+    Candidates(BTreeMap<String, IdentifierCompletionCandidate>),
+    NoWorkspaceContext,
+    Suppress,
+}
+
 /// Returns completion items that match the current token prefix.
 #[must_use]
 pub fn completion_items(
     document: &DocumentState,
     snapshot: &DocumentSnapshot,
+    workspace_facts: Option<&WorkspaceFacts>,
     position: Position,
 ) -> Vec<CompletionItem> {
     let Some(offset) = position_to_byte_offset(document.line_index(), position) else {
@@ -82,23 +126,28 @@ pub fn completion_items(
     };
     let prefix_start = completion_prefix_start(document.text(), offset);
     let prefix = &document.text()[prefix_start..offset.min(document.text().len())];
+    let edit_range = byte_offsets_to_range(document.line_index(), prefix_start, offset);
 
-    let candidates = match completion_context(document.text(), snapshot, offset, prefix_start) {
-        CompletionContext::FixedVocabulary => FIXED_COMPLETION_ITEMS.to_vec(),
-        CompletionContext::StyleProperties(kind) => style_property_items(kind),
+    match completion_context(document.text(), snapshot, offset, prefix_start) {
+        CompletionContext::FixedVocabulary => {
+            keyword_completion_items(FIXED_COMPLETION_ITEMS.to_vec(), edit_range, prefix)
+        }
+        CompletionContext::StyleProperties(kind) => {
+            keyword_completion_items(style_property_items(kind), edit_range, prefix)
+        }
+        CompletionContext::RelationshipIdentifier(context) => relationship_identifier_items(
+            document,
+            snapshot,
+            workspace_facts,
+            &context,
+            prefix,
+            edit_range,
+        ),
+        CompletionContext::FreshRelationshipSource => {
+            fresh_relationship_source_items(document, snapshot, workspace_facts, prefix, edit_range)
+        }
         CompletionContext::Suppress => Vec::new(),
-    };
-
-    candidates
-        .iter()
-        .filter(|(label, _)| prefix.is_empty() || label.starts_with(prefix))
-        .map(|(label, detail)| CompletionItem {
-            label: (*label).to_owned(),
-            kind: Some(CompletionItemKind::KEYWORD),
-            detail: Some((*detail).to_owned()),
-            ..CompletionItem::default()
-        })
-        .collect()
+    }
 }
 
 fn style_property_items(kind: StyleBlockKind) -> Vec<(&'static str, &'static str)> {
@@ -118,10 +167,18 @@ fn completion_context(
     offset: usize,
     prefix_start: usize,
 ) -> CompletionContext {
-    // Style bodies are the one place where the global keyword vocabulary becomes
-    // distracting. If we can confidently detect a style-property position, switch
-    // to the style tables; otherwise keep the original fixed vocabulary.
+    // Incomplete quoted text usually only exists through parser recovery, so do
+    // not rely on syntax nodes alone to suppress noisy identifier/keyword
+    // completions while the user is typing inside a string.
+    if is_inside_quoted_string(text, offset) {
+        return CompletionContext::Suppress;
+    }
+
+    // First keep the existing syntax-backed refinements intact. Only after those
+    // do we attempt the new semantic relationship-endpoint completion surface.
     style_block_context(text, snapshot, offset, prefix_start)
+        .or_else(|| relationship_completion_context(text, snapshot, offset, prefix_start))
+        .or_else(|| fresh_relationship_source_context(text, snapshot, offset, prefix_start))
         .unwrap_or(CompletionContext::FixedVocabulary)
 }
 
@@ -131,7 +188,45 @@ fn style_block_context(
     offset: usize,
     prefix_start: usize,
 ) -> Option<CompletionContext> {
-    let node = syntax_node_at_offset(text, snapshot, offset, prefix_start)?;
+    syntax_nodes_at_offset(text, snapshot, offset, prefix_start)
+        .into_iter()
+        .find_map(|node| style_block_context_from_node(text, node, offset, prefix_start))
+}
+
+fn relationship_completion_context(
+    text: &str,
+    snapshot: &DocumentSnapshot,
+    offset: usize,
+    prefix_start: usize,
+) -> Option<CompletionContext> {
+    syntax_nodes_at_offset(text, snapshot, offset, prefix_start)
+        .into_iter()
+        .find_map(|node| {
+            relationship_completion_context_from_node(text, node, offset, prefix_start)
+        })
+}
+
+fn fresh_relationship_source_context(
+    text: &str,
+    snapshot: &DocumentSnapshot,
+    offset: usize,
+    prefix_start: usize,
+) -> Option<CompletionContext> {
+    if !is_fresh_relationship_source_insertion_point(text, offset, prefix_start) {
+        return None;
+    }
+
+    syntax_nodes_at_offset(text, snapshot, offset, prefix_start)
+        .into_iter()
+        .find_map(fresh_relationship_source_context_from_node)
+}
+
+fn style_block_context_from_node(
+    text: &str,
+    node: tree_sitter::Node<'_>,
+    offset: usize,
+    prefix_start: usize,
+) -> Option<CompletionContext> {
     let mut current = node;
     let mut style_setting = None;
     let mut style_rule_block = None;
@@ -183,14 +278,721 @@ fn style_block_context(
     })
 }
 
-fn syntax_node_at_offset<'a>(
+fn relationship_completion_context_from_node(
+    text: &str,
+    node: tree_sitter::Node<'_>,
+    offset: usize,
+    prefix_start: usize,
+) -> Option<CompletionContext> {
+    let mut current = node;
+
+    loop {
+        match current.kind() {
+            "dynamic_relationship" => {
+                return relationship_node_matches_cursor(current, offset, prefix_start)
+                    .then_some(CompletionContext::Suppress);
+            }
+            "relationship" => {
+                if is_deployment_relationship(current) {
+                    return Some(CompletionContext::Suppress);
+                }
+
+                return if relationship_node_matches_cursor(current, offset, prefix_start) {
+                    Some(
+                        relationship_endpoint_context(text, current, offset, prefix_start)
+                            .unwrap_or(CompletionContext::Suppress),
+                    )
+                } else {
+                    relationship_endpoint_context(text, current, offset, prefix_start)
+                };
+            }
+            _ => {}
+        }
+
+        current = current.parent()?;
+    }
+}
+
+fn relationship_node_matches_cursor(
+    relationship: tree_sitter::Node<'_>,
+    offset: usize,
+    prefix_start: usize,
+) -> bool {
+    let cursor_probe = offset;
+    let prefix_probe = prefix_start.saturating_sub(1);
+
+    span_contains(
+        relationship.start_byte(),
+        relationship.end_byte(),
+        cursor_probe,
+    ) || span_contains(
+        relationship.start_byte(),
+        relationship.end_byte(),
+        prefix_probe,
+    ) || cursor_probe == relationship.end_byte()
+}
+
+fn relationship_endpoint_context(
+    text: &str,
+    relationship: tree_sitter::Node<'_>,
+    offset: usize,
+    prefix_start: usize,
+) -> Option<CompletionContext> {
+    let safe_offset = offset.min(text.len());
+    let safe_prefix_start = prefix_start.min(text.len());
+    let operator = relationship.child_by_field_name("operator")?;
+    let source = relationship.child_by_field_name("source");
+    let destination = relationship.child_by_field_name("destination");
+
+    if source.is_some_and(|source| node_matches_cursor(source, offset, prefix_start)) {
+        return Some(CompletionContext::RelationshipIdentifier(
+            RelationshipCompletionContext {
+                endpoint: RelationshipEndpoint::Source,
+                source_text: None,
+            },
+        ));
+    }
+
+    // Tree-sitter still gives us a stable relationship node when the source has
+    // not been typed yet, so treat the blank span before the operator as a
+    // source insertion point too.
+    if source.is_none()
+        && safe_prefix_start <= operator.start_byte()
+        && is_blank_endpoint_insertion_point(text, relationship.start_byte(), safe_offset)
+    {
+        return Some(CompletionContext::RelationshipIdentifier(
+            RelationshipCompletionContext {
+                endpoint: RelationshipEndpoint::Source,
+                source_text: None,
+            },
+        ));
+    }
+
+    if destination.is_some_and(|destination| node_matches_cursor(destination, offset, prefix_start))
+    {
+        return Some(CompletionContext::RelationshipIdentifier(
+            RelationshipCompletionContext {
+                endpoint: RelationshipEndpoint::Destination,
+                source_text: source
+                    .filter(|source| source.kind() == "identifier")
+                    .map(|source| node_text(source, text)),
+            },
+        ));
+    }
+
+    // Likewise, a blank destination currently appears as either a zero-width
+    // identifier or as an empty segment after the operator. Treat that as a
+    // destination insertion point so completion stays useful before any letters
+    // have been typed.
+    if safe_prefix_start >= operator.end_byte()
+        && destination.is_none_or(|destination| destination.start_byte() == destination.end_byte())
+        && is_blank_endpoint_insertion_point(text, operator.end_byte(), safe_offset)
+    {
+        return Some(CompletionContext::RelationshipIdentifier(
+            RelationshipCompletionContext {
+                endpoint: RelationshipEndpoint::Destination,
+                source_text: source
+                    .filter(|source| source.kind() == "identifier")
+                    .map(|source| node_text(source, text)),
+            },
+        ));
+    }
+
+    None
+}
+
+fn node_matches_cursor(node: tree_sitter::Node<'_>, offset: usize, prefix_start: usize) -> bool {
+    let cursor_probe = offset;
+    let prefix_probe = prefix_start.saturating_sub(1);
+
+    span_contains(node.start_byte(), node.end_byte(), cursor_probe)
+        || span_contains(node.start_byte(), node.end_byte(), prefix_probe)
+        || cursor_probe == node.end_byte()
+}
+
+fn is_blank_endpoint_insertion_point(text: &str, start_byte: usize, offset: usize) -> bool {
+    let safe_start = start_byte.min(text.len());
+    let safe_offset = offset.min(text.len());
+    if safe_offset < safe_start {
+        return false;
+    }
+
+    text[safe_start..safe_offset].trim().is_empty()
+}
+
+fn is_deployment_relationship(node: tree_sitter::Node<'_>) -> bool {
+    let mut current = node;
+
+    while let Some(parent) = current.parent() {
+        match parent.kind() {
+            "deployment_environment"
+            | "deployment_environment_block"
+            | "deployment_node"
+            | "deployment_node_block"
+            | "infrastructure_node"
+            | "container_instance"
+            | "software_system_instance"
+            | "deployment_instance_block" => return true,
+            _ => current = parent,
+        }
+    }
+
+    false
+}
+
+fn fresh_relationship_source_context_from_node(
+    node: tree_sitter::Node<'_>,
+) -> Option<CompletionContext> {
+    if is_deployment_relationship(node) {
+        return None;
+    }
+
+    let mut current = node;
+    loop {
+        if current.kind().ends_with("_block") {
+            return fresh_relationship_source_block_kind(current.kind())
+                .then_some(CompletionContext::FreshRelationshipSource);
+        }
+
+        current = current.parent()?;
+    }
+}
+
+fn fresh_relationship_source_block_kind(kind: &str) -> bool {
+    matches!(
+        kind,
+        "model_block"
+            | "person_block"
+            | "software_system_block"
+            | "container_block"
+            | "component_block"
+            | "group_block"
+            | "enterprise_block"
+            | "custom_element_block"
+            | "element_directive_block"
+            | "elements_block"
+    )
+}
+
+fn is_fresh_relationship_source_insertion_point(
+    text: &str,
+    offset: usize,
+    prefix_start: usize,
+) -> bool {
+    let safe_offset = offset.min(text.len());
+    let safe_prefix_start = prefix_start.min(text.len());
+    if safe_prefix_start > safe_offset {
+        return false;
+    }
+
+    let line_start = text[..safe_prefix_start]
+        .rfind('\n')
+        .map_or(0, |index| index + 1);
+    let line_end = text[safe_offset..]
+        .find('\n')
+        .map_or(text.len(), |index| safe_offset + index);
+    let prefix = &text[safe_prefix_start..safe_offset];
+
+    !prefix.starts_with('!')
+        && text[line_start..safe_prefix_start].trim().is_empty()
+        && text[safe_offset..line_end].trim().is_empty()
+}
+
+// =============================================================================
+// Semantic relationship completion
+// =============================================================================
+
+fn fresh_relationship_source_items(
+    document: &DocumentState,
+    snapshot: &DocumentSnapshot,
+    workspace_facts: Option<&WorkspaceFacts>,
+    prefix: &str,
+    edit_range: Option<Range>,
+) -> Vec<CompletionItem> {
+    let mut items = relationship_identifier_items(
+        document,
+        snapshot,
+        workspace_facts,
+        &RelationshipCompletionContext {
+            endpoint: RelationshipEndpoint::Source,
+            source_text: None,
+        },
+        prefix,
+        edit_range,
+    );
+    items.extend(keyword_completion_items(
+        FIXED_COMPLETION_ITEMS.to_vec(),
+        edit_range,
+        prefix,
+    ));
+    items
+}
+
+fn relationship_identifier_items(
+    document: &DocumentState,
+    snapshot: &DocumentSnapshot,
+    workspace_facts: Option<&WorkspaceFacts>,
+    context: &RelationshipCompletionContext,
+    prefix: &str,
+    edit_range: Option<Range>,
+) -> Vec<CompletionItem> {
+    let candidates =
+        match workspace_relationship_completion_candidates(document, workspace_facts, context) {
+            WorkspaceCompletionOutcome::Candidates(candidates) => candidates,
+            WorkspaceCompletionOutcome::NoWorkspaceContext => {
+                same_document_relationship_completion_candidates(snapshot, context)
+            }
+            WorkspaceCompletionOutcome::Suppress => return Vec::new(),
+        };
+
+    candidates
+        .into_values()
+        .filter(|candidate| prefix.is_empty() || candidate.label.starts_with(prefix))
+        .map(|candidate| CompletionItem {
+            label: candidate.label.clone(),
+            kind: Some(CompletionItemKind::REFERENCE),
+            detail: Some(candidate.detail),
+            text_edit: edit_range.map(|range| {
+                CompletionTextEdit::Edit(TextEdit {
+                    range,
+                    new_text: candidate.label,
+                })
+            }),
+            ..CompletionItem::default()
+        })
+        .collect()
+}
+
+fn workspace_relationship_completion_candidates(
+    document: &DocumentState,
+    workspace_facts: Option<&WorkspaceFacts>,
+    context: &RelationshipCompletionContext,
+) -> WorkspaceCompletionOutcome {
+    let Some(workspace_facts) = workspace_facts else {
+        return WorkspaceCompletionOutcome::NoWorkspaceContext;
+    };
+    let Some(document_id) = workspace_document_id(document) else {
+        return WorkspaceCompletionOutcome::NoWorkspaceContext;
+    };
+
+    let candidate_instances = workspace_facts
+        .candidate_instances_for(&document_id)
+        .copied()
+        .collect::<Vec<_>>();
+    if candidate_instances.is_empty() {
+        return WorkspaceCompletionOutcome::NoWorkspaceContext;
+    }
+
+    // The first rollout stays flat-mode only. If any candidate workspace instance
+    // would require hierarchical element keys for this document, prefer no answer
+    // over suggesting identifiers the user cannot safely insert.
+    if candidate_instances.iter().any(|instance_id| {
+        workspace_facts
+            .workspace_index(*instance_id)
+            .and_then(|workspace_index| workspace_index.element_identifier_mode_for(&document_id))
+            == Some(ElementIdentifierMode::Hierarchical)
+    }) {
+        return WorkspaceCompletionOutcome::Suppress;
+    }
+
+    let allowed_kinds = match context.endpoint {
+        RelationshipEndpoint::Source => CORE_ELEMENT_KINDS,
+        RelationshipEndpoint::Destination => {
+            let Some(source_kind) = unanimous_workspace_source_kind(
+                workspace_facts,
+                &candidate_instances,
+                context.source_text.as_deref(),
+            ) else {
+                return WorkspaceCompletionOutcome::Suppress;
+            };
+            allowed_destination_kinds(source_kind)
+        }
+    };
+
+    unanimous_workspace_candidate_map(workspace_facts, &candidate_instances, allowed_kinds).map_or(
+        WorkspaceCompletionOutcome::Suppress,
+        WorkspaceCompletionOutcome::Candidates,
+    )
+}
+
+fn same_document_relationship_completion_candidates(
+    snapshot: &DocumentSnapshot,
+    context: &RelationshipCompletionContext,
+) -> BTreeMap<String, IdentifierCompletionCandidate> {
+    if !snapshot_uses_flat_identifier_mode(snapshot) {
+        return BTreeMap::new();
+    }
+
+    let allowed_kinds = match context.endpoint {
+        RelationshipEndpoint::Source => CORE_ELEMENT_KINDS,
+        RelationshipEndpoint::Destination => {
+            let Some(source_kind) =
+                same_document_source_kind(snapshot, context.source_text.as_deref())
+            else {
+                return BTreeMap::new();
+            };
+            allowed_destination_kinds(source_kind)
+        }
+    };
+
+    candidate_map_from_symbols(snapshot.symbols(), allowed_kinds)
+}
+
+fn unanimous_workspace_source_kind(
+    workspace_facts: &WorkspaceFacts,
+    candidate_instances: &[WorkspaceInstanceId],
+    source_text: Option<&str>,
+) -> Option<SymbolKind> {
+    let source_text = source_text?;
+    let mut resolved_kind = None;
+
+    for instance_id in candidate_instances {
+        let workspace_index = workspace_facts.workspace_index(*instance_id)?;
+        if workspace_index
+            .duplicate_element_bindings()
+            .contains_key(source_text)
+        {
+            return None;
+        }
+
+        let handle = workspace_index.unique_element_bindings().get(source_text)?;
+        let symbol = workspace_symbol(workspace_facts, handle)?;
+        if !is_core_element_kind(symbol.kind) {
+            return None;
+        }
+
+        if resolved_kind
+            .as_ref()
+            .is_some_and(|existing| existing != &symbol.kind)
+        {
+            return None;
+        }
+
+        resolved_kind = Some(symbol.kind);
+    }
+
+    resolved_kind
+}
+
+fn unanimous_workspace_candidate_map(
+    workspace_facts: &WorkspaceFacts,
+    candidate_instances: &[WorkspaceInstanceId],
+    allowed_kinds: &[SymbolKind],
+) -> Option<BTreeMap<String, IdentifierCompletionCandidate>> {
+    let mut candidates = None;
+
+    for instance_id in candidate_instances {
+        let workspace_index = workspace_facts.workspace_index(*instance_id)?;
+        let current =
+            candidate_map_from_workspace_index(workspace_facts, workspace_index, allowed_kinds)?;
+        if candidates
+            .as_ref()
+            .is_some_and(|existing| existing != &current)
+        {
+            return None;
+        }
+        candidates = Some(current);
+    }
+
+    candidates
+}
+
+fn candidate_map_from_workspace_index(
+    workspace_facts: &WorkspaceFacts,
+    workspace_index: &WorkspaceIndex,
+    allowed_kinds: &[SymbolKind],
+) -> Option<BTreeMap<String, IdentifierCompletionCandidate>> {
+    let mut candidates = BTreeMap::new();
+
+    for (binding, handle) in workspace_index.unique_element_bindings() {
+        let symbol = workspace_symbol(workspace_facts, handle)?;
+        if allowed_kinds.contains(&symbol.kind) {
+            candidates.insert(
+                binding.clone(),
+                completion_candidate(binding.clone(), symbol),
+            );
+        }
+    }
+
+    Some(candidates)
+}
+
+fn candidate_map_from_symbols(
+    symbols: &[Symbol],
+    allowed_kinds: &[SymbolKind],
+) -> BTreeMap<String, IdentifierCompletionCandidate> {
+    let mut unique = BTreeMap::new();
+    let mut duplicates = std::collections::BTreeSet::new();
+
+    for symbol in symbols {
+        let Some(binding_name) = symbol.binding_name.as_deref() else {
+            continue;
+        };
+        if !allowed_kinds.contains(&symbol.kind) {
+            continue;
+        }
+
+        if duplicates.contains(binding_name) {
+            continue;
+        }
+
+        let candidate = completion_candidate(binding_name.to_owned(), symbol);
+        if unique.insert(binding_name.to_owned(), candidate).is_some() {
+            unique.remove(binding_name);
+            duplicates.insert(binding_name.to_owned());
+        }
+    }
+
+    unique
+}
+
+fn completion_candidate(label: String, symbol: &Symbol) -> IdentifierCompletionCandidate {
+    IdentifierCompletionCandidate {
+        label,
+        detail: completion_candidate_detail(symbol),
+    }
+}
+
+fn completion_candidate_detail(symbol: &Symbol) -> String {
+    let kind = symbol_kind_label(symbol.kind);
+    let binding_name = symbol.binding_name.as_deref().unwrap_or_default();
+    if symbol.display_name == binding_name {
+        format!("{kind} identifier")
+    } else {
+        format!("{kind}: {}", symbol.display_name)
+    }
+}
+
+fn same_document_source_kind(
+    snapshot: &DocumentSnapshot,
+    source_text: Option<&str>,
+) -> Option<SymbolKind> {
+    let source_text = source_text?;
+    let mut matches = snapshot.symbols().iter().filter(|symbol| {
+        is_core_element_kind(symbol.kind) && symbol.binding_name.as_deref() == Some(source_text)
+    });
+    let first = matches.next()?;
+    if matches.next().is_some() {
+        return None;
+    }
+
+    Some(first.kind)
+}
+
+fn snapshot_uses_flat_identifier_mode(snapshot: &DocumentSnapshot) -> bool {
+    matches!(
+        snapshot_model_identifier_mode(snapshot)
+            .or_else(|| snapshot_workspace_identifier_mode(snapshot)),
+        Some(IdentifierMode::Flat) | None
+    )
+}
+
+fn snapshot_model_identifier_mode(snapshot: &DocumentSnapshot) -> Option<IdentifierMode> {
+    last_identifier_mode_for_container(snapshot, &DirectiveContainer::Model)
+}
+
+fn snapshot_workspace_identifier_mode(snapshot: &DocumentSnapshot) -> Option<IdentifierMode> {
+    last_identifier_mode_for_container(snapshot, &DirectiveContainer::Workspace)
+}
+
+fn last_identifier_mode_for_container(
+    snapshot: &DocumentSnapshot,
+    container: &DirectiveContainer,
+) -> Option<IdentifierMode> {
+    snapshot
+        .identifier_modes()
+        .iter()
+        .rev()
+        .find(|fact| fact.container == *container)
+        .map(|fact| fact.mode.clone())
+}
+
+fn workspace_document_id(document: &DocumentState) -> Option<DocumentId> {
+    document.workspace_document_id().cloned()
+}
+
+fn workspace_symbol<'a>(
+    workspace_facts: &'a WorkspaceFacts,
+    handle: &SymbolHandle,
+) -> Option<&'a Symbol> {
+    workspace_facts
+        .document(handle.document())?
+        .snapshot()
+        .symbols()
+        .get(handle.symbol_id().0)
+}
+
+const fn allowed_destination_kinds(source_kind: SymbolKind) -> &'static [SymbolKind] {
+    match source_kind {
+        SymbolKind::Person
+        | SymbolKind::SoftwareSystem
+        | SymbolKind::Container
+        | SymbolKind::Component => CORE_ELEMENT_KINDS,
+        _ => &[],
+    }
+}
+
+const fn is_core_element_kind(kind: SymbolKind) -> bool {
+    matches!(
+        kind,
+        SymbolKind::Person
+            | SymbolKind::SoftwareSystem
+            | SymbolKind::Container
+            | SymbolKind::Component
+    )
+}
+
+const fn symbol_kind_label(kind: SymbolKind) -> &'static str {
+    match kind {
+        SymbolKind::Person => "Person",
+        SymbolKind::SoftwareSystem => "Software system",
+        SymbolKind::Container => "Container",
+        SymbolKind::Component => "Component",
+        SymbolKind::DeploymentNode => "Deployment node",
+        SymbolKind::InfrastructureNode => "Infrastructure node",
+        SymbolKind::ContainerInstance => "Container instance",
+        SymbolKind::SoftwareSystemInstance => "Software system instance",
+        SymbolKind::Relationship => "Relationship",
+    }
+}
+
+// =============================================================================
+// Generic syntax helpers
+// =============================================================================
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum QuoteScanState {
+    Code,
+    LineComment,
+    BlockComment,
+    String,
+    TextBlockString,
+}
+
+fn is_inside_quoted_string(text: &str, offset: usize) -> bool {
+    let safe_offset = offset.min(text.len());
+    let bytes = text.as_bytes();
+    let mut index = 0;
+    let mut state = QuoteScanState::Code;
+
+    while index < safe_offset {
+        state = match state {
+            QuoteScanState::Code => {
+                if let Some(prefix_len) = line_comment_prefix_len(bytes, index) {
+                    index += prefix_len;
+                    QuoteScanState::LineComment
+                } else if bytes_at(bytes, index, b"/*") {
+                    index += 2;
+                    QuoteScanState::BlockComment
+                } else if bytes_at(bytes, index, b"\"\"\"") {
+                    index += 3;
+                    QuoteScanState::TextBlockString
+                } else if bytes[index] == b'"' {
+                    index += 1;
+                    QuoteScanState::String
+                } else {
+                    index += 1;
+                    QuoteScanState::Code
+                }
+            }
+            QuoteScanState::LineComment => {
+                if bytes[index] == b'\n' {
+                    index += 1;
+                    QuoteScanState::Code
+                } else {
+                    index += 1;
+                    QuoteScanState::LineComment
+                }
+            }
+            QuoteScanState::BlockComment => {
+                if bytes_at(bytes, index, b"*/") {
+                    index += 2;
+                    QuoteScanState::Code
+                } else {
+                    index += 1;
+                    QuoteScanState::BlockComment
+                }
+            }
+            QuoteScanState::String => {
+                if bytes[index] == b'\\' {
+                    index = skip_string_escape(bytes, index, safe_offset);
+                    QuoteScanState::String
+                } else if bytes[index] == b'"' {
+                    index += 1;
+                    QuoteScanState::Code
+                } else {
+                    index += 1;
+                    QuoteScanState::String
+                }
+            }
+            QuoteScanState::TextBlockString => {
+                if bytes_at(bytes, index, b"\"\"\"") {
+                    index += 3;
+                    QuoteScanState::Code
+                } else {
+                    index += 1;
+                    QuoteScanState::TextBlockString
+                }
+            }
+        };
+    }
+
+    matches!(
+        state,
+        QuoteScanState::String | QuoteScanState::TextBlockString
+    )
+}
+
+fn bytes_at(bytes: &[u8], index: usize, needle: &[u8]) -> bool {
+    bytes.get(index..index + needle.len()) == Some(needle)
+}
+
+fn line_comment_prefix_len(bytes: &[u8], index: usize) -> Option<usize> {
+    if bytes_at(bytes, index, b"//")
+        || (bytes.get(index) == Some(&b'#') && matches!(bytes.get(index + 1), Some(b' ' | b'\t')))
+    {
+        Some(2)
+    } else {
+        None
+    }
+}
+
+fn skip_string_escape(bytes: &[u8], index: usize, limit: usize) -> usize {
+    let mut next = index + 1;
+    if next >= limit {
+        return limit;
+    }
+
+    match bytes[next] {
+        b'\r' => {
+            next += 1;
+            if next < limit && bytes[next] == b'\n' {
+                next += 1;
+            }
+            while next < limit && matches!(bytes[next], b' ' | b'\t') {
+                next += 1;
+            }
+            next
+        }
+        b'\n' => {
+            next += 1;
+            while next < limit && matches!(bytes[next], b' ' | b'\t') {
+                next += 1;
+            }
+            next
+        }
+        _ => (index + 2).min(limit),
+    }
+}
+
+fn syntax_nodes_at_offset<'a>(
     text: &str,
     snapshot: &'a DocumentSnapshot,
     offset: usize,
     prefix_start: usize,
-) -> Option<tree_sitter::Node<'a>> {
+) -> Vec<tree_sitter::Node<'a>> {
     if text.is_empty() {
-        return None;
+        return Vec::new();
     }
 
     let root = snapshot.tree().root_node();
@@ -203,11 +1005,43 @@ fn syntax_node_at_offset<'a>(
         prefix_start.min(last_byte),
         offset.saturating_sub(1).min(last_byte),
         prefix_start.saturating_sub(1).min(last_byte),
+        previous_non_whitespace_probe(text, offset)
+            .unwrap_or(0)
+            .min(last_byte),
+        previous_non_whitespace_probe(text, prefix_start)
+            .unwrap_or(0)
+            .min(last_byte),
     ];
 
-    probes
-        .into_iter()
-        .find_map(|probe| root.descendant_for_byte_range(probe, probe))
+    let mut nodes = Vec::new();
+    for probe in probes {
+        let probe_end = (probe + 1).min(text.len());
+        let Some(node) = root
+            .descendant_for_byte_range(probe, probe_end)
+            .or_else(|| root.descendant_for_byte_range(probe, probe))
+        else {
+            continue;
+        };
+
+        if nodes.iter().any(|existing: &tree_sitter::Node<'_>| {
+            existing.start_byte() == node.start_byte()
+                && existing.end_byte() == node.end_byte()
+                && existing.kind() == node.kind()
+        }) {
+            continue;
+        }
+
+        nodes.push(node);
+    }
+
+    nodes
+}
+
+fn previous_non_whitespace_probe(text: &str, offset: usize) -> Option<usize> {
+    let safe_offset = offset.min(text.len());
+    text.as_bytes()[..safe_offset]
+        .iter()
+        .rposition(|byte| !byte.is_ascii_whitespace())
 }
 
 fn is_style_property_insertion_point(text: &str, prefix_start: usize) -> bool {
@@ -227,12 +1061,50 @@ const fn span_contains(start_byte: usize, end_byte: usize, offset: usize) -> boo
     }
 }
 
+fn keyword_completion_items(
+    candidates: Vec<(&'static str, &'static str)>,
+    edit_range: Option<Range>,
+    prefix: &str,
+) -> Vec<CompletionItem> {
+    candidates
+        .into_iter()
+        .filter(|(label, _)| prefix.is_empty() || label.starts_with(prefix))
+        .map(|(label, detail)| keyword_completion_item(label, detail, edit_range))
+        .collect()
+}
+
+fn keyword_completion_item(label: &str, detail: &str, edit_range: Option<Range>) -> CompletionItem {
+    CompletionItem {
+        label: label.to_owned(),
+        kind: Some(CompletionItemKind::KEYWORD),
+        detail: Some(detail.to_owned()),
+        text_edit: edit_range.map(|range| {
+            CompletionTextEdit::Edit(TextEdit {
+                range,
+                new_text: label.to_owned(),
+            })
+        }),
+        ..CompletionItem::default()
+    }
+}
+
+fn node_text(node: tree_sitter::Node<'_>, source: &str) -> String {
+    node.utf8_text(source.as_bytes())
+        .expect("node text should be utf-8")
+        .to_owned()
+}
+
 fn completion_prefix_start(text: &str, offset: usize) -> usize {
     let safe_offset = offset.min(text.len());
     let bytes = text.as_bytes();
 
     bytes[..safe_offset]
         .iter()
-        .rposition(|byte| !matches!(byte, b'a'..=b'z' | b'A'..=b'Z' | b'!'))
+        .rposition(|byte| {
+            !matches!(
+                byte,
+                b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' | b'!' | b'_' | b'.' | b'-'
+            )
+        })
         .map_or(0, |index| index + 1)
 }

@@ -13,7 +13,8 @@ It stays intentionally thin:
 - full-document text sync
 - diagnostics
 - document symbols
-- keyword/directive and style-property completion
+- keyword/directive, style-property, and flat-mode relationship identifier
+  completion for explicit core model relationship endpoints
 - hover for the current bounded identifier families, rendered from source-derived symbol metadata
 - definition, references, and type-definition for the current bounded symbol families
 - document links for directive paths

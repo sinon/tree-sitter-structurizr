@@ -295,32 +295,41 @@ The current completion slice also supports style-property names inside `element_
 That refinement stays syntax-backed and context-aware: it is driven by parsed style-block context and block-specific property tables, not by semantic identifier resolution.
 Because the grammar still allows generic identifier-based style keys, it should stay additive rather than becoming a validity gate.
 
+The current bounded slice also ships one narrow semantic identifier-completion
+path: explicit model `relationship` source/destination endpoints can complete
+flat-mode core element identifiers when the workspace facts agree on the active
+scope.
+
 ### What not to do yet
 
-Do **not** implement first-pass identifier completion yet.
+Do **not** broaden identifier completion past that current flat-mode
+relationship slice yet.
 
 Reason:
 
 - the capability matrix already classifies identifier completion as a semantic P1 feature
-- it depends on scope/index behavior and `!identifiers` policy that is not fully settled
+- deployment-layer scope and `!identifiers` policy are still only partially settled
 
 ### `!identifiers` interaction
 
-The presence of `IdentifierModeFact` should be recorded now, but the initial completion handler should use it conservatively.
+The presence of `IdentifierModeFact` should still be used conservatively.
 
 That means:
 
-- do not let `!identifiers` force identifier completion behavior before the scope-rules note exists
-- follow the later policy captured in [`docs/lsp/02-design/scope-rules.md`](scope-rules.md) once identifier completion is intentionally introduced
-- keep the first completion slice keyword/directive-oriented
+- flat-mode explicit relationship endpoints can use canonical flat element keys
+- hierarchical identifier insertion should stay deferred until selector-aware behavior exists
+- keep the rest of the completion surface conservative
 
-Later work can expand completion deliberately once the semantic rules are documented.
+Later work can expand completion deliberately once the semantic rules are
+documented.
 
 ### Deferred behavior
 
 Do not try to provide:
 
 - selector completion
+- deployment-layer relationship endpoint completion
+- `this` or omitted-source relationship completion
 - rename-aware completion
 - relationship-reference completion in dynamic views
 - full context-sensitive value completion for every DSL statement

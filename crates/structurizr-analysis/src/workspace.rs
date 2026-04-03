@@ -274,6 +274,7 @@ pub enum ReferenceResolutionStatus {
 struct DerivedWorkspaceInstance {
     root_document: DocumentId,
     documents: Vec<DocumentId>,
+    element_identifier_modes: BTreeMap<DocumentId, ElementIdentifierMode>,
     unique_element_bindings: BTreeMap<String, SymbolHandle>,
     duplicate_element_bindings: BTreeMap<String, Vec<SymbolHandle>>,
     unique_deployment_bindings: BTreeMap<String, SymbolHandle>,
@@ -344,6 +345,15 @@ impl WorkspaceIndex {
     #[must_use]
     pub fn unique_element_bindings(&self) -> &BTreeMap<String, SymbolHandle> {
         &self.derived.unique_element_bindings
+    }
+
+    /// Returns the effective element-identifier mode for one document in this workspace instance.
+    #[must_use]
+    pub fn element_identifier_mode_for(
+        &self,
+        document: &DocumentId,
+    ) -> Option<ElementIdentifierMode> {
+        self.derived.element_identifier_modes.get(document).copied()
     }
 
     /// Returns the duplicate element-binding sets keyed by canonical binding key.
@@ -1795,10 +1805,19 @@ fn collect_cycle_include_indices(
     visited.insert(document.clone());
 }
 
+/// Effective element-identifier mode for one document inside one workspace instance.
+///
+/// This folds together the document-local `!identifiers` directives and any
+/// inherited workspace-level mode so downstream consumers do not need to
+/// re-derive the same policy from raw directive facts.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ElementIdentifierMode {
+pub enum ElementIdentifierMode {
+    /// Element bindings resolve through their flat binding names.
     Flat,
+    /// Element bindings resolve through canonical hierarchical keys.
     Hierarchical,
+    /// Element bindings stay intentionally deferred because the effective mode is
+    /// unsupported for the bounded semantic surface.
     Deferred,
 }
 
@@ -1998,6 +2017,7 @@ fn build_derived_workspace_instance(
             .iter()
             .map(|document| document.document_id.clone())
             .collect(),
+        element_identifier_modes: bindings.element_modes,
         unique_element_bindings: bindings.unique_elements,
         duplicate_element_bindings: bindings.duplicate_elements,
         unique_deployment_bindings: bindings.unique_deployments,
@@ -2042,6 +2062,7 @@ fn collect_instance_documents(
 }
 
 struct WorkspaceBindingTables {
+    element_modes: BTreeMap<DocumentId, ElementIdentifierMode>,
     unique_elements: BTreeMap<String, SymbolHandle>,
     duplicate_elements: BTreeMap<String, Vec<SymbolHandle>>,
     unique_deployments: BTreeMap<String, SymbolHandle>,
@@ -2055,12 +2076,14 @@ fn build_binding_tables(
     documents: &[&WorkspaceSemanticDocumentFacts],
     inherited_workspace_mode: Option<&IdentifierMode>,
 ) -> WorkspaceBindingTables {
+    let mut element_modes = BTreeMap::<DocumentId, ElementIdentifierMode>::new();
     let mut element_bindings = BTreeMap::<String, Vec<SymbolHandle>>::new();
     let mut deployment_bindings = BTreeMap::<String, Vec<SymbolHandle>>::new();
     let mut relationship_bindings = BTreeMap::<String, Vec<SymbolHandle>>::new();
 
     for document in documents {
         let element_mode = effective_element_identifier_mode(document, inherited_workspace_mode);
+        element_modes.insert(document.document_id.clone(), element_mode);
 
         for symbol in &document.symbols {
             let Some(binding_name) = symbol.binding_name.as_deref() else {
@@ -2135,6 +2158,7 @@ fn build_binding_tables(
     );
 
     WorkspaceBindingTables {
+        element_modes,
         unique_elements: unique_element_bindings,
         duplicate_elements: duplicate_element_bindings,
         unique_deployments: unique_deployment_bindings,

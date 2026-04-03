@@ -34,7 +34,9 @@ Current in-repo behavior includes:
 - include diagnostics for missing and cyclic file-resolution cases
 - bounded semantic diagnostics for currently supported identifier families
 - document symbols
-- keyword/directive completion and style-property completion
+- keyword/directive completion, style-property completion, and flat-mode
+  relationship identifier completion for explicit core-element relationship
+  endpoints
 - hover for the current bounded identifier families, with compact source-derived metadata for declaration sites and resolved references
 - go-to-definition across the bounded symbol set, including cross-file cases already modeled in the workspace layer
 - find-references across the same bounded symbol families
@@ -50,7 +52,9 @@ The current implementation deliberately stays conservative around:
 - `this`-based navigation and diagnostics beyond the cases already modeled safely
 - selector and hierarchical reference forms such as `system.api`
 - named dynamic relationship reference sites
-- identifier completion
+- richer hover content
+- broader identifier completion beyond flat-mode explicit relationship
+  endpoints for core elements
 - workspace symbols
 - rename and code actions
 - semantic tokens

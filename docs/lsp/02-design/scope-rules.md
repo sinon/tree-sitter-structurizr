@@ -392,41 +392,50 @@ But they **should** keep later semantic diagnostics conservative.
 
 ## `!identifiers` and completion
 
-The bounded handler note already keeps the first completion slice keyword/directive-oriented.
+The completion surface is no longer purely keyword/directive-oriented, but it is
+still intentionally narrow.
 
-This scope note makes that policy explicit.
+### Current completion policy
 
-### MVP completion policy
-
-For the bounded MVP:
+For the current bounded slice:
 
 - keyword/directive completion is enabled
-- identifier completion is **not** enabled
+- style-property completion is enabled
+- flat-mode relationship identifier completion is enabled for explicit model
+  `relationship` source/destination endpoints that target core element bindings
+- broader identifier completion remains deferred
 
-This is true regardless of `flat` vs `hierarchical`.
+### Why broader identifier completion stays narrow
 
-### Why identifier completion stays off
+The shipped relationship-endpoint slice is safe because it:
 
-Identifier completion depends on:
+- inserts canonical flat keys only
+- reuses the existing workspace/same-document binding tables
+- stays on explicit identifier endpoints
+- suppresses results when workspace instances disagree
 
-- scope/index behavior
-- canonical element keys
+Broader identifier completion still depends on:
+
 - selector insertion behavior
-- `!identifiers` policy
+- deployment-layer source/destination rules
+- `this` and omitted-source shorthand relationship forms
+- clearer policy for hierarchical insertion
 
-Until those are all stable together, identifier completion should not be exposed as a half-semantic feature.
-
-This restriction is specifically about semantic identifier insertion.
-It does **not** affect the style-property completion already available inside parsed `element_style` and `relationship_style` blocks, because those suggestions do not depend on `!identifiers`, scope resolution, or canonical element keys.
+This restriction is specifically about semantic identifier insertion beyond the
+shipped flat relationship slice. It does **not** affect the style-property
+completion already available inside parsed `element_style` and
+`relationship_style` blocks, because those suggestions do not depend on
+`!identifiers`, scope resolution, or canonical element keys.
 
 ### Future identifier completion policy
 
-When identifier completion is eventually added:
+When identifier completion expands further:
 
 - in `flat` mode, offer simple canonical element keys and flat relationship identifiers
 - in `hierarchical` mode, offer canonical hierarchical element keys plus flat relationship identifiers
 
-But hierarchical element completion should not ship as stable until selector-aware insertion behavior is implemented and tested.
+But hierarchical element completion should not ship as stable until
+selector-aware insertion behavior is implemented and tested.
 
 ## `!identifiers` and rename
 

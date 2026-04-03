@@ -12,6 +12,19 @@ fn byte_offset_to_position(line_index: &LineIndex, byte_offset: usize) -> Option
     Some(Position::new(wide.line, wide.col))
 }
 
+/// Converts one byte-offset range into an LSP UTF-16 range for one document.
+#[must_use]
+pub fn byte_offsets_to_range(
+    line_index: &LineIndex,
+    start_byte: usize,
+    end_byte: usize,
+) -> Option<Range> {
+    Some(Range::new(
+        byte_offset_to_position(line_index, start_byte)?,
+        byte_offset_to_position(line_index, end_byte)?,
+    ))
+}
+
 /// Converts an LSP UTF-16 position into a UTF-8 byte offset for one document.
 #[must_use]
 pub fn position_to_byte_offset(line_index: &LineIndex, position: Position) -> Option<usize> {
@@ -30,8 +43,5 @@ pub fn position_to_byte_offset(line_index: &LineIndex, position: Position) -> Op
 /// Converts an analysis span into an LSP range using the document line index.
 #[must_use]
 pub fn span_to_range(line_index: &LineIndex, span: TextSpan) -> Option<Range> {
-    Some(Range::new(
-        byte_offset_to_position(line_index, span.start_byte)?,
-        byte_offset_to_position(line_index, span.end_byte)?,
-    ))
+    byte_offsets_to_range(line_index, span.start_byte, span.end_byte)
 }

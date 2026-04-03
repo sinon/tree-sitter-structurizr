@@ -30,7 +30,7 @@ pub use symbols::{
     SymbolId, SymbolKind,
 };
 pub use workspace::{
-    ReferenceHandle, ReferenceResolutionStatus, ResolvedInclude, SymbolHandle, WorkspaceDocument,
-    WorkspaceDocumentKind, WorkspaceFacts, WorkspaceIncludeTarget, WorkspaceIndex,
-    WorkspaceInstanceId, WorkspaceLoader,
+    ElementIdentifierMode, ReferenceHandle, ReferenceResolutionStatus, ResolvedInclude,
+    SymbolHandle, WorkspaceDocument, WorkspaceDocumentKind, WorkspaceFacts, WorkspaceIncludeTarget,
+    WorkspaceIndex, WorkspaceInstanceId, WorkspaceLoader,
 };
