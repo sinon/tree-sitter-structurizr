@@ -39,3 +39,30 @@ deployment tree.
 
 That captures the concrete upstream mismatch we saw without committing this
 task to a full deployment-semantics reimplementation.
+
+## Example future `-err` fixture
+
+Suggested fixture name: `fixtures/deployment/parent-child-relationship-err.dsl`
+
+```dsl
+workspace {
+    model {
+        system = softwareSystem "System" {
+            api = container "API"
+        }
+
+        live = deploymentEnvironment "Live" {
+            primary = deploymentNode "Primary" {
+                gateway = infrastructureNode "Gateway"
+                apiInstance = containerInstance api
+            }
+
+            primary -> gateway "Hosts traffic"
+        }
+    }
+}
+```
+
+Expected upstream-style error:
+
+`Relationships cannot be added between parents and children`

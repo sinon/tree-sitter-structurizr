@@ -14,7 +14,7 @@ workspace {
 
         live = deploymentEnvironment "Live" {
             node = deploymentNode "Node" {
-                systemInstance = softwareSystemInstance system
+                appInstance = containerInstance system.app
             }
         }
     }
@@ -42,7 +42,7 @@ workspace {
     }
 
     configuration {
-        scope landscape
+        scope softwareSystem
         visibility private
 
         users {

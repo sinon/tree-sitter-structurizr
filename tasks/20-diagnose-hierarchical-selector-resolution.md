@@ -41,3 +41,26 @@ identifiers that come from an extended base workspace.
 
 That addresses the concrete upstream failures above and fits the current
 bounded-analysis approach.
+
+## Example future `-err` fixture
+
+Suggested fixture name: `fixtures/archetypes/unresolved-hierarchical-selector-err.dsl`
+
+```dsl
+workspace extends "../deployment/aws-ok.dsl" {
+    model {
+        !element region {
+            deploymentNode "Extra node" {
+                infrastructureNode "Extra infrastructure node" {
+                    -> route53
+                }
+            }
+        }
+    }
+}
+```
+
+Expected upstream-style errors:
+
+- `An element identified by "region" could not be found`
+- `The destination element "route53" does not exist`

@@ -1,5 +1,5 @@
 ---
-source: tests/fixtures.rs
+source: crates/structurizr-grammar/tests/fixtures.rs
 expression: tree_sexp(&tree)
 ---
 (source_file
@@ -8,8 +8,7 @@ expression: tree_sexp(&tree)
     (string) body:
     (workspace_block
       (docs_directive path:
-        (identifier) importer:
-        (java_fully_qualified_name))
+        (identifier))
       (adrs_directive path:
         (identifier) importer:
         (decision_importer_type))
@@ -23,11 +22,10 @@ expression: tree_sexp(&tree)
             (string) body:
             (software_system_block
               (docs_directive path:
-                (bare_value) importer:
-                (java_fully_qualified_name))
+                (identifier))
               (adrs_directive path:
-                (bare_value) importer:
-                (java_fully_qualified_name))
+                (identifier) importer:
+                (decision_importer_type))
               (container identifier:
                 (identifier) name:
                 (string) description:

@@ -48,3 +48,24 @@ in editor features:
 
 That improves parity on contributor-owned files without taking on full importer
 or remote-resource execution semantics.
+
+## Example future `-err` fixture
+
+Suggested fixture name: `fixtures/views/missing-plantuml-config-err.dsl`
+
+```dsl
+workspace {
+    !docs "docs"
+
+    views {
+        image * "image-view" {
+            plantuml "diagram.puml"
+        }
+    }
+}
+```
+
+Expected upstream-style errors:
+
+- `Documentation path /workspace/.../docs does not exist`
+- `Please define a view/viewset property named plantuml.url to specify your PlantUML server`

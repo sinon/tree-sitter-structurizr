@@ -45,3 +45,29 @@ Add bounded semantic diagnostics keyed by view kind and scope:
 
 That turns the concrete upstream failures above into targeted local diagnostics
 without forcing a one-shot reimplementation of all view semantics.
+
+## Example future `-err` fixture
+
+Suggested fixture name: `fixtures/views/container-view-component-include-err.dsl`
+
+```dsl
+workspace {
+    model {
+        system = softwareSystem "System" {
+            api = container "API" {
+                worker = component "Worker"
+            }
+        }
+    }
+
+    views {
+        container system "container-view" {
+            include api worker
+        }
+    }
+}
+```
+
+Expected upstream-style error:
+
+`The element "worker" can not be added to this type of view`

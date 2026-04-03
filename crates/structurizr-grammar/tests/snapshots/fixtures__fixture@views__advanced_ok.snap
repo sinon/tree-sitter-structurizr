@@ -1,6 +1,6 @@
 ---
-source: tests/fixtures.rs
-expression: "common::tree_sexp(&tree)"
+source: crates/structurizr-grammar/tests/fixtures.rs
+expression: tree_sexp(&tree)
 ---
 (source_file
   (workspace body:
@@ -20,14 +20,35 @@ expression: "common::tree_sexp(&tree)"
             (string))
           (software_system identifier:
             (identifier) name:
-            (string))
+            (string) body:
+            (software_system_block
+              (container identifier:
+                (identifier) name:
+                (string))))
           (relationship source:
             (identifier) operator:
             (relationship_operator) destination:
             (identifier) attribute:
-            (string))))
+            (string) attribute:
+            (string))
+          (deployment_environment identifier:
+            (identifier) name:
+            (string) body:
+            (deployment_environment_block
+              (deployment_node identifier:
+                (identifier) name:
+                (string) body:
+                (deployment_node_block
+                  (container_instance
+                    (container_instance_simple identifier:
+                      (identifier) target:
+                      (identifier)))))))))
       (views body:
         (views_block
+          (properties_block
+            (property_entry name:
+              (string) value:
+              (string)))
           (dynamic_view scope:
             (identifier) key:
             (string) body:
@@ -50,15 +71,6 @@ expression: "common::tree_sexp(&tree)"
               (include_statement value:
                 (wildcard))
               (auto_layout_statement)))
-          (custom_view key:
-            (string) title:
-            (string) body:
-            (custom_view_block
-              (include_statement value:
-                (identifier) value:
-                (identifier))
-              (description_statement value:
-                (string))))
           (image_view scope:
             (wildcard) key:
             (string) body:

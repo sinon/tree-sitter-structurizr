@@ -47,3 +47,28 @@ model for the same source/destination pair and optional technology.
 
 That keeps this task focused on validation, and it covers the concrete upstream
 mismatch we hit without forcing a full sequence-semantics implementation.
+
+## Example future `-err` fixture
+
+Suggested fixture name: `fixtures/views/dynamic-relationship-mismatch-err.dsl`
+
+```dsl
+workspace {
+    model {
+        user = person "User"
+        system = softwareSystem "System" {
+            app = container "App"
+        }
+    }
+
+    views {
+        dynamic system "dynamic-view" {
+            1: user -> system.app "Requests data" "HTTPS"
+        }
+    }
+}
+```
+
+Expected upstream-style error:
+
+`A relationship between User and App with technology HTTPS does not exist in model`

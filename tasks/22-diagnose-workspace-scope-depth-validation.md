@@ -39,3 +39,25 @@ contains elements that exceed that depth.
 
 That captures the concrete upstream failure above and fits the current
 incremental path better than a broad configuration-semantics rewrite.
+
+## Example future `-err` fixture
+
+Suggested fixture name: `fixtures/workspace/software-system-scope-with-containers-err.dsl`
+
+```dsl
+workspace {
+    model {
+        system = softwareSystem "System" {
+            app = container "App"
+        }
+    }
+
+    configuration {
+        scope landscape
+    }
+}
+```
+
+Expected upstream-style error:
+
+`Workspace is landscape scoped, but the software system named System has containers.`
