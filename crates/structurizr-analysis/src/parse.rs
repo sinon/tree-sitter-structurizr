@@ -364,4 +364,63 @@ mod tests {
         assert_eq!(edge.tags, vec!["Public", "Regional", "Blue"]);
         assert_eq!(edge.url.as_deref(), Some("https://example.com/edge"));
     }
+
+    #[test]
+    fn analysis_preserves_empty_relationship_placeholder_slots() {
+        let mut analyzer = DocumentAnalyzer::new();
+        let snapshot = analyzer.analyze(DocumentInput::new(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        user = person "User"
+                        system = softwareSystem "Payments"
+
+                        rel = user -> system "" "HTTPS" "Async, Observed"
+                    }
+                }
+            "#},
+        ));
+
+        let relationship = snapshot
+            .symbols()
+            .iter()
+            .find(|symbol| symbol.binding_name.as_deref() == Some("rel"))
+            .expect("relationship symbol should exist");
+        assert_eq!(relationship.display_name, "rel");
+        assert_eq!(relationship.description, None);
+        assert_eq!(relationship.technology.as_deref(), Some("HTTPS"));
+        assert_eq!(relationship.tags, vec!["Async", "Observed"]);
+    }
+
+    #[test]
+    fn analysis_preserves_empty_deployment_placeholder_slots() {
+        let mut analyzer = DocumentAnalyzer::new();
+        let snapshot = analyzer.analyze(DocumentInput::new(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        system = softwareSystem "Payments"
+                    }
+
+                    deploymentEnvironment "Live" {
+                        edge = deploymentNode "Edge" "" "Kubernetes" 2 "Prod" {
+                            api = softwareSystemInstance system
+                        }
+                    }
+                }
+            "#},
+        ));
+
+        let edge = snapshot
+            .symbols()
+            .iter()
+            .find(|symbol| symbol.binding_name.as_deref() == Some("edge"))
+            .expect("deployment node should exist");
+        assert_eq!(edge.display_name, "Edge");
+        assert_eq!(edge.description, None);
+        assert_eq!(edge.technology.as_deref(), Some("Kubernetes"));
+        assert_eq!(edge.tags, vec!["Prod"]);
+    }
 }

@@ -4,14 +4,14 @@ use std::fs;
 
 use serde_json::json;
 use support::{
-    file_uri, file_uri_from_path, initialize, initialize_with_workspace_folders, initialized,
-    new_service, open_document, position_in, request_json, workspace_fixture_path,
+    annotated_source, file_uri, file_uri_from_path, initialize, initialize_with_workspace_folders,
+    initialized, new_service, open_document, request_json, workspace_fixture_path,
 };
 
 const SAME_DOCUMENT_SOURCE: &str = r#"workspace {
     model {
         system = softwareSystem "Payments Platform" {
-            api = container "Payments API" "Processes payment requests" "Rust" "Internal, HTTP" {
+            <CURSOR:api-declaration>api = container "Payments API" "Processes payment requests" "Rust" "Internal, HTTP" {
                 technology "Axum"
                 tags "Internal, Edge"
                 url "https://example.com/api"
@@ -19,7 +19,7 @@ const SAME_DOCUMENT_SOURCE: &str = r#"workspace {
             worker = container "Settlement Worker" "Settles payment jobs" "Rust"
         }
 
-        rel = api -> worker "Publishes jobs" "NATS" "Async, Messaging" {
+        <CURSOR:relationship-declaration>rel = <CURSOR:api-reference>api -> worker "Publishes jobs" "NATS" "Async, Messaging" {
             description "Delivers asynchronous jobs"
             tag "Observed"
             url "https://example.com/rel"
@@ -27,9 +27,38 @@ const SAME_DOCUMENT_SOURCE: &str = r#"workspace {
     }
 }
 "#;
+const PLACEHOLDER_RELATIONSHIP_SOURCE: &str = r#"workspace {
+    model {
+        user = person "User"
+        system = softwareSystem "Payments"
+
+        <CURSOR>rel = user -> system "" "HTTPS" "Async, Observed"
+    }
+}
+"#;
+const HOVER_METADATA_VIEWS_SOURCE: &str = r#"views {
+    container system "Payments" {
+        include <CURSOR:api-reference>api
+        include <CURSOR:relationship-reference>rel
+        autoLayout
+    }
+}
+"#;
+const DUPLICATE_BINDINGS_WORKSPACE_SOURCE: &str = r#"workspace {
+    !include "alpha.dsl"
+    !include "beta.dsl"
+
+    model {
+        user = person "User"
+        user -> <CURSOR:ambiguous-api>api "Calls"
+    }
+}
+"#;
 
 const API_HOVER: &str = "**Container** `api`\nPayments API\n\nProcesses payment requests\n\n**Technology:** Axum  \n**Tags:** Internal, HTTP, Edge  \n**URL:** <https://example.com/api>";
 const RELATIONSHIP_HOVER: &str = "**Relationship** `rel`\nPublishes jobs\n\nDelivers asynchronous jobs\n\n**Technology:** NATS  \n**Tags:** Async, Messaging, Observed  \n**URL:** <https://example.com/rel>";
+const PLACEHOLDER_RELATIONSHIP_HOVER: &str =
+    "**Relationship** `rel`\n\n**Technology:** HTTPS  \n**Tags:** Async, Observed";
 
 #[tokio::test(flavor = "current_thread")]
 async fn hover_returns_markdown_for_same_document_declarations() {
@@ -38,16 +67,11 @@ async fn hover_returns_markdown_for_same_document_declarations() {
     initialize(&mut service).await;
     initialized(&mut service).await;
 
+    let source = annotated_source(SAME_DOCUMENT_SOURCE);
     let uri = file_uri("hover-same-document.dsl");
-    open_document(&mut service, &uri, SAME_DOCUMENT_SOURCE).await;
+    open_document(&mut service, &uri, source.source()).await;
 
-    let hover = request_hover(
-        &mut service,
-        &uri,
-        position_in(SAME_DOCUMENT_SOURCE, "api = container", 1),
-        50,
-    )
-    .await;
+    let hover = request_hover(&mut service, &uri, source.position("api-declaration")).await;
 
     assert_hover_markdown(&hover, API_HOVER);
 }
@@ -59,26 +83,36 @@ async fn hover_returns_markdown_for_same_document_references() {
     initialize(&mut service).await;
     initialized(&mut service).await;
 
+    let source = annotated_source(SAME_DOCUMENT_SOURCE);
     let uri = file_uri("hover-same-document.dsl");
-    open_document(&mut service, &uri, SAME_DOCUMENT_SOURCE).await;
+    open_document(&mut service, &uri, source.source()).await;
 
-    let api_hover = request_hover(
-        &mut service,
-        &uri,
-        position_in(SAME_DOCUMENT_SOURCE, "rel = api -> worker", 7),
-        51,
-    )
-    .await;
+    let api_hover = request_hover(&mut service, &uri, source.position("api-reference")).await;
     assert_hover_markdown(&api_hover, API_HOVER);
 
     let relationship_hover = request_hover(
         &mut service,
         &uri,
-        position_in(SAME_DOCUMENT_SOURCE, "rel = api -> worker", 1),
-        52,
+        source.position("relationship-declaration"),
     )
     .await;
     assert_hover_markdown(&relationship_hover, RELATIONSHIP_HOVER);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn hover_preserves_empty_relationship_placeholder_slots() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(PLACEHOLDER_RELATIONSHIP_SOURCE);
+    let uri = file_uri("hover-placeholder-relationship.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let hover = request_hover(&mut service, &uri, source.only_position()).await;
+
+    assert_hover_markdown(&hover, PLACEHOLDER_RELATIONSHIP_HOVER);
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -90,15 +124,15 @@ async fn hover_resolves_cross_file_symbols_through_workspace_indexes() {
     initialized(&mut service).await;
 
     let views_path = workspace_root.join("views.dsl");
-    let views_source = read_workspace_file(&views_path);
+    let views_source = annotated_source(HOVER_METADATA_VIEWS_SOURCE);
+    assert_fixture_source(&views_path, views_source.source());
     let views_uri = file_uri_from_path(&views_path);
-    open_document(&mut service, &views_uri, &views_source).await;
+    open_document(&mut service, &views_uri, views_source.source()).await;
 
     let api_hover = request_hover(
         &mut service,
         &views_uri,
-        position_in(&views_source, "include api", 8),
-        53,
+        views_source.position("api-reference"),
     )
     .await;
     assert_hover_markdown(&api_hover, API_HOVER);
@@ -106,8 +140,7 @@ async fn hover_resolves_cross_file_symbols_through_workspace_indexes() {
     let relationship_hover = request_hover(
         &mut service,
         &views_uri,
-        position_in(&views_source, "include rel", 8),
-        54,
+        views_source.position("relationship-reference"),
     )
     .await;
     assert_hover_markdown(&relationship_hover, RELATIONSHIP_HOVER);
@@ -122,15 +155,15 @@ async fn hover_returns_no_result_for_ambiguous_workspace_references() {
     initialized(&mut service).await;
 
     let workspace_path = workspace_root.join("workspace.dsl");
-    let workspace_source = read_workspace_file(&workspace_path);
+    let workspace_source = annotated_source(DUPLICATE_BINDINGS_WORKSPACE_SOURCE);
+    assert_fixture_source(&workspace_path, workspace_source.source());
     let workspace_uri = file_uri_from_path(&workspace_path);
-    open_document(&mut service, &workspace_uri, &workspace_source).await;
+    open_document(&mut service, &workspace_uri, workspace_source.source()).await;
 
     let hover = request_hover(
         &mut service,
         &workspace_uri,
-        position_in(&workspace_source, "user -> api", 8),
-        55,
+        workspace_source.position("ambiguous-api"),
     )
     .await;
 
@@ -141,7 +174,6 @@ async fn request_hover(
     service: &mut support::TestService,
     uri: &tower_lsp_server::ls_types::Uri,
     position: tower_lsp_server::ls_types::Position,
-    id: i64,
 ) -> serde_json::Value {
     request_json(
         service,
@@ -150,7 +182,6 @@ async fn request_hover(
             "textDocument": { "uri": uri.as_str() },
             "position": position,
         }),
-        id,
     )
     .await
 }
@@ -162,6 +193,15 @@ fn assert_hover_markdown(response: &serde_json::Value, expected: &str) {
             .as_str()
             .expect("hover markdown should be returned as a string"),
         expected
+    );
+}
+
+fn assert_fixture_source(path: &std::path::Path, annotated_source: &str) {
+    assert_eq!(
+        read_workspace_file(path),
+        annotated_source,
+        "annotated source should match workspace fixture `{}`",
+        path.display()
     );
 }
 
