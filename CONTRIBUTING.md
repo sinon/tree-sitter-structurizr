@@ -215,6 +215,18 @@ STRUCTURIZR_UPSTREAM_FILTER=archetypes just audit-upstream
 STRUCTURIZR_UPSTREAM_INCLUDE_UNSUPPORTED=1 just audit-upstream
 ```
 
+For explicit workspace-entrypoint checks against the upstream CLI, use
+[`tools/upstream_validate.sh`](tools/upstream_validate.sh):
+
+```sh
+tools/upstream_validate.sh tests/lsp/workspaces/benchmark-mega-multi-root/ws-12 tests/lsp/workspaces/benchmark-mega/mega.dsl
+```
+
+Directory arguments are resolved to `workspace.dsl` or `workspace.json` within
+that directory when present; otherwise the helper accepts any single top-level
+`.dsl` or `.json` file in the directory and asks for an explicit file path only
+when the directory is ambiguous.
+
 Behavior notes:
 
 - fixtures whose path contains `unexpected-` are ignored permanently because they are intentional upstream negative tests
