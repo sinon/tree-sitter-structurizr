@@ -27,16 +27,22 @@ workspace {
         }
 
         container system "container-view" {
-            include api worker
+            include web api
             animation {
-                api worker
+                web api
+            }
+        }
+
+        component api "component-view" {
+            include worker
+            animation {
+                worker
             }
         }
 
         deployment system "Live" {
             include primary secondary webInstance apiInstance
             animation {
-                primary secondary
                 webInstance apiInstance
             }
         }

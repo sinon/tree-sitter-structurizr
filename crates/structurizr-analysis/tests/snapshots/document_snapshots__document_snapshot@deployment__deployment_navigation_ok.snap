@@ -1,6 +1,5 @@
 ---
 source: crates/structurizr-analysis/tests/document_snapshots.rs
-assertion_line: 46
 expression: "SnapshotView::from(&snapshot)"
 ---
 SnapshotView {
@@ -211,82 +210,6 @@ SnapshotView {
                     2,
                 ),
             ),
-        },
-        Reference {
-            kind: DeploymentRelationshipSource,
-            raw_text: "primary",
-            span: TextSpan {
-                start_byte: 460,
-                end_byte: 467,
-                start_point: TextPoint {
-                    row: 15,
-                    column: 12,
-                },
-                end_point: TextPoint {
-                    row: 15,
-                    column: 19,
-                },
-            },
-            target_hint: Deployment,
-            container_node_kind: "relationship",
-            containing_symbol: None,
-        },
-        Reference {
-            kind: DeploymentRelationshipDestination,
-            raw_text: "gateway",
-            span: TextSpan {
-                start_byte: 471,
-                end_byte: 478,
-                start_point: TextPoint {
-                    row: 15,
-                    column: 23,
-                },
-                end_point: TextPoint {
-                    row: 15,
-                    column: 30,
-                },
-            },
-            target_hint: Deployment,
-            container_node_kind: "relationship",
-            containing_symbol: None,
-        },
-        Reference {
-            kind: DeploymentRelationshipSource,
-            raw_text: "gateway",
-            span: TextSpan {
-                start_byte: 507,
-                end_byte: 514,
-                start_point: TextPoint {
-                    row: 16,
-                    column: 12,
-                },
-                end_point: TextPoint {
-                    row: 16,
-                    column: 19,
-                },
-            },
-            target_hint: Deployment,
-            container_node_kind: "relationship",
-            containing_symbol: None,
-        },
-        Reference {
-            kind: DeploymentRelationshipDestination,
-            raw_text: "apiInstance",
-            span: TextSpan {
-                start_byte: 518,
-                end_byte: 529,
-                start_point: TextPoint {
-                    row: 16,
-                    column: 23,
-                },
-                end_point: TextPoint {
-                    row: 16,
-                    column: 34,
-                },
-            },
-            target_hint: Deployment,
-            container_node_kind: "relationship",
-            containing_symbol: None,
         },
     ],
 }

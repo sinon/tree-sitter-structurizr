@@ -1,6 +1,5 @@
 ---
 source: crates/structurizr-analysis/tests/document_snapshots.rs
-assertion_line: 46
 expression: "SnapshotView::from(&snapshot)"
 ---
 SnapshotView {
@@ -176,17 +175,131 @@ SnapshotView {
     ],
     references: [
         Reference {
-            kind: ViewScope,
-            raw_text: "api",
+            kind: RelationshipSource,
+            raw_text: "web",
             span: TextSpan {
-                start_byte: 378,
-                end_byte: 381,
+                start_byte: 352,
+                end_byte: 355,
+                start_point: TextPoint {
+                    row: 11,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 11,
+                    column: 11,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "signin",
+            span: TextSpan {
+                start_byte: 359,
+                end_byte: 365,
+                start_point: TextPoint {
+                    row: 11,
+                    column: 15,
+                },
+                end_point: TextPoint {
+                    row: 11,
+                    column: 21,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "signin",
+            span: TextSpan {
+                start_byte: 399,
+                end_byte: 405,
+                start_point: TextPoint {
+                    row: 12,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 12,
+                    column: 14,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "security",
+            span: TextSpan {
+                start_byte: 409,
+                end_byte: 417,
+                start_point: TextPoint {
+                    row: 12,
+                    column: 18,
+                },
+                end_point: TextPoint {
+                    row: 12,
+                    column: 26,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "security",
+            span: TextSpan {
+                start_byte: 456,
+                end_byte: 464,
                 start_point: TextPoint {
                     row: 13,
-                    column: 16,
+                    column: 8,
                 },
                 end_point: TextPoint {
                     row: 13,
+                    column: 16,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "database",
+            span: TextSpan {
+                start_byte: 468,
+                end_byte: 476,
+                start_point: TextPoint {
+                    row: 13,
+                    column: 20,
+                },
+                end_point: TextPoint {
+                    row: 13,
+                    column: 28,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewScope,
+            raw_text: "api",
+            span: TextSpan {
+                start_byte: 531,
+                end_byte: 534,
+                start_point: TextPoint {
+                    row: 17,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 17,
                     column: 19,
                 },
             },
@@ -198,14 +311,14 @@ SnapshotView {
             kind: RelationshipSource,
             raw_text: "web",
             span: TextSpan {
-                start_byte: 405,
-                end_byte: 408,
+                start_byte: 558,
+                end_byte: 561,
                 start_point: TextPoint {
-                    row: 14,
+                    row: 18,
                     column: 12,
                 },
                 end_point: TextPoint {
-                    row: 14,
+                    row: 18,
                     column: 15,
                 },
             },
@@ -217,14 +330,14 @@ SnapshotView {
             kind: RelationshipDestination,
             raw_text: "signin",
             span: TextSpan {
-                start_byte: 412,
-                end_byte: 418,
+                start_byte: 565,
+                end_byte: 571,
                 start_point: TextPoint {
-                    row: 14,
+                    row: 18,
                     column: 19,
                 },
                 end_point: TextPoint {
-                    row: 14,
+                    row: 18,
                     column: 25,
                 },
             },
@@ -236,14 +349,14 @@ SnapshotView {
             kind: RelationshipSource,
             raw_text: "signin",
             span: TextSpan {
-                start_byte: 456,
-                end_byte: 462,
+                start_byte: 609,
+                end_byte: 615,
                 start_point: TextPoint {
-                    row: 15,
+                    row: 19,
                     column: 12,
                 },
                 end_point: TextPoint {
-                    row: 15,
+                    row: 19,
                     column: 18,
                 },
             },
@@ -255,14 +368,14 @@ SnapshotView {
             kind: RelationshipDestination,
             raw_text: "security",
             span: TextSpan {
-                start_byte: 466,
-                end_byte: 474,
+                start_byte: 619,
+                end_byte: 627,
                 start_point: TextPoint {
-                    row: 15,
+                    row: 19,
                     column: 22,
                 },
                 end_point: TextPoint {
-                    row: 15,
+                    row: 19,
                     column: 30,
                 },
             },
@@ -274,14 +387,14 @@ SnapshotView {
             kind: RelationshipSource,
             raw_text: "security",
             span: TextSpan {
-                start_byte: 517,
-                end_byte: 525,
+                start_byte: 670,
+                end_byte: 678,
                 start_point: TextPoint {
-                    row: 16,
+                    row: 20,
                     column: 12,
                 },
                 end_point: TextPoint {
-                    row: 16,
+                    row: 20,
                     column: 20,
                 },
             },
@@ -293,14 +406,14 @@ SnapshotView {
             kind: RelationshipDestination,
             raw_text: "database",
             span: TextSpan {
-                start_byte: 529,
-                end_byte: 537,
+                start_byte: 682,
+                end_byte: 690,
                 start_point: TextPoint {
-                    row: 16,
+                    row: 20,
                     column: 24,
                 },
                 end_point: TextPoint {
-                    row: 16,
+                    row: 20,
                     column: 32,
                 },
             },
