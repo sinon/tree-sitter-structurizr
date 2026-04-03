@@ -17,6 +17,7 @@ async fn initialize_advertises_bounded_capabilities() {
     let capabilities = &response["result"]["capabilities"];
 
     assert_eq!(capabilities["documentSymbolProvider"], true);
+    assert_eq!(capabilities["hoverProvider"], true);
     assert_eq!(capabilities["definitionProvider"], true);
     assert_eq!(capabilities["typeDefinitionProvider"], true);
     assert_eq!(capabilities["referencesProvider"], true);

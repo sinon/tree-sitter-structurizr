@@ -7,8 +7,8 @@ use tokio::sync::RwLock;
 use tower_lsp_server::ls_types::{
     CompletionParams, CompletionResponse, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
     DidOpenTextDocumentParams, DocumentLink, DocumentLinkParams, DocumentSymbolParams,
-    DocumentSymbolResponse, GotoDefinitionParams, GotoDefinitionResponse, InitializeParams,
-    InitializeResult, InitializedParams, Location, ReferenceParams,
+    DocumentSymbolResponse, GotoDefinitionParams, GotoDefinitionResponse, Hover, HoverParams,
+    InitializeParams, InitializeResult, InitializedParams, Location, ReferenceParams,
     request::{GotoTypeDefinitionParams, GotoTypeDefinitionResponse},
 };
 use tower_lsp_server::{Client, LanguageServer};
@@ -133,6 +133,19 @@ impl LanguageServer for Backend {
             "dispatching request"
         );
         handlers::document_links::document_link(self, params).await
+    }
+
+    async fn hover(&self, params: HoverParams) -> tower_lsp_server::jsonrpc::Result<Option<Hover>> {
+        trace!(
+            method = "textDocument/hover",
+            uri = params
+                .text_document_position_params
+                .text_document
+                .uri
+                .as_str(),
+            "dispatching request"
+        );
+        handlers::hover::hover(self, params).await
     }
 
     async fn goto_definition(

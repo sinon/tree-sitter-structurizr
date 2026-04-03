@@ -1,12 +1,16 @@
 #![allow(dead_code)]
 
 use std::{
+    collections::BTreeMap,
     env,
     fs::{self, File, OpenOptions},
     io::{self, Write},
     path::{Path, PathBuf},
     str::FromStr,
-    sync::{Arc, Mutex, OnceLock},
+    sync::{
+        Arc, Mutex, OnceLock,
+        atomic::{AtomicI64, Ordering},
+    },
 };
 
 use futures::StreamExt;
@@ -31,8 +35,10 @@ pub type TestService = LspService<Backend>;
 const LOG_FORMAT_ENV: &str = "STRZ_LOG_FORMAT";
 const LOG_FILE_ENV: &str = "STRZ_LOG_FILE";
 const TEST_LOG_ENV: &str = "STRZ_TEST_LOG";
+const DEFAULT_CURSOR_MARKER_NAME: &str = "__default__";
 
 static TEST_TRACING_INITIALIZED: OnceLock<()> = OnceLock::new();
+static NEXT_REQUEST_ID: AtomicI64 = AtomicI64::new(1);
 
 #[derive(Clone)]
 struct SharedFileWriter {
@@ -90,16 +96,16 @@ pub async fn initialize_with_workspace_folders(
 ) -> Value {
     let response = call_request(
         service,
-        Request::build("initialize")
-            .params(json!({
+        json_rpc_request(
+            "initialize",
+            json!({
                 "capabilities": {},
                 "workspaceFolders": workspace_folders
                     .iter()
                     .map(|uri| json!({ "uri": uri.as_str(), "name": "test-workspace" }))
                     .collect::<Vec<_>>(),
-            }))
-            .id(1)
-            .finish(),
+            }),
+        ),
     )
     .await;
 
@@ -145,17 +151,8 @@ pub async fn close_document(service: &mut TestService, uri: &Uri) {
     .await;
 }
 
-pub async fn request_json(
-    service: &mut TestService,
-    method: &'static str,
-    params: Value,
-    id: i64,
-) -> Value {
-    let response = call_request(
-        service,
-        Request::build(method).params(params).id(id).finish(),
-    )
-    .await;
+pub async fn request_json(service: &mut TestService, method: &'static str, params: Value) -> Value {
+    let response = call_request(service, json_rpc_request(method, params)).await;
     response_json(response)
 }
 
@@ -210,20 +207,82 @@ pub fn workspace_fixture_path(name: &str) -> PathBuf {
         .expect("workspace fixture should exist")
 }
 
+#[derive(Debug, Clone)]
+pub struct AnnotatedSource {
+    source: String,
+    cursor_offsets: BTreeMap<String, usize>,
+}
+
+impl AnnotatedSource {
+    pub fn source(&self) -> &str {
+        &self.source
+    }
+
+    pub fn position(&self, name: &str) -> Position {
+        let offset = self
+            .cursor_offsets
+            .get(name)
+            .unwrap_or_else(|| panic!("cursor marker `{name}` should exist"));
+        position_at_offset(&self.source, *offset)
+    }
+
+    pub fn only_position(&self) -> Position {
+        assert_eq!(
+            self.cursor_offsets.len(),
+            1,
+            "annotated source should contain exactly one cursor marker"
+        );
+        let offset = *self
+            .cursor_offsets
+            .values()
+            .next()
+            .expect("one cursor marker should exist");
+        position_at_offset(&self.source, offset)
+    }
+}
+
+pub fn annotated_source(text: &str) -> AnnotatedSource {
+    let mut source = String::with_capacity(text.len());
+    let mut cursor_offsets = BTreeMap::new();
+    let mut remaining = text;
+
+    while let Some(marker_start) = remaining.find("<CURSOR") {
+        source.push_str(&remaining[..marker_start]);
+        let marker = &remaining[marker_start..];
+        let offset = source.len();
+
+        if let Some(rest) = marker.strip_prefix("<CURSOR>") {
+            insert_cursor_marker(&mut cursor_offsets, DEFAULT_CURSOR_MARKER_NAME, offset);
+            remaining = rest;
+            continue;
+        }
+
+        let named_marker = marker
+            .strip_prefix("<CURSOR:")
+            .expect("cursor markers should use `<CURSOR>` or `<CURSOR:name>`");
+        let marker_end = named_marker
+            .find('>')
+            .expect("named cursor marker should end with `>`");
+        let marker_name = &named_marker[..marker_end];
+        assert!(
+            !marker_name.is_empty(),
+            "named cursor marker should include a marker name"
+        );
+        insert_cursor_marker(&mut cursor_offsets, marker_name, offset);
+        remaining = &named_marker[marker_end + 1..];
+    }
+
+    source.push_str(remaining);
+    AnnotatedSource {
+        source,
+        cursor_offsets,
+    }
+}
+
 pub fn position_in(text: &str, needle: &str, byte_offset_within_needle: usize) -> Position {
     let start = text.find(needle).expect("needle should exist in test text");
     let offset = start + byte_offset_within_needle;
-    let index = LineIndex::new(text);
-    let utf8 = index
-        .try_line_col(TextSize::from(
-            u32::try_from(offset).expect("offset should fit in u32"),
-        ))
-        .expect("offset should point at a valid boundary");
-    let wide = index
-        .to_wide(WideEncoding::Utf16, utf8)
-        .expect("offset should map to a UTF-16 position");
-
-    Position::new(wide.line, wide.col)
+    position_at_offset(text, offset)
 }
 
 async fn call_request(service: &mut TestService, request: Request) -> Response {
@@ -254,6 +313,44 @@ async fn call_notification(service: &mut TestService, request: Request) {
 
 fn response_json(response: Response) -> Value {
     serde_json::to_value(response).expect("response should serialize")
+}
+
+fn insert_cursor_marker(
+    cursor_offsets: &mut BTreeMap<String, usize>,
+    marker_name: &str,
+    offset: usize,
+) {
+    assert!(
+        cursor_offsets
+            .insert(marker_name.to_owned(), offset)
+            .is_none(),
+        "cursor marker `{marker_name}` should be unique"
+    );
+}
+
+fn json_rpc_request(method: &'static str, params: Value) -> Request {
+    Request::build(method)
+        .params(params)
+        .id(next_request_id())
+        .finish()
+}
+
+fn next_request_id() -> i64 {
+    NEXT_REQUEST_ID.fetch_add(1, Ordering::Relaxed)
+}
+
+fn position_at_offset(text: &str, offset: usize) -> Position {
+    let index = LineIndex::new(text);
+    let utf8 = index
+        .try_line_col(TextSize::from(
+            u32::try_from(offset).expect("offset should fit in u32"),
+        ))
+        .expect("offset should point at a valid boundary");
+    let wide = index
+        .to_wide(WideEncoding::Utf16, utf8)
+        .expect("offset should map to a UTF-16 position");
+
+    Position::new(wide.line, wide.col)
 }
 
 fn init_test_tracing(test_name: &str) {

@@ -35,7 +35,6 @@ async fn document_symbols_follow_analysis_symbols() {
         json!({
             "textDocument": { "uri": uri.as_str() }
         }),
-        2,
     )
     .await;
 
@@ -72,7 +71,6 @@ async fn completion_returns_directive_keywords_for_prefixes() {
             "textDocument": { "uri": uri.as_str() },
             "position": position,
         }),
-        3,
     )
     .await;
 
@@ -109,7 +107,6 @@ async fn completion_inside_element_style_suggests_element_style_properties() {
             "textDocument": { "uri": uri.as_str() },
             "position": position,
         }),
-        30,
     )
     .await;
 
@@ -147,7 +144,6 @@ async fn completion_inside_relationship_style_suggests_relationship_style_proper
             "textDocument": { "uri": uri.as_str() },
             "position": position,
         }),
-        31,
     )
     .await;
 
@@ -185,7 +181,6 @@ async fn completion_inside_style_values_suppresses_property_name_suggestions() {
             "textDocument": { "uri": uri.as_str() },
             "position": position,
         }),
-        32,
     )
     .await;
 
@@ -213,7 +208,6 @@ async fn completion_after_style_block_returns_fixed_vocabulary() {
             "textDocument": { "uri": uri.as_str() },
             "position": position,
         }),
-        40,
     )
     .await;
 
@@ -250,7 +244,6 @@ async fn goto_definition_resolves_same_document_relationship_references() {
             "textDocument": { "uri": uri.as_str() },
             "position": position,
         }),
-        4,
     )
     .await;
 
@@ -277,7 +270,6 @@ async fn references_include_definition_when_requested() {
             "position": position,
             "context": { "includeDeclaration": true },
         }),
-        5,
     )
     .await;
 
@@ -317,7 +309,6 @@ async fn goto_definition_resolves_cross_file_view_scope_references() {
             "textDocument": { "uri": views_uri.as_str() },
             "position": position,
         }),
-        6,
     )
     .await;
 
@@ -348,14 +339,12 @@ async fn goto_definition_resolves_cross_file_big_bank_relationship_endpoints() {
         DefinitionExpectation {
             needle: "customer -> webApplication",
             byte_offset_within_needle: 1,
-            request_id: 10,
             expected_uri: customer_uri.as_str(),
             expected_line: 0,
         },
         DefinitionExpectation {
             needle: "customer -> webApplication",
             byte_offset_within_needle: 13,
-            request_id: 11,
             expected_uri: web_application_uri.as_str(),
             expected_line: 2,
         },
@@ -386,28 +375,24 @@ async fn goto_definition_resolves_cross_file_big_bank_view_include_and_animation
         DefinitionExpectation {
             needle: "internetBankingSystem customer mainframe email",
             byte_offset_within_needle: 22,
-            request_id: 12,
             expected_uri: people_uri.as_str(),
             expected_line: 0,
         },
         DefinitionExpectation {
             needle: "webApplication\n                singlePageApplication",
             byte_offset_within_needle: 0,
-            request_id: 13,
             expected_uri: details_uri.as_str(),
             expected_line: 2,
         },
         DefinitionExpectation {
             needle: "developerSinglePageApplicationInstance",
             byte_offset_within_needle: 0,
-            request_id: 14,
             expected_uri: document_uri.as_str(),
             expected_line: 31,
         },
         DefinitionExpectation {
             needle: "developerSinglePageApplicationInstance developerWebApplicationInstance developerApiApplicationInstance developerDatabaseInstance",
             byte_offset_within_needle: 39,
-            request_id: 15,
             expected_uri: document_uri.as_str(),
             expected_line: 35,
         },
@@ -436,28 +421,24 @@ async fn goto_definition_resolves_cross_file_big_bank_dynamic_view_references() 
         DefinitionExpectation {
             needle: "dynamic apiApplication \"SignIn\"",
             byte_offset_within_needle: 8,
-            request_id: 70,
             expected_uri: details_uri.as_str(),
             expected_line: 3,
         },
         DefinitionExpectation {
             needle: "singlePageApplication -> signinController \"Submits credentials to\"",
             byte_offset_within_needle: 1,
-            request_id: 71,
             expected_uri: details_uri.as_str(),
             expected_line: 0,
         },
         DefinitionExpectation {
             needle: "singlePageApplication -> signinController \"Submits credentials to\"",
             byte_offset_within_needle: 25,
-            request_id: 72,
             expected_uri: details_uri.as_str(),
             expected_line: 4,
         },
         DefinitionExpectation {
             needle: "signinController -> securityComponent \"Validates credentials using\"",
             byte_offset_within_needle: 20,
-            request_id: 73,
             expected_uri: details_uri.as_str(),
             expected_line: 7,
         },
@@ -487,7 +468,6 @@ async fn goto_definition_resolves_docs_and_adrs_path_arguments() {
             "textDocument": { "uri": details_uri.as_str() },
             "position": docs_position,
         }),
-        33,
     )
     .await;
     let docs_uri = file_uri_from_path(
@@ -507,7 +487,6 @@ async fn goto_definition_resolves_docs_and_adrs_path_arguments() {
             "textDocument": { "uri": details_uri.as_str() },
             "position": adrs_position,
         }),
-        34,
     )
     .await;
     let adrs_uri = file_uri_from_path(
@@ -545,7 +524,6 @@ async fn goto_definition_resolves_include_path_arguments() {
             "textDocument": { "uri": model_uri.as_str() },
             "position": include_position,
         }),
-        35,
     )
     .await;
     let include_results = include_response["result"]
@@ -586,7 +564,6 @@ async fn document_links_resolve_docs_and_adrs_directive_paths() {
         json!({
             "textDocument": { "uri": details_uri.as_str() }
         }),
-        36,
     )
     .await;
 
@@ -661,7 +638,6 @@ async fn goto_definition_ignores_docs_and_adrs_importer_arguments() {
             "textDocument": { "uri": workspace_uri.as_str() },
             "position": docs_importer_position,
         }),
-        50,
     )
     .await;
     assert!(docs_importer_response["result"].is_null());
@@ -678,7 +654,6 @@ async fn goto_definition_ignores_docs_and_adrs_importer_arguments() {
             "textDocument": { "uri": workspace_uri.as_str() },
             "position": adrs_importer_position,
         }),
-        51,
     )
     .await;
     assert!(adrs_importer_response["result"].is_null());
@@ -691,7 +666,6 @@ async fn goto_definition_ignores_docs_and_adrs_importer_arguments() {
             "textDocument": { "uri": workspace_uri.as_str() },
             "position": docs_path_position,
         }),
-        52,
     )
     .await;
     let docs_uri = file_uri_from_path(
@@ -708,7 +682,6 @@ async fn goto_definition_ignores_docs_and_adrs_importer_arguments() {
             "textDocument": { "uri": workspace_uri.as_str() },
             "position": adrs_path_position,
         }),
-        53,
     )
     .await;
     let adrs_uri = file_uri_from_path(
@@ -769,7 +742,6 @@ async fn document_links_resolve_interpolated_include_paths() {
         json!({
             "textDocument": { "uri": model_uri.as_str() }
         }),
-        37,
     )
     .await;
 
@@ -809,7 +781,6 @@ async fn goto_definition_returns_no_result_for_empty_docs_and_adrs_directories()
             "textDocument": { "uri": workspace_uri.as_str() },
             "position": docs_position,
         }),
-        38,
     )
     .await;
     assert!(docs_response["result"].is_null());
@@ -822,7 +793,6 @@ async fn goto_definition_returns_no_result_for_empty_docs_and_adrs_directories()
             "textDocument": { "uri": workspace_uri.as_str() },
             "position": adrs_position,
         }),
-        39,
     )
     .await;
     assert!(adrs_response["result"].is_null());
@@ -858,7 +828,6 @@ async fn goto_definition_uses_direct_child_docs_files_only() {
             "textDocument": { "uri": workspace_uri.as_str() },
             "position": docs_position,
         }),
-        41,
     )
     .await;
     let docs_uri = file_uri_from_path(
@@ -885,14 +854,12 @@ async fn goto_definition_resolves_deployment_instance_targets() {
         DefinitionExpectation {
             needle: "containerInstance api",
             byte_offset_within_needle: 18,
-            request_id: 12,
             expected_uri: workspace_uri.as_str(),
             expected_line: 3,
         },
         DefinitionExpectation {
             needle: "softwareSystemInstance system",
             byte_offset_within_needle: 23,
-            request_id: 13,
             expected_uri: workspace_uri.as_str(),
             expected_line: 2,
         },
@@ -919,21 +886,18 @@ async fn goto_definition_resolves_deployment_relationship_endpoints() {
         DefinitionExpectation {
             needle: "primary -> gateway",
             byte_offset_within_needle: 1,
-            request_id: 14,
             expected_uri: workspace_uri.as_str(),
             expected_line: 7,
         },
         DefinitionExpectation {
             needle: "gateway -> this",
             byte_offset_within_needle: 1,
-            request_id: 15,
             expected_uri: workspace_uri.as_str(),
             expected_line: 8,
         },
         DefinitionExpectation {
             needle: "gateway -> apiInstance",
             byte_offset_within_needle: 11,
-            request_id: 16,
             expected_uri: workspace_uri.as_str(),
             expected_line: 9,
         },
@@ -964,7 +928,6 @@ async fn goto_definition_returns_no_result_for_deferred_deployment_this() {
             "textDocument": { "uri": workspace_uri.as_str() },
             "position": this_position,
         }),
-        17,
     )
     .await;
 
@@ -993,14 +956,12 @@ async fn goto_definition_resolves_cross_file_big_bank_instance_targets() {
         DefinitionExpectation {
             needle: "containerInstance webApplication",
             byte_offset_within_needle: 18,
-            request_id: 18,
             expected_uri: web_application_uri.as_str(),
             expected_line: 2,
         },
         DefinitionExpectation {
             needle: "softwareSystemInstance mainframe",
             byte_offset_within_needle: 23,
-            request_id: 19,
             expected_uri: mainframe_uri.as_str(),
             expected_line: 6,
         },
@@ -1030,7 +991,6 @@ async fn goto_type_definition_resolves_instance_declarations_to_model_elements()
             "textDocument": { "uri": workspace_uri.as_str() },
             "position": position,
         }),
-        22,
     )
     .await;
 
@@ -1059,7 +1019,6 @@ async fn goto_type_definition_resolves_instance_references_to_model_elements() {
             "textDocument": { "uri": workspace_uri.as_str() },
             "position": position,
         }),
-        23,
     )
     .await;
 
@@ -1092,7 +1051,6 @@ async fn goto_type_definition_resolves_cross_file_big_bank_instance_declarations
             "textDocument": { "uri": document_uri.as_str() },
             "position": position,
         }),
-        24,
     )
     .await;
 
@@ -1123,7 +1081,6 @@ async fn goto_type_definition_returns_no_result_for_plain_deployment_nodes() {
             "textDocument": { "uri": workspace_uri.as_str() },
             "position": position,
         }),
-        25,
     )
     .await;
 
@@ -1152,7 +1109,6 @@ async fn references_follow_instance_targets_from_model_declarations() {
             "position": position,
             "context": { "includeDeclaration": true },
         }),
-        20,
     )
     .await;
 
@@ -1192,7 +1148,6 @@ async fn references_follow_deployment_symbols_from_relationship_endpoints() {
             "position": position,
             "context": { "includeDeclaration": true },
         }),
-        21,
     )
     .await;
 
@@ -1232,7 +1187,6 @@ async fn references_follow_cross_file_bindings_from_model_declarations() {
             "position": position,
             "context": { "includeDeclaration": true },
         }),
-        7,
     )
     .await;
 
@@ -1286,7 +1240,6 @@ async fn goto_definition_returns_no_result_for_duplicate_bindings() {
             "textDocument": { "uri": workspace_uri.as_str() },
             "position": position,
         }),
-        8,
     )
     .await;
 
@@ -1314,7 +1267,6 @@ async fn goto_definition_returns_no_result_for_multi_instance_open_fragments() {
             "textDocument": { "uri": view_uri.as_str() },
             "position": position,
         }),
-        9,
     )
     .await;
 
@@ -1389,7 +1341,6 @@ fn read_workspace_file(path: &Path) -> String {
 struct DefinitionExpectation<'a> {
     needle: &'a str,
     byte_offset_within_needle: usize,
-    request_id: i64,
     expected_uri: &'a str,
     expected_line: u64,
 }
@@ -1412,7 +1363,6 @@ async fn assert_definition_target(
             "textDocument": { "uri": document_uri.as_str() },
             "position": position,
         }),
-        expectation.request_id,
     )
     .await;
 

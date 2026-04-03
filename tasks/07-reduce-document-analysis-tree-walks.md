@@ -18,7 +18,7 @@ still has `DocumentSyntaxFacts::collect(...)` fan out into separate passes for
 syntax diagnostics, includes, constants, identifier modes, and
 symbols/references.
 
-Those extractors from the tree root independently and 
+Those extractors from the tree root independently and
 allocate owned text eagerly from the same source.
 
 ## Options
