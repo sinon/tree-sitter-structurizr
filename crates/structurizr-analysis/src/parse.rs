@@ -210,6 +210,8 @@ fn parse_source(db: &dyn IncrementalAnalysisDb, source: &str) -> Tree {
 
 #[cfg(test)]
 mod tests {
+    use indoc::indoc;
+
     use super::DocumentAnalyzer;
     use crate::snapshot::DocumentInput;
 
@@ -254,5 +256,112 @@ mod tests {
 
         assert_eq!(second.symbols().len(), 1);
         assert_eq!(parse_execution_logs(&analyzer.db.take_logs()), 1);
+    }
+
+    #[test]
+    fn analysis_extracts_hover_metadata_from_supported_symbol_declarations() {
+        let mut analyzer = DocumentAnalyzer::new();
+        let snapshot = analyzer.analyze(DocumentInput::new(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        user = person "User" "Header user description" "External, Browser" {
+                            description "Body user description"
+                            tag "Customer"
+                            url "https://example.com/user"
+                        }
+
+                        system = softwareSystem "Payments Platform" {
+                            api = container "Payments API" "Processes payment requests" "Rust" "Internal, HTTP" {
+                                technology "Axum"
+                                tags "Internal, Edge"
+                                url "https://example.com/api"
+                            }
+                        }
+
+                        rel = user -> api "Uses" "HTTPS" "Sync, Critical" {
+                            description "Body relationship description"
+                            technology "Mutual TLS"
+                            tag "Observed"
+                            url "https://example.com/rel"
+                        }
+                    }
+                }
+            "#},
+        ));
+
+        let user = snapshot
+            .symbols()
+            .iter()
+            .find(|symbol| symbol.binding_name.as_deref() == Some("user"))
+            .expect("user symbol should exist");
+        assert_eq!(user.display_name, "User");
+        assert_eq!(user.description.as_deref(), Some("Body user description"));
+        assert_eq!(user.technology, None);
+        assert_eq!(user.tags, vec!["External", "Browser", "Customer"]);
+        assert_eq!(user.url.as_deref(), Some("https://example.com/user"));
+
+        let api = snapshot
+            .symbols()
+            .iter()
+            .find(|symbol| symbol.binding_name.as_deref() == Some("api"))
+            .expect("api symbol should exist");
+        assert_eq!(api.display_name, "Payments API");
+        assert_eq!(
+            api.description.as_deref(),
+            Some("Processes payment requests")
+        );
+        assert_eq!(api.technology.as_deref(), Some("Axum"));
+        assert_eq!(api.tags, vec!["Internal", "HTTP", "Edge"]);
+        assert_eq!(api.url.as_deref(), Some("https://example.com/api"));
+
+        let relationship = snapshot
+            .symbols()
+            .iter()
+            .find(|symbol| symbol.binding_name.as_deref() == Some("rel"))
+            .expect("relationship symbol should exist");
+        assert_eq!(relationship.display_name, "Uses");
+        assert_eq!(
+            relationship.description.as_deref(),
+            Some("Body relationship description")
+        );
+        assert_eq!(relationship.technology.as_deref(), Some("Mutual TLS"));
+        assert_eq!(relationship.tags, vec!["Sync", "Critical", "Observed"]);
+        assert_eq!(relationship.url.as_deref(), Some("https://example.com/rel"));
+    }
+
+    #[test]
+    fn analysis_extracts_deployment_hover_metadata_from_positional_attributes() {
+        let mut analyzer = DocumentAnalyzer::new();
+        let snapshot = analyzer.analyze(DocumentInput::new(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        system = softwareSystem "Payments"
+                    }
+
+                    deploymentEnvironment "Live" {
+                        edge = deploymentNode "Edge" "Public entrypoint" "Kubernetes" 2 "Public, Regional" {
+                            tag "Blue"
+                            url "https://example.com/edge"
+                            api = softwareSystemInstance system
+                        }
+                    }
+                }
+            "#},
+        ));
+
+        let edge = snapshot
+            .symbols()
+            .iter()
+            .find(|symbol| symbol.binding_name.as_deref() == Some("edge"))
+            .expect("deployment node should exist");
+        assert_eq!(edge.display_name, "Edge");
+        assert_eq!(edge.description.as_deref(), Some("Public entrypoint"));
+        assert_eq!(edge.technology.as_deref(), Some("Kubernetes"));
+        assert_eq!(edge.tags, vec!["Public", "Regional", "Blue"]);
+        assert_eq!(edge.url.as_deref(), Some("https://example.com/edge"));
     }
 }

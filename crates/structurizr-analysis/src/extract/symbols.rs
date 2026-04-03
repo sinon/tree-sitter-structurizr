@@ -48,6 +48,14 @@ fn collect_identifier_mode_from_node(
     }
 }
 
+#[derive(Debug, Default)]
+struct ExtractedSymbolMetadata {
+    description: Option<String>,
+    technology: Option<String>,
+    tags: Vec<String>,
+    url: Option<String>,
+}
+
 struct SymbolExtractor<'a> {
     source: &'a str,
     symbols: Vec<Symbol>,
@@ -187,6 +195,7 @@ impl<'a> SymbolExtractor<'a> {
             || node.kind().to_owned(),
             |name| normalized_text(name, self.source),
         );
+        let metadata = declaration_metadata(node, self.source);
         let binding_name = node
             .child_by_field_name("identifier")
             .filter(|identifier| identifier.kind() == "identifier")
@@ -197,6 +206,10 @@ impl<'a> SymbolExtractor<'a> {
             kind,
             display_name,
             binding_name,
+            description: metadata.description,
+            technology: metadata.technology,
+            tags: metadata.tags,
+            url: metadata.url,
             span: TextSpan::from_node(node),
             parent: parent_symbol,
             syntax_node_kind: node.kind().to_owned(),
@@ -221,12 +234,17 @@ impl<'a> SymbolExtractor<'a> {
             || binding_name.clone(),
             |attribute| normalized_text(attribute, self.source),
         );
+        let metadata = declaration_metadata(node, self.source);
 
         self.symbols.push(Symbol {
             id: symbol_id,
             kind: SymbolKind::Relationship,
             display_name,
             binding_name: Some(binding_name),
+            description: metadata.description,
+            technology: metadata.technology,
+            tags: metadata.tags,
+            url: metadata.url,
             span: TextSpan::from_node(node),
             parent: parent_symbol,
             syntax_node_kind: node.kind().to_owned(),
@@ -277,12 +295,17 @@ impl<'a> SymbolExtractor<'a> {
             || node.kind().to_owned(),
             |name| normalized_text(name, self.source),
         );
+        let metadata = declaration_metadata(node, self.source);
 
         self.symbols.push(Symbol {
             id: symbol_id,
             kind,
             display_name,
             binding_name: Some(node_text(identifier, self.source)),
+            description: metadata.description,
+            technology: metadata.technology,
+            tags: metadata.tags,
+            url: metadata.url,
             span: TextSpan::from_node(node),
             parent: parent_symbol,
             syntax_node_kind: node.kind().to_owned(),
@@ -306,12 +329,17 @@ impl<'a> SymbolExtractor<'a> {
         let symbol_id = SymbolId(self.symbols.len());
         let binding_name = node_text(identifier, self.source);
         let display_name = binding_name.clone();
+        let metadata = declaration_metadata(node, self.source);
 
         self.symbols.push(Symbol {
             id: symbol_id,
             kind,
             display_name,
             binding_name: Some(binding_name),
+            description: metadata.description,
+            technology: metadata.technology,
+            tags: metadata.tags,
+            url: metadata.url,
             span: TextSpan::from_node(node),
             parent: parent_symbol,
             syntax_node_kind: node.kind().to_owned(),
@@ -555,6 +583,107 @@ fn instance_shape(node: Node<'_>) -> Node<'_> {
         .unwrap_or(node)
 }
 
+fn declaration_metadata(node: Node<'_>, source: &str) -> ExtractedSymbolMetadata {
+    match node.kind() {
+        "person" | "software_system" | "container" | "component" => element_metadata(node, source),
+        "relationship" => relationship_metadata(node, source),
+        "deployment_node" | "infrastructure_node" => deployment_metadata(node, source),
+        "container_instance" | "software_system_instance" => instance_metadata(node, source),
+        _ => ExtractedSymbolMetadata::default(),
+    }
+}
+
+fn element_metadata(node: Node<'_>, source: &str) -> ExtractedSymbolMetadata {
+    let mut metadata = ExtractedSymbolMetadata {
+        description: normalized_nonempty_field(node, "description", source),
+        technology: normalized_nonempty_field(node, "technology", source),
+        tags: Vec::new(),
+        url: None,
+    };
+
+    if let Some(tags) = normalized_nonempty_field(node, "tags", source) {
+        extend_tags(&mut metadata.tags, &tags);
+    }
+    if let Some(body) = node.child_by_field_name("body") {
+        apply_body_metadata(&mut metadata, body, source);
+    }
+
+    metadata
+}
+
+fn relationship_metadata(node: Node<'_>, source: &str) -> ExtractedSymbolMetadata {
+    let mut metadata = ExtractedSymbolMetadata::default();
+    let mut cursor = node.walk();
+    let mut attributes = node
+        .children_by_field_name("attribute", &mut cursor)
+        .filter_map(|attribute| normalized_nonempty_text(attribute, source));
+
+    let _ = attributes.next();
+    metadata.technology = attributes.next();
+    if let Some(tags) = attributes.next() {
+        extend_tags(&mut metadata.tags, &tags);
+    }
+    if let Some(body) = node.child_by_field_name("body") {
+        apply_body_metadata(&mut metadata, body, source);
+    }
+
+    metadata
+}
+
+fn deployment_metadata(node: Node<'_>, source: &str) -> ExtractedSymbolMetadata {
+    let mut metadata = ExtractedSymbolMetadata::default();
+    let mut cursor = node.walk();
+    let mut attributes = node
+        .children_by_field_name("attribute", &mut cursor)
+        .filter(|attribute| attribute.kind() != "number")
+        .filter_map(|attribute| normalized_nonempty_text(attribute, source));
+
+    // Deployment nodes store positional strings more generically than model
+    // elements, so we preserve the common description/technology/tags ordering
+    // without pretending the grammar already models each slot semantically.
+    metadata.description = attributes.next();
+    metadata.technology = attributes.next();
+    if let Some(tags) = attributes.next() {
+        extend_tags(&mut metadata.tags, &tags);
+    }
+    if let Some(body) = node.child_by_field_name("body") {
+        apply_body_metadata(&mut metadata, body, source);
+    }
+
+    metadata
+}
+
+fn instance_metadata(node: Node<'_>, source: &str) -> ExtractedSymbolMetadata {
+    let mut metadata = ExtractedSymbolMetadata::default();
+    if let Some(body) = node.child_by_field_name("body") {
+        apply_body_metadata(&mut metadata, body, source);
+    }
+    metadata
+}
+
+fn apply_body_metadata(metadata: &mut ExtractedSymbolMetadata, body: Node<'_>, source: &str) {
+    let mut cursor = body.walk();
+    for child in body.named_children(&mut cursor) {
+        match child.kind() {
+            "description_statement" => {
+                metadata.description = metadata_value(child, source);
+            }
+            "technology_statement" => {
+                metadata.technology = metadata_value(child, source);
+            }
+            "tag_statement" | "tags_statement" => {
+                if let Some(tags) = metadata_value(child, source) {
+                    extend_tags(&mut metadata.tags, &tags);
+                }
+            }
+            "url_statement" => {
+                metadata.url = metadata_value(child, source);
+            }
+            _ => {}
+        }
+    }
+}
+
 fn directive_container(node: Node<'_>) -> DirectiveContainer {
     let mut current = node;
 
@@ -591,4 +720,31 @@ fn strip_surrounding_quotes(raw: &str, delimiter: &str) -> String {
         .and_then(|value| value.strip_suffix(delimiter))
         .unwrap_or(raw)
         .to_owned()
+}
+
+fn normalized_nonempty_field(node: Node<'_>, field_name: &str, source: &str) -> Option<String> {
+    node.child_by_field_name(field_name)
+        .and_then(|field| normalized_nonempty_text(field, source))
+}
+
+fn metadata_value(node: Node<'_>, source: &str) -> Option<String> {
+    node.child_by_field_name("value")
+        .and_then(|value| normalized_nonempty_text(value, source))
+}
+
+fn normalized_nonempty_text(node: Node<'_>, source: &str) -> Option<String> {
+    let text = normalized_text(node, source);
+    (!text.is_empty()).then_some(text)
+}
+
+fn extend_tags(tags: &mut Vec<String>, raw_value: &str) {
+    for tag in raw_value
+        .split(',')
+        .map(str::trim)
+        .filter(|tag| !tag.is_empty())
+    {
+        if !tags.iter().any(|existing| existing == tag) {
+            tags.push(tag.to_owned());
+        }
+    }
 }

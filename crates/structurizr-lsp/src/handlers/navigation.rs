@@ -50,6 +50,40 @@ pub fn target_symbol_at_offset(snapshot: &DocumentSnapshot, offset: usize) -> Op
     })
 }
 
+/// Resolves the declaration symbol that should back one hover or other read-only
+/// identifier request.
+pub fn resolved_symbol_at_offset<'a>(
+    state: &'a ServerState,
+    document: &'a DocumentState,
+    snapshot: &'a DocumentSnapshot,
+    offset: usize,
+) -> Option<&'a Symbol> {
+    match navigation_site_at_offset(snapshot, offset)? {
+        NavigationSite::Symbol(symbol) => Some(symbol),
+        NavigationSite::Reference { index, reference } => {
+            if let Some((workspace_facts, document_id)) = workspace_context(state, document) {
+                let candidate_instances = candidate_instances(workspace_facts, &document_id);
+                if !candidate_instances.is_empty() {
+                    let reference_handle = ReferenceHandle::new(document_id, index);
+                    let target = unanimous_resolved_symbol(
+                        workspace_facts,
+                        &candidate_instances,
+                        &reference_handle,
+                    )?;
+
+                    return workspace_facts
+                        .document(target.document())?
+                        .snapshot()
+                        .symbols()
+                        .get(target.symbol_id().0);
+                }
+            }
+
+            resolve_reference(snapshot, reference)
+        }
+    }
+}
+
 /// Collects all same-document references that resolve to one symbol.
 #[must_use]
 pub fn references_for_symbol<'a>(

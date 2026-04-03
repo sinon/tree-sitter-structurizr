@@ -51,6 +51,7 @@ cargo build -p structurizr-cli --bin strz --release
 - syntax, include, and bounded semantic diagnostics
 - document symbols
 - keyword/directive and style-property completion
+- hover for the current bounded identifier families, with source-derived metadata summaries
 - go-to-definition, find-references, and type-definition for the currently supported reference shapes
 - directive path links and path-opening fallbacks
 
@@ -59,7 +60,7 @@ cargo build -p structurizr-cli --bin strz --release
 - `this`
 - selector-style references such as `system.api`
 - named dynamic relationship reference sites
-- rename, hover, workspace symbols, semantic tokens, and code actions
+- rename, workspace symbols, semantic tokens, and code actions
 
 For deeper status, delivery, and configuration detail, continue with:
 

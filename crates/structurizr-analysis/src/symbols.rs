@@ -1,5 +1,7 @@
 //! Bounded-MVP symbol, reference, and identifier-mode facts.
 
+use std::fmt;
+
 use crate::includes::{DirectiveContainer, DirectiveValueKind};
 use crate::span::TextSpan;
 
@@ -31,7 +33,7 @@ pub enum SymbolKind {
 }
 
 /// Describes one declaration symbol extracted from a document.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Symbol {
     /// Snapshot-local identifier assigned during extraction.
     pub id: SymbolId,
@@ -41,12 +43,50 @@ pub struct Symbol {
     pub display_name: String,
     /// Bound identifier, if the declaration introduces one.
     pub binding_name: Option<String>,
+    /// Source-derived description text for hover and other read-only UX.
+    pub description: Option<String>,
+    /// Source-derived technology text for hover and other read-only UX.
+    pub technology: Option<String>,
+    /// Source-derived tags collected from declaration headers and bodies.
+    pub tags: Vec<String>,
+    /// Source-derived URL text for hover and other read-only UX.
+    pub url: Option<String>,
     /// Span of the full declaration node.
     pub span: TextSpan,
     /// Nearest enclosing declaration symbol, if one exists.
     pub parent: Option<SymbolId>,
     /// Exact Tree-sitter node kind that produced the symbol.
     pub syntax_node_kind: String,
+}
+
+impl fmt::Debug for Symbol {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut debug = formatter.debug_struct("Symbol");
+        debug
+            .field("id", &self.id)
+            .field("kind", &self.kind)
+            .field("display_name", &self.display_name)
+            .field("binding_name", &self.binding_name);
+
+        if self.description.is_some() {
+            debug.field("description", &self.description);
+        }
+        if self.technology.is_some() {
+            debug.field("technology", &self.technology);
+        }
+        if !self.tags.is_empty() {
+            debug.field("tags", &self.tags);
+        }
+        if self.url.is_some() {
+            debug.field("url", &self.url);
+        }
+
+        debug
+            .field("span", &self.span)
+            .field("parent", &self.parent)
+            .field("syntax_node_kind", &self.syntax_node_kind)
+            .finish()
+    }
 }
 
 /// Categorizes how a reference is used at its source site.

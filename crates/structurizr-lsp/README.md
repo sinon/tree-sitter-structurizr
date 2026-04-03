@@ -14,6 +14,7 @@ It stays intentionally thin:
 - diagnostics
 - document symbols
 - keyword/directive and style-property completion
+- hover for the current bounded identifier families, rendered from source-derived symbol metadata
 - definition, references, and type-definition for the current bounded symbol families
 - document links for directive paths
 
@@ -29,6 +30,7 @@ It stays intentionally thin:
 
 ```sh
 cargo test -p structurizr-lsp --test lifecycle
+cargo test -p structurizr-lsp --test hover
 cargo test -p structurizr-lsp --test navigation
 cargo bench -p structurizr-lsp --bench session
 just run-strz server

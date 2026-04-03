@@ -35,6 +35,7 @@ Current in-repo behavior includes:
 - bounded semantic diagnostics for currently supported identifier families
 - document symbols
 - keyword/directive completion and style-property completion
+- hover for the current bounded identifier families, with compact source-derived metadata for declaration sites and resolved references
 - go-to-definition across the bounded symbol set, including cross-file cases already modeled in the workspace layer
 - find-references across the same bounded symbol families
 - type-definition for instance-to-model navigation
@@ -49,7 +50,6 @@ The current implementation deliberately stays conservative around:
 - `this`-based navigation and diagnostics beyond the cases already modeled safely
 - selector and hierarchical reference forms such as `system.api`
 - named dynamic relationship reference sites
-- richer hover content
 - identifier completion
 - workspace symbols
 - rename and code actions
@@ -74,7 +74,7 @@ The remaining path to that state is roughly:
 
 - finish downstream editor wiring and release choreography, especially around the separate Zed extension
 - broaden safe reference coverage for selectors, `this`, named dynamic references, and other still-deferred scope cases
-- add richer read-only features such as hover and workspace symbols
+- deepen read-only semantic UX with broader hover coverage and workspace symbols
 - add safe edit features such as rename only after broader reference coverage lands
 - improve workspace invalidation, performance, and operational visibility so the current implementation scales more gracefully
 
