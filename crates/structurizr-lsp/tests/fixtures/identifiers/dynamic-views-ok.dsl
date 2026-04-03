@@ -8,6 +8,10 @@ workspace {
             }
             database = container "Database"
         }
+
+        web -> signin "Submits credentials to"
+        signin -> security "Validates credentials using"
+        security -> database "Reads users from"
     }
 
     views {

@@ -1,12 +1,12 @@
 workspace "Some System" "Description" {
-    !docs docs com.example.documentation.CustomDocumentationImporter
+    !docs docs
     !adrs decisions madr
 
     model {
         contributor = person "Person"
         someSystem = softwareSystem "Some System" {
-            !docs ../docs com.example.documentation.NestedDocumentationImporter
-            !adrs ../decisions com.example.documentation.CustomDecisionImporter
+            !docs docs
+            !adrs decisions adrtools
 
             someContainer = container "Some Container" "" ""
         }

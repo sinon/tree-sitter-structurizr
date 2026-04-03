@@ -1,17 +1,17 @@
-workspace extends amazon-web-services.dsl {
+workspace extends "../deployment/aws-ok.dsl" {
     model {
         !element "DeploymentNode://Live/Amazon Web Services" {
             deploymentNode "New deployment node" {
                 infrastructureNode "New infrastructure node" {
-                    -> route53
+                    -> live.aws.region.route53
                 }
             }
         }
 
-        !element region {
+        !element live.aws.region {
             deploymentNode "New deployment node 2" {
                 infrastructureNode "New infrastructure node 2" {
-                    -> route53
+                    -> live.aws.region.route53
                 }
             }
         }

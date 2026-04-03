@@ -12,9 +12,6 @@ workspace {
                 }
                 softwareSystemInstance system
             }
-
-            primary -> gateway "Hosts traffic"
-            gateway -> apiInstance "Routes traffic"
         }
     }
 }

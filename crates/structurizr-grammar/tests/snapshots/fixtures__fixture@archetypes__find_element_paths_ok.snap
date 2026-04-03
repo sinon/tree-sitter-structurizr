@@ -1,10 +1,10 @@
 ---
-source: tests/fixtures.rs
-expression: "common::tree_sexp(&tree)"
+source: crates/structurizr-grammar/tests/fixtures.rs
+expression: tree_sexp(&tree)
 ---
 (source_file
   (workspace base:
-    (identifier) body:
+    (string) body:
     (workspace_block
       (model body:
         (model_block

@@ -6,14 +6,26 @@ workspace {
 
     model {
         user = person "User"
-        system = softwareSystem "System"
+        system = softwareSystem "System" {
+            app = container "App"
+        }
 
-        user -> system "Uses"
+        user -> system.app "Uses" "HTTPS"
+
+        live = deploymentEnvironment "Live" {
+            node = deploymentNode "Node" {
+                appInstance = containerInstance system.app
+            }
+        }
     }
 
     views {
+        properties {
+            "plantuml.url" "https://plantuml.com/plantuml"
+        }
+
         dynamic system "dynamic-view" {
-            1: user -> system "Requests data" "HTTPS"
+            1: user -> system.app "Requests data" "HTTPS"
             autoLayout lr
             title "Dynamic"
         }
@@ -23,11 +35,6 @@ workspace {
             autoLayout
         }
 
-        custom "custom-view" "Custom title" {
-            include user system
-            description "Custom description"
-        }
-
         image * "image-view" {
             plantuml "diagram.puml"
             title "Architecture image"
@@ -35,7 +42,7 @@ workspace {
     }
 
     configuration {
-        scope landscape
+        scope softwareSystem
         visibility private
 
         users {

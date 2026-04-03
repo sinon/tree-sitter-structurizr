@@ -1,6 +1,5 @@
 ---
 source: crates/structurizr-analysis/tests/document_snapshots.rs
-assertion_line: 46
 expression: "SnapshotView::from(&snapshot)"
 ---
 SnapshotView {
@@ -409,7 +408,7 @@ SnapshotView {
         },
         Reference {
             kind: ViewInclude,
-            raw_text: "api",
+            raw_text: "web",
             span: TextSpan {
                 start_byte: 765,
                 end_byte: 768,
@@ -428,17 +427,17 @@ SnapshotView {
         },
         Reference {
             kind: ViewInclude,
-            raw_text: "worker",
+            raw_text: "api",
             span: TextSpan {
                 start_byte: 769,
-                end_byte: 775,
+                end_byte: 772,
                 start_point: TextPoint {
                     row: 29,
                     column: 24,
                 },
                 end_point: TextPoint {
                     row: 29,
-                    column: 30,
+                    column: 27,
                 },
             },
             target_hint: ElementOrRelationship,
@@ -447,10 +446,10 @@ SnapshotView {
         },
         Reference {
             kind: ViewAnimation,
-            raw_text: "api",
+            raw_text: "web",
             span: TextSpan {
-                start_byte: 816,
-                end_byte: 819,
+                start_byte: 813,
+                end_byte: 816,
                 start_point: TextPoint {
                     row: 31,
                     column: 16,
@@ -466,17 +465,17 @@ SnapshotView {
         },
         Reference {
             kind: ViewAnimation,
-            raw_text: "worker",
+            raw_text: "api",
             span: TextSpan {
-                start_byte: 820,
-                end_byte: 826,
+                start_byte: 817,
+                end_byte: 820,
                 start_point: TextPoint {
                     row: 31,
                     column: 20,
                 },
                 end_point: TextPoint {
                     row: 31,
-                    column: 26,
+                    column: 23,
                 },
             },
             target_hint: Element,
@@ -485,16 +484,73 @@ SnapshotView {
         },
         Reference {
             kind: ViewScope,
-            raw_text: "system",
+            raw_text: "api",
             span: TextSpan {
-                start_byte: 871,
-                end_byte: 877,
+                start_byte: 864,
+                end_byte: 867,
                 start_point: TextPoint {
                     row: 35,
-                    column: 19,
+                    column: 18,
                 },
                 end_point: TextPoint {
                     row: 35,
+                    column: 21,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "component_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewInclude,
+            raw_text: "worker",
+            span: TextSpan {
+                start_byte: 907,
+                end_byte: 913,
+                start_point: TextPoint {
+                    row: 36,
+                    column: 20,
+                },
+                end_point: TextPoint {
+                    row: 36,
+                    column: 26,
+                },
+            },
+            target_hint: ElementOrRelationship,
+            container_node_kind: "component_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "worker",
+            span: TextSpan {
+                start_byte: 954,
+                end_byte: 960,
+                start_point: TextPoint {
+                    row: 38,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 38,
+                    column: 22,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "component_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewScope,
+            raw_text: "system",
+            span: TextSpan {
+                start_byte: 1005,
+                end_byte: 1011,
+                start_point: TextPoint {
+                    row: 42,
+                    column: 19,
+                },
+                end_point: TextPoint {
+                    row: 42,
                     column: 25,
                 },
             },
@@ -506,14 +562,14 @@ SnapshotView {
             kind: ViewInclude,
             raw_text: "primary",
             span: TextSpan {
-                start_byte: 907,
-                end_byte: 914,
+                start_byte: 1041,
+                end_byte: 1048,
                 start_point: TextPoint {
-                    row: 36,
+                    row: 43,
                     column: 20,
                 },
                 end_point: TextPoint {
-                    row: 36,
+                    row: 43,
                     column: 27,
                 },
             },
@@ -525,14 +581,14 @@ SnapshotView {
             kind: ViewInclude,
             raw_text: "secondary",
             span: TextSpan {
-                start_byte: 915,
-                end_byte: 924,
+                start_byte: 1049,
+                end_byte: 1058,
                 start_point: TextPoint {
-                    row: 36,
+                    row: 43,
                     column: 28,
                 },
                 end_point: TextPoint {
-                    row: 36,
+                    row: 43,
                     column: 37,
                 },
             },
@@ -544,14 +600,14 @@ SnapshotView {
             kind: ViewInclude,
             raw_text: "webInstance",
             span: TextSpan {
-                start_byte: 925,
-                end_byte: 936,
+                start_byte: 1059,
+                end_byte: 1070,
                 start_point: TextPoint {
-                    row: 36,
+                    row: 43,
                     column: 38,
                 },
                 end_point: TextPoint {
-                    row: 36,
+                    row: 43,
                     column: 49,
                 },
             },
@@ -563,53 +619,15 @@ SnapshotView {
             kind: ViewInclude,
             raw_text: "apiInstance",
             span: TextSpan {
-                start_byte: 937,
-                end_byte: 948,
+                start_byte: 1071,
+                end_byte: 1082,
                 start_point: TextPoint {
-                    row: 36,
+                    row: 43,
                     column: 50,
                 },
                 end_point: TextPoint {
-                    row: 36,
+                    row: 43,
                     column: 61,
-                },
-            },
-            target_hint: Deployment,
-            container_node_kind: "deployment_view",
-            containing_symbol: None,
-        },
-        Reference {
-            kind: ViewAnimation,
-            raw_text: "primary",
-            span: TextSpan {
-                start_byte: 989,
-                end_byte: 996,
-                start_point: TextPoint {
-                    row: 38,
-                    column: 16,
-                },
-                end_point: TextPoint {
-                    row: 38,
-                    column: 23,
-                },
-            },
-            target_hint: Deployment,
-            container_node_kind: "deployment_view",
-            containing_symbol: None,
-        },
-        Reference {
-            kind: ViewAnimation,
-            raw_text: "secondary",
-            span: TextSpan {
-                start_byte: 997,
-                end_byte: 1006,
-                start_point: TextPoint {
-                    row: 38,
-                    column: 24,
-                },
-                end_point: TextPoint {
-                    row: 38,
-                    column: 33,
                 },
             },
             target_hint: Deployment,
@@ -620,14 +638,14 @@ SnapshotView {
             kind: ViewAnimation,
             raw_text: "webInstance",
             span: TextSpan {
-                start_byte: 1023,
-                end_byte: 1034,
+                start_byte: 1123,
+                end_byte: 1134,
                 start_point: TextPoint {
-                    row: 39,
+                    row: 45,
                     column: 16,
                 },
                 end_point: TextPoint {
-                    row: 39,
+                    row: 45,
                     column: 27,
                 },
             },
@@ -639,14 +657,14 @@ SnapshotView {
             kind: ViewAnimation,
             raw_text: "apiInstance",
             span: TextSpan {
-                start_byte: 1035,
-                end_byte: 1046,
+                start_byte: 1135,
+                end_byte: 1146,
                 start_point: TextPoint {
-                    row: 39,
+                    row: 45,
                     column: 28,
                 },
                 end_point: TextPoint {
-                    row: 39,
+                    row: 45,
                     column: 39,
                 },
             },
