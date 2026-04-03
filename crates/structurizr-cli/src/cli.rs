@@ -34,7 +34,7 @@ pub struct GlobalOptions {
 /// Top-level commands exposed by the CLI.
 #[derive(Debug, Clone, Subcommand)]
 pub enum Command {
-    /// Check one or more files or directories for syntax and include diagnostics.
+    /// Check one or more files or directories for syntax, include, and semantic diagnostics.
     Check(CheckArgs),
     /// Dump analysis-layer facts for a document or workspace.
     Dump(DumpArgs),
@@ -47,10 +47,13 @@ pub enum Command {
 pub struct CheckArgs {
     #[arg(value_name = "PATH")]
     pub paths: Vec<PathBuf>,
+    /// Only report parser syntax diagnostics.
     #[arg(long, conflicts_with = "include_only")]
     pub syntax_only: bool,
+    /// Only report include-resolution diagnostics.
     #[arg(long, conflicts_with = "syntax_only")]
     pub include_only: bool,
+    /// Treat warnings as errors when choosing the process exit code.
     #[arg(long)]
     pub warnings_as_errors: bool,
 }

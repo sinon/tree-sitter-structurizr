@@ -6,8 +6,8 @@ use std::{
 use anyhow::{Context, Result};
 use serde::Serialize;
 use structurizr_analysis::{
-    DocumentId, DocumentSnapshot, IncludeDiagnostic, IncludeDiagnosticKind, SyntaxDiagnostic,
-    SyntaxDiagnosticKind, TextPoint, TextSpan,
+    DocumentId, DocumentSnapshot, IncludeDiagnostic, IncludeDiagnosticKind, SemanticDiagnostic,
+    SemanticDiagnosticKind, SyntaxDiagnostic, SyntaxDiagnosticKind, TextPoint, TextSpan,
 };
 
 /// Severity used by the CLI's normalized diagnostic model.
@@ -105,6 +105,19 @@ impl DiagnosticView {
             },
             code: include_code(diagnostic.kind).to_owned(),
             source: "include".to_owned(),
+            message: diagnostic.message.clone(),
+            span: diagnostic.span.into(),
+        }
+    }
+
+    /// Builds a normalized semantic diagnostic view.
+    #[must_use]
+    pub fn semantic(path: String, diagnostic: &SemanticDiagnostic) -> Self {
+        Self {
+            path,
+            severity: Severity::Error,
+            code: semantic_code(diagnostic.kind).to_owned(),
+            source: "semantic".to_owned(),
             message: diagnostic.message.clone(),
             span: diagnostic.span.into(),
         }
@@ -324,5 +337,13 @@ const fn include_code(kind: IncludeDiagnosticKind) -> &'static str {
         IncludeDiagnosticKind::EscapesAllowedSubtree => "include.escapes-allowed-subtree",
         IncludeDiagnosticKind::IncludeCycle => "include.cycle",
         IncludeDiagnosticKind::UnsupportedRemoteTarget => "include.unsupported-remote-target",
+    }
+}
+
+const fn semantic_code(kind: SemanticDiagnosticKind) -> &'static str {
+    match kind {
+        SemanticDiagnosticKind::DuplicateBinding => "semantic.duplicate-binding",
+        SemanticDiagnosticKind::UnresolvedReference => "semantic.unresolved-reference",
+        SemanticDiagnosticKind::AmbiguousReference => "semantic.ambiguous-reference",
     }
 }

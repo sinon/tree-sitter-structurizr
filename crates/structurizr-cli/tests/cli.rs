@@ -95,6 +95,144 @@ fn check_json_reports_missing_include() {
 }
 
 #[test]
+fn check_text_reports_unresolved_semantic_diagnostics() {
+    assert_cmd_snapshot!(
+        command()
+            .arg("check")
+            .arg("tests/lsp/workspaces/hierarchical-identifiers"),
+        @r###"
+    success: false
+    exit_code: 1
+    ----- stdout -----
+    tests/lsp/workspaces/hierarchical-identifiers/workspace.dsl:9:17: error[semantic.unresolved-reference] unresolved identifier reference: api
+
+    ----- stderr -----
+    "###
+    );
+}
+
+#[test]
+fn check_json_reports_merged_semantic_diagnostics() {
+    assert_cmd_snapshot!(
+        command()
+            .arg("--output-format")
+            .arg("json")
+            .arg("check")
+            .arg("tests/lsp/workspaces/duplicate-bindings"),
+        @r###"
+    success: false
+    exit_code: 1
+    ----- stdout -----
+    {
+      "summary": {
+        "documents_checked": 3,
+        "diagnostics": 3,
+        "errors": 3,
+        "warnings": 0
+      },
+      "diagnostics": [
+        {
+          "path": "tests/lsp/workspaces/duplicate-bindings/alpha.dsl",
+          "severity": "error",
+          "code": "semantic.duplicate-binding",
+          "source": "semantic",
+          "message": "duplicate element binding: api",
+          "span": {
+            "start_byte": 12,
+            "end_byte": 44,
+            "start": {
+              "line": 2,
+              "column": 5
+            },
+            "end": {
+              "line": 2,
+              "column": 37
+            }
+          }
+        },
+        {
+          "path": "tests/lsp/workspaces/duplicate-bindings/beta.dsl",
+          "severity": "error",
+          "code": "semantic.duplicate-binding",
+          "source": "semantic",
+          "message": "duplicate element binding: api",
+          "span": {
+            "start_byte": 12,
+            "end_byte": 43,
+            "start": {
+              "line": 2,
+              "column": 5
+            },
+            "end": {
+              "line": 2,
+              "column": 36
+            }
+          }
+        },
+        {
+          "path": "tests/lsp/workspaces/duplicate-bindings/workspace.dsl",
+          "severity": "error",
+          "code": "semantic.ambiguous-reference",
+          "source": "semantic",
+          "message": "ambiguous identifier reference: api",
+          "span": {
+            "start_byte": 119,
+            "end_byte": 122,
+            "start": {
+              "line": 7,
+              "column": 17
+            },
+            "end": {
+              "line": 7,
+              "column": 20
+            }
+          }
+        }
+      ]
+    }
+
+    ----- stderr -----
+    "###
+    );
+}
+
+#[test]
+fn check_syntax_only_suppresses_workspace_semantic_diagnostics() {
+    assert_cmd_snapshot!(
+        command()
+            .arg("check")
+            .arg("--syntax-only")
+            .arg("tests/lsp/workspaces/duplicate-bindings"),
+        @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    No diagnostics found in 3 document(s).
+
+    ----- stderr -----
+    "###
+    );
+}
+
+#[test]
+fn check_include_only_suppresses_workspace_semantic_diagnostics() {
+    assert_cmd_snapshot!(
+        command()
+            .arg("check")
+            .arg("--include-only")
+            .arg("tests/lsp/workspaces/hierarchical-identifiers"),
+        @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    No diagnostics found in 2 document(s).
+
+    ----- stderr -----
+    "###
+    );
+}
+
+#[test]
 fn check_json_big_bank_plc_reports_current_golden_record_diagnostics() {
     assert_cmd_snapshot!(
         command()

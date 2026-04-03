@@ -48,7 +48,7 @@ cargo build -p structurizr-cli --bin strz --release
 
 ### What works today
 
-- syntax and include diagnostics
+- syntax, include, and bounded semantic diagnostics
 - document symbols
 - keyword/directive and style-property completion
 - go-to-definition, find-references, and type-definition for the currently supported reference shapes

@@ -4,15 +4,16 @@
 
 Use it when you want to:
 
-- run syntax and include checks without an editor
+- run syntax, include, and bounded semantic diagnostics without an editor
 - inspect analysis-layer facts as text or JSON
 - launch the same stdio LSP entrypoint that downstream editor integrations should execute
 
 ## Command surface
 
-- `strz check [PATH ...]` - aggregated syntax and include diagnostics
+- `strz check [PATH ...]` - aggregated syntax, include, and bounded semantic diagnostics
   - defaults to the current directory when no path is provided
   - supports `--syntax-only`, `--include-only`, and `--warnings-as-errors`
+  - includes semantic diagnostics by default; the filter flags stay strict
 - `strz dump document <PATH>` - a single-document analysis snapshot
 - `strz dump workspace [PATH ...]` - workspace discovery and include-following facts
 - `strz server` - runs the Structurizr LSP over stdio
