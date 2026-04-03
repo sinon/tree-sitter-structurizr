@@ -1,23 +1,39 @@
 ## Issue
 
-The local LSP benchmark still puts `lsp/session/large_big_bank_document_symbols` at roughly `9.31-9.39 ms`, and the current request flow rebuilds workspace facts on every open, change, and close before serving the follow-up request.
+The LSP `WorkspaceFacts` for the whole workspace on every
+`didOpen` / `didChange` / `didClose`, even though it already has reusable loader
+state and cached document identity.
+
+That keeps edit-triggered request latency tied to whole-workspace recomputation
+instead of the subset of workspace state actually affected by the change.
 
 ## Root Cause
 
-[`crates/structurizr-lsp/src/handlers/text_sync.rs`](../crates/structurizr-lsp/src/handlers/text_sync.rs) currently calls `recompute_workspace_facts(...)` from both `publish_latest_snapshot(...)` and `did_close(...)`.
+[`crates/structurizr-lsp/src/server.rs`](../crates/structurizr-lsp/src/server.rs)
+hosts one shared `WorkspaceLoader`, and
+[`crates/structurizr-lsp/src/documents.rs`](../crates/structurizr-lsp/src/documents.rs)
+already caches canonical path / `DocumentId` state for open documents.
 
-That path clones the open-document set, reapplies overrides, creates a fresh `WorkspaceLoader`, and reloads the workspace from scratch for each buffer transition. The `documentSymbol` handler in [`crates/structurizr-lsp/src/handlers/symbols.rs`](../crates/structurizr-lsp/src/handlers/symbols.rs) itself is relatively small; the expensive part is the full rebuild and diagnostic republish path that happens before the request is answered.
+[`crates/structurizr-lsp/src/handlers/text_sync.rs`](../crates/structurizr-lsp/src/handlers/text_sync.rs)
+can also reuse a snapshot from freshly recomputed `WorkspaceFacts` instead of
+immediately reanalyzing the current file again.
+
+But `recompute_workspace_facts(...)` the open-document set,
+clears/reapplies all overrides, and calls `load_paths(...)` for the whole
+workspace on every buffer transition.
 
 ## Options
 
 - Keep full workspace recomputation for every open-buffer transition.
-- Cache only canonical document identities and open-document lookup state, but still rebuild workspace facts from scratch.
-- Add an incremental invalidation/update layer so one edited buffer can reuse most of the previously computed workspace state.
+- Add a coarser invalidation layer around the current shared loader/caches so
+  only affected workspace roots or derived packets recompute.
+- Push deeper workspace semantics behind another query boundary if coarse
+  invalidation edited-root sessions too expensive.
 
 ## Proposed Option
 
-Take this in two slices.
+Start by updating only the affected workspace roots or derived packets on
+`didChange` / `didClose`, then re-measure.
 
-First, cache canonical document identities and lookup state in the server so diagnostics and navigation helpers stop paying repeated filesystem normalization and linear open-document scans.
-
-Then design an incremental workspace-facts update path for `didChange` / `didClose` so a single edited document does not force a whole-workspace reload when the workspace roots themselves have not changed.
+If edited-root benchmarks still miss the target afterwards, follow with a deeper
+workspace query boundary rather than another shallow host-side cache.

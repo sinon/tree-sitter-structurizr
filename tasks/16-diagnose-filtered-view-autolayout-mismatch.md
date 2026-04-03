@@ -13,8 +13,8 @@ does not currently model filtered-view compatibility rules between a filtered
 view and its source view.
 
 [`crates/structurizr-cli/src/check.rs`](../crates/structurizr-cli/src/check.rs)
-therefore has no semantic diagnostic to emit for this upstream-only view
-constraint.
+already surfaces semantic diagnostics, but the analysis layer does not
+currently emit one for this upstream-only view constraint.
 
 The current toolchain is stronger at syntax structure and navigation than at
 view-level semantic validation.
