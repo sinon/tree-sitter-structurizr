@@ -1,6 +1,10 @@
 ## Issue
 
-The workspace-index construction path still does a lot of ordered-map, set, clone, and sort/dedup work in the hottest analysis loop, even after the tracing rollback.
+Cold or invalidated workspace loads a lot of time cloning, sorting,
+and deduplicating data while assembling the final `WorkspaceFacts` indexes.
+
+The external outputs need deterministic ordering, but the inner accumulation
+path does more ordered-container work than seems necessary.
 
 ## Root Cause
 
@@ -12,7 +16,12 @@ The workspace-index construction path still does a lot of ordered-map, set, clon
 - `build_reference_resolution_tables(...)`
 - `merge_semantic_diagnostics(...)`
 
-Those loops currently clone `DocumentId`, `SymbolHandle`, and `SemanticDiagnostic` values into temporary `BTreeMap`, `BTreeSet`, and `Vec` structures, then sort and deduplicate again at later boundaries. Some of the reference-resolution helpers also do repeated map lookups for the same key before materializing a result.
+Those loops currently clone `DocumentId`, `SymbolHandle`, and
+`SemanticDiagnostic` values into temporary `BTreeMap`, `BTreeSet`, and `Vec`
+structures, then sort and deduplicate again at later boundaries.
+
+Some of the reference-resolution helpers also do repeated map lookups for the
+same key before materializing a result.
 
 ## Options
 
@@ -22,9 +31,10 @@ Those loops currently clone `DocumentId`, `SymbolHandle`, and `SemanticDiagnosti
 
 ## Proposed Option
 
-Keep the externally visible ordering stable, but move the inner accumulation loops toward cheaper keyed structures and fewer repeated clones.
+Keep the externally visible ordering stable, but move the inner accumulation
+loops toward cheaper keyed structures and fewer repeated clones.
 
-A pragmatic first slice would:
+A pragmatic first step would:
 
 - remove obvious double-lookups in reference resolution
 - reduce `DocumentId` / handle cloning inside cycle detection and reference indexing

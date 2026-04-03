@@ -21,7 +21,8 @@ diagnostic when one workspace instance ends up with more than one top-level
 `model` block or more than one top-level `views` block.
 
 [`crates/structurizr-cli/src/check.rs`](../crates/structurizr-cli/src/check.rs)
-also has no dedicated parity rule for this assembled-workspace cardinality
+already surfaces workspace semantic diagnostics, but the analysis layer does
+not currently produce a rule for this assembled-workspace cardinality
 constraint.
 
 ## Options
@@ -37,5 +38,5 @@ constraint.
 
 Keep fragment parsing permissive, but add assembled-workspace semantic
 diagnostics for repeated top-level `model` and `views` containers. That
-preserves editor-facing fragment support while still telling contributors when a
+preserves editor-facing fragment support while telling contributors when a
 whole workspace would be rejected upstream.

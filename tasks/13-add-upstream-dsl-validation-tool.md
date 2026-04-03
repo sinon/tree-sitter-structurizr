@@ -1,20 +1,22 @@
 ## Issue
 
-We now have local benchmark corpora and other checked-in DSL workspaces whose
-acceptance by `strz check` is not enough to prove upstream Structurizr parity.
-The benchmark-mega follow-up only found several real compatibility problems
+The repository lacks a reusable helper for running its own workspace entrypoints
+through upstream `structurizr/structurizr validate`.
+
+The benchmark-mega follow-up found several real compatibility problems
 after manually running `docker run --rm structurizr/structurizr validate ...`,
 and there is no checked-in helper that contributors can reuse.
 
 ## Root Cause
 
-[`tools/upstream_audit.rs`](../tools/upstream_audit.rs) compares our grammar
-against upstream-owned sample files, but it does not validate this repository's
-own DSL workspaces with the upstream CLI.
+[`tools/upstream_audit.rs`](../tools/upstream_audit.rs) and
+[`Justfile`](../Justfile) already give us `just audit-upstream` for
+grammar-facing parity checks against upstream-owned sample files, but that flow
+does not validate this repository's own DSL workspaces with the upstream CLI.
 
 [`crates/structurizr-cli/src/check.rs`](../crates/structurizr-cli/src/check.rs)
-validates only through the in-repo parser and workspace loader. That is useful,
-but it cannot catch upstream-only semantic rules.
+already surfaces local semantic diagnostics, but it enforce
+upstream-only validation rules by itself.
 
 A naive `find . -name '*.dsl'` pass would also be wrong because much of the
 repo contains valid fragments such as standalone `model { ... }` and
@@ -39,5 +41,5 @@ container, run `validate -workspace ...` for each entrypoint, and summarize
 pass/fail in a CI-friendly way.
 
 That keeps the integration lightweight, reuses the already-proven Docker
-command surface, and gives future parser or fixture changes an easy opt-in
-parity gate.
+command surface, and complements the existing grammar audit with an opt-in
+workspace-parity gate.
