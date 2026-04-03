@@ -20,8 +20,7 @@ does not currently emit semantic diagnostics when a hierarchical identifier,
 selector target, or inherited reference from an extended workspace cannot be
 resolved to a concrete element in the assembled model.
 
-This is especially visible when `!identifiers hierarchical` and `workspace
-extends ...` combine: local tooling keeps enough structure for editor features,
+This is especially visible when `!identifiers hierarchical` and `workspace extends ...` combine: local tooling keeps enough structure for editor features,
 but it does not yet reject the unresolved semantic reference.
 
 ## Options
