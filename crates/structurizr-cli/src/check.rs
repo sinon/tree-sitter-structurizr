@@ -1,7 +1,7 @@
-use std::process::ExitCode;
+use std::{path::Path, process::ExitCode};
 
 use anyhow::{Context, Result};
-use structurizr_analysis::WorkspaceLoader;
+use structurizr_analysis::{DocumentId, WorkspaceFacts, WorkspaceLoader};
 
 use crate::{
     cli::CheckArgs,
@@ -49,11 +49,15 @@ pub fn run(arguments: &CheckArgs) -> Result<CheckExecution> {
 
     if !arguments.syntax_only {
         for diagnostic in workspace.include_diagnostics() {
-            let path = workspace.document(&diagnostic.document).map_or_else(
-                || document_id_display_path(&diagnostic.document, &cwd),
-                |document| snapshot_display_path(document.snapshot(), &cwd),
-            );
+            let path = workspace_diagnostic_path(&workspace, &diagnostic.document, &cwd);
             diagnostics.push(DiagnosticView::include(path, diagnostic));
+        }
+    }
+
+    if !arguments.syntax_only && !arguments.include_only {
+        for diagnostic in workspace.semantic_diagnostics() {
+            let path = workspace_diagnostic_path(&workspace, &diagnostic.document, &cwd);
+            diagnostics.push(DiagnosticView::semantic(path, diagnostic));
         }
     }
 
@@ -73,4 +77,15 @@ fn joined_paths(paths: &[std::path::PathBuf]) -> String {
         .map(|path| path.display().to_string())
         .collect::<Vec<_>>()
         .join(", ")
+}
+
+fn workspace_diagnostic_path(
+    workspace: &WorkspaceFacts,
+    document: &DocumentId,
+    cwd: &Path,
+) -> String {
+    workspace.document(document).map_or_else(
+        || document_id_display_path(document, cwd),
+        |document| snapshot_display_path(document.snapshot(), cwd),
+    )
 }

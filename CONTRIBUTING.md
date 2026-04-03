@@ -102,11 +102,11 @@ For crate-local context, see [`crates/structurizr-cli/README.md`](crates/structu
 binary surface and logging knobs, and [`crates/structurizr-lsp/README.md`](crates/structurizr-lsp/README.md) for
 the server crate layout and test entry points.
 
-Use `check` when you want aggregated syntax and include diagnostics for a file
-or workspace. Use `dump document` and `dump workspace` when you want to inspect
-the extracted analysis facts that sit underneath the LSP. Use `server` when you
-want to run the same stdio language server entrypoint that editor integrations
-should launch.
+Use `check` when you want aggregated syntax, include, and bounded semantic
+diagnostics for a file or workspace. Use `dump document` and `dump workspace`
+when you want to inspect the extracted analysis facts that sit underneath the
+LSP. Use `server` when you want to run the same stdio language server entrypoint
+that editor integrations should launch.
 
 ### Observability for local debugging
 
