@@ -18,18 +18,18 @@ Today the most reliable setup is local and explicit: install a Rust toolchain, b
   cargo build -p structurizr-cli --bin strz --release
   ```
 
-1. Verify the binary works:
+2. Verify the binary works:
   ```sh
   ./target/release/strz check your-workspace.dsl
   ./target/release/strz server
   ```
 
-1. Install the [`zed-structurizr`](https://github.com/sinon/zed-structurizr) extension.
+3. Install the [`zed-structurizr`](https://github.com/sinon/zed-structurizr) extension.
   > [!NOTE]
   > The extension currently needs to be installed manually as it is pre-release.
   > In the future the extension will download `strz` if not installed on the system.
 
-1. Point Zed at it:
+4. Point Zed at it:
   ```json
   {
     "lsp": {
