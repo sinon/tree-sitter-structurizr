@@ -42,6 +42,7 @@ cargo build -p structurizr-cli --bin strz --release
         "path": "~/path/to/tree-sitter-structurizr/target/release/strz"
       }
     }
+  }
 }
 ```
 
