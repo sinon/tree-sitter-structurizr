@@ -28,6 +28,7 @@ pub async fn completion(
         let items = convert::completion::completion_items(
             document,
             snapshot,
+            state.workspace_facts(),
             params.text_document_position.position,
         );
         drop(state);

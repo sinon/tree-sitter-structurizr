@@ -23,6 +23,25 @@ async fn initialize_advertises_bounded_capabilities() {
     assert_eq!(capabilities["referencesProvider"], true);
     assert_eq!(capabilities["textDocumentSync"]["change"], 1);
     assert!(capabilities["completionProvider"].is_object());
+
+    let trigger_characters = capabilities["completionProvider"]["triggerCharacters"]
+        .as_array()
+        .expect("completion triggers should be an array")
+        .iter()
+        .filter_map(|value| value.as_str())
+        .collect::<Vec<_>>();
+    for expected in ["!", "a", "A", "0", "_"] {
+        assert!(
+            trigger_characters.contains(&expected),
+            "completion triggers should advertise `{expected}`"
+        );
+    }
+    for unexpected in [".", "-"] {
+        assert!(
+            !trigger_characters.contains(&unexpected),
+            "completion triggers should not advertise `{unexpected}`"
+        );
+    }
 }
 
 #[tokio::test(flavor = "current_thread")]

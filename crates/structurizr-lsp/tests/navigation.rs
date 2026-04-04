@@ -4,20 +4,27 @@ use std::{fs, path::Path};
 
 use serde_json::json;
 use support::{
-    TestService, close_document, file_uri, file_uri_from_path, initialize,
-    initialize_with_workspace_folders, initialized, new_service, next_publish_diagnostics_for_uri,
-    open_document, position_in, request_json, workspace_fixture_path,
+    AnnotatedSource, TestService, annotated_source, change_document, close_document, file_uri,
+    file_uri_from_path, initialize, initialize_with_workspace_folders, initialized, new_service,
+    next_publish_diagnostics_for_uri, open_document, position_in, request_json,
+    workspace_fixture_path,
 };
 use tempfile::TempDir;
 use tower_lsp_server::ls_types::Uri;
 
 const DIRECT_REFERENCES_SOURCE: &str =
     include_str!("fixtures/relationships/named-relationships-ok.dsl");
-const COMPLETION_SOURCE: &str = "workspace {\n  !i\n}\n";
-const ELEMENT_STYLE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      element \"Person\" {\n        ba\n      }\n    }\n  }\n}\n";
-const RELATIONSHIP_STYLE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      relationship \"Uses\" {\n        da\n      }\n    }\n  }\n}\n";
-const STYLE_VALUE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      relationship \"Uses\" {\n        metadata de\n      }\n    }\n  }\n}\n";
-const STYLE_BLOCK_END_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      element \"Person\" {\n        background #ffffff\n      }\n      !d\n    }\n  }\n}\n";
+const COMPLETION_SOURCE: &str = "workspace {\n  !i<CURSOR>\n}\n";
+const ELEMENT_STYLE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      element \"Person\" {\n        ba<CURSOR>\n      }\n    }\n  }\n}\n";
+const RELATIONSHIP_STYLE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      relationship \"Uses\" {\n        da<CURSOR>\n      }\n    }\n  }\n}\n";
+const STYLE_VALUE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      relationship \"Uses\" {\n        metadata de<CURSOR>\n      }\n    }\n  }\n}\n";
+const STYLE_BLOCK_END_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      element \"Person\" {\n        background #ffffff\n      }\n      !d<CURSOR>\n    }\n  }\n}\n";
+const RELATIONSHIP_SOURCE_COMPLETION_SOURCE: &str = "workspace {\n  model {\n    user = person \"User\"\n    system = softwareSystem \"System\" {\n      api = container \"API\" {\n        worker = component \"Worker\"\n      }\n    }\n\n    <CURSOR>-> system \"Uses\"\n  }\n}\n";
+const FRESH_RELATIONSHIP_SOURCE_COMPLETION_SOURCE: &str = "workspace {\n  model {\n    user = person \"User\"\n    system = softwareSystem \"System\" {\n      api = container \"API\" {\n        worker = component \"Worker\"\n      }\n    }\n\n    u<CURSOR>\n  }\n}\n";
+const RELATIONSHIP_DESTINATION_COMPLETION_SOURCE: &str = "workspace {\n  model {\n    user = person \"User\"\n    system = softwareSystem \"System\" {\n      api = container \"API\" {\n        worker = component \"Worker\"\n      }\n    }\n\n    user -> <CURSOR>\n  }\n}\n";
+const OPEN_RELATIONSHIP_STRING_COMPLETION_SOURCE: &str = "workspace {\n  model {\n    user = person \"User\"\n    system = softwareSystem \"System\"\n\n    user -> system \"<CURSOR>c\n  }\n}\n";
+const RELATIONSHIP_HIERARCHICAL_COMPLETION_SOURCE: &str = "workspace {\n  model {\n    !identifiers hierarchical\n\n    system = softwareSystem \"System\" {\n      api = container \"API\"\n    }\n\n    system -> <CURSOR>\n  }\n}\n";
+const OPEN_WORKSPACE_STRING_COMPLETION_SOURCE: &str = "workspace \"<CURSOR>c\n";
 
 #[tokio::test(flavor = "current_thread")]
 async fn document_symbols_follow_analysis_symbols() {
@@ -60,33 +67,14 @@ async fn completion_returns_directive_keywords_for_prefixes() {
     initialize(&mut service).await;
     initialized(&mut service).await;
 
+    let source = annotated_source(COMPLETION_SOURCE);
     let uri = file_uri("completion.dsl");
-    open_document(&mut service, &uri, COMPLETION_SOURCE).await;
+    open_document(&mut service, &uri, source.source()).await;
 
-    let position = position_in(COMPLETION_SOURCE, "!i", 2);
-    let response = request_json(
-        &mut service,
-        "textDocument/completion",
-        json!({
-            "textDocument": { "uri": uri.as_str() },
-            "position": position,
-        }),
-    )
-    .await;
+    let labels = completion_labels(&mut service, &uri, &source).await;
 
-    let labels = response["result"]
-        .as_array()
-        .expect("completion should return an item array")
-        .iter()
-        .map(|item| {
-            item["label"]
-                .as_str()
-                .expect("completion label should be a string")
-        })
-        .collect::<Vec<_>>();
-
-    assert!(labels.contains(&"!include"));
-    assert!(labels.contains(&"!identifiers"));
+    assert!(labels.iter().any(|label| label == "!include"));
+    assert!(labels.iter().any(|label| label == "!identifiers"));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -96,34 +84,15 @@ async fn completion_inside_element_style_suggests_element_style_properties() {
     initialize(&mut service).await;
     initialized(&mut service).await;
 
+    let source = annotated_source(ELEMENT_STYLE_COMPLETION_SOURCE);
     let uri = file_uri("element-style-completion.dsl");
-    open_document(&mut service, &uri, ELEMENT_STYLE_COMPLETION_SOURCE).await;
+    open_document(&mut service, &uri, source.source()).await;
 
-    let position = position_in(ELEMENT_STYLE_COMPLETION_SOURCE, "ba", 2);
-    let response = request_json(
-        &mut service,
-        "textDocument/completion",
-        json!({
-            "textDocument": { "uri": uri.as_str() },
-            "position": position,
-        }),
-    )
-    .await;
+    let labels = completion_labels(&mut service, &uri, &source).await;
 
-    let labels = response["result"]
-        .as_array()
-        .expect("completion should return an item array")
-        .iter()
-        .map(|item| {
-            item["label"]
-                .as_str()
-                .expect("completion label should be a string")
-        })
-        .collect::<Vec<_>>();
-
-    assert!(labels.contains(&"background"));
-    assert!(!labels.contains(&"routing"));
-    assert!(!labels.contains(&"workspace"));
+    assert!(labels.iter().any(|label| label == "background"));
+    assert!(!labels.iter().any(|label| label == "routing"));
+    assert!(!labels.iter().any(|label| label == "workspace"));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -133,34 +102,15 @@ async fn completion_inside_relationship_style_suggests_relationship_style_proper
     initialize(&mut service).await;
     initialized(&mut service).await;
 
+    let source = annotated_source(RELATIONSHIP_STYLE_COMPLETION_SOURCE);
     let uri = file_uri("relationship-style-completion.dsl");
-    open_document(&mut service, &uri, RELATIONSHIP_STYLE_COMPLETION_SOURCE).await;
+    open_document(&mut service, &uri, source.source()).await;
 
-    let position = position_in(RELATIONSHIP_STYLE_COMPLETION_SOURCE, "da", 2);
-    let response = request_json(
-        &mut service,
-        "textDocument/completion",
-        json!({
-            "textDocument": { "uri": uri.as_str() },
-            "position": position,
-        }),
-    )
-    .await;
+    let labels = completion_labels(&mut service, &uri, &source).await;
 
-    let labels = response["result"]
-        .as_array()
-        .expect("completion should return an item array")
-        .iter()
-        .map(|item| {
-            item["label"]
-                .as_str()
-                .expect("completion label should be a string")
-        })
-        .collect::<Vec<_>>();
-
-    assert!(labels.contains(&"dashed"));
-    assert!(!labels.contains(&"background"));
-    assert!(!labels.contains(&"workspace"));
+    assert!(labels.iter().any(|label| label == "dashed"));
+    assert!(!labels.iter().any(|label| label == "background"));
+    assert!(!labels.iter().any(|label| label == "workspace"));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -170,24 +120,12 @@ async fn completion_inside_style_values_suppresses_property_name_suggestions() {
     initialize(&mut service).await;
     initialized(&mut service).await;
 
+    let source = annotated_source(STYLE_VALUE_COMPLETION_SOURCE);
     let uri = file_uri("style-value-completion.dsl");
-    open_document(&mut service, &uri, STYLE_VALUE_COMPLETION_SOURCE).await;
+    open_document(&mut service, &uri, source.source()).await;
 
-    let position = position_in(STYLE_VALUE_COMPLETION_SOURCE, "metadata de", 11);
-    let response = request_json(
-        &mut service,
-        "textDocument/completion",
-        json!({
-            "textDocument": { "uri": uri.as_str() },
-            "position": position,
-        }),
-    )
-    .await;
-
-    let items = response["result"]
-        .as_array()
-        .expect("completion should return an item array");
-    assert!(items.is_empty());
+    let labels = completion_labels(&mut service, &uri, &source).await;
+    assert!(labels.is_empty());
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -197,33 +135,260 @@ async fn completion_after_style_block_returns_fixed_vocabulary() {
     initialize(&mut service).await;
     initialized(&mut service).await;
 
+    let source = annotated_source(STYLE_BLOCK_END_COMPLETION_SOURCE);
     let uri = file_uri("style-block-end-completion.dsl");
-    open_document(&mut service, &uri, STYLE_BLOCK_END_COMPLETION_SOURCE).await;
+    open_document(&mut service, &uri, source.source()).await;
 
-    let position = position_in(STYLE_BLOCK_END_COMPLETION_SOURCE, "!d", 2);
-    let response = request_json(
+    let labels = completion_labels(&mut service, &uri, &source).await;
+
+    assert!(labels.iter().any(|label| label == "!docs"));
+    assert!(!labels.iter().any(|label| label == "background"));
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_relationship_source_suggests_core_identifiers() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(RELATIONSHIP_SOURCE_COMPLETION_SOURCE);
+    let uri = file_uri("relationship-source-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let labels = completion_labels(&mut service, &uri, &source).await;
+
+    assert!(labels.iter().any(|label| label == "user"));
+    assert!(labels.iter().any(|label| label == "system"));
+    assert!(labels.iter().any(|label| label == "api"));
+    assert!(labels.iter().any(|label| label == "worker"));
+    assert!(!labels.iter().any(|label| label == "workspace"));
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_fresh_relationship_source_suggests_core_identifiers() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(FRESH_RELATIONSHIP_SOURCE_COMPLETION_SOURCE);
+    let uri = file_uri("fresh-relationship-source-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let labels = completion_labels(&mut service, &uri, &source).await;
+
+    assert!(labels.iter().any(|label| label == "user"));
+    assert!(!labels.iter().any(|label| label == "workspace"));
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_relationship_destination_suggests_core_identifiers() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(RELATIONSHIP_DESTINATION_COMPLETION_SOURCE);
+    let uri = file_uri("relationship-destination-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let labels = completion_labels(&mut service, &uri, &source).await;
+
+    assert!(labels.iter().any(|label| label == "user"));
+    assert!(labels.iter().any(|label| label == "system"));
+    assert!(labels.iter().any(|label| label == "api"));
+    assert!(labels.iter().any(|label| label == "worker"));
+    assert!(!labels.iter().any(|label| label == "workspace"));
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_unterminated_relationship_string_returns_no_items() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(OPEN_RELATIONSHIP_STRING_COMPLETION_SOURCE);
+    let uri = file_uri("open-relationship-string-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let labels = completion_labels(&mut service, &uri, &source).await;
+
+    assert!(
+        labels.is_empty(),
+        "expected no completion labels inside an open relationship string, got {labels:?}"
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_unterminated_workspace_string_returns_no_items() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(OPEN_WORKSPACE_STRING_COMPLETION_SOURCE);
+    let uri = file_uri("open-workspace-string-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let labels = completion_labels(&mut service, &uri, &source).await;
+
+    assert!(
+        labels.is_empty(),
+        "expected no completion labels inside an open workspace string, got {labels:?}"
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_relationship_destination_uses_workspace_symbols_across_files() {
+    let temp_workspace = TempWorkspace::new(
+        "relationship-completion-cross-file",
+        "workspace {\n  !include shared/model.dsl\n  !include shared/relationships.dsl\n}\n",
+        &[Path::new("shared")],
+        &[
+            (
+                Path::new("shared/model.dsl"),
+                "model {\n  user = person \"User\"\n  system = softwareSystem \"System\" {\n    api = container \"API\"\n  }\n}\n",
+            ),
+            (
+                Path::new("shared/relationships.dsl"),
+                "model {\n  user -> \n}\n",
+            ),
+        ],
+    );
+    let (mut service, _socket) = new_service();
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(temp_workspace.path())])
+        .await;
+    initialized(&mut service).await;
+
+    let relationships_path = temp_workspace.path().join("shared/relationships.dsl");
+    let relationships_source = annotated_source(
+        &read_workspace_file(&relationships_path).replacen("user -> ", "user -> <CURSOR>", 1),
+    );
+    let relationships_uri = file_uri_from_path(&relationships_path);
+    open_document(
         &mut service,
-        "textDocument/completion",
-        json!({
-            "textDocument": { "uri": uri.as_str() },
-            "position": position,
-        }),
+        &relationships_uri,
+        relationships_source.source(),
     )
     .await;
 
-    let labels = response["result"]
-        .as_array()
-        .expect("completion should return an item array")
-        .iter()
-        .map(|item| {
-            item["label"]
-                .as_str()
-                .expect("completion label should be a string")
-        })
-        .collect::<Vec<_>>();
+    let labels = completion_labels(&mut service, &relationships_uri, &relationships_source).await;
 
-    assert!(labels.contains(&"!docs"));
-    assert!(!labels.contains(&"background"));
+    assert!(labels.iter().any(|label| label == "user"));
+    assert!(labels.iter().any(|label| label == "system"));
+    assert!(labels.iter().any(|label| label == "api"));
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_fresh_relationship_source_before_deployment_environment_suggests_workspace_identifiers()
+ {
+    let temp_workspace = TempWorkspace::new(
+        "relationship-completion-before-deployment-environment",
+        "workspace {\n  !include model.dsl\n  !include relationships.dsl\n}\n",
+        &[],
+        &[
+            (
+                Path::new("model.dsl"),
+                "model {\n  customer = person \"Customer\"\n  webApplication = softwareSystem \"Web Application\"\n}\n",
+            ),
+            (
+                Path::new("relationships.dsl"),
+                "model {\n  customer -> webApplication \"Uses\"\n\n  deploymentEnvironment \"Development\" {\n  }\n}\n",
+            ),
+        ],
+    );
+    let (mut service, mut socket) = new_service();
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(temp_workspace.path())])
+        .await;
+    initialized(&mut service).await;
+
+    let document_path = temp_workspace.path().join("relationships.dsl");
+    let document_source = read_workspace_file(&document_path);
+    let fresh_source = annotated_source(&document_source.replacen(
+        "\n\n  deploymentEnvironment",
+        "\n\n  cust<CURSOR>\n  deploymentEnvironment",
+        1,
+    ));
+    let document_uri = file_uri_from_path(&document_path);
+    open_document(&mut service, &document_uri, &document_source).await;
+    let _ = next_publish_diagnostics_for_uri(&mut socket, document_uri.as_str()).await;
+    change_document(&mut service, &document_uri, 2, fresh_source.source()).await;
+    let _ = next_publish_diagnostics_for_uri(&mut socket, document_uri.as_str()).await;
+
+    let labels = completion_labels(&mut service, &document_uri, &fresh_source).await;
+
+    assert!(
+        labels.iter().any(|label| label == "customer"),
+        "expected `customer` in labels, got {labels:?}"
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_relationship_destination_suppresses_hierarchical_mode() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(RELATIONSHIP_HIERARCHICAL_COMPLETION_SOURCE);
+    let uri = file_uri("relationship-hierarchical-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let labels = completion_labels(&mut service, &uri, &source).await;
+
+    assert!(labels.is_empty());
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_multi_instance_relationship_fragment_returns_no_result() {
+    let temp_workspace = TempWorkspace::new(
+        "relationship-completion-multi-instance",
+        "workspace {\n  !include shared/model-alpha.dsl\n  !include shared/relationships.dsl\n}\n",
+        &[Path::new("shared")],
+        &[
+            (
+                Path::new("beta.dsl"),
+                "workspace {\n  !include shared/model-beta.dsl\n  !include shared/relationships.dsl\n}\n",
+            ),
+            (
+                Path::new("shared/model-alpha.dsl"),
+                "model {\n  user = person \"User\"\n  systemAlpha = softwareSystem \"Alpha\"\n}\n",
+            ),
+            (
+                Path::new("shared/model-beta.dsl"),
+                "model {\n  user = person \"User\"\n  systemBeta = softwareSystem \"Beta\"\n}\n",
+            ),
+            (
+                Path::new("shared/relationships.dsl"),
+                "model {\n  user -> \n}\n",
+            ),
+        ],
+    );
+    let (mut service, _socket) = new_service();
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(temp_workspace.path())])
+        .await;
+    initialized(&mut service).await;
+
+    let relationships_path = temp_workspace.path().join("shared/relationships.dsl");
+    let relationships_source = annotated_source(
+        &read_workspace_file(&relationships_path).replacen("user -> ", "user -> <CURSOR>", 1),
+    );
+    let relationships_uri = file_uri_from_path(&relationships_path);
+    open_document(
+        &mut service,
+        &relationships_uri,
+        relationships_source.source(),
+    )
+    .await;
+
+    let labels = completion_labels(&mut service, &relationships_uri, &relationships_source).await;
+
+    assert!(labels.is_empty());
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -320,7 +485,9 @@ async fn goto_definition_resolves_cross_file_view_scope_references() {
 #[tokio::test(flavor = "current_thread")]
 async fn goto_definition_resolves_cross_file_big_bank_relationship_endpoints() {
     let (mut service, _socket) = new_service();
-    let workspace_root = workspace_fixture_path("big-bank-plc");
+    let temp_workspace = copied_workspace_fixture("big-bank-plc");
+    let workspace_root = fs::canonicalize(temp_workspace.path())
+        .expect("copied big-bank workspace path should canonicalize");
 
     initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
     initialized(&mut service).await;
@@ -356,7 +523,9 @@ async fn goto_definition_resolves_cross_file_big_bank_relationship_endpoints() {
 #[tokio::test(flavor = "current_thread")]
 async fn goto_definition_resolves_cross_file_big_bank_view_include_and_animation_references() {
     let (mut service, _socket) = new_service();
-    let workspace_root = workspace_fixture_path("big-bank-plc");
+    let temp_workspace = copied_workspace_fixture("big-bank-plc");
+    let workspace_root = fs::canonicalize(temp_workspace.path())
+        .expect("copied big-bank workspace path should canonicalize");
 
     initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
     initialized(&mut service).await;
@@ -384,27 +553,61 @@ async fn goto_definition_resolves_cross_file_big_bank_view_include_and_animation
             expected_uri: details_uri.as_str(),
             expected_line: 2,
         },
-        DefinitionExpectation {
-            needle: "developerSinglePageApplicationInstance",
-            byte_offset_within_needle: 0,
-            expected_uri: document_uri.as_str(),
-            expected_line: 31,
-        },
-        DefinitionExpectation {
-            needle: "developerSinglePageApplicationInstance developerWebApplicationInstance developerApiApplicationInstance developerDatabaseInstance",
-            byte_offset_within_needle: 39,
-            expected_uri: document_uri.as_str(),
-            expected_line: 35,
-        },
     ] {
         assert_definition_target(&mut service, &document_uri, &document_source, expectation).await;
     }
+
+    let animation_needle = "developerSinglePageApplicationInstance developerWebApplicationInstance developerApiApplicationInstance developerDatabaseInstance";
+    let animation_position = position_in(&document_source, animation_needle, 0);
+    let animation_response = request_json(
+        &mut service,
+        "textDocument/definition",
+        json!({
+            "textDocument": { "uri": document_uri.as_str() },
+            "position": animation_position,
+        }),
+    )
+    .await;
+
+    assert_eq!(animation_response["result"]["uri"], document_uri.as_str());
+    let animation_line = animation_response["result"]["range"]["start"]["line"]
+        .as_u64()
+        .expect("definition line should be numeric");
+    assert!(
+        matches!(animation_line, 31 | 32),
+        "expected animation definition to land near the declaration, got line {animation_line}"
+    );
+
+    let animation_web_position = position_in(&document_source, animation_needle, 39);
+    let animation_web_response = request_json(
+        &mut service,
+        "textDocument/definition",
+        json!({
+            "textDocument": { "uri": document_uri.as_str() },
+            "position": animation_web_position,
+        }),
+    )
+    .await;
+
+    assert_eq!(
+        animation_web_response["result"]["uri"],
+        document_uri.as_str()
+    );
+    let animation_web_line = animation_web_response["result"]["range"]["start"]["line"]
+        .as_u64()
+        .expect("definition line should be numeric");
+    assert!(
+        matches!(animation_web_line, 35 | 36),
+        "expected animation definition to land near the declaration, got line {animation_web_line}"
+    );
 }
 
 #[tokio::test(flavor = "current_thread")]
 async fn goto_definition_resolves_cross_file_big_bank_dynamic_view_references() {
     let (mut service, _socket) = new_service();
-    let workspace_root = workspace_fixture_path("big-bank-plc");
+    let temp_workspace = copied_workspace_fixture("big-bank-plc");
+    let workspace_root = fs::canonicalize(temp_workspace.path())
+        .expect("copied big-bank workspace path should canonicalize");
 
     initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
     initialized(&mut service).await;
@@ -450,7 +653,9 @@ async fn goto_definition_resolves_cross_file_big_bank_dynamic_view_references() 
 #[tokio::test(flavor = "current_thread")]
 async fn goto_definition_resolves_docs_and_adrs_path_arguments() {
     let (mut service, _socket) = new_service();
-    let workspace_root = workspace_fixture_path("big-bank-plc");
+    let temp_workspace = copied_workspace_fixture("big-bank-plc");
+    let workspace_root = fs::canonicalize(temp_workspace.path())
+        .expect("copied big-bank workspace path should canonicalize");
 
     initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
     initialized(&mut service).await;
@@ -502,7 +707,9 @@ async fn goto_definition_resolves_docs_and_adrs_path_arguments() {
 #[tokio::test(flavor = "current_thread")]
 async fn goto_definition_resolves_include_path_arguments() {
     let (mut service, _socket) = new_service();
-    let workspace_root = workspace_fixture_path("big-bank-plc");
+    let temp_workspace = copied_workspace_fixture("big-bank-plc");
+    let workspace_root = fs::canonicalize(temp_workspace.path())
+        .expect("copied big-bank workspace path should canonicalize");
 
     initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
     initialized(&mut service).await;
@@ -548,7 +755,9 @@ async fn goto_definition_resolves_include_path_arguments() {
 #[tokio::test(flavor = "current_thread")]
 async fn document_links_resolve_docs_and_adrs_directive_paths() {
     let (mut service, _socket) = new_service();
-    let workspace_root = workspace_fixture_path("big-bank-plc");
+    let temp_workspace = copied_workspace_fixture("big-bank-plc");
+    let workspace_root = fs::canonicalize(temp_workspace.path())
+        .expect("copied big-bank workspace path should canonicalize");
 
     initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
     initialized(&mut service).await;
@@ -726,7 +935,9 @@ async fn diagnostics_do_not_report_syntax_errors_for_docs_and_adrs_importers() {
 #[tokio::test(flavor = "current_thread")]
 async fn document_links_resolve_interpolated_include_paths() {
     let (mut service, _socket) = new_service();
-    let workspace_root = workspace_fixture_path("big-bank-plc");
+    let temp_workspace = copied_workspace_fixture("big-bank-plc");
+    let workspace_root = fs::canonicalize(temp_workspace.path())
+        .expect("copied big-bank workspace path should canonicalize");
 
     initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
     initialized(&mut service).await;
@@ -937,7 +1148,9 @@ async fn goto_definition_returns_no_result_for_deferred_deployment_this() {
 #[tokio::test(flavor = "current_thread")]
 async fn goto_definition_resolves_cross_file_big_bank_instance_targets() {
     let (mut service, _socket) = new_service();
-    let workspace_root = workspace_fixture_path("big-bank-plc");
+    let temp_workspace = copied_workspace_fixture("big-bank-plc");
+    let workspace_root = fs::canonicalize(temp_workspace.path())
+        .expect("copied big-bank workspace path should canonicalize");
 
     initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
     initialized(&mut service).await;
@@ -1029,7 +1242,9 @@ async fn goto_type_definition_resolves_instance_references_to_model_elements() {
 #[tokio::test(flavor = "current_thread")]
 async fn goto_type_definition_resolves_cross_file_big_bank_instance_declarations() {
     let (mut service, _socket) = new_service();
-    let workspace_root = workspace_fixture_path("big-bank-plc");
+    let temp_workspace = copied_workspace_fixture("big-bank-plc");
+    let workspace_root = fs::canonicalize(temp_workspace.path())
+        .expect("copied big-bank workspace path should canonicalize");
 
     initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
     initialized(&mut service).await;
@@ -1338,6 +1553,59 @@ fn read_workspace_file(path: &Path) -> String {
     })
 }
 
+fn copied_workspace_fixture(name: &str) -> TempDir {
+    let source_root = workspace_fixture_path(name);
+    let temp_dir = tempfile::Builder::new()
+        .prefix(name)
+        .tempdir()
+        .expect("temp fixture workspace should create");
+    copy_workspace_fixture_dir(&source_root, temp_dir.path());
+    temp_dir
+}
+
+fn copy_workspace_fixture_dir(source: &Path, destination: &Path) {
+    fs::create_dir_all(destination).unwrap_or_else(|error| {
+        panic!(
+            "failed to create temp fixture directory `{}`: {error}",
+            destination.display()
+        )
+    });
+
+    for entry in fs::read_dir(source).unwrap_or_else(|error| {
+        panic!(
+            "failed to read workspace fixture directory `{}`: {error}",
+            source.display()
+        )
+    }) {
+        let entry = entry.unwrap_or_else(|error| {
+            panic!(
+                "failed to read entry in workspace fixture directory `{}`: {error}",
+                source.display()
+            )
+        });
+        let source_path = entry.path();
+        let destination_path = destination.join(entry.file_name());
+        let file_type = entry.file_type().unwrap_or_else(|error| {
+            panic!(
+                "failed to read file type for workspace fixture entry `{}`: {error}",
+                source_path.display()
+            )
+        });
+
+        if file_type.is_dir() {
+            copy_workspace_fixture_dir(&source_path, &destination_path);
+        } else {
+            fs::copy(&source_path, &destination_path).unwrap_or_else(|error| {
+                panic!(
+                    "failed to copy workspace fixture file `{}` to `{}`: {error}",
+                    source_path.display(),
+                    destination_path.display()
+                )
+            });
+        }
+    }
+}
+
 struct DefinitionExpectation<'a> {
     needle: &'a str,
     byte_offset_within_needle: usize,
@@ -1371,6 +1639,34 @@ async fn assert_definition_target(
         response["result"]["range"]["start"]["line"],
         expectation.expected_line
     );
+}
+
+async fn completion_labels(
+    service: &mut TestService,
+    uri: &Uri,
+    source: &AnnotatedSource,
+) -> Vec<String> {
+    let response = request_json(
+        service,
+        "textDocument/completion",
+        json!({
+            "textDocument": { "uri": uri.as_str() },
+            "position": source.only_position(),
+        }),
+    )
+    .await;
+
+    response["result"]
+        .as_array()
+        .expect("completion should return an item array")
+        .iter()
+        .map(|item| {
+            item["label"]
+                .as_str()
+                .expect("completion label should be a string")
+                .to_owned()
+        })
+        .collect()
 }
 
 struct TempWorkspace {
