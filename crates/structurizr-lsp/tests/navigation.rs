@@ -10,7 +10,7 @@ use support::{
     workspace_fixture_path,
 };
 use tempfile::TempDir;
-use tower_lsp_server::ls_types::Uri;
+use tower_lsp_server::ls_types::{Position, Uri};
 
 const DIRECT_REFERENCES_SOURCE: &str =
     include_str!("fixtures/relationships/named-relationships-ok.dsl");
@@ -18,6 +18,10 @@ const COMPLETION_SOURCE: &str = "workspace {\n  !i<CURSOR>\n}\n";
 const ELEMENT_STYLE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      element \"Person\" {\n        ba<CURSOR>\n      }\n    }\n  }\n}\n";
 const RELATIONSHIP_STYLE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      relationship \"Uses\" {\n        da<CURSOR>\n      }\n    }\n  }\n}\n";
 const STYLE_VALUE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      relationship \"Uses\" {\n        metadata de<CURSOR>\n      }\n    }\n  }\n}\n";
+const ELEMENT_STYLE_COLOR_VALUE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      element \"Person\" {\n        background dark<CURSOR:background>\n        color dark<CURSOR:color>\n        colour dark<CURSOR:colour>\n        stroke dark<CURSOR:stroke>\n        background #ff<CURSOR:hex>\n      }\n    }\n  }\n}\n";
+const ELEMENT_STYLE_BOOLEAN_VALUE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      element \"Person\" {\n        metadata t<CURSOR:metadata>\n        description f<CURSOR:description>\n      }\n    }\n  }\n}\n";
+const ELEMENT_STYLE_BORDER_VALUE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      element \"Person\" {\n        border d<CURSOR>\n      }\n    }\n  }\n}\n";
+const ELEMENT_STYLE_QUOTED_SHAPE_VALUE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      element \"Person\" {\n        shape \"rou<CURSOR>\"\n      }\n    }\n  }\n}\n";
 const STYLE_BLOCK_END_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      element \"Person\" {\n        background #ffffff\n      }\n      !d<CURSOR>\n    }\n  }\n}\n";
 const RELATIONSHIP_SOURCE_COMPLETION_SOURCE: &str = "workspace {\n  model {\n    user = person \"User\"\n    system = softwareSystem \"System\" {\n      api = container \"API\" {\n        worker = component \"Worker\"\n      }\n    }\n\n    <CURSOR>-> system \"Uses\"\n  }\n}\n";
 const FRESH_RELATIONSHIP_SOURCE_COMPLETION_SOURCE: &str = "workspace {\n  model {\n    user = person \"User\"\n    system = softwareSystem \"System\" {\n      api = container \"API\" {\n        worker = component \"Worker\"\n      }\n    }\n\n    u<CURSOR>\n  }\n}\n";
@@ -114,7 +118,99 @@ async fn completion_inside_relationship_style_suggests_relationship_style_proper
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn completion_inside_style_values_suppresses_property_name_suggestions() {
+async fn completion_inside_element_style_color_values_suggests_named_colors() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(ELEMENT_STYLE_COLOR_VALUE_COMPLETION_SOURCE);
+    let uri = file_uri("element-style-color-value-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    for marker in ["background", "color", "colour", "stroke"] {
+        let labels =
+            completion_labels_at_position(&mut service, &uri, source.position(marker)).await;
+        assert!(
+            labels.iter().any(|label| label == "darkseagreen"),
+            "expected named colours for `{marker}`, got {labels:?}"
+        );
+        assert!(
+            !labels.iter().any(|label| label == "RoundedBox"),
+            "expected colour-only completions for `{marker}`, got {labels:?}"
+        );
+    }
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_hex_color_prefix_suppresses_named_color_suggestions() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(ELEMENT_STYLE_COLOR_VALUE_COMPLETION_SOURCE);
+    let uri = file_uri("element-style-hex-color-value-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let labels = completion_labels_at_position(&mut service, &uri, source.position("hex")).await;
+    assert!(labels.is_empty());
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_element_style_boolean_values_suggests_true_false() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(ELEMENT_STYLE_BOOLEAN_VALUE_COMPLETION_SOURCE);
+    let uri = file_uri("element-style-boolean-value-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let metadata_labels =
+        completion_labels_at_position(&mut service, &uri, source.position("metadata")).await;
+    assert_eq!(metadata_labels, vec!["true"]);
+
+    let description_labels =
+        completion_labels_at_position(&mut service, &uri, source.position("description")).await;
+    assert_eq!(description_labels, vec!["false"]);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_element_style_border_values_suggests_matching_values() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(ELEMENT_STYLE_BORDER_VALUE_COMPLETION_SOURCE);
+    let uri = file_uri("element-style-border-value-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let labels = completion_labels(&mut service, &uri, &source).await;
+    assert!(labels.iter().any(|label| label == "Dashed"));
+    assert!(labels.iter().any(|label| label == "Dotted"));
+    assert!(!labels.iter().any(|label| label == "Solid"));
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_quoted_element_style_shape_values_suggests_matching_values() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(ELEMENT_STYLE_QUOTED_SHAPE_VALUE_COMPLETION_SOURCE);
+    let uri = file_uri("element-style-quoted-shape-value-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let labels = completion_labels(&mut service, &uri, &source).await;
+    assert_eq!(labels, vec!["RoundedBox"]);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_relationship_style_values_still_returns_no_items() {
     let (mut service, _socket) = new_service();
 
     initialize(&mut service).await;
@@ -1646,12 +1742,20 @@ async fn completion_labels(
     uri: &Uri,
     source: &AnnotatedSource,
 ) -> Vec<String> {
+    completion_labels_at_position(service, uri, source.only_position()).await
+}
+
+async fn completion_labels_at_position(
+    service: &mut TestService,
+    uri: &Uri,
+    position: Position,
+) -> Vec<String> {
     let response = request_json(
         service,
         "textDocument/completion",
         json!({
             "textDocument": { "uri": uri.as_str() },
-            "position": source.only_position(),
+            "position": position,
         }),
     )
     .await;

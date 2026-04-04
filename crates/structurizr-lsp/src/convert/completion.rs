@@ -63,6 +63,186 @@ const RELATIONSHIP_STYLE_PROPERTY_ITEMS: &[(&str, &str)] = &[
     ("jump", "Relationship style property"),
 ];
 
+// These tables intentionally mirror the finite values already accepted by the
+// grammar. Keeping them in Rust lets the LSP stay syntax-backed and avoids
+// introducing a JS/shared-generation dependency into the completion path.
+const NAMED_COLOR_VALUES: &[&str] = &[
+    "aliceblue",
+    "antiquewhite",
+    "aqua",
+    "aquamarine",
+    "azure",
+    "beige",
+    "bisque",
+    "black",
+    "blanchedalmond",
+    "blue",
+    "blueviolet",
+    "brown",
+    "burlywood",
+    "cadetblue",
+    "chartreuse",
+    "chocolate",
+    "coral",
+    "cornflowerblue",
+    "cornsilk",
+    "crimson",
+    "cyan",
+    "darkblue",
+    "darkcyan",
+    "darkgoldenrod",
+    "darkgray",
+    "darkgreen",
+    "darkgrey",
+    "darkkhaki",
+    "darkmagenta",
+    "darkolivegreen",
+    "darkorange",
+    "darkorchid",
+    "darkred",
+    "darksalmon",
+    "darkseagreen",
+    "darkslateblue",
+    "darkslategray",
+    "darkslategrey",
+    "darkturquoise",
+    "darkviolet",
+    "deeppink",
+    "deepskyblue",
+    "dimgray",
+    "dimgrey",
+    "dodgerblue",
+    "firebrick",
+    "floralwhite",
+    "forestgreen",
+    "fuchsia",
+    "gainsboro",
+    "ghostwhite",
+    "gold",
+    "goldenrod",
+    "gray",
+    "green",
+    "greenyellow",
+    "grey",
+    "honeydew",
+    "hotpink",
+    "indianred",
+    "indigo",
+    "ivory",
+    "khaki",
+    "lavender",
+    "lavenderblush",
+    "lawngreen",
+    "lemonchiffon",
+    "lightblue",
+    "lightcoral",
+    "lightcyan",
+    "lightgoldenrodyellow",
+    "lightgray",
+    "lightgreen",
+    "lightgrey",
+    "lightpink",
+    "lightsalmon",
+    "lightseagreen",
+    "lightskyblue",
+    "lightslategray",
+    "lightslategrey",
+    "lightsteelblue",
+    "lightyellow",
+    "lime",
+    "limegreen",
+    "linen",
+    "magenta",
+    "maroon",
+    "mediumaquamarine",
+    "mediumblue",
+    "mediumorchid",
+    "mediumpurple",
+    "mediumseagreen",
+    "mediumslateblue",
+    "mediumspringgreen",
+    "mediumturquoise",
+    "mediumvioletred",
+    "midnightblue",
+    "mintcream",
+    "mistyrose",
+    "moccasin",
+    "navajowhite",
+    "navy",
+    "oldlace",
+    "olive",
+    "olivedrab",
+    "orange",
+    "orangered",
+    "orchid",
+    "palegoldenrod",
+    "palegreen",
+    "paleturquoise",
+    "palevioletred",
+    "papayawhip",
+    "peachpuff",
+    "peru",
+    "pink",
+    "plum",
+    "powderblue",
+    "purple",
+    "rebeccapurple",
+    "red",
+    "rosybrown",
+    "royalblue",
+    "saddlebrown",
+    "salmon",
+    "sandybrown",
+    "seagreen",
+    "seashell",
+    "sienna",
+    "silver",
+    "skyblue",
+    "slateblue",
+    "slategray",
+    "slategrey",
+    "snow",
+    "springgreen",
+    "steelblue",
+    "tan",
+    "teal",
+    "thistle",
+    "tomato",
+    "turquoise",
+    "violet",
+    "wheat",
+    "white",
+    "whitesmoke",
+    "yellow",
+    "yellowgreen",
+];
+
+const BOOLEAN_STYLE_VALUE_VALUES: &[&str] = &["true", "false"];
+
+const BORDER_STYLE_VALUE_VALUES: &[&str] = &["Solid", "Dashed", "Dotted"];
+
+const SHAPE_STYLE_VALUE_VALUES: &[&str] = &[
+    "Box",
+    "RoundedBox",
+    "Circle",
+    "Ellipse",
+    "Hexagon",
+    "Diamond",
+    "Cylinder",
+    "Bucket",
+    "Pipe",
+    "Person",
+    "Robot",
+    "Folder",
+    "WebBrowser",
+    "Window",
+    "Terminal",
+    "Shell",
+    "MobileDevicePortrait",
+    "MobileDeviceLandscape",
+    "Component",
+];
+
 const CORE_ELEMENT_KINDS: &[SymbolKind] = &[
     SymbolKind::Person,
     SymbolKind::SoftwareSystem,
@@ -78,6 +258,7 @@ const CORE_ELEMENT_KINDS: &[SymbolKind] = &[
 enum CompletionContext {
     FixedVocabulary,
     StyleProperties(StyleBlockKind),
+    StyleValues(StyleValueCompletionContext),
     RelationshipIdentifier(RelationshipCompletionContext),
     FreshRelationshipSource,
     Suppress,
@@ -87,6 +268,52 @@ enum CompletionContext {
 enum StyleBlockKind {
     Element,
     Relationship,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct StyleValueCompletionContext {
+    kind: StyleValueKind,
+    hash_prefixed: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum StyleValueKind {
+    NamedColor,
+    Boolean,
+    Border,
+    Shape,
+}
+
+impl StyleValueKind {
+    const fn candidates(self) -> &'static [&'static str] {
+        match self {
+            Self::NamedColor => NAMED_COLOR_VALUES,
+            Self::Boolean => BOOLEAN_STYLE_VALUE_VALUES,
+            Self::Border => BORDER_STYLE_VALUE_VALUES,
+            Self::Shape => SHAPE_STYLE_VALUE_VALUES,
+        }
+    }
+
+    const fn detail(self) -> &'static str {
+        match self {
+            Self::NamedColor => "Named colour",
+            Self::Boolean => "Boolean style value",
+            Self::Border => "Border style value",
+            Self::Shape => "Shape style value",
+        }
+    }
+
+    const fn completion_kind(self) -> CompletionItemKind {
+        match self {
+            Self::NamedColor => CompletionItemKind::COLOR,
+            Self::Boolean => CompletionItemKind::VALUE,
+            Self::Border | Self::Shape => CompletionItemKind::ENUM_MEMBER,
+        }
+    }
+
+    const fn supports_quoted_values(self) -> bool {
+        matches!(self, Self::Border | Self::Shape)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -113,6 +340,16 @@ enum WorkspaceCompletionOutcome {
     Suppress,
 }
 
+impl CompletionContext {
+    const fn allows_quoted_completion(&self) -> bool {
+        matches!(
+            self,
+            Self::StyleValues(StyleValueCompletionContext { kind, .. })
+                if kind.supports_quoted_values()
+        )
+    }
+}
+
 /// Returns completion items that match the current token prefix.
 #[must_use]
 pub fn completion_items(
@@ -134,6 +371,9 @@ pub fn completion_items(
         }
         CompletionContext::StyleProperties(kind) => {
             keyword_completion_items(style_property_items(kind), edit_range, prefix)
+        }
+        CompletionContext::StyleValues(context) => {
+            style_value_completion_items(context, edit_range, prefix)
         }
         CompletionContext::RelationshipIdentifier(context) => relationship_identifier_items(
             document,
@@ -161,22 +401,56 @@ fn style_property_items(kind: StyleBlockKind) -> Vec<(&'static str, &'static str
     items
 }
 
+fn style_value_completion_items(
+    context: StyleValueCompletionContext,
+    edit_range: Option<Range>,
+    prefix: &str,
+) -> Vec<CompletionItem> {
+    if context.hash_prefixed {
+        return Vec::new();
+    }
+
+    context
+        .kind
+        .candidates()
+        .iter()
+        .copied()
+        .filter(|candidate| style_value_prefix_matches(candidate, prefix))
+        .map(|candidate| CompletionItem {
+            label: candidate.to_owned(),
+            kind: Some(context.kind.completion_kind()),
+            detail: Some(context.kind.detail().to_owned()),
+            text_edit: edit_range.map(|range| {
+                CompletionTextEdit::Edit(TextEdit {
+                    range,
+                    new_text: candidate.to_owned(),
+                })
+            }),
+            ..CompletionItem::default()
+        })
+        .collect()
+}
+
 fn completion_context(
     text: &str,
     snapshot: &DocumentSnapshot,
     offset: usize,
     prefix_start: usize,
 ) -> CompletionContext {
+    let style_context = style_block_context(text, snapshot, offset, prefix_start);
+
     // Incomplete quoted text usually only exists through parser recovery, so do
     // not rely on syntax nodes alone to suppress noisy identifier/keyword
     // completions while the user is typing inside a string.
     if is_inside_quoted_string(text, offset) {
-        return CompletionContext::Suppress;
+        return style_context
+            .filter(CompletionContext::allows_quoted_completion)
+            .unwrap_or(CompletionContext::Suppress);
     }
 
     // First keep the existing syntax-backed refinements intact. Only after those
     // do we attempt the new semantic relationship-endpoint completion surface.
-    style_block_context(text, snapshot, offset, prefix_start)
+    style_context
         .or_else(|| relationship_completion_context(text, snapshot, offset, prefix_start))
         .or_else(|| fresh_relationship_source_context(text, snapshot, offset, prefix_start))
         .unwrap_or(CompletionContext::FixedVocabulary)
@@ -250,16 +524,28 @@ fn style_block_context_from_node(
         // Once the cursor has moved off the property name and into the value,
         // suppress the global keyword list as well. That keeps `metadata true`
         // or `routing Orthogonal` from showing unrelated workspace keywords.
-        return Some(
-            if span_contains(name.start_byte(), name.end_byte(), cursor_probe)
-                || span_contains(name.start_byte(), name.end_byte(), prefix_probe)
-                || cursor_probe == name.end_byte()
-            {
-                CompletionContext::StyleProperties(style_kind)
-            } else {
-                CompletionContext::Suppress
-            },
-        );
+        return Some(if style_kind == StyleBlockKind::Element {
+            element_style_value_context(text, offset, prefix_start).map_or_else(
+                || {
+                    if span_contains(name.start_byte(), name.end_byte(), cursor_probe)
+                        || span_contains(name.start_byte(), name.end_byte(), prefix_probe)
+                        || cursor_probe == name.end_byte()
+                    {
+                        CompletionContext::StyleProperties(style_kind)
+                    } else {
+                        CompletionContext::Suppress
+                    }
+                },
+                CompletionContext::StyleValues,
+            )
+        } else if span_contains(name.start_byte(), name.end_byte(), cursor_probe)
+            || span_contains(name.start_byte(), name.end_byte(), prefix_probe)
+            || cursor_probe == name.end_byte()
+        {
+            CompletionContext::StyleProperties(style_kind)
+        } else {
+            CompletionContext::Suppress
+        });
     }
 
     let style_rule_block = style_rule_block?;
@@ -271,11 +557,108 @@ fn style_block_context_from_node(
         return None;
     }
 
-    Some(if is_style_property_insertion_point(text, prefix_start) {
+    Some(if style_kind == StyleBlockKind::Element {
+        element_style_value_context(text, offset, prefix_start).map_or_else(
+            || {
+                if is_style_property_insertion_point(text, prefix_start) {
+                    CompletionContext::StyleProperties(style_kind)
+                } else {
+                    CompletionContext::Suppress
+                }
+            },
+            CompletionContext::StyleValues,
+        )
+    } else if is_style_property_insertion_point(text, prefix_start) {
         CompletionContext::StyleProperties(style_kind)
     } else {
         CompletionContext::Suppress
     })
+}
+
+fn element_style_value_context(
+    text: &str,
+    offset: usize,
+    prefix_start: usize,
+) -> Option<StyleValueCompletionContext> {
+    let safe_offset = offset.min(text.len());
+    let safe_prefix_start = prefix_start.min(text.len());
+    let line_start = text[..safe_prefix_start]
+        .rfind('\n')
+        .map_or(0, |index| index + 1);
+    let indent_len = text[line_start..safe_offset]
+        .bytes()
+        .take_while(|byte| matches!(byte, b' ' | b'\t'))
+        .count();
+    let property_start = line_start + indent_len;
+    let property_end = property_start
+        + text[property_start..safe_offset]
+            .bytes()
+            .take_while(
+                |byte| matches!(byte, b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' | b'_' | b'.' | b'-'),
+            )
+            .count();
+    if property_end == property_start || safe_prefix_start <= property_end {
+        return None;
+    }
+
+    // Partially typed style values recover as ERROR nodes before Tree-sitter can
+    // rebuild a stable `style_setting`, so once we know we are inside an element
+    // style block we recover the property/value split from the current line.
+    let kind = bounded_element_style_value_kind(&text[property_start..property_end])?;
+    let quoted = is_inside_quoted_string(text, offset);
+    if quoted && !kind.supports_quoted_values() {
+        return None;
+    }
+
+    is_style_value_completion_position(kind, text, property_end, prefix_start).then_some(
+        StyleValueCompletionContext {
+            kind,
+            hash_prefixed: kind == StyleValueKind::NamedColor
+                && current_value_prefix_starts_with_hash(text, prefix_start),
+        },
+    )
+}
+
+fn bounded_element_style_value_kind(property_name: &str) -> Option<StyleValueKind> {
+    match property_name {
+        "background" | "color" | "colour" | "stroke" => Some(StyleValueKind::NamedColor),
+        "metadata" | "description" => Some(StyleValueKind::Boolean),
+        "border" => Some(StyleValueKind::Border),
+        "shape" => Some(StyleValueKind::Shape),
+        _ => None,
+    }
+}
+
+fn is_style_value_completion_position(
+    kind: StyleValueKind,
+    text: &str,
+    name_end: usize,
+    prefix_start: usize,
+) -> bool {
+    let safe_name_end = name_end.min(text.len());
+    let safe_prefix_start = prefix_start.min(text.len());
+    if safe_prefix_start < safe_name_end {
+        return false;
+    }
+
+    let leading = &text[safe_name_end..safe_prefix_start];
+    !leading.contains('\n')
+        && leading.chars().all(|char| {
+            char.is_ascii_whitespace()
+                || (char == '"' && kind.supports_quoted_values())
+                || (char == '#' && kind == StyleValueKind::NamedColor)
+        })
+}
+
+fn current_value_prefix_starts_with_hash(text: &str, prefix_start: usize) -> bool {
+    text.as_bytes().get(prefix_start.saturating_sub(1)).copied() == Some(b'#')
+}
+
+fn style_value_prefix_matches(candidate: &str, prefix: &str) -> bool {
+    prefix.is_empty()
+        || candidate
+            .get(..prefix.len())
+            .is_some_and(|leading| leading.eq_ignore_ascii_case(prefix))
 }
 
 fn relationship_completion_context_from_node(

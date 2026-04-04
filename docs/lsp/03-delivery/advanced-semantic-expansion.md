@@ -156,12 +156,13 @@ The cleanest way to think about Phase 6 is five tracks.
 
 ## Track 0: remaining syntax-backed completion refinements
 
-Style-property name completion inside parsed style blocks is now landed.
+Style-property name completion inside parsed style blocks is now landed, and
+`element_style` blocks now also have bounded value completion for the known
+colour/boolean/border/shape tables.
 Before broader semantic expansion starts, the server can still add small completion improvements that rely only on stable parse context and static DSL tables.
 
 ### What belongs in this track
 
-- finite value completion inside `element_style` blocks
 - finite value completion inside `relationship_style` blocks
 - optional `properties {}` block scaffolding inside style-rule blocks
 

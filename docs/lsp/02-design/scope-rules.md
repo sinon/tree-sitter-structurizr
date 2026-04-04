@@ -401,6 +401,8 @@ For the current bounded slice:
 
 - keyword/directive completion is enabled
 - style-property completion is enabled
+- bounded element-style value completion is enabled for known
+  colour/boolean/border/shape properties
 - flat-mode relationship identifier completion is enabled for explicit model
   `relationship` source/destination endpoints that target core element bindings
 - broader identifier completion remains deferred
@@ -422,10 +424,11 @@ Broader identifier completion still depends on:
 - clearer policy for hierarchical insertion
 
 This restriction is specifically about semantic identifier insertion beyond the
-shipped flat relationship slice. It does **not** affect the style-property
-completion already available inside parsed `element_style` and
-`relationship_style` blocks, because those suggestions do not depend on
-`!identifiers`, scope resolution, or canonical element keys.
+shipped flat relationship slice. It does **not** affect the syntax-backed
+style-property completion already available inside parsed `element_style` and
+`relationship_style` blocks, or the bounded element-style value completion
+already available for known finite values, because those suggestions do not
+depend on `!identifiers`, scope resolution, or canonical element keys.
 
 ### Future identifier completion policy
 
