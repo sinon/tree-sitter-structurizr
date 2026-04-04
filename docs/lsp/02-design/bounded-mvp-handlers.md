@@ -291,9 +291,16 @@ The first completion slice should support:
 
 This is enough to make the server feel helpful without requiring deep semantic scope resolution.
 
-The current completion slice also supports style-property names inside `element_style` and `relationship_style` blocks.
-That refinement stays syntax-backed and context-aware: it is driven by parsed style-block context and block-specific property tables, not by semantic identifier resolution.
-Because the grammar still allows generic identifier-based style keys, it should stay additive rather than becoming a validity gate.
+The current completion slice also supports style-property names inside
+`element_style` and `relationship_style` blocks, plus bounded value completion
+for the known colour/boolean/border/shape properties inside `element_style`
+blocks.
+Those refinements stay syntax-backed and context-aware: property names still
+come from parsed style-block context, while the finite value suggestions come
+from static DSL tables plus line-local recovery when partially typed values are
+still parse errors.
+Because the grammar still allows generic identifier-based style keys, these
+suggestions should stay additive rather than becoming a validity gate.
 
 The current bounded slice also ships one narrow semantic identifier-completion
 path: explicit model `relationship` source/destination endpoints can complete

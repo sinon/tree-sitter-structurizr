@@ -63,6 +63,195 @@ const RELATIONSHIP_STYLE_PROPERTY_ITEMS: &[(&str, &str)] = &[
     ("jump", "Relationship style property"),
 ];
 
+// These property groups and value tables intentionally mirror the finite values
+// already accepted by the grammar. The completion logic keeps them in Rust to
+// stay syntax-backed, and the unit tests below guard that they stay aligned
+// with grammar.js.
+const COLOR_STYLE_VALUE_PROPERTIES: &[&str] = &["background", "color", "colour", "stroke"];
+
+const BOOLEAN_STYLE_VALUE_PROPERTIES: &[&str] = &["metadata", "description"];
+
+const BORDER_STYLE_VALUE_PROPERTIES: &[&str] = &["border"];
+
+const SHAPE_STYLE_VALUE_PROPERTIES: &[&str] = &["shape"];
+
+const NAMED_COLOR_VALUES: &[&str] = &[
+    "aliceblue",
+    "antiquewhite",
+    "aqua",
+    "aquamarine",
+    "azure",
+    "beige",
+    "bisque",
+    "black",
+    "blanchedalmond",
+    "blue",
+    "blueviolet",
+    "brown",
+    "burlywood",
+    "cadetblue",
+    "chartreuse",
+    "chocolate",
+    "coral",
+    "cornflowerblue",
+    "cornsilk",
+    "crimson",
+    "cyan",
+    "darkblue",
+    "darkcyan",
+    "darkgoldenrod",
+    "darkgray",
+    "darkgreen",
+    "darkgrey",
+    "darkkhaki",
+    "darkmagenta",
+    "darkolivegreen",
+    "darkorange",
+    "darkorchid",
+    "darkred",
+    "darksalmon",
+    "darkseagreen",
+    "darkslateblue",
+    "darkslategray",
+    "darkslategrey",
+    "darkturquoise",
+    "darkviolet",
+    "deeppink",
+    "deepskyblue",
+    "dimgray",
+    "dimgrey",
+    "dodgerblue",
+    "firebrick",
+    "floralwhite",
+    "forestgreen",
+    "fuchsia",
+    "gainsboro",
+    "ghostwhite",
+    "gold",
+    "goldenrod",
+    "gray",
+    "green",
+    "greenyellow",
+    "grey",
+    "honeydew",
+    "hotpink",
+    "indianred",
+    "indigo",
+    "ivory",
+    "khaki",
+    "lavender",
+    "lavenderblush",
+    "lawngreen",
+    "lemonchiffon",
+    "lightblue",
+    "lightcoral",
+    "lightcyan",
+    "lightgoldenrodyellow",
+    "lightgray",
+    "lightgreen",
+    "lightgrey",
+    "lightpink",
+    "lightsalmon",
+    "lightseagreen",
+    "lightskyblue",
+    "lightslategray",
+    "lightslategrey",
+    "lightsteelblue",
+    "lightyellow",
+    "lime",
+    "limegreen",
+    "linen",
+    "magenta",
+    "maroon",
+    "mediumaquamarine",
+    "mediumblue",
+    "mediumorchid",
+    "mediumpurple",
+    "mediumseagreen",
+    "mediumslateblue",
+    "mediumspringgreen",
+    "mediumturquoise",
+    "mediumvioletred",
+    "midnightblue",
+    "mintcream",
+    "mistyrose",
+    "moccasin",
+    "navajowhite",
+    "navy",
+    "oldlace",
+    "olive",
+    "olivedrab",
+    "orange",
+    "orangered",
+    "orchid",
+    "palegoldenrod",
+    "palegreen",
+    "paleturquoise",
+    "palevioletred",
+    "papayawhip",
+    "peachpuff",
+    "peru",
+    "pink",
+    "plum",
+    "powderblue",
+    "purple",
+    "rebeccapurple",
+    "red",
+    "rosybrown",
+    "royalblue",
+    "saddlebrown",
+    "salmon",
+    "sandybrown",
+    "seagreen",
+    "seashell",
+    "sienna",
+    "silver",
+    "skyblue",
+    "slateblue",
+    "slategray",
+    "slategrey",
+    "snow",
+    "springgreen",
+    "steelblue",
+    "tan",
+    "teal",
+    "thistle",
+    "tomato",
+    "turquoise",
+    "violet",
+    "wheat",
+    "white",
+    "whitesmoke",
+    "yellow",
+    "yellowgreen",
+];
+
+const BOOLEAN_STYLE_VALUE_VALUES: &[&str] = &["true", "false"];
+
+const BORDER_STYLE_VALUE_VALUES: &[&str] = &["Solid", "Dashed", "Dotted"];
+
+const SHAPE_STYLE_VALUE_VALUES: &[&str] = &[
+    "Box",
+    "RoundedBox",
+    "Circle",
+    "Ellipse",
+    "Hexagon",
+    "Diamond",
+    "Cylinder",
+    "Bucket",
+    "Pipe",
+    "Person",
+    "Robot",
+    "Folder",
+    "WebBrowser",
+    "Window",
+    "Terminal",
+    "Shell",
+    "MobileDevicePortrait",
+    "MobileDeviceLandscape",
+    "Component",
+];
+
 const CORE_ELEMENT_KINDS: &[SymbolKind] = &[
     SymbolKind::Person,
     SymbolKind::SoftwareSystem,
@@ -78,6 +267,7 @@ const CORE_ELEMENT_KINDS: &[SymbolKind] = &[
 enum CompletionContext {
     FixedVocabulary,
     StyleProperties(StyleBlockKind),
+    StyleValues(StyleValueCompletionContext),
     RelationshipIdentifier(RelationshipCompletionContext),
     FreshRelationshipSource,
     Suppress,
@@ -87,6 +277,58 @@ enum CompletionContext {
 enum StyleBlockKind {
     Element,
     Relationship,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct StyleValueCompletionContext {
+    kind: StyleValueKind,
+    hash_prefixed: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum StyleValueKind {
+    NamedColor,
+    Boolean,
+    Border,
+    Shape,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum StyleValuePrefixMode {
+    Plain,
+    HashPrefixed,
+}
+
+impl StyleValueKind {
+    const fn candidates(self) -> &'static [&'static str] {
+        match self {
+            Self::NamedColor => NAMED_COLOR_VALUES,
+            Self::Boolean => BOOLEAN_STYLE_VALUE_VALUES,
+            Self::Border => BORDER_STYLE_VALUE_VALUES,
+            Self::Shape => SHAPE_STYLE_VALUE_VALUES,
+        }
+    }
+
+    const fn detail(self) -> &'static str {
+        match self {
+            Self::NamedColor => "Named colour",
+            Self::Boolean => "Boolean style value",
+            Self::Border => "Border style value",
+            Self::Shape => "Shape style value",
+        }
+    }
+
+    const fn completion_kind(self) -> CompletionItemKind {
+        match self {
+            Self::NamedColor => CompletionItemKind::COLOR,
+            Self::Boolean => CompletionItemKind::VALUE,
+            Self::Border | Self::Shape => CompletionItemKind::ENUM_MEMBER,
+        }
+    }
+
+    const fn supports_quoted_values(self) -> bool {
+        matches!(self, Self::Border | Self::Shape)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -113,6 +355,16 @@ enum WorkspaceCompletionOutcome {
     Suppress,
 }
 
+impl CompletionContext {
+    const fn allows_quoted_completion(&self) -> bool {
+        matches!(
+            self,
+            Self::StyleValues(StyleValueCompletionContext { kind, .. })
+                if kind.supports_quoted_values()
+        )
+    }
+}
+
 /// Returns completion items that match the current token prefix.
 #[must_use]
 pub fn completion_items(
@@ -134,6 +386,9 @@ pub fn completion_items(
         }
         CompletionContext::StyleProperties(kind) => {
             keyword_completion_items(style_property_items(kind), edit_range, prefix)
+        }
+        CompletionContext::StyleValues(context) => {
+            style_value_completion_items(context, edit_range, prefix)
         }
         CompletionContext::RelationshipIdentifier(context) => relationship_identifier_items(
             document,
@@ -161,22 +416,56 @@ fn style_property_items(kind: StyleBlockKind) -> Vec<(&'static str, &'static str
     items
 }
 
+fn style_value_completion_items(
+    context: StyleValueCompletionContext,
+    edit_range: Option<Range>,
+    prefix: &str,
+) -> Vec<CompletionItem> {
+    if context.hash_prefixed {
+        return Vec::new();
+    }
+
+    context
+        .kind
+        .candidates()
+        .iter()
+        .copied()
+        .filter(|candidate| style_value_prefix_matches(candidate, prefix))
+        .map(|candidate| CompletionItem {
+            label: candidate.to_owned(),
+            kind: Some(context.kind.completion_kind()),
+            detail: Some(context.kind.detail().to_owned()),
+            text_edit: edit_range.map(|range| {
+                CompletionTextEdit::Edit(TextEdit {
+                    range,
+                    new_text: candidate.to_owned(),
+                })
+            }),
+            ..CompletionItem::default()
+        })
+        .collect()
+}
+
 fn completion_context(
     text: &str,
     snapshot: &DocumentSnapshot,
     offset: usize,
     prefix_start: usize,
 ) -> CompletionContext {
+    let style_context = style_block_context(text, snapshot, offset, prefix_start);
+
     // Incomplete quoted text usually only exists through parser recovery, so do
     // not rely on syntax nodes alone to suppress noisy identifier/keyword
     // completions while the user is typing inside a string.
     if is_inside_quoted_string(text, offset) {
-        return CompletionContext::Suppress;
+        return style_context
+            .filter(CompletionContext::allows_quoted_completion)
+            .unwrap_or(CompletionContext::Suppress);
     }
 
     // First keep the existing syntax-backed refinements intact. Only after those
     // do we attempt the new semantic relationship-endpoint completion surface.
-    style_block_context(text, snapshot, offset, prefix_start)
+    style_context
         .or_else(|| relationship_completion_context(text, snapshot, offset, prefix_start))
         .or_else(|| fresh_relationship_source_context(text, snapshot, offset, prefix_start))
         .unwrap_or(CompletionContext::FixedVocabulary)
@@ -230,9 +519,11 @@ fn style_block_context_from_node(
     let mut current = node;
     let mut style_setting = None;
     let mut style_rule_block = None;
+    let mut inside_properties_block = false;
     let style_kind = loop {
         match current.kind() {
             "style_setting" if style_setting.is_none() => style_setting = Some(current),
+            "properties_block" => inside_properties_block = true,
             "style_rule_block" if style_rule_block.is_none() => style_rule_block = Some(current),
             "element_style" => break Some(StyleBlockKind::Element),
             "relationship_style" => break Some(StyleBlockKind::Relationship),
@@ -242,24 +533,23 @@ fn style_block_context_from_node(
         current = current.parent()?;
     }?;
 
+    if inside_properties_block {
+        return Some(CompletionContext::Suppress);
+    }
+
     if let Some(style_setting) = style_setting {
         let name = style_setting.child_by_field_name("name")?;
-        let cursor_probe = offset.min(text.len());
-        let prefix_probe = prefix_start.saturating_sub(1);
 
         // Once the cursor has moved off the property name and into the value,
         // suppress the global keyword list as well. That keeps `metadata true`
         // or `routing Orthogonal` from showing unrelated workspace keywords.
-        return Some(
-            if span_contains(name.start_byte(), name.end_byte(), cursor_probe)
-                || span_contains(name.start_byte(), name.end_byte(), prefix_probe)
-                || cursor_probe == name.end_byte()
-            {
-                CompletionContext::StyleProperties(style_kind)
-            } else {
-                CompletionContext::Suppress
-            },
-        );
+        return Some(if style_kind == StyleBlockKind::Element {
+            element_style_completion_context(text, offset, prefix_start, Some(name))
+        } else if node_matches_cursor(name, offset, prefix_start) {
+            CompletionContext::StyleProperties(StyleBlockKind::Relationship)
+        } else {
+            CompletionContext::Suppress
+        });
     }
 
     let style_rule_block = style_rule_block?;
@@ -271,11 +561,135 @@ fn style_block_context_from_node(
         return None;
     }
 
-    Some(if is_style_property_insertion_point(text, prefix_start) {
-        CompletionContext::StyleProperties(style_kind)
+    Some(if style_kind == StyleBlockKind::Element {
+        element_style_completion_context(text, offset, prefix_start, None)
+    } else if is_style_property_insertion_point(text, prefix_start) {
+        CompletionContext::StyleProperties(StyleBlockKind::Relationship)
     } else {
         CompletionContext::Suppress
     })
+}
+
+fn element_style_completion_context(
+    text: &str,
+    offset: usize,
+    prefix_start: usize,
+    property_name: Option<tree_sitter::Node<'_>>,
+) -> CompletionContext {
+    element_style_value_context(text, offset, prefix_start).map_or_else(
+        || {
+            if property_name.is_some_and(|name| node_matches_cursor(name, offset, prefix_start))
+                || property_name.is_none() && is_style_property_insertion_point(text, prefix_start)
+            {
+                CompletionContext::StyleProperties(StyleBlockKind::Element)
+            } else {
+                CompletionContext::Suppress
+            }
+        },
+        CompletionContext::StyleValues,
+    )
+}
+
+fn element_style_value_context(
+    text: &str,
+    offset: usize,
+    prefix_start: usize,
+) -> Option<StyleValueCompletionContext> {
+    let safe_offset = offset.min(text.len());
+    let safe_prefix_start = prefix_start.min(text.len());
+    let line_start = text[..safe_prefix_start]
+        .rfind('\n')
+        .map_or(0, |index| index + 1);
+    let indent_len = text[line_start..safe_offset]
+        .bytes()
+        .take_while(|byte| matches!(byte, b' ' | b'\t'))
+        .count();
+    let property_start = line_start + indent_len;
+    let property_end = property_start
+        + text[property_start..safe_offset]
+            .bytes()
+            .take_while(
+                |byte| matches!(byte, b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' | b'_' | b'.' | b'-'),
+            )
+            .count();
+    if property_end == property_start || safe_prefix_start <= property_end {
+        return None;
+    }
+
+    // Partially typed style values recover as ERROR nodes before Tree-sitter can
+    // rebuild a stable `style_setting`, so once we know we are inside an element
+    // style block we recover the property/value split from the current line.
+    let kind = bounded_element_style_value_kind(&text[property_start..property_end])?;
+    let quoted = is_inside_quoted_string(text, offset);
+    if quoted && !kind.supports_quoted_values() {
+        return None;
+    }
+
+    let prefix_mode = style_value_prefix_mode(kind, text, property_end, prefix_start)?;
+    Some(StyleValueCompletionContext {
+        kind,
+        hash_prefixed: prefix_mode == StyleValuePrefixMode::HashPrefixed,
+    })
+}
+
+fn bounded_element_style_value_kind(property_name: &str) -> Option<StyleValueKind> {
+    if COLOR_STYLE_VALUE_PROPERTIES.contains(&property_name) {
+        Some(StyleValueKind::NamedColor)
+    } else if BOOLEAN_STYLE_VALUE_PROPERTIES.contains(&property_name) {
+        Some(StyleValueKind::Boolean)
+    } else if BORDER_STYLE_VALUE_PROPERTIES.contains(&property_name) {
+        Some(StyleValueKind::Border)
+    } else if SHAPE_STYLE_VALUE_PROPERTIES.contains(&property_name) {
+        Some(StyleValueKind::Shape)
+    } else {
+        None
+    }
+}
+
+fn style_value_prefix_mode(
+    kind: StyleValueKind,
+    text: &str,
+    name_end: usize,
+    prefix_start: usize,
+) -> Option<StyleValuePrefixMode> {
+    let safe_name_end = name_end.min(text.len());
+    let safe_prefix_start = prefix_start.min(text.len());
+    if safe_prefix_start < safe_name_end {
+        return None;
+    }
+
+    let leading = &text[safe_name_end..safe_prefix_start];
+    if leading.contains('\n') {
+        return None;
+    }
+
+    let trimmed = leading.trim_start_matches(|char: char| char.is_ascii_whitespace());
+    match kind {
+        StyleValueKind::NamedColor => named_color_prefix_mode(trimmed),
+        _ if kind.supports_quoted_values() => {
+            matches!(trimmed, "" | "\"").then_some(StyleValuePrefixMode::Plain)
+        }
+        _ => trimmed.is_empty().then_some(StyleValuePrefixMode::Plain),
+    }
+}
+
+fn named_color_prefix_mode(trimmed: &str) -> Option<StyleValuePrefixMode> {
+    if trimmed.is_empty() {
+        Some(StyleValuePrefixMode::Plain)
+    } else if let Some(rest) = trimmed.strip_prefix('#') {
+        rest.chars()
+            .all(|char| !char.is_ascii_whitespace())
+            .then_some(StyleValuePrefixMode::HashPrefixed)
+    } else {
+        None
+    }
+}
+
+fn style_value_prefix_matches(candidate: &str, prefix: &str) -> bool {
+    prefix.is_empty()
+        || candidate
+            .get(..prefix.len())
+            .is_some_and(|leading| leading.eq_ignore_ascii_case(prefix))
 }
 
 fn relationship_completion_context_from_node(
@@ -1107,4 +1521,153 @@ fn completion_prefix_start(text: &str, offset: usize) -> usize {
             )
         })
         .map_or(0, |index| index + 1)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const GRAMMAR_JS: &str = include_str!("../../../structurizr-grammar/grammar.js");
+
+    #[test]
+    fn bounded_style_value_tables_match_grammar_js() {
+        assert_eq!(
+            NAMED_COLOR_VALUES.to_vec(),
+            extract_js_string_array(GRAMMAR_JS, "NAMED_COLORS")
+        );
+        assert_eq!(
+            COLOR_STYLE_VALUE_PROPERTIES.to_vec(),
+            extract_js_string_array(GRAMMAR_JS, "COLOR_STYLE_PROPERTIES")
+        );
+        assert_eq!(
+            BOOLEAN_STYLE_VALUE_VALUES.to_vec(),
+            extract_js_string_array(GRAMMAR_JS, "BOOLEAN_VALUES")
+        );
+        assert_eq!(
+            SHAPE_STYLE_VALUE_VALUES.to_vec(),
+            extract_js_string_array(GRAMMAR_JS, "SHAPE_VALUES")
+        );
+        assert_eq!(
+            BORDER_STYLE_VALUE_VALUES.to_vec(),
+            extract_js_string_array(GRAMMAR_JS, "BORDER_VALUES")
+        );
+    }
+
+    #[test]
+    fn bounded_style_value_property_groups_match_grammar_js() {
+        let style_setting = extract_style_setting_section(GRAMMAR_JS);
+        assert!(
+            style_setting.contains("alias(\"shape\", $.identifier)"),
+            "style_setting should still model the shape property explicitly"
+        );
+        assert!(
+            style_setting.contains("alias(\"border\", $.identifier)"),
+            "style_setting should still model the border property explicitly"
+        );
+
+        let boolean_properties = extract_double_quoted_strings(
+            style_setting
+                .lines()
+                .find(|line| line.contains("choice(\"metadata\""))
+                .expect("style_setting boolean choice should exist"),
+        );
+        for property in BOOLEAN_STYLE_VALUE_PROPERTIES {
+            assert!(
+                boolean_properties.contains(property),
+                "style_setting boolean choice should still include `{property}`"
+            );
+        }
+        for property in ["dashed", "jump"] {
+            assert!(
+                boolean_properties.contains(&property),
+                "style_setting boolean choice should still include `{property}`"
+            );
+            assert_eq!(
+                bounded_element_style_value_kind(property),
+                None,
+                "`{property}` should stay out of element-style value completion"
+            );
+        }
+    }
+
+    #[test]
+    fn bounded_element_style_value_kind_matches_supported_properties() {
+        for property in COLOR_STYLE_VALUE_PROPERTIES {
+            assert_eq!(
+                bounded_element_style_value_kind(property),
+                Some(StyleValueKind::NamedColor),
+                "`{property}` should map to named-color completion"
+            );
+        }
+        for property in BOOLEAN_STYLE_VALUE_PROPERTIES {
+            assert_eq!(
+                bounded_element_style_value_kind(property),
+                Some(StyleValueKind::Boolean),
+                "`{property}` should map to boolean completion"
+            );
+        }
+        for property in BORDER_STYLE_VALUE_PROPERTIES {
+            assert_eq!(
+                bounded_element_style_value_kind(property),
+                Some(StyleValueKind::Border),
+                "`{property}` should map to border completion"
+            );
+        }
+        for property in SHAPE_STYLE_VALUE_PROPERTIES {
+            assert_eq!(
+                bounded_element_style_value_kind(property),
+                Some(StyleValueKind::Shape),
+                "`{property}` should map to shape completion"
+            );
+        }
+    }
+
+    fn extract_style_setting_section(source: &str) -> &str {
+        let marker = "style_setting: ($) =>";
+        let start = source
+            .find(marker)
+            .expect("grammar should define style_setting");
+        let rest = &source[start..];
+        let end = rest
+            .find("_style_value: ($) =>")
+            .expect("style_setting section should end before _style_value");
+        &rest[..end]
+    }
+
+    fn extract_js_string_array<'a>(source: &'a str, const_name: &str) -> Vec<&'a str> {
+        let marker = format!("const {const_name} = [");
+        let start = source
+            .find(&marker)
+            .unwrap_or_else(|| panic!("grammar should define {const_name}"))
+            + marker.len();
+        let rest = &source[start..];
+        let end = rest
+            .find("];")
+            .unwrap_or_else(|| panic!("{const_name} array should terminate"));
+        extract_double_quoted_strings(&rest[..end])
+    }
+
+    fn extract_double_quoted_strings(input: &str) -> Vec<&str> {
+        let bytes = input.as_bytes();
+        let mut index = 0;
+        let mut values = Vec::new();
+
+        while index < bytes.len() {
+            if bytes[index] != b'"' {
+                index += 1;
+                continue;
+            }
+
+            let start = index + 1;
+            index += 1;
+            while index < bytes.len() && bytes[index] != b'"' {
+                index += 1;
+            }
+            assert!(index < bytes.len(), "quoted string should terminate");
+            values.push(&input[start..index]);
+            index += 1;
+        }
+
+        values
+    }
 }
