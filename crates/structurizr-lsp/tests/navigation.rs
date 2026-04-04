@@ -2,6 +2,7 @@ mod support;
 
 use std::{fs, path::Path};
 
+use indoc::indoc;
 use serde_json::json;
 use support::{
     AnnotatedSource, TestService, annotated_source, change_document, close_document, file_uri,
@@ -14,21 +15,6 @@ use tower_lsp_server::ls_types::{Position, Uri};
 
 const DIRECT_REFERENCES_SOURCE: &str =
     include_str!("fixtures/relationships/named-relationships-ok.dsl");
-const COMPLETION_SOURCE: &str = "workspace {\n  !i<CURSOR>\n}\n";
-const ELEMENT_STYLE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      element \"Person\" {\n        ba<CURSOR>\n      }\n    }\n  }\n}\n";
-const RELATIONSHIP_STYLE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      relationship \"Uses\" {\n        da<CURSOR>\n      }\n    }\n  }\n}\n";
-const STYLE_VALUE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      relationship \"Uses\" {\n        metadata de<CURSOR>\n      }\n    }\n  }\n}\n";
-const ELEMENT_STYLE_COLOR_VALUE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      element \"Person\" {\n        background dark<CURSOR:background>\n        color dark<CURSOR:color>\n        colour dark<CURSOR:colour>\n        stroke dark<CURSOR:stroke>\n        background #ff<CURSOR:hex>\n      }\n    }\n  }\n}\n";
-const ELEMENT_STYLE_BOOLEAN_VALUE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      element \"Person\" {\n        metadata t<CURSOR:metadata>\n        description f<CURSOR:description>\n      }\n    }\n  }\n}\n";
-const ELEMENT_STYLE_BORDER_VALUE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      element \"Person\" {\n        border d<CURSOR>\n      }\n    }\n  }\n}\n";
-const ELEMENT_STYLE_QUOTED_SHAPE_VALUE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      element \"Person\" {\n        shape \"rou<CURSOR>\"\n      }\n    }\n  }\n}\n";
-const STYLE_BLOCK_END_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      element \"Person\" {\n        background #ffffff\n      }\n      !d<CURSOR>\n    }\n  }\n}\n";
-const RELATIONSHIP_SOURCE_COMPLETION_SOURCE: &str = "workspace {\n  model {\n    user = person \"User\"\n    system = softwareSystem \"System\" {\n      api = container \"API\" {\n        worker = component \"Worker\"\n      }\n    }\n\n    <CURSOR>-> system \"Uses\"\n  }\n}\n";
-const FRESH_RELATIONSHIP_SOURCE_COMPLETION_SOURCE: &str = "workspace {\n  model {\n    user = person \"User\"\n    system = softwareSystem \"System\" {\n      api = container \"API\" {\n        worker = component \"Worker\"\n      }\n    }\n\n    u<CURSOR>\n  }\n}\n";
-const RELATIONSHIP_DESTINATION_COMPLETION_SOURCE: &str = "workspace {\n  model {\n    user = person \"User\"\n    system = softwareSystem \"System\" {\n      api = container \"API\" {\n        worker = component \"Worker\"\n      }\n    }\n\n    user -> <CURSOR>\n  }\n}\n";
-const OPEN_RELATIONSHIP_STRING_COMPLETION_SOURCE: &str = "workspace {\n  model {\n    user = person \"User\"\n    system = softwareSystem \"System\"\n\n    user -> system \"<CURSOR>c\n  }\n}\n";
-const RELATIONSHIP_HIERARCHICAL_COMPLETION_SOURCE: &str = "workspace {\n  model {\n    !identifiers hierarchical\n\n    system = softwareSystem \"System\" {\n      api = container \"API\"\n    }\n\n    system -> <CURSOR>\n  }\n}\n";
-const OPEN_WORKSPACE_STRING_COMPLETION_SOURCE: &str = "workspace \"<CURSOR>c\n";
 
 #[tokio::test(flavor = "current_thread")]
 async fn document_symbols_follow_analysis_symbols() {
@@ -71,7 +57,11 @@ async fn completion_returns_directive_keywords_for_prefixes() {
     initialize(&mut service).await;
     initialized(&mut service).await;
 
-    let source = annotated_source(COMPLETION_SOURCE);
+    let source = annotated_source(indoc! {r"
+        workspace {
+          !i<CURSOR>
+        }
+    "});
     let uri = file_uri("completion.dsl");
     open_document(&mut service, &uri, source.source()).await;
 
@@ -88,7 +78,17 @@ async fn completion_inside_element_style_suggests_element_style_properties() {
     initialize(&mut service).await;
     initialized(&mut service).await;
 
-    let source = annotated_source(ELEMENT_STYLE_COMPLETION_SOURCE);
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          views {
+            styles {
+              element "Person" {
+                ba<CURSOR>
+              }
+            }
+          }
+        }
+    "#});
     let uri = file_uri("element-style-completion.dsl");
     open_document(&mut service, &uri, source.source()).await;
 
@@ -106,7 +106,17 @@ async fn completion_inside_relationship_style_suggests_relationship_style_proper
     initialize(&mut service).await;
     initialized(&mut service).await;
 
-    let source = annotated_source(RELATIONSHIP_STYLE_COMPLETION_SOURCE);
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          views {
+            styles {
+              relationship "Uses" {
+                da<CURSOR>
+              }
+            }
+          }
+        }
+    "#});
     let uri = file_uri("relationship-style-completion.dsl");
     open_document(&mut service, &uri, source.source()).await;
 
@@ -124,7 +134,21 @@ async fn completion_inside_element_style_color_values_suggests_named_colors() {
     initialize(&mut service).await;
     initialized(&mut service).await;
 
-    let source = annotated_source(ELEMENT_STYLE_COLOR_VALUE_COMPLETION_SOURCE);
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          views {
+            styles {
+              element "Person" {
+                background dark<CURSOR:background>
+                color dark<CURSOR:color>
+                colour dark<CURSOR:colour>
+                stroke dark<CURSOR:stroke>
+                background #ff<CURSOR:hex>
+              }
+            }
+          }
+        }
+    "#});
     let uri = file_uri("element-style-color-value-completion.dsl");
     open_document(&mut service, &uri, source.source()).await;
 
@@ -149,7 +173,21 @@ async fn completion_inside_hex_color_prefix_suppresses_named_color_suggestions()
     initialize(&mut service).await;
     initialized(&mut service).await;
 
-    let source = annotated_source(ELEMENT_STYLE_COLOR_VALUE_COMPLETION_SOURCE);
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          views {
+            styles {
+              element "Person" {
+                background dark<CURSOR:background>
+                color dark<CURSOR:color>
+                colour dark<CURSOR:colour>
+                stroke dark<CURSOR:stroke>
+                background #ff<CURSOR:hex>
+              }
+            }
+          }
+        }
+    "#});
     let uri = file_uri("element-style-hex-color-value-completion.dsl");
     open_document(&mut service, &uri, source.source()).await;
 
@@ -164,7 +202,18 @@ async fn completion_inside_element_style_boolean_values_suggests_true_false() {
     initialize(&mut service).await;
     initialized(&mut service).await;
 
-    let source = annotated_source(ELEMENT_STYLE_BOOLEAN_VALUE_COMPLETION_SOURCE);
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          views {
+            styles {
+              element "Person" {
+                metadata t<CURSOR:metadata>
+                description f<CURSOR:description>
+              }
+            }
+          }
+        }
+    "#});
     let uri = file_uri("element-style-boolean-value-completion.dsl");
     open_document(&mut service, &uri, source.source()).await;
 
@@ -184,7 +233,17 @@ async fn completion_inside_element_style_border_values_suggests_matching_values(
     initialize(&mut service).await;
     initialized(&mut service).await;
 
-    let source = annotated_source(ELEMENT_STYLE_BORDER_VALUE_COMPLETION_SOURCE);
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          views {
+            styles {
+              element "Person" {
+                border d<CURSOR>
+              }
+            }
+          }
+        }
+    "#});
     let uri = file_uri("element-style-border-value-completion.dsl");
     open_document(&mut service, &uri, source.source()).await;
 
@@ -201,12 +260,110 @@ async fn completion_inside_quoted_element_style_shape_values_suggests_matching_v
     initialize(&mut service).await;
     initialized(&mut service).await;
 
-    let source = annotated_source(ELEMENT_STYLE_QUOTED_SHAPE_VALUE_COMPLETION_SOURCE);
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          views {
+            styles {
+              element "Person" {
+                shape "rou<CURSOR>"
+              }
+            }
+          }
+        }
+    "#});
     let uri = file_uri("element-style-quoted-shape-value-completion.dsl");
     open_document(&mut service, &uri, source.source()).await;
 
     let labels = completion_labels(&mut service, &uri, &source).await;
     assert_eq!(labels, vec!["RoundedBox"]);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_style_properties_block_values_returns_no_items() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          views {
+            styles {
+              element "Person" {
+                properties {
+                  background dark<CURSOR:background>
+                  shape "rou<CURSOR:shape>"
+                }
+              }
+            }
+          }
+        }
+    "#});
+    let uri = file_uri("element-style-properties-block-value-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    for marker in ["background", "shape"] {
+        let labels =
+            completion_labels_at_position(&mut service, &uri, source.position(marker)).await;
+        assert!(
+            labels.is_empty(),
+            "expected no style-value completions inside properties block for `{marker}`, got {labels:?}"
+        );
+    }
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_style_comments_returns_no_items() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          views {
+            styles {
+              element "Person" {
+                background # dark<CURSOR>
+              }
+            }
+          }
+        }
+    "#});
+    let uri = file_uri("element-style-comment-value-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let labels = completion_labels(&mut service, &uri, &source).await;
+    assert!(labels.is_empty());
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_does_not_recover_values_across_lines() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          views {
+            styles {
+              element "Person" {
+                background
+                  dark<CURSOR>
+              }
+            }
+          }
+        }
+    "#});
+    let uri = file_uri("element-style-cross-line-value-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let labels = completion_labels(&mut service, &uri, &source).await;
+    assert!(
+        labels.is_empty(),
+        "expected cross-line value recovery to stay suppressed, got {labels:?}"
+    );
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -216,7 +373,17 @@ async fn completion_inside_relationship_style_values_still_returns_no_items() {
     initialize(&mut service).await;
     initialized(&mut service).await;
 
-    let source = annotated_source(STYLE_VALUE_COMPLETION_SOURCE);
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          views {
+            styles {
+              relationship "Uses" {
+                metadata de<CURSOR>
+              }
+            }
+          }
+        }
+    "#});
     let uri = file_uri("style-value-completion.dsl");
     open_document(&mut service, &uri, source.source()).await;
 
@@ -231,7 +398,18 @@ async fn completion_after_style_block_returns_fixed_vocabulary() {
     initialize(&mut service).await;
     initialized(&mut service).await;
 
-    let source = annotated_source(STYLE_BLOCK_END_COMPLETION_SOURCE);
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          views {
+            styles {
+              element "Person" {
+                background #ffffff
+              }
+              !d<CURSOR>
+            }
+          }
+        }
+    "#});
     let uri = file_uri("style-block-end-completion.dsl");
     open_document(&mut service, &uri, source.source()).await;
 
@@ -248,7 +426,20 @@ async fn completion_inside_relationship_source_suggests_core_identifiers() {
     initialize(&mut service).await;
     initialized(&mut service).await;
 
-    let source = annotated_source(RELATIONSHIP_SOURCE_COMPLETION_SOURCE);
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          model {
+            user = person "User"
+            system = softwareSystem "System" {
+              api = container "API" {
+                worker = component "Worker"
+              }
+            }
+
+            <CURSOR>-> system "Uses"
+          }
+        }
+    "#});
     let uri = file_uri("relationship-source-completion.dsl");
     open_document(&mut service, &uri, source.source()).await;
 
@@ -268,7 +459,20 @@ async fn completion_inside_fresh_relationship_source_suggests_core_identifiers()
     initialize(&mut service).await;
     initialized(&mut service).await;
 
-    let source = annotated_source(FRESH_RELATIONSHIP_SOURCE_COMPLETION_SOURCE);
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          model {
+            user = person "User"
+            system = softwareSystem "System" {
+              api = container "API" {
+                worker = component "Worker"
+              }
+            }
+
+            u<CURSOR>
+          }
+        }
+    "#});
     let uri = file_uri("fresh-relationship-source-completion.dsl");
     open_document(&mut service, &uri, source.source()).await;
 
@@ -285,7 +489,20 @@ async fn completion_inside_relationship_destination_suggests_core_identifiers() 
     initialize(&mut service).await;
     initialized(&mut service).await;
 
-    let source = annotated_source(RELATIONSHIP_DESTINATION_COMPLETION_SOURCE);
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          model {
+            user = person "User"
+            system = softwareSystem "System" {
+              api = container "API" {
+                worker = component "Worker"
+              }
+            }
+
+            user -> <CURSOR>
+          }
+        }
+    "#});
     let uri = file_uri("relationship-destination-completion.dsl");
     open_document(&mut service, &uri, source.source()).await;
 
@@ -305,7 +522,16 @@ async fn completion_inside_unterminated_relationship_string_returns_no_items() {
     initialize(&mut service).await;
     initialized(&mut service).await;
 
-    let source = annotated_source(OPEN_RELATIONSHIP_STRING_COMPLETION_SOURCE);
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          model {
+            user = person "User"
+            system = softwareSystem "System"
+
+            user -> system "<CURSOR>c
+          }
+        }
+    "#});
     let uri = file_uri("open-relationship-string-completion.dsl");
     open_document(&mut service, &uri, source.source()).await;
 
@@ -324,7 +550,9 @@ async fn completion_inside_unterminated_workspace_string_returns_no_items() {
     initialize(&mut service).await;
     initialized(&mut service).await;
 
-    let source = annotated_source(OPEN_WORKSPACE_STRING_COMPLETION_SOURCE);
+    let source = annotated_source(indoc! {r#"
+        workspace "<CURSOR>c
+    "#});
     let uri = file_uri("open-workspace-string-completion.dsl");
     open_document(&mut service, &uri, source.source()).await;
 
@@ -430,7 +658,19 @@ async fn completion_inside_relationship_destination_suppresses_hierarchical_mode
     initialize(&mut service).await;
     initialized(&mut service).await;
 
-    let source = annotated_source(RELATIONSHIP_HIERARCHICAL_COMPLETION_SOURCE);
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          model {
+            !identifiers hierarchical
+
+            system = softwareSystem "System" {
+              api = container "API"
+            }
+
+            system -> <CURSOR>
+          }
+        }
+    "#});
     let uri = file_uri("relationship-hierarchical-completion.dsl");
     open_document(&mut service, &uri, source.source()).await;
 

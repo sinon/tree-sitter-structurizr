@@ -63,9 +63,18 @@ const RELATIONSHIP_STYLE_PROPERTY_ITEMS: &[(&str, &str)] = &[
     ("jump", "Relationship style property"),
 ];
 
-// These tables intentionally mirror the finite values already accepted by the
-// grammar. Keeping them in Rust lets the LSP stay syntax-backed and avoids
-// introducing a JS/shared-generation dependency into the completion path.
+// These property groups and value tables intentionally mirror the finite values
+// already accepted by the grammar. The completion logic keeps them in Rust to
+// stay syntax-backed, and the unit tests below guard that they stay aligned
+// with grammar.js.
+const COLOR_STYLE_VALUE_PROPERTIES: &[&str] = &["background", "color", "colour", "stroke"];
+
+const BOOLEAN_STYLE_VALUE_PROPERTIES: &[&str] = &["metadata", "description"];
+
+const BORDER_STYLE_VALUE_PROPERTIES: &[&str] = &["border"];
+
+const SHAPE_STYLE_VALUE_PROPERTIES: &[&str] = &["shape"];
+
 const NAMED_COLOR_VALUES: &[&str] = &[
     "aliceblue",
     "antiquewhite",
@@ -282,6 +291,12 @@ enum StyleValueKind {
     Boolean,
     Border,
     Shape,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum StyleValuePrefixMode {
+    Plain,
+    HashPrefixed,
 }
 
 impl StyleValueKind {
@@ -504,9 +519,11 @@ fn style_block_context_from_node(
     let mut current = node;
     let mut style_setting = None;
     let mut style_rule_block = None;
+    let mut inside_properties_block = false;
     let style_kind = loop {
         match current.kind() {
             "style_setting" if style_setting.is_none() => style_setting = Some(current),
+            "properties_block" => inside_properties_block = true,
             "style_rule_block" if style_rule_block.is_none() => style_rule_block = Some(current),
             "element_style" => break Some(StyleBlockKind::Element),
             "relationship_style" => break Some(StyleBlockKind::Relationship),
@@ -516,33 +533,20 @@ fn style_block_context_from_node(
         current = current.parent()?;
     }?;
 
+    if inside_properties_block {
+        return Some(CompletionContext::Suppress);
+    }
+
     if let Some(style_setting) = style_setting {
         let name = style_setting.child_by_field_name("name")?;
-        let cursor_probe = offset.min(text.len());
-        let prefix_probe = prefix_start.saturating_sub(1);
 
         // Once the cursor has moved off the property name and into the value,
         // suppress the global keyword list as well. That keeps `metadata true`
         // or `routing Orthogonal` from showing unrelated workspace keywords.
         return Some(if style_kind == StyleBlockKind::Element {
-            element_style_value_context(text, offset, prefix_start).map_or_else(
-                || {
-                    if span_contains(name.start_byte(), name.end_byte(), cursor_probe)
-                        || span_contains(name.start_byte(), name.end_byte(), prefix_probe)
-                        || cursor_probe == name.end_byte()
-                    {
-                        CompletionContext::StyleProperties(style_kind)
-                    } else {
-                        CompletionContext::Suppress
-                    }
-                },
-                CompletionContext::StyleValues,
-            )
-        } else if span_contains(name.start_byte(), name.end_byte(), cursor_probe)
-            || span_contains(name.start_byte(), name.end_byte(), prefix_probe)
-            || cursor_probe == name.end_byte()
-        {
-            CompletionContext::StyleProperties(style_kind)
+            element_style_completion_context(text, offset, prefix_start, Some(name))
+        } else if node_matches_cursor(name, offset, prefix_start) {
+            CompletionContext::StyleProperties(StyleBlockKind::Relationship)
         } else {
             CompletionContext::Suppress
         });
@@ -558,21 +562,32 @@ fn style_block_context_from_node(
     }
 
     Some(if style_kind == StyleBlockKind::Element {
-        element_style_value_context(text, offset, prefix_start).map_or_else(
-            || {
-                if is_style_property_insertion_point(text, prefix_start) {
-                    CompletionContext::StyleProperties(style_kind)
-                } else {
-                    CompletionContext::Suppress
-                }
-            },
-            CompletionContext::StyleValues,
-        )
+        element_style_completion_context(text, offset, prefix_start, None)
     } else if is_style_property_insertion_point(text, prefix_start) {
-        CompletionContext::StyleProperties(style_kind)
+        CompletionContext::StyleProperties(StyleBlockKind::Relationship)
     } else {
         CompletionContext::Suppress
     })
+}
+
+fn element_style_completion_context(
+    text: &str,
+    offset: usize,
+    prefix_start: usize,
+    property_name: Option<tree_sitter::Node<'_>>,
+) -> CompletionContext {
+    element_style_value_context(text, offset, prefix_start).map_or_else(
+        || {
+            if property_name.is_some_and(|name| node_matches_cursor(name, offset, prefix_start))
+                || property_name.is_none() && is_style_property_insertion_point(text, prefix_start)
+            {
+                CompletionContext::StyleProperties(StyleBlockKind::Element)
+            } else {
+                CompletionContext::Suppress
+            }
+        },
+        CompletionContext::StyleValues,
+    )
 }
 
 fn element_style_value_context(
@@ -610,48 +625,64 @@ fn element_style_value_context(
         return None;
     }
 
-    is_style_value_completion_position(kind, text, property_end, prefix_start).then_some(
-        StyleValueCompletionContext {
-            kind,
-            hash_prefixed: kind == StyleValueKind::NamedColor
-                && current_value_prefix_starts_with_hash(text, prefix_start),
-        },
-    )
+    let prefix_mode = style_value_prefix_mode(kind, text, property_end, prefix_start)?;
+    Some(StyleValueCompletionContext {
+        kind,
+        hash_prefixed: prefix_mode == StyleValuePrefixMode::HashPrefixed,
+    })
 }
 
 fn bounded_element_style_value_kind(property_name: &str) -> Option<StyleValueKind> {
-    match property_name {
-        "background" | "color" | "colour" | "stroke" => Some(StyleValueKind::NamedColor),
-        "metadata" | "description" => Some(StyleValueKind::Boolean),
-        "border" => Some(StyleValueKind::Border),
-        "shape" => Some(StyleValueKind::Shape),
-        _ => None,
+    if COLOR_STYLE_VALUE_PROPERTIES.contains(&property_name) {
+        Some(StyleValueKind::NamedColor)
+    } else if BOOLEAN_STYLE_VALUE_PROPERTIES.contains(&property_name) {
+        Some(StyleValueKind::Boolean)
+    } else if BORDER_STYLE_VALUE_PROPERTIES.contains(&property_name) {
+        Some(StyleValueKind::Border)
+    } else if SHAPE_STYLE_VALUE_PROPERTIES.contains(&property_name) {
+        Some(StyleValueKind::Shape)
+    } else {
+        None
     }
 }
 
-fn is_style_value_completion_position(
+fn style_value_prefix_mode(
     kind: StyleValueKind,
     text: &str,
     name_end: usize,
     prefix_start: usize,
-) -> bool {
+) -> Option<StyleValuePrefixMode> {
     let safe_name_end = name_end.min(text.len());
     let safe_prefix_start = prefix_start.min(text.len());
     if safe_prefix_start < safe_name_end {
-        return false;
+        return None;
     }
 
     let leading = &text[safe_name_end..safe_prefix_start];
-    !leading.contains('\n')
-        && leading.chars().all(|char| {
-            char.is_ascii_whitespace()
-                || (char == '"' && kind.supports_quoted_values())
-                || (char == '#' && kind == StyleValueKind::NamedColor)
-        })
+    if leading.contains('\n') {
+        return None;
+    }
+
+    let trimmed = leading.trim_start_matches(|char: char| char.is_ascii_whitespace());
+    match kind {
+        StyleValueKind::NamedColor => named_color_prefix_mode(trimmed),
+        _ if kind.supports_quoted_values() => {
+            matches!(trimmed, "" | "\"").then_some(StyleValuePrefixMode::Plain)
+        }
+        _ => trimmed.is_empty().then_some(StyleValuePrefixMode::Plain),
+    }
 }
 
-fn current_value_prefix_starts_with_hash(text: &str, prefix_start: usize) -> bool {
-    text.as_bytes().get(prefix_start.saturating_sub(1)).copied() == Some(b'#')
+fn named_color_prefix_mode(trimmed: &str) -> Option<StyleValuePrefixMode> {
+    if trimmed.is_empty() {
+        Some(StyleValuePrefixMode::Plain)
+    } else if let Some(rest) = trimmed.strip_prefix('#') {
+        rest.chars()
+            .all(|char| !char.is_ascii_whitespace())
+            .then_some(StyleValuePrefixMode::HashPrefixed)
+    } else {
+        None
+    }
 }
 
 fn style_value_prefix_matches(candidate: &str, prefix: &str) -> bool {
@@ -1490,4 +1521,153 @@ fn completion_prefix_start(text: &str, offset: usize) -> usize {
             )
         })
         .map_or(0, |index| index + 1)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const GRAMMAR_JS: &str = include_str!("../../../structurizr-grammar/grammar.js");
+
+    #[test]
+    fn bounded_style_value_tables_match_grammar_js() {
+        assert_eq!(
+            NAMED_COLOR_VALUES.to_vec(),
+            extract_js_string_array(GRAMMAR_JS, "NAMED_COLORS")
+        );
+        assert_eq!(
+            COLOR_STYLE_VALUE_PROPERTIES.to_vec(),
+            extract_js_string_array(GRAMMAR_JS, "COLOR_STYLE_PROPERTIES")
+        );
+        assert_eq!(
+            BOOLEAN_STYLE_VALUE_VALUES.to_vec(),
+            extract_js_string_array(GRAMMAR_JS, "BOOLEAN_VALUES")
+        );
+        assert_eq!(
+            SHAPE_STYLE_VALUE_VALUES.to_vec(),
+            extract_js_string_array(GRAMMAR_JS, "SHAPE_VALUES")
+        );
+        assert_eq!(
+            BORDER_STYLE_VALUE_VALUES.to_vec(),
+            extract_js_string_array(GRAMMAR_JS, "BORDER_VALUES")
+        );
+    }
+
+    #[test]
+    fn bounded_style_value_property_groups_match_grammar_js() {
+        let style_setting = extract_style_setting_section(GRAMMAR_JS);
+        assert!(
+            style_setting.contains("alias(\"shape\", $.identifier)"),
+            "style_setting should still model the shape property explicitly"
+        );
+        assert!(
+            style_setting.contains("alias(\"border\", $.identifier)"),
+            "style_setting should still model the border property explicitly"
+        );
+
+        let boolean_properties = extract_double_quoted_strings(
+            style_setting
+                .lines()
+                .find(|line| line.contains("choice(\"metadata\""))
+                .expect("style_setting boolean choice should exist"),
+        );
+        for property in BOOLEAN_STYLE_VALUE_PROPERTIES {
+            assert!(
+                boolean_properties.contains(property),
+                "style_setting boolean choice should still include `{property}`"
+            );
+        }
+        for property in ["dashed", "jump"] {
+            assert!(
+                boolean_properties.contains(&property),
+                "style_setting boolean choice should still include `{property}`"
+            );
+            assert_eq!(
+                bounded_element_style_value_kind(property),
+                None,
+                "`{property}` should stay out of element-style value completion"
+            );
+        }
+    }
+
+    #[test]
+    fn bounded_element_style_value_kind_matches_supported_properties() {
+        for property in COLOR_STYLE_VALUE_PROPERTIES {
+            assert_eq!(
+                bounded_element_style_value_kind(property),
+                Some(StyleValueKind::NamedColor),
+                "`{property}` should map to named-color completion"
+            );
+        }
+        for property in BOOLEAN_STYLE_VALUE_PROPERTIES {
+            assert_eq!(
+                bounded_element_style_value_kind(property),
+                Some(StyleValueKind::Boolean),
+                "`{property}` should map to boolean completion"
+            );
+        }
+        for property in BORDER_STYLE_VALUE_PROPERTIES {
+            assert_eq!(
+                bounded_element_style_value_kind(property),
+                Some(StyleValueKind::Border),
+                "`{property}` should map to border completion"
+            );
+        }
+        for property in SHAPE_STYLE_VALUE_PROPERTIES {
+            assert_eq!(
+                bounded_element_style_value_kind(property),
+                Some(StyleValueKind::Shape),
+                "`{property}` should map to shape completion"
+            );
+        }
+    }
+
+    fn extract_style_setting_section(source: &str) -> &str {
+        let marker = "style_setting: ($) =>";
+        let start = source
+            .find(marker)
+            .expect("grammar should define style_setting");
+        let rest = &source[start..];
+        let end = rest
+            .find("_style_value: ($) =>")
+            .expect("style_setting section should end before _style_value");
+        &rest[..end]
+    }
+
+    fn extract_js_string_array<'a>(source: &'a str, const_name: &str) -> Vec<&'a str> {
+        let marker = format!("const {const_name} = [");
+        let start = source
+            .find(&marker)
+            .unwrap_or_else(|| panic!("grammar should define {const_name}"))
+            + marker.len();
+        let rest = &source[start..];
+        let end = rest
+            .find("];")
+            .unwrap_or_else(|| panic!("{const_name} array should terminate"));
+        extract_double_quoted_strings(&rest[..end])
+    }
+
+    fn extract_double_quoted_strings(input: &str) -> Vec<&str> {
+        let bytes = input.as_bytes();
+        let mut index = 0;
+        let mut values = Vec::new();
+
+        while index < bytes.len() {
+            if bytes[index] != b'"' {
+                index += 1;
+                continue;
+            }
+
+            let start = index + 1;
+            index += 1;
+            while index < bytes.len() && bytes[index] != b'"' {
+                index += 1;
+            }
+            assert!(index < bytes.len(), "quoted string should terminate");
+            values.push(&input[start..index]);
+            index += 1;
+        }
+
+        values
+    }
 }

@@ -18,6 +18,7 @@ tree-sitter = "0.26.7"
 [dev-dependencies]
 criterion = { version = "4.4.1", package = "codspeed-criterion-compat" }
 futures = "0.3"
+indoc = "2.0"
 serde_json = "1"
 tempfile = "3.27.0"
 tower = { version = "0.5", features = ["util"] }
