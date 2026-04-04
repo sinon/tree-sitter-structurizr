@@ -17,6 +17,20 @@ SnapshotView {
             binding_name: Some(
                 "user",
             ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 32,
+                    end_byte: 36,
+                    start_point: TextPoint {
+                        row: 2,
+                        column: 8,
+                    },
+                    end_point: TextPoint {
+                        row: 2,
+                        column: 12,
+                    },
+                },
+            ),
             span: TextSpan {
                 start_byte: 32,
                 end_byte: 52,
@@ -41,6 +55,20 @@ SnapshotView {
             binding_name: Some(
                 "system",
             ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 61,
+                    end_byte: 67,
+                    start_point: TextPoint {
+                        row: 3,
+                        column: 8,
+                    },
+                    end_point: TextPoint {
+                        row: 3,
+                        column: 14,
+                    },
+                },
+            ),
             span: TextSpan {
                 start_byte: 61,
                 end_byte: 199,
@@ -64,6 +92,20 @@ SnapshotView {
             display_name: "API",
             binding_name: Some(
                 "api",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 108,
+                    end_byte: 111,
+                    start_point: TextPoint {
+                        row: 4,
+                        column: 12,
+                    },
+                    end_point: TextPoint {
+                        row: 4,
+                        column: 15,
+                    },
+                },
             ),
             span: TextSpan {
                 start_byte: 108,
@@ -92,6 +134,20 @@ SnapshotView {
             display_name: "Worker",
             binding_name: Some(
                 "worker",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 148,
+                    end_byte: 154,
+                    start_point: TextPoint {
+                        row: 5,
+                        column: 16,
+                    },
+                    end_point: TextPoint {
+                        row: 5,
+                        column: 22,
+                    },
+                },
             ),
             span: TextSpan {
                 start_byte: 148,

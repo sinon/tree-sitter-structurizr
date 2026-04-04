@@ -17,6 +17,20 @@ SnapshotView {
             binding_name: Some(
                 "user",
             ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 32,
+                    end_byte: 36,
+                    start_point: TextPoint {
+                        row: 2,
+                        column: 8,
+                    },
+                    end_point: TextPoint {
+                        row: 2,
+                        column: 12,
+                    },
+                },
+            ),
             span: TextSpan {
                 start_byte: 32,
                 end_byte: 52,
@@ -41,6 +55,20 @@ SnapshotView {
             binding_name: Some(
                 "system",
             ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 61,
+                    end_byte: 67,
+                    start_point: TextPoint {
+                        row: 3,
+                        column: 8,
+                    },
+                    end_point: TextPoint {
+                        row: 3,
+                        column: 14,
+                    },
+                },
+            ),
             span: TextSpan {
                 start_byte: 61,
                 end_byte: 93,
@@ -64,6 +92,20 @@ SnapshotView {
             display_name: "Uses",
             binding_name: Some(
                 "rel",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 103,
+                    end_byte: 106,
+                    start_point: TextPoint {
+                        row: 5,
+                        column: 8,
+                    },
+                    end_point: TextPoint {
+                        row: 5,
+                        column: 11,
+                    },
+                },
             ),
             span: TextSpan {
                 start_byte: 103,

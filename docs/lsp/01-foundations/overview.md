@@ -92,8 +92,8 @@ They should not become the place where Structurizr semantics are reimplemented.
 
 The current in-repo implementation already ships meaningful semantic behavior, but it is intentionally conservative:
 
-- shipped today: syntax diagnostics, include diagnostics, bounded semantic diagnostics, document symbols, bounded completion (including flat-mode explicit relationship identifier completion for core elements), go-to-definition, references, type-definition, and directive-path links
-- still deferred or partial: selector-based references, `this`, named dynamic relationship references, hover, broader identifier completion, workspace symbols, rename, and code actions
+- shipped today: syntax diagnostics, include diagnostics, bounded semantic diagnostics, document symbols, bounded completion (including flat-mode explicit relationship identifier completion for core elements), go-to-definition, references, bounded rename, type-definition, and directive-path links
+- still deferred or partial: selector-based references, `this`, named dynamic relationship references, hover, broader identifier completion, workspace symbols, broader or hierarchical rename, and code actions
 
 This is not a sign that the architecture is incomplete. It is a deliberate policy: the server should return no answer when the scope model is not broad enough to return a trustworthy one.
 

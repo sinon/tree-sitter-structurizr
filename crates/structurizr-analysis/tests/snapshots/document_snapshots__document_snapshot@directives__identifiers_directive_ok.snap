@@ -78,6 +78,20 @@ SnapshotView {
             binding_name: Some(
                 "system",
             ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 90,
+                    end_byte: 96,
+                    start_point: TextPoint {
+                        row: 6,
+                        column: 8,
+                    },
+                    end_point: TextPoint {
+                        row: 6,
+                        column: 14,
+                    },
+                },
+            ),
             span: TextSpan {
                 start_byte: 90,
                 end_byte: 228,
@@ -101,6 +115,20 @@ SnapshotView {
             display_name: "API",
             binding_name: Some(
                 "api",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 137,
+                    end_byte: 140,
+                    start_point: TextPoint {
+                        row: 7,
+                        column: 12,
+                    },
+                    end_point: TextPoint {
+                        row: 7,
+                        column: 15,
+                    },
+                },
             ),
             span: TextSpan {
                 start_byte: 137,
@@ -129,6 +157,20 @@ SnapshotView {
             display_name: "Worker",
             binding_name: Some(
                 "worker",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 177,
+                    end_byte: 183,
+                    start_point: TextPoint {
+                        row: 8,
+                        column: 16,
+                    },
+                    end_point: TextPoint {
+                        row: 8,
+                        column: 22,
+                    },
+                },
             ),
             span: TextSpan {
                 start_byte: 177,

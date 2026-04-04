@@ -56,6 +56,11 @@ struct ExtractedSymbolMetadata {
     url: Option<String>,
 }
 
+struct ExtractedBinding {
+    name: String,
+    span: TextSpan,
+}
+
 struct SymbolExtractor<'a> {
     source: &'a str,
     symbols: Vec<Symbol>,
@@ -189,7 +194,7 @@ impl<'a> SymbolExtractor<'a> {
         node: Node<'_>,
         kind: SymbolKind,
         display_name: String,
-        binding_name: Option<String>,
+        binding: Option<ExtractedBinding>,
         metadata: ExtractedSymbolMetadata,
         parent_symbol: Option<SymbolId>,
     ) -> SymbolId {
@@ -200,12 +205,16 @@ impl<'a> SymbolExtractor<'a> {
             tags,
             url,
         } = metadata;
+        let (binding_name, binding_span) = binding.map_or((None, None), |binding| {
+            (Some(binding.name), Some(binding.span))
+        });
 
         self.symbols.push(Symbol {
             id: symbol_id,
             kind,
             display_name,
             binding_name,
+            binding_span,
             description,
             technology,
             tags,
@@ -229,19 +238,15 @@ impl<'a> SymbolExtractor<'a> {
             |name| normalized_text(name, self.source),
         );
         let metadata = declaration_metadata(node, self.source);
-        let binding_name = node
+        let binding = node
             .child_by_field_name("identifier")
             .filter(|identifier| identifier.kind() == "identifier")
-            .map(|identifier| node_text(identifier, self.source));
+            .map(|identifier| ExtractedBinding {
+                name: node_text(identifier, self.source),
+                span: TextSpan::from_node(identifier),
+            });
 
-        self.push_symbol(
-            node,
-            kind,
-            display_name,
-            binding_name,
-            metadata,
-            parent_symbol,
-        )
+        self.push_symbol(node, kind, display_name, binding, metadata, parent_symbol)
     }
 
     fn push_relationship_symbol(
@@ -265,7 +270,10 @@ impl<'a> SymbolExtractor<'a> {
             node,
             SymbolKind::Relationship,
             display_name,
-            Some(binding_name),
+            Some(ExtractedBinding {
+                name: binding_name,
+                span: TextSpan::from_node(identifier),
+            }),
             metadata,
             parent_symbol,
         ))
@@ -318,7 +326,10 @@ impl<'a> SymbolExtractor<'a> {
             node,
             kind,
             display_name,
-            Some(node_text(identifier, self.source)),
+            Some(ExtractedBinding {
+                name: node_text(identifier, self.source),
+                span: TextSpan::from_node(identifier),
+            }),
             metadata,
             parent_symbol,
         ))
@@ -344,7 +355,10 @@ impl<'a> SymbolExtractor<'a> {
             node,
             kind,
             display_name,
-            Some(binding_name),
+            Some(ExtractedBinding {
+                name: binding_name,
+                span: TextSpan::from_node(identifier),
+            }),
             metadata,
             parent_symbol,
         ))
@@ -398,7 +412,25 @@ impl<'a> SymbolExtractor<'a> {
 
         if let Some(body) = view.child_by_field_name("body") {
             if let Some(target_hint) = include_target_hint {
-                self.collect_view_include_references(body, view.kind(), target_hint, parent_symbol);
+                // `exclude` participates in the same bounded identifier surface
+                // as `include`, so both must flow through the shared reference
+                // table for navigation and rename to stay aligned.
+                self.collect_view_statement_references(
+                    body,
+                    "include_statement",
+                    ReferenceKind::ViewInclude,
+                    view.kind(),
+                    target_hint,
+                    parent_symbol,
+                );
+                self.collect_view_statement_references(
+                    body,
+                    "exclude_statement",
+                    ReferenceKind::ViewExclude,
+                    view.kind(),
+                    target_hint,
+                    parent_symbol,
+                );
             }
             if let Some(target_hint) = animation_target_hint {
                 self.collect_view_animation_references(
@@ -425,19 +457,21 @@ impl<'a> SymbolExtractor<'a> {
         }
     }
 
-    fn collect_view_include_references(
+    fn collect_view_statement_references(
         &mut self,
         node: Node<'_>,
+        statement_kind: &str,
+        reference_kind: ReferenceKind,
         view_kind: &str,
         target_hint: ReferenceTargetHint,
         parent_symbol: Option<SymbolId>,
     ) {
-        if node.kind() == "include_statement" {
+        if node.kind() == statement_kind {
             let mut cursor = node.walk();
             for value in node.named_children(&mut cursor) {
                 self.push_view_reference(
                     value,
-                    ReferenceKind::ViewInclude,
+                    reference_kind,
                     target_hint,
                     view_kind,
                     parent_symbol,
@@ -448,7 +482,14 @@ impl<'a> SymbolExtractor<'a> {
 
         let mut cursor = node.walk();
         for child in node.named_children(&mut cursor) {
-            self.collect_view_include_references(child, view_kind, target_hint, parent_symbol);
+            self.collect_view_statement_references(
+                child,
+                statement_kind,
+                reference_kind,
+                view_kind,
+                target_hint,
+                parent_symbol,
+            );
         }
     }
 

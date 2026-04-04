@@ -31,10 +31,7 @@ pub fn navigation_site_at_offset(
     offset: usize,
 ) -> Option<NavigationSite<'_>> {
     reference_at_offset(snapshot, offset).map_or_else(
-        || {
-            bindable_symbol_at_offset(snapshot, snapshot.source(), offset)
-                .map(NavigationSite::Symbol)
-        },
+        || bindable_symbol_at_offset(snapshot, offset).map(NavigationSite::Symbol),
         |(index, reference)| Some(NavigationSite::Reference { index, reference }),
     )
 }
@@ -331,7 +328,7 @@ fn candidate_instances(
         .collect()
 }
 
-fn unanimous_resolved_symbol(
+pub(super) fn unanimous_resolved_symbol(
     workspace_facts: &WorkspaceFacts,
     candidate_instances: &[WorkspaceInstanceId],
     reference_handle: &ReferenceHandle,
@@ -527,22 +524,20 @@ fn file_uri_from_document_id(document_id: &DocumentId) -> Option<Uri> {
     file_uri_from_path(Path::new(document_id.as_str()))
 }
 
-fn bindable_symbol_at_offset<'a>(
-    snapshot: &'a DocumentSnapshot,
-    source: &str,
-    offset: usize,
-) -> Option<&'a Symbol> {
+fn bindable_symbol_at_offset(snapshot: &DocumentSnapshot, offset: usize) -> Option<&Symbol> {
     snapshot
         .symbols()
         .iter()
         .filter(|symbol| {
-            binding_span(symbol, source)
-                .is_some_and(|(start_byte, end_byte)| span_contains(start_byte, end_byte, offset))
+            symbol
+                .binding_span
+                .is_some_and(|span| span_contains(span.start_byte, span.end_byte, offset))
         })
         .min_by_key(|symbol| {
-            let (start_byte, end_byte) = binding_span(symbol, source)
+            let span = symbol
+                .binding_span
                 .expect("binding span should exist for bindable symbol");
-            end_byte - start_byte
+            span.end_byte - span.start_byte
         })
 }
 
@@ -556,7 +551,7 @@ fn reference_at_offset(snapshot: &DocumentSnapshot, offset: usize) -> Option<(us
         })
 }
 
-fn resolve_reference<'a>(
+pub(super) fn resolve_reference<'a>(
     snapshot: &'a DocumentSnapshot,
     reference: &Reference,
 ) -> Option<&'a Symbol> {
@@ -625,48 +620,48 @@ const fn is_instance_symbol(symbol: &Symbol) -> bool {
     )
 }
 
-fn symbol_matches_reference(symbol: &Symbol, reference: &Reference) -> bool {
+pub(super) fn symbol_matches_reference(symbol: &Symbol, reference: &Reference) -> bool {
     let Some(binding_name) = symbol.binding_name.as_deref() else {
         return false;
     };
 
-    if binding_name != reference.raw_text {
-        return false;
-    }
+    binding_name == reference.raw_text && reference_could_target_symbol_kind(reference, symbol.kind)
+}
 
+pub(super) const fn is_element_symbol_kind(kind: SymbolKind) -> bool {
+    matches!(
+        kind,
+        SymbolKind::Person
+            | SymbolKind::SoftwareSystem
+            | SymbolKind::Container
+            | SymbolKind::Component
+    )
+}
+
+pub(super) const fn is_deployment_symbol_kind(kind: SymbolKind) -> bool {
+    matches!(
+        kind,
+        SymbolKind::DeploymentNode
+            | SymbolKind::InfrastructureNode
+            | SymbolKind::ContainerInstance
+            | SymbolKind::SoftwareSystemInstance
+    )
+}
+
+pub(super) const fn reference_could_target_symbol_kind(
+    reference: &Reference,
+    target_kind: SymbolKind,
+) -> bool {
     match reference.target_hint {
-        structurizr_analysis::ReferenceTargetHint::Element => {
-            matches!(
-                symbol.kind,
-                SymbolKind::Person
-                    | SymbolKind::SoftwareSystem
-                    | SymbolKind::Container
-                    | SymbolKind::Component
-            )
-        }
+        structurizr_analysis::ReferenceTargetHint::Element => is_element_symbol_kind(target_kind),
         structurizr_analysis::ReferenceTargetHint::Deployment => {
-            matches!(
-                symbol.kind,
-                SymbolKind::DeploymentNode
-                    | SymbolKind::InfrastructureNode
-                    | SymbolKind::ContainerInstance
-                    | SymbolKind::SoftwareSystemInstance
-            )
+            is_deployment_symbol_kind(target_kind)
         }
         structurizr_analysis::ReferenceTargetHint::Relationship => {
-            symbol.kind == SymbolKind::Relationship
+            matches!(target_kind, SymbolKind::Relationship)
         }
         structurizr_analysis::ReferenceTargetHint::ElementOrRelationship => true,
     }
-}
-
-fn binding_span(symbol: &Symbol, source: &str) -> Option<(usize, usize)> {
-    let binding_name = symbol.binding_name.as_deref()?;
-    let declaration_source = source.get(symbol.span.start_byte..symbol.span.end_byte)?;
-    let relative_start = declaration_source.find(binding_name)?;
-    let start_byte = symbol.span.start_byte + relative_start;
-    let end_byte = start_byte + binding_name.len();
-    Some((start_byte, end_byte))
 }
 
 const fn span_contains(start_byte: usize, end_byte: usize, offset: usize) -> bool {

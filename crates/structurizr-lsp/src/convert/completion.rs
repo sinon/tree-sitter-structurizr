@@ -3,8 +3,8 @@
 use std::collections::BTreeMap;
 
 use structurizr_analysis::{
-    DirectiveContainer, DocumentId, DocumentSnapshot, ElementIdentifierMode, IdentifierMode,
-    Symbol, SymbolHandle, SymbolKind, WorkspaceFacts, WorkspaceIndex, WorkspaceInstanceId,
+    DocumentId, DocumentSnapshot, ElementIdentifierMode, Symbol, SymbolHandle, SymbolKind,
+    WorkspaceFacts, WorkspaceIndex, WorkspaceInstanceId,
 };
 use tower_lsp_server::ls_types::{
     CompletionItem, CompletionItemKind, CompletionTextEdit, Position, Range, TextEdit,
@@ -1194,31 +1194,7 @@ fn same_document_source_kind(
 }
 
 fn snapshot_uses_flat_identifier_mode(snapshot: &DocumentSnapshot) -> bool {
-    matches!(
-        snapshot_model_identifier_mode(snapshot)
-            .or_else(|| snapshot_workspace_identifier_mode(snapshot)),
-        Some(IdentifierMode::Flat) | None
-    )
-}
-
-fn snapshot_model_identifier_mode(snapshot: &DocumentSnapshot) -> Option<IdentifierMode> {
-    last_identifier_mode_for_container(snapshot, &DirectiveContainer::Model)
-}
-
-fn snapshot_workspace_identifier_mode(snapshot: &DocumentSnapshot) -> Option<IdentifierMode> {
-    last_identifier_mode_for_container(snapshot, &DirectiveContainer::Workspace)
-}
-
-fn last_identifier_mode_for_container(
-    snapshot: &DocumentSnapshot,
-    container: &DirectiveContainer,
-) -> Option<IdentifierMode> {
-    snapshot
-        .identifier_modes()
-        .iter()
-        .rev()
-        .find(|fact| fact.container == *container)
-        .map(|fact| fact.mode.clone())
+    snapshot.effective_element_identifier_mode() == ElementIdentifierMode::Flat
 }
 
 fn workspace_document_id(document: &DocumentState) -> Option<DocumentId> {

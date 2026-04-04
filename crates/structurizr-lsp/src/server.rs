@@ -8,7 +8,8 @@ use tower_lsp_server::ls_types::{
     CompletionParams, CompletionResponse, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
     DidOpenTextDocumentParams, DocumentLink, DocumentLinkParams, DocumentSymbolParams,
     DocumentSymbolResponse, GotoDefinitionParams, GotoDefinitionResponse, Hover, HoverParams,
-    InitializeParams, InitializeResult, InitializedParams, Location, ReferenceParams,
+    InitializeParams, InitializeResult, InitializedParams, Location, ReferenceParams, RenameParams,
+    TextDocumentPositionParams, WorkspaceEdit,
     request::{GotoTypeDefinitionParams, GotoTypeDefinitionResponse},
 };
 use tower_lsp_server::{Client, LanguageServer};
@@ -190,5 +191,30 @@ impl LanguageServer for Backend {
             "dispatching request"
         );
         handlers::references::references(self, params).await
+    }
+
+    async fn rename(
+        &self,
+        params: RenameParams,
+    ) -> tower_lsp_server::jsonrpc::Result<Option<WorkspaceEdit>> {
+        trace!(
+            method = "textDocument/rename",
+            uri = params.text_document_position.text_document.uri.as_str(),
+            "dispatching request"
+        );
+        handlers::rename::rename(self, params).await
+    }
+
+    async fn prepare_rename(
+        &self,
+        params: TextDocumentPositionParams,
+    ) -> tower_lsp_server::jsonrpc::Result<Option<tower_lsp_server::ls_types::PrepareRenameResponse>>
+    {
+        trace!(
+            method = "textDocument/prepareRename",
+            uri = params.text_document.uri.as_str(),
+            "dispatching request"
+        );
+        handlers::rename::prepare_rename(self, params).await
     }
 }

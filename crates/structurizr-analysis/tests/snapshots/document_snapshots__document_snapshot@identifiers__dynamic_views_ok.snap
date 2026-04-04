@@ -17,6 +17,20 @@ SnapshotView {
             binding_name: Some(
                 "system",
             ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 32,
+                    end_byte: 38,
+                    start_point: TextPoint {
+                        row: 2,
+                        column: 8,
+                    },
+                    end_point: TextPoint {
+                        row: 2,
+                        column: 14,
+                    },
+                },
+            ),
             span: TextSpan {
                 start_byte: 32,
                 end_byte: 342,
@@ -40,6 +54,20 @@ SnapshotView {
             display_name: "Web Application",
             binding_name: Some(
                 "web",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 79,
+                    end_byte: 82,
+                    start_point: TextPoint {
+                        row: 3,
+                        column: 12,
+                    },
+                    end_point: TextPoint {
+                        row: 3,
+                        column: 15,
+                    },
+                },
             ),
             span: TextSpan {
                 start_byte: 79,
@@ -69,6 +97,20 @@ SnapshotView {
             binding_name: Some(
                 "api",
             ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 125,
+                    end_byte: 128,
+                    start_point: TextPoint {
+                        row: 4,
+                        column: 12,
+                    },
+                    end_point: TextPoint {
+                        row: 4,
+                        column: 15,
+                    },
+                },
+            ),
             span: TextSpan {
                 start_byte: 125,
                 end_byte: 288,
@@ -96,6 +138,20 @@ SnapshotView {
             display_name: "Sign In Controller",
             binding_name: Some(
                 "signin",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 177,
+                    end_byte: 183,
+                    start_point: TextPoint {
+                        row: 5,
+                        column: 16,
+                    },
+                    end_point: TextPoint {
+                        row: 5,
+                        column: 22,
+                    },
+                },
             ),
             span: TextSpan {
                 start_byte: 177,
@@ -125,6 +181,20 @@ SnapshotView {
             binding_name: Some(
                 "security",
             ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 233,
+                    end_byte: 241,
+                    start_point: TextPoint {
+                        row: 6,
+                        column: 16,
+                    },
+                    end_point: TextPoint {
+                        row: 6,
+                        column: 24,
+                    },
+                },
+            ),
             span: TextSpan {
                 start_byte: 233,
                 end_byte: 274,
@@ -152,6 +222,20 @@ SnapshotView {
             display_name: "Database",
             binding_name: Some(
                 "database",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 301,
+                    end_byte: 309,
+                    start_point: TextPoint {
+                        row: 8,
+                        column: 12,
+                    },
+                    end_point: TextPoint {
+                        row: 8,
+                        column: 20,
+                    },
+                },
             ),
             span: TextSpan {
                 start_byte: 301,

@@ -17,6 +17,7 @@ use futures::StreamExt;
 use line_index::{LineIndex, TextSize, WideEncoding};
 use serde_json::{Value, json};
 use structurizr_lsp::Backend;
+use tempfile::TempDir;
 use tokio::time::{Duration, timeout};
 use tower::{Service, ServiceExt};
 use tower_lsp_server::{
@@ -221,6 +222,75 @@ pub fn workspace_fixture_path(name: &str) -> PathBuf {
         .join(name)
         .canonicalize()
         .expect("workspace fixture should exist")
+}
+
+pub fn read_workspace_file(path: &Path) -> String {
+    fs::read_to_string(path).unwrap_or_else(|error| {
+        panic!(
+            "workspace fixture `{}` should be readable: {error}",
+            path.display()
+        )
+    })
+}
+
+pub struct TempWorkspace {
+    temp_dir: TempDir,
+}
+
+impl TempWorkspace {
+    pub fn new(
+        name: &str,
+        workspace_source: &str,
+        directories: &[&Path],
+        files: &[(&Path, &str)],
+    ) -> Self {
+        let temp_dir = tempfile::Builder::new()
+            .prefix(name)
+            .tempdir()
+            .expect("temp workspace should create");
+        let path = temp_dir.path();
+
+        fs::write(path.join("workspace.dsl"), workspace_source).unwrap_or_else(|error| {
+            panic!(
+                "failed to write temp workspace file `{}`: {error}",
+                path.join("workspace.dsl").display()
+            )
+        });
+
+        for directory in directories {
+            let directory_path = path.join(directory);
+            fs::create_dir_all(&directory_path).unwrap_or_else(|error| {
+                panic!(
+                    "failed to create temp workspace directory `{}`: {error}",
+                    directory_path.display()
+                )
+            });
+        }
+
+        for (relative_path, contents) in files {
+            let file_path = path.join(relative_path);
+            if let Some(parent) = file_path.parent() {
+                fs::create_dir_all(parent).unwrap_or_else(|error| {
+                    panic!(
+                        "failed to create temp workspace parent `{}`: {error}",
+                        parent.display()
+                    )
+                });
+            }
+            fs::write(&file_path, contents).unwrap_or_else(|error| {
+                panic!(
+                    "failed to write temp workspace file `{}`: {error}",
+                    file_path.display()
+                )
+            });
+        }
+
+        Self { temp_dir }
+    }
+
+    pub fn path(&self) -> &Path {
+        self.temp_dir.path()
+    }
 }
 
 #[derive(Debug, Clone)]

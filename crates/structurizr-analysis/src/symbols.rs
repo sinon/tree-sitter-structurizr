@@ -43,6 +43,8 @@ pub struct Symbol {
     pub display_name: String,
     /// Bound identifier, if the declaration introduces one.
     pub binding_name: Option<String>,
+    /// Span of the bound identifier token, if the declaration introduces one.
+    pub binding_span: Option<TextSpan>,
     /// Source-derived description text for hover and other read-only UX.
     pub description: Option<String>,
     /// Source-derived technology text for hover and other read-only UX.
@@ -67,6 +69,9 @@ impl fmt::Debug for Symbol {
             .field("kind", &self.kind)
             .field("display_name", &self.display_name)
             .field("binding_name", &self.binding_name);
+        if self.binding_span.is_some() {
+            debug.field("binding_span", &self.binding_span);
+        }
 
         if self.description.is_some() {
             debug.field("description", &self.description);
@@ -106,6 +111,8 @@ pub enum ReferenceKind {
     ViewScope,
     /// `include` reference nested inside a view body.
     ViewInclude,
+    /// `exclude` reference nested inside a view body.
+    ViewExclude,
     /// Identifier-valued `animation` reference nested inside a view body.
     ViewAnimation,
 }
