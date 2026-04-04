@@ -6,6 +6,8 @@ use tower_lsp_server::ls_types::{
     TypeDefinitionProviderCapability, WorkDoneProgressOptions,
 };
 
+const NON_ALPHANUMERIC_COMPLETION_TRIGGER_CHARACTERS: &[char] = &['!', '_'];
+
 /// Builds the server capabilities advertised during LSP initialization.
 #[must_use]
 pub fn server_capabilities() -> ServerCapabilities {
@@ -37,11 +39,30 @@ pub fn server_capabilities() -> ServerCapabilities {
     }
 }
 
+/// Returns the characters that should trigger automatic completion requests.
+///
+/// The current bounded completion surface includes:
+/// - directives that start with `!`
+/// - fixed-vocabulary and style-property items that start with ASCII letters
+/// - identifier completions that start with ASCII letters or `_`
+///
+/// ASCII digits stay in the trigger set because identifiers can contain them
+/// after the first character, so typing a suffix like `system2` should continue
+/// to retrigger completion as the user refines the prefix.
+///
+/// We intentionally do not advertise `.` or `-` as trigger characters.
+/// Hierarchical identifier completions are still suppressed, so `.` is only a
+/// continuation character in unsupported forms, and neither the local grammar
+/// nor the upstream parser allows identifiers to start with `-`.
 fn completion_trigger_characters() -> Vec<String> {
     ('a'..='z')
         .chain('A'..='Z')
         .chain('0'..='9')
-        .chain(['!', '_', '.', '-'])
+        .chain(
+            NON_ALPHANUMERIC_COMPLETION_TRIGGER_CHARACTERS
+                .iter()
+                .copied(),
+        )
         .map(|character| character.to_string())
         .collect()
 }

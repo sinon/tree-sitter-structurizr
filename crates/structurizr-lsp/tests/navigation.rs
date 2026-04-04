@@ -4,26 +4,27 @@ use std::{fs, path::Path};
 
 use serde_json::json;
 use support::{
-    TestService, change_document, close_document, file_uri, file_uri_from_path, initialize,
-    initialize_with_workspace_folders, initialized, new_service, next_publish_diagnostics_for_uri,
-    open_document, position_in, request_json, workspace_fixture_path,
+    AnnotatedSource, TestService, annotated_source, change_document, close_document, file_uri,
+    file_uri_from_path, initialize, initialize_with_workspace_folders, initialized, new_service,
+    next_publish_diagnostics_for_uri, open_document, position_in, request_json,
+    workspace_fixture_path,
 };
 use tempfile::TempDir;
 use tower_lsp_server::ls_types::Uri;
 
 const DIRECT_REFERENCES_SOURCE: &str =
     include_str!("fixtures/relationships/named-relationships-ok.dsl");
-const COMPLETION_SOURCE: &str = "workspace {\n  !i\n}\n";
-const ELEMENT_STYLE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      element \"Person\" {\n        ba\n      }\n    }\n  }\n}\n";
-const RELATIONSHIP_STYLE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      relationship \"Uses\" {\n        da\n      }\n    }\n  }\n}\n";
-const STYLE_VALUE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      relationship \"Uses\" {\n        metadata de\n      }\n    }\n  }\n}\n";
-const STYLE_BLOCK_END_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      element \"Person\" {\n        background #ffffff\n      }\n      !d\n    }\n  }\n}\n";
-const RELATIONSHIP_SOURCE_COMPLETION_SOURCE: &str = "workspace {\n  model {\n    user = person \"User\"\n    system = softwareSystem \"System\" {\n      api = container \"API\" {\n        worker = component \"Worker\"\n      }\n    }\n\n    -> system \"Uses\"\n  }\n}\n";
-const FRESH_RELATIONSHIP_SOURCE_COMPLETION_SOURCE: &str = "workspace {\n  model {\n    user = person \"User\"\n    system = softwareSystem \"System\" {\n      api = container \"API\" {\n        worker = component \"Worker\"\n      }\n    }\n\n    u\n  }\n}\n";
-const RELATIONSHIP_DESTINATION_COMPLETION_SOURCE: &str = "workspace {\n  model {\n    user = person \"User\"\n    system = softwareSystem \"System\" {\n      api = container \"API\" {\n        worker = component \"Worker\"\n      }\n    }\n\n    user -> \n  }\n}\n";
-const OPEN_RELATIONSHIP_STRING_COMPLETION_SOURCE: &str = "workspace {\n  model {\n    user = person \"User\"\n    system = softwareSystem \"System\"\n\n    user -> system \"c\n  }\n}\n";
-const RELATIONSHIP_HIERARCHICAL_COMPLETION_SOURCE: &str = "workspace {\n  model {\n    !identifiers hierarchical\n\n    system = softwareSystem \"System\" {\n      api = container \"API\"\n    }\n\n    system -> \n  }\n}\n";
-const OPEN_WORKSPACE_STRING_COMPLETION_SOURCE: &str = "workspace \"c\n";
+const COMPLETION_SOURCE: &str = "workspace {\n  !i<CURSOR>\n}\n";
+const ELEMENT_STYLE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      element \"Person\" {\n        ba<CURSOR>\n      }\n    }\n  }\n}\n";
+const RELATIONSHIP_STYLE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      relationship \"Uses\" {\n        da<CURSOR>\n      }\n    }\n  }\n}\n";
+const STYLE_VALUE_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      relationship \"Uses\" {\n        metadata de<CURSOR>\n      }\n    }\n  }\n}\n";
+const STYLE_BLOCK_END_COMPLETION_SOURCE: &str = "workspace {\n  views {\n    styles {\n      element \"Person\" {\n        background #ffffff\n      }\n      !d<CURSOR>\n    }\n  }\n}\n";
+const RELATIONSHIP_SOURCE_COMPLETION_SOURCE: &str = "workspace {\n  model {\n    user = person \"User\"\n    system = softwareSystem \"System\" {\n      api = container \"API\" {\n        worker = component \"Worker\"\n      }\n    }\n\n    <CURSOR>-> system \"Uses\"\n  }\n}\n";
+const FRESH_RELATIONSHIP_SOURCE_COMPLETION_SOURCE: &str = "workspace {\n  model {\n    user = person \"User\"\n    system = softwareSystem \"System\" {\n      api = container \"API\" {\n        worker = component \"Worker\"\n      }\n    }\n\n    u<CURSOR>\n  }\n}\n";
+const RELATIONSHIP_DESTINATION_COMPLETION_SOURCE: &str = "workspace {\n  model {\n    user = person \"User\"\n    system = softwareSystem \"System\" {\n      api = container \"API\" {\n        worker = component \"Worker\"\n      }\n    }\n\n    user -> <CURSOR>\n  }\n}\n";
+const OPEN_RELATIONSHIP_STRING_COMPLETION_SOURCE: &str = "workspace {\n  model {\n    user = person \"User\"\n    system = softwareSystem \"System\"\n\n    user -> system \"<CURSOR>c\n  }\n}\n";
+const RELATIONSHIP_HIERARCHICAL_COMPLETION_SOURCE: &str = "workspace {\n  model {\n    !identifiers hierarchical\n\n    system = softwareSystem \"System\" {\n      api = container \"API\"\n    }\n\n    system -> <CURSOR>\n  }\n}\n";
+const OPEN_WORKSPACE_STRING_COMPLETION_SOURCE: &str = "workspace \"<CURSOR>c\n";
 
 #[tokio::test(flavor = "current_thread")]
 async fn document_symbols_follow_analysis_symbols() {
@@ -66,33 +67,14 @@ async fn completion_returns_directive_keywords_for_prefixes() {
     initialize(&mut service).await;
     initialized(&mut service).await;
 
+    let source = annotated_source(COMPLETION_SOURCE);
     let uri = file_uri("completion.dsl");
-    open_document(&mut service, &uri, COMPLETION_SOURCE).await;
+    open_document(&mut service, &uri, source.source()).await;
 
-    let position = position_in(COMPLETION_SOURCE, "!i", 2);
-    let response = request_json(
-        &mut service,
-        "textDocument/completion",
-        json!({
-            "textDocument": { "uri": uri.as_str() },
-            "position": position,
-        }),
-    )
-    .await;
+    let labels = completion_labels(&mut service, &uri, &source).await;
 
-    let labels = response["result"]
-        .as_array()
-        .expect("completion should return an item array")
-        .iter()
-        .map(|item| {
-            item["label"]
-                .as_str()
-                .expect("completion label should be a string")
-        })
-        .collect::<Vec<_>>();
-
-    assert!(labels.contains(&"!include"));
-    assert!(labels.contains(&"!identifiers"));
+    assert!(labels.iter().any(|label| label == "!include"));
+    assert!(labels.iter().any(|label| label == "!identifiers"));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -102,34 +84,15 @@ async fn completion_inside_element_style_suggests_element_style_properties() {
     initialize(&mut service).await;
     initialized(&mut service).await;
 
+    let source = annotated_source(ELEMENT_STYLE_COMPLETION_SOURCE);
     let uri = file_uri("element-style-completion.dsl");
-    open_document(&mut service, &uri, ELEMENT_STYLE_COMPLETION_SOURCE).await;
+    open_document(&mut service, &uri, source.source()).await;
 
-    let position = position_in(ELEMENT_STYLE_COMPLETION_SOURCE, "ba", 2);
-    let response = request_json(
-        &mut service,
-        "textDocument/completion",
-        json!({
-            "textDocument": { "uri": uri.as_str() },
-            "position": position,
-        }),
-    )
-    .await;
+    let labels = completion_labels(&mut service, &uri, &source).await;
 
-    let labels = response["result"]
-        .as_array()
-        .expect("completion should return an item array")
-        .iter()
-        .map(|item| {
-            item["label"]
-                .as_str()
-                .expect("completion label should be a string")
-        })
-        .collect::<Vec<_>>();
-
-    assert!(labels.contains(&"background"));
-    assert!(!labels.contains(&"routing"));
-    assert!(!labels.contains(&"workspace"));
+    assert!(labels.iter().any(|label| label == "background"));
+    assert!(!labels.iter().any(|label| label == "routing"));
+    assert!(!labels.iter().any(|label| label == "workspace"));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -139,34 +102,15 @@ async fn completion_inside_relationship_style_suggests_relationship_style_proper
     initialize(&mut service).await;
     initialized(&mut service).await;
 
+    let source = annotated_source(RELATIONSHIP_STYLE_COMPLETION_SOURCE);
     let uri = file_uri("relationship-style-completion.dsl");
-    open_document(&mut service, &uri, RELATIONSHIP_STYLE_COMPLETION_SOURCE).await;
+    open_document(&mut service, &uri, source.source()).await;
 
-    let position = position_in(RELATIONSHIP_STYLE_COMPLETION_SOURCE, "da", 2);
-    let response = request_json(
-        &mut service,
-        "textDocument/completion",
-        json!({
-            "textDocument": { "uri": uri.as_str() },
-            "position": position,
-        }),
-    )
-    .await;
+    let labels = completion_labels(&mut service, &uri, &source).await;
 
-    let labels = response["result"]
-        .as_array()
-        .expect("completion should return an item array")
-        .iter()
-        .map(|item| {
-            item["label"]
-                .as_str()
-                .expect("completion label should be a string")
-        })
-        .collect::<Vec<_>>();
-
-    assert!(labels.contains(&"dashed"));
-    assert!(!labels.contains(&"background"));
-    assert!(!labels.contains(&"workspace"));
+    assert!(labels.iter().any(|label| label == "dashed"));
+    assert!(!labels.iter().any(|label| label == "background"));
+    assert!(!labels.iter().any(|label| label == "workspace"));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -176,24 +120,12 @@ async fn completion_inside_style_values_suppresses_property_name_suggestions() {
     initialize(&mut service).await;
     initialized(&mut service).await;
 
+    let source = annotated_source(STYLE_VALUE_COMPLETION_SOURCE);
     let uri = file_uri("style-value-completion.dsl");
-    open_document(&mut service, &uri, STYLE_VALUE_COMPLETION_SOURCE).await;
+    open_document(&mut service, &uri, source.source()).await;
 
-    let position = position_in(STYLE_VALUE_COMPLETION_SOURCE, "metadata de", 11);
-    let response = request_json(
-        &mut service,
-        "textDocument/completion",
-        json!({
-            "textDocument": { "uri": uri.as_str() },
-            "position": position,
-        }),
-    )
-    .await;
-
-    let items = response["result"]
-        .as_array()
-        .expect("completion should return an item array");
-    assert!(items.is_empty());
+    let labels = completion_labels(&mut service, &uri, &source).await;
+    assert!(labels.is_empty());
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -203,33 +135,14 @@ async fn completion_after_style_block_returns_fixed_vocabulary() {
     initialize(&mut service).await;
     initialized(&mut service).await;
 
+    let source = annotated_source(STYLE_BLOCK_END_COMPLETION_SOURCE);
     let uri = file_uri("style-block-end-completion.dsl");
-    open_document(&mut service, &uri, STYLE_BLOCK_END_COMPLETION_SOURCE).await;
+    open_document(&mut service, &uri, source.source()).await;
 
-    let position = position_in(STYLE_BLOCK_END_COMPLETION_SOURCE, "!d", 2);
-    let response = request_json(
-        &mut service,
-        "textDocument/completion",
-        json!({
-            "textDocument": { "uri": uri.as_str() },
-            "position": position,
-        }),
-    )
-    .await;
+    let labels = completion_labels(&mut service, &uri, &source).await;
 
-    let labels = response["result"]
-        .as_array()
-        .expect("completion should return an item array")
-        .iter()
-        .map(|item| {
-            item["label"]
-                .as_str()
-                .expect("completion label should be a string")
-        })
-        .collect::<Vec<_>>();
-
-    assert!(labels.contains(&"!docs"));
-    assert!(!labels.contains(&"background"));
+    assert!(labels.iter().any(|label| label == "!docs"));
+    assert!(!labels.iter().any(|label| label == "background"));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -239,18 +152,11 @@ async fn completion_inside_relationship_source_suggests_core_identifiers() {
     initialize(&mut service).await;
     initialized(&mut service).await;
 
+    let source = annotated_source(RELATIONSHIP_SOURCE_COMPLETION_SOURCE);
     let uri = file_uri("relationship-source-completion.dsl");
-    open_document(&mut service, &uri, RELATIONSHIP_SOURCE_COMPLETION_SOURCE).await;
+    open_document(&mut service, &uri, source.source()).await;
 
-    let labels = completion_labels(
-        &mut service,
-        &uri,
-        RELATIONSHIP_SOURCE_COMPLETION_SOURCE,
-        "-> system",
-        0,
-        41,
-    )
-    .await;
+    let labels = completion_labels(&mut service, &uri, &source).await;
 
     assert!(labels.iter().any(|label| label == "user"));
     assert!(labels.iter().any(|label| label == "system"));
@@ -266,23 +172,11 @@ async fn completion_inside_fresh_relationship_source_suggests_core_identifiers()
     initialize(&mut service).await;
     initialized(&mut service).await;
 
+    let source = annotated_source(FRESH_RELATIONSHIP_SOURCE_COMPLETION_SOURCE);
     let uri = file_uri("fresh-relationship-source-completion.dsl");
-    open_document(
-        &mut service,
-        &uri,
-        FRESH_RELATIONSHIP_SOURCE_COMPLETION_SOURCE,
-    )
-    .await;
+    open_document(&mut service, &uri, source.source()).await;
 
-    let labels = completion_labels(
-        &mut service,
-        &uri,
-        FRESH_RELATIONSHIP_SOURCE_COMPLETION_SOURCE,
-        "    u\n",
-        5,
-        42,
-    )
-    .await;
+    let labels = completion_labels(&mut service, &uri, &source).await;
 
     assert!(labels.iter().any(|label| label == "user"));
     assert!(!labels.iter().any(|label| label == "workspace"));
@@ -295,23 +189,11 @@ async fn completion_inside_relationship_destination_suggests_core_identifiers() 
     initialize(&mut service).await;
     initialized(&mut service).await;
 
+    let source = annotated_source(RELATIONSHIP_DESTINATION_COMPLETION_SOURCE);
     let uri = file_uri("relationship-destination-completion.dsl");
-    open_document(
-        &mut service,
-        &uri,
-        RELATIONSHIP_DESTINATION_COMPLETION_SOURCE,
-    )
-    .await;
+    open_document(&mut service, &uri, source.source()).await;
 
-    let labels = completion_labels(
-        &mut service,
-        &uri,
-        RELATIONSHIP_DESTINATION_COMPLETION_SOURCE,
-        "user -> ",
-        8,
-        42,
-    )
-    .await;
+    let labels = completion_labels(&mut service, &uri, &source).await;
 
     assert!(labels.iter().any(|label| label == "user"));
     assert!(labels.iter().any(|label| label == "system"));
@@ -327,23 +209,11 @@ async fn completion_inside_unterminated_relationship_string_returns_no_items() {
     initialize(&mut service).await;
     initialized(&mut service).await;
 
+    let source = annotated_source(OPEN_RELATIONSHIP_STRING_COMPLETION_SOURCE);
     let uri = file_uri("open-relationship-string-completion.dsl");
-    open_document(
-        &mut service,
-        &uri,
-        OPEN_RELATIONSHIP_STRING_COMPLETION_SOURCE,
-    )
-    .await;
+    open_document(&mut service, &uri, source.source()).await;
 
-    let labels = completion_labels(
-        &mut service,
-        &uri,
-        OPEN_RELATIONSHIP_STRING_COMPLETION_SOURCE,
-        "user -> system \"c",
-        16,
-        47,
-    )
-    .await;
+    let labels = completion_labels(&mut service, &uri, &source).await;
 
     assert!(
         labels.is_empty(),
@@ -358,18 +228,11 @@ async fn completion_inside_unterminated_workspace_string_returns_no_items() {
     initialize(&mut service).await;
     initialized(&mut service).await;
 
+    let source = annotated_source(OPEN_WORKSPACE_STRING_COMPLETION_SOURCE);
     let uri = file_uri("open-workspace-string-completion.dsl");
-    open_document(&mut service, &uri, OPEN_WORKSPACE_STRING_COMPLETION_SOURCE).await;
+    open_document(&mut service, &uri, source.source()).await;
 
-    let labels = completion_labels(
-        &mut service,
-        &uri,
-        OPEN_WORKSPACE_STRING_COMPLETION_SOURCE,
-        "\"c",
-        1,
-        48,
-    )
-    .await;
+    let labels = completion_labels(&mut service, &uri, &source).await;
 
     assert!(
         labels.is_empty(),
@@ -401,19 +264,18 @@ async fn completion_inside_relationship_destination_uses_workspace_symbols_acros
     initialized(&mut service).await;
 
     let relationships_path = temp_workspace.path().join("shared/relationships.dsl");
-    let relationships_source = read_workspace_file(&relationships_path);
+    let relationships_source = annotated_source(
+        &read_workspace_file(&relationships_path).replacen("user -> ", "user -> <CURSOR>", 1),
+    );
     let relationships_uri = file_uri_from_path(&relationships_path);
-    open_document(&mut service, &relationships_uri, &relationships_source).await;
-
-    let labels = completion_labels(
+    open_document(
         &mut service,
         &relationships_uri,
-        &relationships_source,
-        "user -> ",
-        8,
-        43,
+        relationships_source.source(),
     )
     .await;
+
+    let labels = completion_labels(&mut service, &relationships_uri, &relationships_source).await;
 
     assert!(labels.iter().any(|label| label == "user"));
     assert!(labels.iter().any(|label| label == "system"));
@@ -446,26 +308,18 @@ async fn completion_inside_fresh_relationship_source_before_deployment_environme
 
     let document_path = temp_workspace.path().join("relationships.dsl");
     let document_source = read_workspace_file(&document_path);
-    let fresh_source = document_source.replacen(
+    let fresh_source = annotated_source(&document_source.replacen(
         "\n\n  deploymentEnvironment",
-        "\n\n  cust\n  deploymentEnvironment",
+        "\n\n  cust<CURSOR>\n  deploymentEnvironment",
         1,
-    );
+    ));
     let document_uri = file_uri_from_path(&document_path);
     open_document(&mut service, &document_uri, &document_source).await;
     let _ = next_publish_diagnostics_for_uri(&mut socket, document_uri.as_str()).await;
-    change_document(&mut service, &document_uri, 2, &fresh_source).await;
+    change_document(&mut service, &document_uri, 2, fresh_source.source()).await;
     let _ = next_publish_diagnostics_for_uri(&mut socket, document_uri.as_str()).await;
 
-    let labels = completion_labels(
-        &mut service,
-        &document_uri,
-        &fresh_source,
-        "  cust\n  deploymentEnvironment",
-        6,
-        46,
-    )
-    .await;
+    let labels = completion_labels(&mut service, &document_uri, &fresh_source).await;
 
     assert!(
         labels.iter().any(|label| label == "customer"),
@@ -480,23 +334,11 @@ async fn completion_inside_relationship_destination_suppresses_hierarchical_mode
     initialize(&mut service).await;
     initialized(&mut service).await;
 
+    let source = annotated_source(RELATIONSHIP_HIERARCHICAL_COMPLETION_SOURCE);
     let uri = file_uri("relationship-hierarchical-completion.dsl");
-    open_document(
-        &mut service,
-        &uri,
-        RELATIONSHIP_HIERARCHICAL_COMPLETION_SOURCE,
-    )
-    .await;
+    open_document(&mut service, &uri, source.source()).await;
 
-    let labels = completion_labels(
-        &mut service,
-        &uri,
-        RELATIONSHIP_HIERARCHICAL_COMPLETION_SOURCE,
-        "system -> ",
-        10,
-        44,
-    )
-    .await;
+    let labels = completion_labels(&mut service, &uri, &source).await;
 
     assert!(labels.is_empty());
 }
@@ -533,19 +375,18 @@ async fn completion_inside_multi_instance_relationship_fragment_returns_no_resul
     initialized(&mut service).await;
 
     let relationships_path = temp_workspace.path().join("shared/relationships.dsl");
-    let relationships_source = read_workspace_file(&relationships_path);
+    let relationships_source = annotated_source(
+        &read_workspace_file(&relationships_path).replacen("user -> ", "user -> <CURSOR>", 1),
+    );
     let relationships_uri = file_uri_from_path(&relationships_path);
-    open_document(&mut service, &relationships_uri, &relationships_source).await;
-
-    let labels = completion_labels(
+    open_document(
         &mut service,
         &relationships_uri,
-        &relationships_source,
-        "user -> ",
-        8,
-        45,
+        relationships_source.source(),
     )
     .await;
+
+    let labels = completion_labels(&mut service, &relationships_uri, &relationships_source).await;
 
     assert!(labels.is_empty());
 }
@@ -1803,18 +1644,14 @@ async fn assert_definition_target(
 async fn completion_labels(
     service: &mut TestService,
     uri: &Uri,
-    source: &str,
-    needle: &str,
-    byte_offset_within_needle: usize,
-    _request_id: i64,
+    source: &AnnotatedSource,
 ) -> Vec<String> {
-    let position = position_in(source, needle, byte_offset_within_needle);
     let response = request_json(
         service,
         "textDocument/completion",
         json!({
             "textDocument": { "uri": uri.as_str() },
-            "position": position,
+            "position": source.only_position(),
         }),
     )
     .await;

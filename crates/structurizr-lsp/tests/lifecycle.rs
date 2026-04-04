@@ -30,10 +30,16 @@ async fn initialize_advertises_bounded_capabilities() {
         .iter()
         .filter_map(|value| value.as_str())
         .collect::<Vec<_>>();
-    for expected in ["!", "a", "A", "_", ".", "-"] {
+    for expected in ["!", "a", "A", "0", "_"] {
         assert!(
             trigger_characters.contains(&expected),
             "completion triggers should advertise `{expected}`"
+        );
+    }
+    for unexpected in [".", "-"] {
+        assert!(
+            !trigger_characters.contains(&unexpected),
+            "completion triggers should not advertise `{unexpected}`"
         );
     }
 }

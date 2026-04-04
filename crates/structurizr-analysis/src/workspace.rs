@@ -1813,11 +1813,22 @@ fn collect_cycle_include_indices(
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ElementIdentifierMode {
     /// Element bindings resolve through their flat binding names.
+    ///
+    /// Example: with `!identifiers flat`, a container declared as
+    /// `api = container "API"` is referenced as `api`.
     Flat,
     /// Element bindings resolve through canonical hierarchical keys.
+    ///
+    /// Example: with `!identifiers hierarchical`, a container declared as
+    /// `api = container "API"` inside `softwareSystem1 = softwareSystem "System 1"`
+    /// is referenced as `softwareSystem1.api`.
     Hierarchical,
     /// Element bindings stay intentionally deferred because the effective mode is
     /// unsupported for the bounded semantic surface.
+    ///
+    /// Example: `!identifiers custom` is parsed as an unrecognized mode, so the
+    /// workspace index records the document as deferred instead of guessing how
+    /// a reference such as `api` should resolve.
     Deferred,
 }
 
