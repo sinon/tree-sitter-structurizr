@@ -34,6 +34,20 @@ SnapshotView {
             binding_name: Some(
                 "softwareSystem",
             ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 32,
+                    end_byte: 46,
+                    start_point: TextPoint {
+                        row: 2,
+                        column: 8,
+                    },
+                    end_point: TextPoint {
+                        row: 2,
+                        column: 22,
+                    },
+                },
+            ),
             span: TextSpan {
                 start_byte: 32,
                 end_byte: 177,

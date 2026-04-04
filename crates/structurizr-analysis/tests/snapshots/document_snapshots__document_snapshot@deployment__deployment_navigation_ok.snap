@@ -17,6 +17,20 @@ SnapshotView {
             binding_name: Some(
                 "system",
             ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 32,
+                    end_byte: 38,
+                    start_point: TextPoint {
+                        row: 2,
+                        column: 8,
+                    },
+                    end_point: TextPoint {
+                        row: 2,
+                        column: 14,
+                    },
+                },
+            ),
             span: TextSpan {
                 start_byte: 32,
                 end_byte: 110,
@@ -40,6 +54,20 @@ SnapshotView {
             display_name: "API",
             binding_name: Some(
                 "api",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 79,
+                    end_byte: 82,
+                    start_point: TextPoint {
+                        row: 3,
+                        column: 12,
+                    },
+                    end_point: TextPoint {
+                        row: 3,
+                        column: 15,
+                    },
+                },
             ),
             span: TextSpan {
                 start_byte: 79,
@@ -69,6 +97,20 @@ SnapshotView {
             binding_name: Some(
                 "primary",
             ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 170,
+                    end_byte: 177,
+                    start_point: TextPoint {
+                        row: 7,
+                        column: 12,
+                    },
+                    end_point: TextPoint {
+                        row: 7,
+                        column: 19,
+                    },
+                },
+            ),
             span: TextSpan {
                 start_byte: 170,
                 end_byte: 446,
@@ -92,6 +134,20 @@ SnapshotView {
             display_name: "Gateway",
             binding_name: Some(
                 "gateway",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 223,
+                    end_byte: 230,
+                    start_point: TextPoint {
+                        row: 8,
+                        column: 16,
+                    },
+                    end_point: TextPoint {
+                        row: 8,
+                        column: 23,
+                    },
+                },
             ),
             span: TextSpan {
                 start_byte: 223,
@@ -120,6 +176,20 @@ SnapshotView {
             display_name: "apiInstance",
             binding_name: Some(
                 "apiInstance",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 278,
+                    end_byte: 289,
+                    start_point: TextPoint {
+                        row: 9,
+                        column: 16,
+                    },
+                    end_point: TextPoint {
+                        row: 9,
+                        column: 27,
+                    },
+                },
             ),
             span: TextSpan {
                 start_byte: 278,

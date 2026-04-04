@@ -78,19 +78,22 @@ That includes:
 - broader identifier completion
 - richer diagnostic messages where the current semantic model already has the underlying facts
 
-These features are usually safer to add before rename or code actions because they expose information without rewriting source text.
+These features were usually safer to add before the first bounded rename slice
+because they expose information without rewriting source text.
 
 ### 4. Add edit-capable features only when they are safe
 
-Features such as rename and code actions should stay later work.
+Broader rename work and code actions should stay later work.
 
-They depend on:
+They still depend on:
 
 - broader reference coverage
 - conflict checks
 - stronger guarantees around scope and deferred cases
 
-The guiding rule is simple: do not ship edit-capable features until the analysis layer can explain their answer with the same confidence as read-only navigation.
+The guiding rule is simple: do not broaden edit-capable features until the
+analysis layer can explain their answer with the same confidence as read-only
+navigation.
 
 ### 5. Improve operability and performance
 

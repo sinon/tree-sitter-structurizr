@@ -16,7 +16,8 @@ It stays intentionally thin:
 - keyword/directive, style-property, and flat-mode relationship identifier
   completion for explicit core model relationship endpoints
 - hover for the current bounded identifier families, rendered from source-derived symbol metadata
-- definition, references, and type-definition for the current bounded symbol families
+- definition, references, rename, and type-definition for the current bounded
+  symbol families
 - document links for directive paths
 
 ## Crate shape
@@ -33,6 +34,7 @@ It stays intentionally thin:
 cargo test -p structurizr-lsp --test lifecycle
 cargo test -p structurizr-lsp --test hover
 cargo test -p structurizr-lsp --test navigation
+cargo test -p structurizr-lsp --test rename
 cargo bench -p structurizr-lsp --bench session
 just run-strz server
 ```

@@ -41,6 +41,9 @@ Current in-repo behavior includes:
 - hover for the current bounded identifier families, with compact source-derived metadata for declaration sites and resolved references
 - go-to-definition across the bounded symbol set, including cross-file cases already modeled in the workspace layer
 - find-references across the same bounded symbol families
+- bounded rename plus `prepareRename` for flat core-element identifiers and
+  deployment-layer identifiers when the current workspace facts produce one
+  unambiguous edit set
 - type-definition for instance-to-model navigation
 - document links for local directive paths, plus a definition fallback for editors that do not surface `textDocument/documentLink`
 
@@ -57,7 +60,7 @@ The current implementation deliberately stays conservative around:
 - broader identifier completion beyond flat-mode explicit relationship
   endpoints for core elements
 - workspace symbols
-- rename and code actions
+- broader or hierarchical rename and code actions
 - semantic tokens
 - runtime-style validation or execution of `!script` / `!plugin`
 
@@ -80,7 +83,8 @@ The remaining path to that state is roughly:
 - finish downstream editor wiring and release choreography, especially around the separate Zed extension
 - broaden safe reference coverage for selectors, `this`, named dynamic references, and other still-deferred scope cases
 - deepen read-only semantic UX with broader hover coverage and workspace symbols
-- add safe edit features such as rename only after broader reference coverage lands
+- broaden rename beyond the shipped flat/deployment slice, and add code actions,
+  only after broader reference coverage lands
 - improve workspace invalidation, performance, and operational visibility so the current implementation scales more gracefully
 
 ## Suggested reading paths
