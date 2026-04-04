@@ -111,6 +111,8 @@ pub enum ReferenceKind {
     ViewScope,
     /// `include` reference nested inside a view body.
     ViewInclude,
+    /// `exclude` reference nested inside a view body.
+    ViewExclude,
     /// Identifier-valued `animation` reference nested inside a view body.
     ViewAnimation,
 }

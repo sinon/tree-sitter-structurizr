@@ -2009,7 +2009,8 @@ fn build_derived_workspace_instance(
     root_document: &WorkspaceSemanticDocumentFacts,
     documents: &[&WorkspaceSemanticDocumentFacts],
 ) -> DerivedWorkspaceInstance {
-    let inherited_workspace_mode = document_workspace_identifier_mode(root_document);
+    let inherited_workspace_mode =
+        document_workspace_identifier_mode(&root_document.identifier_modes);
     let bindings = build_binding_tables(documents, inherited_workspace_mode.as_ref());
     let mut semantic_diagnostics = bindings.semantic_diagnostics.clone();
     let reference_tables = build_reference_resolution_tables(documents, &bindings);
@@ -2314,6 +2315,7 @@ fn resolve_reference_status(
         | ReferenceKind::DeploymentRelationshipDestination
         | ReferenceKind::ViewScope
         | ReferenceKind::ViewInclude
+        | ReferenceKind::ViewExclude
         | ReferenceKind::ViewAnimation => {
             resolve_reference_against_target_hint(reference, bindings)
         }
@@ -2406,8 +2408,23 @@ fn effective_element_identifier_mode(
     document: &WorkspaceSemanticDocumentFacts,
     inherited_workspace_mode: Option<&IdentifierMode>,
 ) -> ElementIdentifierMode {
-    match document_model_identifier_mode(document)
-        .or_else(|| document_workspace_identifier_mode(document))
+    effective_element_identifier_mode_from_facts(
+        &document.identifier_modes,
+        inherited_workspace_mode,
+    )
+}
+
+/// Derives the bounded element-identifier mode from raw directive facts.
+///
+/// Both workspace indexes and snapshot-only LSP helpers rely on this
+/// precedence, so keeping it shared prevents drift between read-only features
+/// and edit planning.
+pub fn effective_element_identifier_mode_from_facts(
+    identifier_modes: &[IdentifierModeFact],
+    inherited_workspace_mode: Option<&IdentifierMode>,
+) -> ElementIdentifierMode {
+    match document_model_identifier_mode(identifier_modes)
+        .or_else(|| document_workspace_identifier_mode(identifier_modes))
         .or_else(|| inherited_workspace_mode.cloned())
     {
         Some(IdentifierMode::Hierarchical) => ElementIdentifierMode::Hierarchical,
@@ -2417,23 +2434,22 @@ fn effective_element_identifier_mode(
 }
 
 fn document_model_identifier_mode(
-    document: &WorkspaceSemanticDocumentFacts,
+    identifier_modes: &[IdentifierModeFact],
 ) -> Option<IdentifierMode> {
-    last_identifier_mode_for_container(document, &DirectiveContainer::Model)
+    last_identifier_mode_for_container(identifier_modes, &DirectiveContainer::Model)
 }
 
 fn document_workspace_identifier_mode(
-    document: &WorkspaceSemanticDocumentFacts,
+    identifier_modes: &[IdentifierModeFact],
 ) -> Option<IdentifierMode> {
-    last_identifier_mode_for_container(document, &DirectiveContainer::Workspace)
+    last_identifier_mode_for_container(identifier_modes, &DirectiveContainer::Workspace)
 }
 
 fn last_identifier_mode_for_container(
-    document: &WorkspaceSemanticDocumentFacts,
+    identifier_modes: &[IdentifierModeFact],
     container: &DirectiveContainer,
 ) -> Option<IdentifierMode> {
-    document
-        .identifier_modes
+    identifier_modes
         .iter()
         .rev()
         .find(|fact| fact.container == *container)

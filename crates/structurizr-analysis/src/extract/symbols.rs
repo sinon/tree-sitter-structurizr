@@ -412,7 +412,25 @@ impl<'a> SymbolExtractor<'a> {
 
         if let Some(body) = view.child_by_field_name("body") {
             if let Some(target_hint) = include_target_hint {
-                self.collect_view_include_references(body, view.kind(), target_hint, parent_symbol);
+                // `exclude` participates in the same bounded identifier surface
+                // as `include`, so both must flow through the shared reference
+                // table for navigation and rename to stay aligned.
+                self.collect_view_statement_references(
+                    body,
+                    "include_statement",
+                    ReferenceKind::ViewInclude,
+                    view.kind(),
+                    target_hint,
+                    parent_symbol,
+                );
+                self.collect_view_statement_references(
+                    body,
+                    "exclude_statement",
+                    ReferenceKind::ViewExclude,
+                    view.kind(),
+                    target_hint,
+                    parent_symbol,
+                );
             }
             if let Some(target_hint) = animation_target_hint {
                 self.collect_view_animation_references(
@@ -439,19 +457,21 @@ impl<'a> SymbolExtractor<'a> {
         }
     }
 
-    fn collect_view_include_references(
+    fn collect_view_statement_references(
         &mut self,
         node: Node<'_>,
+        statement_kind: &str,
+        reference_kind: ReferenceKind,
         view_kind: &str,
         target_hint: ReferenceTargetHint,
         parent_symbol: Option<SymbolId>,
     ) {
-        if node.kind() == "include_statement" {
+        if node.kind() == statement_kind {
             let mut cursor = node.walk();
             for value in node.named_children(&mut cursor) {
                 self.push_view_reference(
                     value,
-                    ReferenceKind::ViewInclude,
+                    reference_kind,
                     target_hint,
                     view_kind,
                     parent_symbol,
@@ -462,7 +482,14 @@ impl<'a> SymbolExtractor<'a> {
 
         let mut cursor = node.walk();
         for child in node.named_children(&mut cursor) {
-            self.collect_view_include_references(child, view_kind, target_hint, parent_symbol);
+            self.collect_view_statement_references(
+                child,
+                statement_kind,
+                reference_kind,
+                view_kind,
+                target_hint,
+                parent_symbol,
+            );
         }
     }
 

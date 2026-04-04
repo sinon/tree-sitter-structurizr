@@ -9,6 +9,7 @@ use crate::diagnostics::SyntaxDiagnostic;
 use crate::extract;
 use crate::includes::IncludeDirective;
 use crate::symbols::{IdentifierModeFact, Reference, Symbol};
+use crate::workspace::{ElementIdentifierMode, effective_element_identifier_mode_from_facts};
 
 /// Stable caller-provided identifier for a document across analysis runs.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -312,6 +313,12 @@ impl DocumentSnapshot {
     /// Returns all extracted `!identifiers` mode directives in the document.
     pub fn identifier_modes(&self) -> &[IdentifierModeFact] {
         self.syntax_facts.identifier_modes()
+    }
+
+    #[must_use]
+    /// Returns the document's effective bounded element-identifier mode.
+    pub fn effective_element_identifier_mode(&self) -> ElementIdentifierMode {
+        effective_element_identifier_mode_from_facts(self.identifier_modes(), None)
     }
 
     #[must_use]

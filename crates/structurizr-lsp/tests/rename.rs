@@ -1,13 +1,13 @@
 mod support;
 
-use std::{fs, path::Path};
+use std::{collections::BTreeSet, path::Path};
 
 use serde_json::json;
 use support::{
-    annotated_source, file_uri, file_uri_from_path, initialize, initialize_with_workspace_folders,
-    initialized, new_service, next_publish_diagnostics_for_uri, open_document, request_json,
+    TempWorkspace, annotated_source, file_uri, file_uri_from_path, initialize,
+    initialize_with_workspace_folders, initialized, new_service, next_publish_diagnostics_for_uri,
+    open_document, read_workspace_file, request_json,
 };
-use tempfile::TempDir;
 use tower_lsp_server::ls_types::Uri;
 
 const FLAT_ELEMENT_RENAME_SOURCE: &str = r#"workspace {
@@ -21,6 +21,7 @@ const FLAT_ELEMENT_RENAME_SOURCE: &str = r#"workspace {
     views {
         container system "Payments" {
             include <CURSOR:api-view-reference>api
+            exclude <CURSOR:api-view-exclude>api
             autoLayout
         }
     }
@@ -33,6 +34,30 @@ const HIERARCHICAL_RENAME_SOURCE: &str = r#"workspace {
 
         system = softwareSystem "Payments" {
             <CURSOR:api-declaration>api = container "Payments API"
+        }
+    }
+}
+"#;
+
+const HIERARCHICAL_DEPLOYMENT_RENAME_SOURCE: &str = r#"workspace {
+    !identifiers hierarchical
+
+    model {
+        system = softwareSystem "Payments" {
+            api = container "API"
+        }
+
+        live = deploymentEnvironment "Live" {
+            edge = deploymentNode "Edge" {
+                <CURSOR:api-instance-declaration>apiInstance = containerInstance api
+            }
+        }
+    }
+
+    views {
+        deployment system "Live" {
+            include live.edge.apiInstance
+            autoLayout
         }
     }
 }
@@ -83,12 +108,12 @@ async fn rename_rewrites_same_document_flat_element_bindings_and_references() {
     let response = request_rename(
         &mut service,
         &uri,
-        source.position("api-relationship-reference"),
+        source.position("api-view-exclude"),
         "paymentsApi",
     )
     .await;
 
-    assert_edit_lines(&response, &uri, &[4, 6, 10], "paymentsApi");
+    assert_workspace_edit(&response, &[(&uri, &[4, 6, 10, 11])], "paymentsApi");
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -140,8 +165,11 @@ async fn rename_rewrites_cross_file_container_instance_bindings_and_references()
     .await;
 
     let deployment_uri = file_uri_from_path(&workspace_root.join("deployment.dsl"));
-    assert_edit_lines(&response, &deployment_uri, &[3, 6], "paymentsApi");
-    assert_edit_lines(&response, &views_uri, &[3], "paymentsApi");
+    assert_workspace_edit(
+        &response,
+        &[(&deployment_uri, &[3, 6]), (&views_uri, &[3])],
+        "paymentsApi",
+    );
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -159,6 +187,28 @@ async fn rename_returns_no_result_when_element_identifiers_are_hierarchical() {
         &mut service,
         &uri,
         source.position("api-declaration"),
+        "paymentsApi",
+    )
+    .await;
+
+    assert!(response["result"].is_null());
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn rename_returns_no_result_when_deployment_identifiers_are_hierarchical() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(HIERARCHICAL_DEPLOYMENT_RENAME_SOURCE);
+    let uri = file_uri("rename-hierarchical-deployment.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let response = request_rename(
+        &mut service,
+        &uri,
+        source.position("api-instance-declaration"),
         "paymentsApi",
     )
     .await;
@@ -186,6 +236,32 @@ async fn rename_returns_no_result_for_duplicate_bindings() {
     .await;
 
     assert!(response["result"].is_null());
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn rename_rejects_dotted_new_names_for_the_flat_slice() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(FLAT_ELEMENT_RENAME_SOURCE);
+    let uri = file_uri("rename-invalid-new-name.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let response = request_rename(
+        &mut service,
+        &uri,
+        source.position("api-declaration"),
+        "payments.api",
+    )
+    .await;
+
+    assert_eq!(response["error"]["code"], -32602);
+    assert_eq!(
+        response["error"]["message"],
+        "rename newName must match the supported flat Structurizr identifier shape"
+    );
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -277,105 +353,48 @@ async fn request_rename(
     .await
 }
 
-fn assert_edit_lines(
+fn assert_workspace_edit(
     response: &serde_json::Value,
-    uri: &Uri,
-    expected_lines: &[u64],
+    expected_documents: &[(&Uri, &[u64])],
     expected_text: &str,
 ) {
-    let edits = response["result"]["changes"][uri.as_str()]
-        .as_array()
-        .unwrap_or_else(|| panic!("expected edits for `{}`", uri.as_str()));
-    let lines = edits
+    let changes = response["result"]["changes"]
+        .as_object()
+        .expect("rename should return workspace edits");
+    let actual_uris = changes.keys().cloned().collect::<BTreeSet<_>>();
+    let expected_uris = expected_documents
         .iter()
-        .map(|edit| {
-            edit["range"]["start"]["line"]
-                .as_u64()
-                .expect("edit start line should be a number")
-        })
-        .collect::<Vec<_>>();
-    let new_texts = edits
-        .iter()
-        .map(|edit| {
-            edit["newText"]
-                .as_str()
-                .expect("edit newText should be a string")
-        })
-        .collect::<Vec<_>>();
+        .map(|(uri, _)| uri.as_str().to_owned())
+        .collect::<BTreeSet<_>>();
 
-    assert_eq!(lines, expected_lines);
-    assert!(
-        new_texts.iter().all(|new_text| *new_text == expected_text),
-        "expected all edits for `{}` to use `{expected_text}`, got {new_texts:?}",
-        uri.as_str()
-    );
-}
+    assert_eq!(actual_uris, expected_uris);
 
-fn read_workspace_file(path: &Path) -> String {
-    fs::read_to_string(path).unwrap_or_else(|error| {
-        panic!(
-            "workspace fixture `{}` should be readable: {error}",
-            path.display()
-        )
-    })
-}
+    for (uri, expected_lines) in expected_documents {
+        let edits = changes[uri.as_str()]
+            .as_array()
+            .unwrap_or_else(|| panic!("expected edits for `{}`", uri.as_str()));
+        let lines = edits
+            .iter()
+            .map(|edit| {
+                edit["range"]["start"]["line"]
+                    .as_u64()
+                    .expect("edit start line should be a number")
+            })
+            .collect::<Vec<_>>();
+        let new_texts = edits
+            .iter()
+            .map(|edit| {
+                edit["newText"]
+                    .as_str()
+                    .expect("edit newText should be a string")
+            })
+            .collect::<Vec<_>>();
 
-struct TempWorkspace {
-    temp_dir: TempDir,
-}
-
-impl TempWorkspace {
-    fn new(
-        name: &str,
-        workspace_source: &str,
-        directories: &[&Path],
-        files: &[(&Path, &str)],
-    ) -> Self {
-        let temp_dir = tempfile::Builder::new()
-            .prefix(name)
-            .tempdir()
-            .expect("temp workspace should create");
-        let path = temp_dir.path();
-
-        fs::write(path.join("workspace.dsl"), workspace_source).unwrap_or_else(|error| {
-            panic!(
-                "failed to write temp workspace file `{}`: {error}",
-                path.join("workspace.dsl").display()
-            )
-        });
-
-        for directory in directories {
-            let directory_path = path.join(directory);
-            fs::create_dir_all(&directory_path).unwrap_or_else(|error| {
-                panic!(
-                    "failed to create temp workspace directory `{}`: {error}",
-                    directory_path.display()
-                )
-            });
-        }
-
-        for (relative_path, contents) in files {
-            let file_path = path.join(relative_path);
-            if let Some(parent) = file_path.parent() {
-                fs::create_dir_all(parent).unwrap_or_else(|error| {
-                    panic!(
-                        "failed to create temp workspace parent `{}`: {error}",
-                        parent.display()
-                    )
-                });
-            }
-            fs::write(&file_path, contents).unwrap_or_else(|error| {
-                panic!(
-                    "failed to write temp workspace file `{}`: {error}",
-                    file_path.display()
-                )
-            });
-        }
-
-        Self { temp_dir }
-    }
-
-    fn path(&self) -> &Path {
-        self.temp_dir.path()
+        assert_eq!(lines, *expected_lines);
+        assert!(
+            new_texts.iter().all(|new_text| *new_text == expected_text),
+            "expected all edits for `{}` to use `{expected_text}`, got {new_texts:?}",
+            uri.as_str()
+        );
     }
 }

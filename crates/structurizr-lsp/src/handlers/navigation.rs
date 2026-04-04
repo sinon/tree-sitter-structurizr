@@ -620,36 +620,45 @@ const fn is_instance_symbol(symbol: &Symbol) -> bool {
     )
 }
 
-fn symbol_matches_reference(symbol: &Symbol, reference: &Reference) -> bool {
+pub(super) fn symbol_matches_reference(symbol: &Symbol, reference: &Reference) -> bool {
     let Some(binding_name) = symbol.binding_name.as_deref() else {
         return false;
     };
 
-    if binding_name != reference.raw_text {
-        return false;
-    }
+    binding_name == reference.raw_text && reference_could_target_symbol_kind(reference, symbol.kind)
+}
 
+pub(super) const fn is_element_symbol_kind(kind: SymbolKind) -> bool {
+    matches!(
+        kind,
+        SymbolKind::Person
+            | SymbolKind::SoftwareSystem
+            | SymbolKind::Container
+            | SymbolKind::Component
+    )
+}
+
+pub(super) const fn is_deployment_symbol_kind(kind: SymbolKind) -> bool {
+    matches!(
+        kind,
+        SymbolKind::DeploymentNode
+            | SymbolKind::InfrastructureNode
+            | SymbolKind::ContainerInstance
+            | SymbolKind::SoftwareSystemInstance
+    )
+}
+
+pub(super) const fn reference_could_target_symbol_kind(
+    reference: &Reference,
+    target_kind: SymbolKind,
+) -> bool {
     match reference.target_hint {
-        structurizr_analysis::ReferenceTargetHint::Element => {
-            matches!(
-                symbol.kind,
-                SymbolKind::Person
-                    | SymbolKind::SoftwareSystem
-                    | SymbolKind::Container
-                    | SymbolKind::Component
-            )
-        }
+        structurizr_analysis::ReferenceTargetHint::Element => is_element_symbol_kind(target_kind),
         structurizr_analysis::ReferenceTargetHint::Deployment => {
-            matches!(
-                symbol.kind,
-                SymbolKind::DeploymentNode
-                    | SymbolKind::InfrastructureNode
-                    | SymbolKind::ContainerInstance
-                    | SymbolKind::SoftwareSystemInstance
-            )
+            is_deployment_symbol_kind(target_kind)
         }
         structurizr_analysis::ReferenceTargetHint::Relationship => {
-            symbol.kind == SymbolKind::Relationship
+            matches!(target_kind, SymbolKind::Relationship)
         }
         structurizr_analysis::ReferenceTargetHint::ElementOrRelationship => true,
     }
