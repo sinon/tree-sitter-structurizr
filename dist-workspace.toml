@@ -19,3 +19,5 @@ install-updater = false
 tap = "sinon/homebrew-tap"
 # Publish jobs to run in CI
 publish-jobs = ["homebrew"]
+# We have manual changes in release.yml for zizmor fixes e.g sha pinning
+allow-dirty = ["ci"]
