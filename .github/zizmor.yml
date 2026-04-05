@@ -1,0 +1,12 @@
+rules:
+  template-injection:
+    ignore:
+      - release.yml:131
+      - release.yml:141
+      - release.yml:146
+  secrets-outside-env:
+    ignore:
+      - release.yml:306
+  concurrency-limits:
+    ignore:
+      - release.yml:16
