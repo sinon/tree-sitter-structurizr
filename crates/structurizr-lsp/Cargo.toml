@@ -2,6 +2,13 @@
 name = "structurizr-lsp"
 version = "0.1.0"
 edition = "2024"
+repository = "https://github.com/sinon/tree-sitter-structurizr/"
+home_page = "https://github.com/sinon/tree-sitter-structurizr/"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+keywords = ["lsp", "structurizr"]
+categories = ["lsp", "parsing", "text-editors"]
+description = "LSP for Structurizr C4 modelling language"
 
 [[bench]]
 name = "session"

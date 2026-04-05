@@ -3,6 +3,11 @@ name = "structurizr-cli"
 version = "0.1.0"
 edition = "2024"
 autobins = false
+repository = "https://github.com/sinon/tree-sitter-structurizr/"
+homepage = "https://github.com/sinon/tree-sitter-structurizr/"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+description = "`strz` CLI for running Structurizr LSP server and linter"
 
 [[bin]]
 name = "strz"
