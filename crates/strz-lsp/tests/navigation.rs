@@ -641,7 +641,16 @@ async fn completion_inside_fresh_relationship_source_before_deployment_environme
     open_document(&mut service, &document_uri, &document_source).await;
     let _ = next_publish_diagnostics_for_uri(&mut socket, document_uri.as_str()).await;
     change_document(&mut service, &document_uri, 2, fresh_source.source()).await;
-    let _ = next_publish_diagnostics_for_uri(&mut socket, document_uri.as_str()).await;
+    let diagnostics_notification =
+        next_publish_diagnostics_for_uri(&mut socket, document_uri.as_str()).await;
+    let diagnostics = diagnostics_notification["params"]["diagnostics"]
+        .as_array()
+        .expect("publishDiagnostics should include a diagnostics array");
+
+    assert!(
+        diagnostics.is_empty(),
+        "partial relationship source before deploymentEnvironment should not publish cascaded syntax diagnostics: {diagnostics:?}"
+    );
 
     let labels = completion_labels(&mut service, &document_uri, &fresh_source).await;
 

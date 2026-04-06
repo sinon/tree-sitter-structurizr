@@ -91,3 +91,59 @@ fn url_statements_highlight_unquoted_values_as_urls() {
         "expected unquoted URL values to be highlighted as URLs, got {captures:#?}"
     );
 }
+
+#[test]
+fn deployment_instances_highlight_identifiers_targets_groups_and_keywords() {
+    let source = indoc! {r#"
+        workspace {
+          model {
+            system = softwareSystem "System" {
+              app = container "App"
+            }
+
+            live = deploymentEnvironment "Live" {
+              blue = deploymentGroup "Blue"
+
+              node = deploymentNode "Node" {
+                systemInstance = softwareSystemInstance system
+                canarySystem = softwareSystemInstance system blue "Canary"
+                canaryApp = containerInstance app blue "Canary"
+              }
+            }
+          }
+        }
+    "#};
+
+    let captures = highlight_captures(source);
+
+    for keyword in ["softwareSystemInstance", "containerInstance"] {
+        assert!(
+            captures
+                .iter()
+                .any(|(name, text)| name == "keyword" && text == keyword),
+            "expected `{keyword}` to be highlighted as a keyword, got {captures:#?}"
+        );
+    }
+
+    for ty in [
+        "systemInstance",
+        "canarySystem",
+        "canaryApp",
+        "system",
+        "app",
+    ] {
+        assert!(
+            captures.iter().any(|(name, text)| name == "type" && text == ty),
+            "expected `{ty}` to be highlighted as a type, got {captures:#?}"
+        );
+    }
+
+    let blue_type_count = captures
+        .iter()
+        .filter(|(name, text)| name == "type" && text == "blue")
+        .count();
+    assert_eq!(
+        blue_type_count, 3,
+        "expected `blue` to be highlighted as a type in its declaration and both instance references, got {captures:#?}"
+    );
+}

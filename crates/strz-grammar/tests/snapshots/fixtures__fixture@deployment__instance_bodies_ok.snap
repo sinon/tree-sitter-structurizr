@@ -1,6 +1,6 @@
 ---
-source: tests/fixtures.rs
-expression: "common::tree_sexp(&tree)"
+source: crates/strz-grammar/tests/fixtures.rs
+expression: tree_sexp(&tree)
 ---
 (source_file
   (workspace body:
@@ -40,19 +40,17 @@ expression: "common::tree_sexp(&tree)"
                         (identifier) operator:
                         (relationship_operator) destination:
                         (this_keyword))
-                      (software_system_instance
-                        (software_system_instance_simple target:
-                          (identifier) body:
-                          (deployment_instance_block
-                            (relationship source:
-                              (identifier) operator:
-                              (relationship_operator) destination:
-                              (this_keyword)))))
-                      (container_instance
-                        (container_instance_simple target:
-                          (identifier) body:
-                          (deployment_instance_block
-                            (relationship source:
-                              (identifier) operator:
-                              (relationship_operator) destination:
-                              (this_keyword))))))))))))))))
+                      (software_system_instance target:
+                        (identifier) body:
+                        (deployment_instance_block
+                          (relationship source:
+                            (identifier) operator:
+                            (relationship_operator) destination:
+                            (this_keyword))))
+                      (container_instance target:
+                        (identifier) body:
+                        (deployment_instance_block
+                          (relationship source:
+                            (identifier) operator:
+                            (relationship_operator) destination:
+                            (this_keyword)))))))))))))))

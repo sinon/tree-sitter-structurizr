@@ -610,20 +610,8 @@ fn is_deployment_relationship(node: Node<'_>) -> bool {
     false
 }
 
-fn instance_shape(node: Node<'_>) -> Node<'_> {
-    let mut cursor = node.walk();
-    node.named_children(&mut cursor)
-        .next()
-        .filter(|child| {
-            matches!(
-                child.kind(),
-                "container_instance_simple"
-                    | "container_instance_grouped"
-                    | "software_system_instance_simple"
-                    | "software_system_instance_grouped"
-            )
-        })
-        .unwrap_or(node)
+const fn instance_shape(node: Node<'_>) -> Node<'_> {
+    node
 }
 
 fn declaration_metadata(node: Node<'_>, source: &str) -> ExtractedSymbolMetadata {

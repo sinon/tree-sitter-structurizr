@@ -333,9 +333,8 @@ workspace {
                 (string)
                 (deployment_node_block
                   (container_instance
-                    (container_instance_simple
-                      (identifier)
-                      (identifier))))))))))))
+                    (identifier)
+                    (identifier)))))))))))
 
 ==================================
 Deployment instance bodies and this
@@ -410,18 +409,77 @@ workspace {
                         (relationship_operator)
                         (this_keyword))
                       (software_system_instance
-                        (software_system_instance_simple
-                          (identifier)
-                          (deployment_instance_block
-                            (relationship
-                              (identifier)
-                              (relationship_operator)
-                              (this_keyword)))))
+                        (identifier)
+                        (deployment_instance_block
+                          (relationship
+                            (identifier)
+                            (relationship_operator)
+                            (this_keyword))))
                       (container_instance
-                        (container_instance_simple
-                          (identifier)
-                          (deployment_instance_block
-                            (relationship
-                              (identifier)
-                              (relationship_operator)
-                              (this_keyword))))))))))))))))
+                        (identifier)
+                        (deployment_instance_block
+                          (relationship
+                            (identifier)
+                            (relationship_operator)
+                            (this_keyword)))))))))))))))
+
+=====================================
+Deployment instance assignment and tags
+=====================================
+
+workspace {
+  model {
+    system = softwareSystem "System" {
+      app = container "App"
+    }
+
+    live = deploymentEnvironment "Live" {
+      blue = deploymentGroup "Blue"
+
+      node = deploymentNode "Node" {
+        systemInstance = softwareSystemInstance system
+        canarySystem = softwareSystemInstance system blue "Canary"
+        canaryApp = containerInstance app blue "Canary"
+      }
+    }
+  }
+}
+
+---
+
+(source_file
+  (workspace
+    (workspace_block
+      (model
+        (model_block
+          (software_system
+            (identifier)
+            (string)
+            (software_system_block
+              (container
+                (identifier)
+                (string))))
+          (deployment_environment
+            (identifier)
+            (string)
+            (deployment_environment_block
+              (deployment_group
+                (identifier)
+                (string))
+              (deployment_node
+                (identifier)
+                (string)
+                (deployment_node_block
+                  (software_system_instance
+                    (identifier)
+                    (identifier))
+                  (software_system_instance
+                    (identifier)
+                    (identifier)
+                    (identifier)
+                    (string))
+                  (container_instance
+                    (identifier)
+                    (identifier)
+                    (identifier)
+                    (string)))))))))))
