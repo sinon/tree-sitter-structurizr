@@ -1,0 +1,196 @@
+---
+source: crates/strz-analysis/tests/document_snapshots.rs
+expression: "SnapshotView::from(&snapshot)"
+---
+SnapshotView {
+    has_syntax_errors: false,
+    diagnostics: [],
+    include_directives: [],
+    identifier_modes: [
+        IdentifierModeFact {
+            mode: Flat,
+            raw_value: "flat",
+            value_kind: Identifier,
+            span: TextSpan {
+                start_byte: 16,
+                end_byte: 33,
+                start_point: TextPoint {
+                    row: 1,
+                    column: 4,
+                },
+                end_point: TextPoint {
+                    row: 1,
+                    column: 21,
+                },
+            },
+            value_span: TextSpan {
+                start_byte: 29,
+                end_byte: 33,
+                start_point: TextPoint {
+                    row: 1,
+                    column: 17,
+                },
+                end_point: TextPoint {
+                    row: 1,
+                    column: 21,
+                },
+            },
+            container: Workspace,
+        },
+        IdentifierModeFact {
+            mode: Hierarchical,
+            raw_value: "hierarchical",
+            value_kind: Identifier,
+            span: TextSpan {
+                start_byte: 55,
+                end_byte: 80,
+                start_point: TextPoint {
+                    row: 4,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 4,
+                    column: 33,
+                },
+            },
+            value_span: TextSpan {
+                start_byte: 68,
+                end_byte: 80,
+                start_point: TextPoint {
+                    row: 4,
+                    column: 21,
+                },
+                end_point: TextPoint {
+                    row: 4,
+                    column: 33,
+                },
+            },
+            container: Model,
+        },
+    ],
+    symbols: [
+        Symbol {
+            id: SymbolId(
+                0,
+            ),
+            kind: SoftwareSystem,
+            display_name: "System",
+            binding_name: Some(
+                "system",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 90,
+                    end_byte: 96,
+                    start_point: TextPoint {
+                        row: 6,
+                        column: 8,
+                    },
+                    end_point: TextPoint {
+                        row: 6,
+                        column: 14,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 90,
+                end_byte: 228,
+                start_point: TextPoint {
+                    row: 6,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 10,
+                    column: 9,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "software_system",
+        },
+        Symbol {
+            id: SymbolId(
+                1,
+            ),
+            kind: Container,
+            display_name: "API",
+            binding_name: Some(
+                "api",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 137,
+                    end_byte: 140,
+                    start_point: TextPoint {
+                        row: 7,
+                        column: 12,
+                    },
+                    end_point: TextPoint {
+                        row: 7,
+                        column: 15,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 137,
+                end_byte: 218,
+                start_point: TextPoint {
+                    row: 7,
+                    column: 12,
+                },
+                end_point: TextPoint {
+                    row: 9,
+                    column: 13,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    0,
+                ),
+            ),
+            syntax_node_kind: "container",
+        },
+        Symbol {
+            id: SymbolId(
+                2,
+            ),
+            kind: Component,
+            display_name: "Worker",
+            binding_name: Some(
+                "worker",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 177,
+                    end_byte: 183,
+                    start_point: TextPoint {
+                        row: 8,
+                        column: 16,
+                    },
+                    end_point: TextPoint {
+                        row: 8,
+                        column: 22,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 177,
+                end_byte: 204,
+                start_point: TextPoint {
+                    row: 8,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 8,
+                    column: 43,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    1,
+                ),
+            ),
+            syntax_node_kind: "component",
+        },
+    ],
+    references: [],
+}

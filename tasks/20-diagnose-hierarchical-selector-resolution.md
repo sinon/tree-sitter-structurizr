@@ -11,11 +11,11 @@ The recent fixture parity run found two upstream failures in
 
 ## Root Cause
 
-[`crates/structurizr-analysis/src/extract/symbols.rs`](../crates/structurizr-analysis/src/extract/symbols.rs)
+[`crates/strz-analysis/src/extract/symbols.rs`](../crates/strz-analysis/src/extract/symbols.rs)
 extracts identifier references, selector-like targets, and path-like view
 references for navigation.
 
-[`crates/structurizr-analysis/src/workspace.rs`](../crates/structurizr-analysis/src/workspace.rs)
+[`crates/strz-analysis/src/workspace.rs`](../crates/strz-analysis/src/workspace.rs)
 does not currently emit semantic diagnostics when a hierarchical identifier,
 selector target, or inherited reference from an extended workspace cannot be
 resolved to a concrete element in the assembled model.

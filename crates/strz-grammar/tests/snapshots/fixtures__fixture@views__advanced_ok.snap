@@ -1,0 +1,94 @@
+---
+source: crates/strz-grammar/tests/fixtures.rs
+expression: tree_sexp(&tree)
+---
+(source_file
+  (workspace body:
+    (workspace_block
+      (identifiers_directive value:
+        (identifier))
+      (implied_relationships_directive value:
+        (identifier))
+      (docs_directive path:
+        (string))
+      (adrs_directive path:
+        (string))
+      (model body:
+        (model_block
+          (person identifier:
+            (identifier) name:
+            (string))
+          (software_system identifier:
+            (identifier) name:
+            (string) body:
+            (software_system_block
+              (container identifier:
+                (identifier) name:
+                (string))))
+          (relationship source:
+            (identifier) operator:
+            (relationship_operator) destination:
+            (identifier) attribute:
+            (string) attribute:
+            (string))
+          (deployment_environment identifier:
+            (identifier) name:
+            (string) body:
+            (deployment_environment_block
+              (deployment_node identifier:
+                (identifier) name:
+                (string) body:
+                (deployment_node_block
+                  (container_instance
+                    (container_instance_simple identifier:
+                      (identifier) target:
+                      (identifier)))))))))
+      (views body:
+        (views_block
+          (properties_block
+            (property_entry name:
+              (string) value:
+              (string)))
+          (dynamic_view scope:
+            (identifier) key:
+            (string) body:
+            (dynamic_view_block
+              (dynamic_relationship order:
+                (order) source:
+                (identifier) destination:
+                (identifier) description:
+                (string) technology:
+                (string))
+              (auto_layout_statement direction:
+                (layout_direction))
+              (title_statement value:
+                (string))))
+          (deployment_view scope:
+            (wildcard) environment:
+            (string) key:
+            (string) body:
+            (deployment_view_block
+              (include_statement value:
+                (wildcard))
+              (auto_layout_statement)))
+          (image_view scope:
+            (wildcard) key:
+            (string) body:
+            (image_view_block
+              (plantuml_source value:
+                (string))
+              (title_statement value:
+                (string))))))
+      (configuration body:
+        (configuration_block
+          (scope_statement value:
+            (identifier))
+          (visibility_statement value:
+            (identifier))
+          (users_block
+            (user_entry username:
+              (string) role:
+              (identifier))
+            (user_entry username:
+              (string) role:
+              (identifier))))))))

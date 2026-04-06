@@ -9,7 +9,7 @@ identifier insertion now available for core model relationships.
 
 ## Root Cause
 
-[`crates/structurizr-lsp/src/convert/completion.rs`](../crates/structurizr-lsp/src/convert/completion.rs)
+[`crates/strz-lsp/src/convert/completion.rs`](../crates/strz-lsp/src/convert/completion.rs)
 currently suppresses deployment-layer `relationship` surfaces intentionally.
 
 The shipped completion candidate builder only walks

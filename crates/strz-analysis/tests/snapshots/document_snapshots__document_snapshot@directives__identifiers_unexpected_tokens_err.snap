@@ -1,0 +1,99 @@
+---
+source: crates/strz-analysis/tests/document_snapshots.rs
+expression: "SnapshotView::from(&snapshot)"
+---
+SnapshotView {
+    has_syntax_errors: true,
+    diagnostics: [
+        SyntaxDiagnostic {
+            kind: ErrorNode,
+            message: "unexpected syntax",
+            span: TextSpan {
+                start_byte: 39,
+                end_byte: 50,
+                start_point: TextPoint {
+                    row: 3,
+                    column: 4,
+                },
+                end_point: TextPoint {
+                    row: 3,
+                    column: 15,
+                },
+            },
+        },
+    ],
+    include_directives: [],
+    identifier_modes: [
+        IdentifierModeFact {
+            mode: Flat,
+            raw_value: "flat",
+            value_kind: Identifier,
+            span: TextSpan {
+                start_byte: 16,
+                end_byte: 33,
+                start_point: TextPoint {
+                    row: 1,
+                    column: 4,
+                },
+                end_point: TextPoint {
+                    row: 1,
+                    column: 21,
+                },
+            },
+            value_span: TextSpan {
+                start_byte: 29,
+                end_byte: 33,
+                start_point: TextPoint {
+                    row: 1,
+                    column: 17,
+                },
+                end_point: TextPoint {
+                    row: 1,
+                    column: 21,
+                },
+            },
+            container: Workspace,
+        },
+    ],
+    symbols: [
+        Symbol {
+            id: SymbolId(
+                0,
+            ),
+            kind: SoftwareSystem,
+            display_name: "System",
+            binding_name: Some(
+                "system",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 72,
+                    end_byte: 78,
+                    start_point: TextPoint {
+                        row: 6,
+                        column: 8,
+                    },
+                    end_point: TextPoint {
+                        row: 6,
+                        column: 14,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 72,
+                end_byte: 104,
+                start_point: TextPoint {
+                    row: 6,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 6,
+                    column: 40,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "software_system",
+        },
+    ],
+    references: [],
+}

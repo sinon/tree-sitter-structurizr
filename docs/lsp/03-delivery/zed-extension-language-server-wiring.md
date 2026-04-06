@@ -75,8 +75,8 @@ Owns:
 
 - grammar source and generated parser artifacts
 - Rust parser crate
-- `structurizr-analysis`
-- `structurizr-lsp`
+- `strz-analysis`
+- `strz-lsp`
 - release assets for the `strz` binary
 
 ### `/Users/rob/dev/zed-structurizr`
@@ -124,7 +124,7 @@ rev = "..."
 And it should add one language-server registration:
 
 ```toml
-[language_servers.structurizr-lsp]
+[language_servers.strz-lsp]
 name = "Structurizr LSP"
 languages = ["Structurizr DSL"]
 ```
@@ -133,7 +133,7 @@ Important details:
 
 - `languages` must match the `name` in `languages/structurizr/config.toml`
 - the language-server ID should stay stable and predictable
-- the language-server ID can remain `structurizr-lsp` even though the launched executable is `strz`
+- the language-server ID can remain `strz-lsp` even though the launched executable is `strz`
 - no second “syntax-only” language registration is needed
 
 ## Extension crate shape
@@ -194,7 +194,7 @@ The extension should resolve the `strz` binary using a clear priority order.
 
 First, look for Zed's native binary override setting:
 
-- `lsp.structurizr-lsp.binary.path`
+- `lsp.strz-lsp.binary.path`
 
 This is the cleanest local-development hook because it:
 
@@ -208,7 +208,7 @@ Recommended local use:
 ```json
 {
   "lsp": {
-    "structurizr-lsp": {
+    "strz-lsp": {
       "binary": {
         "path": "/Users/rob/dev/tree-sitter-structurizr/target/debug/strz"
       }
@@ -223,7 +223,7 @@ The extension should treat this override as intentionally highest priority.
 
 For terminal-launched local experiments, also honor:
 
-- `STRUCTURIZR_LSP_BIN` from `worktree.shell_env()`
+- `strz_lsp_BIN` from `worktree.shell_env()`
 
 This keeps one-off smoke tests convenient without requiring a settings edit.
 Because the override comes from Zed's shell environment, it is most reliable
@@ -233,7 +233,7 @@ already running.
 Recommended local use:
 
 ```sh
-STRUCTURIZR_LSP_BIN=/Users/rob/dev/tree-sitter-structurizr/target/debug/strz zed --foreground
+strz_lsp_BIN=/Users/rob/dev/tree-sitter-structurizr/target/debug/strz zed --foreground
 ```
 
 ### 3. User-installed binary on `PATH`
@@ -413,7 +413,7 @@ The local workflow should optimize for changing grammar and server code together
 
 1. build the local server binary in this repository
 1. point the Zed extension at the local grammar repo with a `file://` grammar URL
-1. configure `lsp.structurizr-lsp.binary.path` to point at the local `strz` binary
+1. configure `lsp.strz-lsp.binary.path` to point at the local `strz` binary
 1. install `zed-structurizr` as a dev extension
 1. open representative `.dsl` files and inspect logs in foreground mode
 
@@ -425,7 +425,7 @@ Concrete example:
 ```toml
 [grammars.structurizr]
 repository = "file:///Users/rob/dev/tree-sitter-structurizr"
-path = "crates/structurizr-grammar"
+path = "crates/strz-grammar"
 rev = "<local-commit-sha>"
 ```
 
@@ -434,7 +434,7 @@ rev = "<local-commit-sha>"
 ```json
 {
   "lsp": {
-    "structurizr-lsp": {
+    "strz-lsp": {
       "binary": {
         "path": "/Users/rob/dev/tree-sitter-structurizr/target/debug/strz"
       }
@@ -454,7 +454,7 @@ zed --foreground
 For one-shot terminal launches, step 3 can be replaced with:
 
 ```sh
-STRUCTURIZR_LSP_BIN=/Users/rob/dev/tree-sitter-structurizr/target/debug/strz zed --foreground
+strz_lsp_BIN=/Users/rob/dev/tree-sitter-structurizr/target/debug/strz zed --foreground
 ```
 
 If Zed is already running, prefer the settings-based override instead of the
@@ -486,13 +486,13 @@ Use `/Users/rob/dev/zed-structurizr/big-bank.dsl` to confirm:
 
 Use the fixture slice in this repository to confirm:
 
-- [`crates/structurizr-lsp/tests/fixtures/identifiers/direct-references-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/identifiers/direct-references-ok.dsl)
+- [`crates/strz-lsp/tests/fixtures/identifiers/direct-references-ok.dsl`](../../../crates/strz-lsp/tests/fixtures/identifiers/direct-references-ok.dsl)
   - bounded definition works for assigned identifiers
-- [`crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl)
+- [`crates/strz-lsp/tests/fixtures/relationships/named-relationships-ok.dsl`](../../../crates/strz-lsp/tests/fixtures/relationships/named-relationships-ok.dsl)
   - named relationship navigation works when implemented
-- [`crates/structurizr-lsp/tests/fixtures/includes/workspace_fragments-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/includes/workspace_fragments-ok.dsl)
+- [`crates/strz-lsp/tests/fixtures/includes/workspace_fragments-ok.dsl`](../../../crates/strz-lsp/tests/fixtures/includes/workspace_fragments-ok.dsl)
   - include-aware diagnostics resolve against the parent directive site
-- [`crates/structurizr-lsp/tests/fixtures/directives/identifiers-directive-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/directives/identifiers-directive-ok.dsl)
+- [`crates/strz-lsp/tests/fixtures/directives/identifiers-directive-ok.dsl`](../../../crates/strz-lsp/tests/fixtures/directives/identifiers-directive-ok.dsl)
   - hierarchical identifier mode does not crash or produce overconfident results
 
 ### Logging

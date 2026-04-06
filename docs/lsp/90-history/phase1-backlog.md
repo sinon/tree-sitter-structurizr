@@ -53,10 +53,10 @@ Confirm which node kinds and named fields the future analyzer can rely on.
 
 ### Files to inspect
 
-- [`crates/structurizr-grammar/grammar.js`](../../../crates/structurizr-grammar/grammar.js)
-- [`crates/structurizr-grammar/src/node-types.json`](../../../crates/structurizr-grammar/src/node-types.json)
+- [`crates/strz-grammar/grammar.js`](../../../crates/strz-grammar/grammar.js)
+- [`crates/strz-grammar/src/node-types.json`](../../../crates/strz-grammar/src/node-types.json)
 - `fixtures/**/*.dsl`
-- `crates/structurizr-grammar/test/corpus/*.txt`
+- `crates/strz-grammar/test/corpus/*.txt`
 
 ### Checklist to capture
 
@@ -104,9 +104,9 @@ Create a small multi-file workspace that does more than parse a literal `!includ
 Suggested shape:
 
 ```text
-crates/structurizr-lsp/tests/fixtures/includes/workspace_fragments-ok.dsl
-crates/structurizr-lsp/tests/fixtures/includes/model-fragment-ok.dsl
-crates/structurizr-lsp/tests/fixtures/includes/views-fragment-ok.dsl
+crates/strz-lsp/tests/fixtures/includes/workspace_fragments-ok.dsl
+crates/strz-lsp/tests/fixtures/includes/model-fragment-ok.dsl
+crates/strz-lsp/tests/fixtures/includes/views-fragment-ok.dsl
 ```
 
 The exact names can change, but the fixture should prove:
@@ -126,8 +126,8 @@ Add focused fixtures for:
 Suggested shape:
 
 ```text
-crates/structurizr-lsp/tests/fixtures/identifiers/assigned-identifiers-ok.dsl
-crates/structurizr-lsp/tests/fixtures/identifiers/direct-references-ok.dsl
+crates/strz-lsp/tests/fixtures/identifiers/assigned-identifiers-ok.dsl
+crates/strz-lsp/tests/fixtures/identifiers/direct-references-ok.dsl
 ```
 
 #### 2.3 Named relationship fixtures
@@ -141,8 +141,8 @@ Add fixtures that isolate:
 Suggested shape:
 
 ```text
-crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl
-crates/structurizr-lsp/tests/fixtures/relationships/named-relationship-dynamic-reference-ok.dsl
+crates/strz-lsp/tests/fixtures/relationships/named-relationships-ok.dsl
+crates/strz-lsp/tests/fixtures/relationships/named-relationship-dynamic-reference-ok.dsl
 ```
 
 The second fixture should remain parse-covered but semantically deferred for the bounded MVP.
@@ -154,19 +154,19 @@ Add fixtures that make the directive visible and easy to reason about later when
 Suggested shape:
 
 ```text
-crates/structurizr-lsp/tests/fixtures/directives/identifiers-directive-ok.dsl
+crates/strz-lsp/tests/fixtures/directives/identifiers-directive-ok.dsl
 ```
 
 ### Current output from this fixture slice
 
-- [`crates/structurizr-lsp/tests/fixtures/includes/workspace_fragments-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/includes/workspace_fragments-ok.dsl)
-- [`crates/structurizr-lsp/tests/fixtures/includes/model-fragment-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/includes/model-fragment-ok.dsl)
-- [`crates/structurizr-lsp/tests/fixtures/includes/views-fragment-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/includes/views-fragment-ok.dsl)
-- [`crates/structurizr-lsp/tests/fixtures/identifiers/assigned-identifiers-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/identifiers/assigned-identifiers-ok.dsl)
-- [`crates/structurizr-lsp/tests/fixtures/identifiers/direct-references-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/identifiers/direct-references-ok.dsl)
-- [`crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl)
-- [`crates/structurizr-lsp/tests/fixtures/relationships/named-relationship-dynamic-reference-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/relationships/named-relationship-dynamic-reference-ok.dsl)
-- [`crates/structurizr-lsp/tests/fixtures/directives/identifiers-directive-ok.dsl`](../../../crates/structurizr-lsp/tests/fixtures/directives/identifiers-directive-ok.dsl)
+- [`crates/strz-lsp/tests/fixtures/includes/workspace_fragments-ok.dsl`](../../../crates/strz-lsp/tests/fixtures/includes/workspace_fragments-ok.dsl)
+- [`crates/strz-lsp/tests/fixtures/includes/model-fragment-ok.dsl`](../../../crates/strz-lsp/tests/fixtures/includes/model-fragment-ok.dsl)
+- [`crates/strz-lsp/tests/fixtures/includes/views-fragment-ok.dsl`](../../../crates/strz-lsp/tests/fixtures/includes/views-fragment-ok.dsl)
+- [`crates/strz-lsp/tests/fixtures/identifiers/assigned-identifiers-ok.dsl`](../../../crates/strz-lsp/tests/fixtures/identifiers/assigned-identifiers-ok.dsl)
+- [`crates/strz-lsp/tests/fixtures/identifiers/direct-references-ok.dsl`](../../../crates/strz-lsp/tests/fixtures/identifiers/direct-references-ok.dsl)
+- [`crates/strz-lsp/tests/fixtures/relationships/named-relationships-ok.dsl`](../../../crates/strz-lsp/tests/fixtures/relationships/named-relationships-ok.dsl)
+- [`crates/strz-lsp/tests/fixtures/relationships/named-relationship-dynamic-reference-ok.dsl`](../../../crates/strz-lsp/tests/fixtures/relationships/named-relationship-dynamic-reference-ok.dsl)
+- [`crates/strz-lsp/tests/fixtures/directives/identifiers-directive-ok.dsl`](../../../crates/strz-lsp/tests/fixtures/directives/identifiers-directive-ok.dsl)
 
 ### Exit condition
 
@@ -256,7 +256,7 @@ just test-rust-fast
 just test-grammar
 ```
 
-If [`crates/structurizr-grammar/grammar.js`](../../../crates/structurizr-grammar/grammar.js) changes:
+If [`crates/strz-grammar/grammar.js`](../../../crates/strz-grammar/grammar.js) changes:
 
 ```sh
 just generate

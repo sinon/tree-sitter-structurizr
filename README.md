@@ -16,7 +16,7 @@ Today the most reliable setup is local and explicit: install a Rust toolchain, b
 1. Build the binary:
 
 ```sh
-cargo build -p structurizr-cli --bin strz --release
+cargo build -p strz --bin strz --release
 ```
 
 2. Verify the binary works:
@@ -37,7 +37,7 @@ cargo build -p structurizr-cli --bin strz --release
 ```json
 {
   "lsp": {
-    "structurizr-lsp": {
+    "strz-lsp": {
       "binary": {
         "path": "~/path/to/tree-sitter-structurizr/target/release/strz"
       }
@@ -115,9 +115,9 @@ This repository also includes material copied or adapted from the Apache-2.0 lic
 
 These consist of:
 
-- Structurizr DSL corpus material under [`crates/structurizr-grammar/test/corpus/`](crates/structurizr-grammar/test/corpus/)
+- Structurizr DSL corpus material under [`crates/strz-grammar/test/corpus/`](crates/strz-grammar/test/corpus/)
 - General Structurizr DSL fixtures under [`fixtures/`](fixtures/)
-- LSP-specific single-document fixtures under [`crates/structurizr-lsp/tests/fixtures/`](crates/structurizr-lsp/tests/fixtures/)
+- LSP-specific single-document fixtures under [`crates/strz-lsp/tests/fixtures/`](crates/strz-lsp/tests/fixtures/)
 - Multi-file workspace fixtures under [`tests/lsp/workspaces/`](tests/lsp/workspaces/)
 
 ## References

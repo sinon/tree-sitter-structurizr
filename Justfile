@@ -1,5 +1,5 @@
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
-grammar_dir := "crates/structurizr-grammar"
+grammar_dir := "crates/strz-grammar"
 
 default:
     @just --list
@@ -27,33 +27,33 @@ build-wasm:
     tree-sitter build --wasm {{grammar_dir}} --output {{grammar_dir}}/tree-sitter-structurizr.wasm
 
 build-strz:
-    cargo build -p structurizr-cli --bin strz --release
+    cargo build -p strz --bin strz --release
 
 test: test-rust test-grammar
 
 test-analysis:
-    cargo test -p structurizr-analysis
+    cargo test -p strz-analysis
 
 test-analysis-fast:
-    cargo nextest run --workspace -p structurizr-analysis
+    cargo nextest run --workspace -p strz-analysis
 
 test-cli:
-    cargo test -p structurizr-cli
+    cargo test -p strz
 
 bench-analysis:
-    cargo bench -p structurizr-analysis --bench analysis
+    cargo bench -p strz-analysis --bench analysis
 
 bench-lsp:
-    cargo bench -p structurizr-lsp --bench session
+    cargo bench -p strz-lsp --bench session
 
 bench-rust: bench-analysis bench-lsp
 
 bench-black-box:
-    cargo build -p structurizr-cli --bin strz --release
+    cargo build -p strz --bin strz --release
     tools/bench_black_box.sh --mode quick --output-dir tmp/benchmark-results/quick --binary target/release/strz
 
 bench-black-box-stable:
-    cargo build -p structurizr-cli --bin strz --release
+    cargo build -p strz --bin strz --release
     tools/bench_black_box.sh --mode stable --output-dir tmp/benchmark-results/stable --binary target/release/strz
 
 bench-perf:
@@ -109,7 +109,7 @@ check: generate test
     @just lint
 
 run-strz *args:
-    cargo run -p structurizr-cli --bin strz -- {{args}}
+    cargo run -p strz --bin strz -- {{args}}
 
 playground:
     tree-sitter build --wasm {{grammar_dir}} --output {{grammar_dir}}/tree-sitter-structurizr.wasm

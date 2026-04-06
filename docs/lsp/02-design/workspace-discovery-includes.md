@@ -368,7 +368,7 @@ This is another reason the include graph belongs in the analysis layer rather th
 
 ## Testing shape to aim for
 
-The current fixture slice under [`crates/structurizr-lsp/tests/fixtures/`](../../../crates/structurizr-lsp/tests/fixtures/) is enough for syntax-oriented include coverage, but not yet for analysis/workspace behavior.
+The current fixture slice under [`crates/strz-lsp/tests/fixtures/`](../../../crates/strz-lsp/tests/fixtures/) is enough for syntax-oriented include coverage, but not yet for analysis/workspace behavior.
 
 When the analysis crate starts, add workspace-level tests that cover at least:
 
@@ -422,6 +422,6 @@ That keeps workspace discovery and include handling foundational instead of bolt
 - [`docs/lsp/01-foundations/overview.md`](../01-foundations/overview.md)
 - [`docs/lsp/01-foundations/capability-matrix.md`](../01-foundations/capability-matrix.md)
 - [`docs/lsp/90-history/syntax-audit-directive-nodes.md`](../90-history/syntax-audit-directive-nodes.md)
-- [`crates/structurizr-lsp/tests/fixtures/includes/`](../../../crates/structurizr-lsp/tests/fixtures/includes/)
+- [`crates/strz-lsp/tests/fixtures/includes/`](../../../crates/strz-lsp/tests/fixtures/includes/)
 - `https://raw.githubusercontent.com/structurizr/structurizr.github.io/main/dsl/71-language.md`
 - `https://docs.structurizr.com/dsl/includes`

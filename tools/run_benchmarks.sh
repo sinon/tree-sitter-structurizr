@@ -113,12 +113,12 @@ if [[ "${MODE}" == "stable" && -n "${STRZ_BENCH_CPUSET:-}" ]]; then
 fi
 
 if [[ "${SKIP_RUST_BENCHES}" != "true" ]]; then
-    run_with_prefix cargo bench -p structurizr-analysis --bench analysis
-    run_with_prefix cargo bench -p structurizr-lsp --bench session
+    run_with_prefix cargo bench -p strz-analysis --bench analysis
+    run_with_prefix cargo bench -p strz-lsp --bench session
 fi
 
 if [[ "${SKIP_BLACK_BOX}" != "true" ]]; then
-    cargo build -p structurizr-cli --bin strz --release
+    cargo build -p strz --bin strz --release
     "${REPO_ROOT}/tools/bench_black_box.sh" \
         --mode "${MODE}" \
         --output-dir "${RESULTS_DIR}" \

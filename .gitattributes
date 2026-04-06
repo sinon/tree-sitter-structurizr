@@ -1,12 +1,12 @@
 * text=auto eol=lf
 
 # Generated source files
-crates/structurizr-grammar/src/*.json linguist-generated
-crates/structurizr-grammar/src/parser.c linguist-generated
-crates/structurizr-grammar/src/tree_sitter/* linguist-generated
+crates/strz-grammar/src/*.json linguist-generated
+crates/strz-grammar/src/parser.c linguist-generated
+crates/strz-grammar/src/tree_sitter/* linguist-generated
 
 # Rust bindings
-crates/structurizr-grammar/bindings/rust/* linguist-generated
+crates/strz-grammar/bindings/rust/* linguist-generated
 
 # Generated test data
 tests/lsp/workspaces/benchmark-mega-multi-root/** linguist-generated

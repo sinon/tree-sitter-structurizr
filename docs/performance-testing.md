@@ -79,12 +79,12 @@ Choose the loop based on the question:
 Use targeted `cargo bench` commands when you already know which benchmark case you want to isolate:
 
 ```sh
-cargo bench -p structurizr-analysis --bench analysis small_minimal_scan -- --noplot
-cargo bench -p structurizr-analysis --bench analysis large_big_bank_workspace -- --noplot
-cargo bench -p structurizr-analysis --bench analysis mega_benchmark_estate -- --noplot
-cargo bench -p structurizr-lsp --bench session small_named_relationship_definition -- --noplot
-cargo bench -p structurizr-lsp --bench session large_big_bank_document_symbols -- --noplot
-cargo bench -p structurizr-lsp --bench session mega_benchmark_dynamic_definition -- --noplot
+cargo bench -p strz-analysis --bench analysis small_minimal_scan -- --noplot
+cargo bench -p strz-analysis --bench analysis large_big_bank_workspace -- --noplot
+cargo bench -p strz-analysis --bench analysis mega_benchmark_estate -- --noplot
+cargo bench -p strz-lsp --bench session small_named_relationship_definition -- --noplot
+cargo bench -p strz-lsp --bench session large_big_bank_document_symbols -- --noplot
+cargo bench -p strz-lsp --bench session mega_benchmark_dynamic_definition -- --noplot
 ```
 
 This is the best loop for verifying whether a code change affects one benchmarked path without rerunning unrelated release-binary work.
@@ -94,7 +94,7 @@ This is the best loop for verifying whether a code change affects one benchmarke
 Build the contributor CLI once, then run the Hyperfine-backed suite:
 
 ```sh
-cargo build -p structurizr-cli --bin strz --release
+cargo build -p strz --bin strz --release
 tools/bench_black_box.sh --mode quick --output-dir tmp/benchmark-results/quick --binary target/release/strz
 ```
 
@@ -111,9 +111,9 @@ Use this loop when you care about the whole command surface rather than only cra
 The CI performance workflow builds CodSpeed benches package-by-package:
 
 ```sh
-cargo codspeed build -p structurizr-analysis -p structurizr-lsp
-cargo codspeed run -p structurizr-analysis
-cargo codspeed run -p structurizr-lsp
+cargo codspeed build -p strz-analysis -p strz-lsp
+cargo codspeed run -p strz-analysis
+cargo codspeed run -p strz-lsp
 ```
 
 Local CodSpeed runs are still useful even outside a supported measurement environment because they verify:
@@ -134,21 +134,21 @@ For a focused analysis benchmark:
 
 ```sh
 samply record --save-only --no-open -o tmp/analysis-small.json.gz -- \
-  cargo bench -p structurizr-analysis --bench analysis small_minimal_scan -- --noplot
+  cargo bench -p strz-analysis --bench analysis small_minimal_scan -- --noplot
 ```
 
 For an LSP session benchmark:
 
 ```sh
 samply record --save-only --no-open -o tmp/lsp-large-session.json.gz -- \
-  cargo bench -p structurizr-lsp --bench session large_big_bank_document_symbols -- --noplot
+  cargo bench -p strz-lsp --bench session large_big_bank_document_symbols -- --noplot
 ```
 
 For the generated mega corpus:
 
 ```sh
 samply record --save-only --no-open -o tmp/lsp-mega-session.json.gz -- \
-  cargo bench -p structurizr-lsp --bench session mega_benchmark_dynamic_definition -- --noplot
+  cargo bench -p strz-lsp --bench session mega_benchmark_dynamic_definition -- --noplot
 ```
 
 These saved artifacts stay in `tmp/` so they are easy to compare or discard after the investigation.

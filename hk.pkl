@@ -5,7 +5,7 @@ local shared_steps = new Mapping<String, Step> {
     ["check-merge-conflict"] = Builtins.check_merge_conflict
     ["detect-private-key"] = Builtins.detect_private_key
     ["check-added-large-files"] = (Builtins.check_added_large_files) {
-        exclude = "crates/structurizr-grammar/src/parser.c"
+        exclude = "crates/strz-grammar/src/parser.c"
     }
     ["check-byte-order-marker"] = Builtins.check_byte_order_marker
     ["check-symlinks"] = Builtins.check_symlinks
@@ -13,8 +13,8 @@ local shared_steps = new Mapping<String, Step> {
     ["trailing-whitespace"] = Builtins.trailing_whitespace
     ["newlines"] = (Builtins.newlines) {
         exclude = List(
-            "crates/structurizr-grammar/src/grammar.json",
-            "crates/structurizr-grammar/src/node-types.json",
+            "crates/strz-grammar/src/grammar.json",
+            "crates/strz-grammar/src/node-types.json",
         )
     }
     ["check-executables-have-shebangs"] = Builtins.check_executables_have_shebangs
@@ -31,14 +31,14 @@ local shared_steps = new Mapping<String, Step> {
         check = "cargo fmt --all --check"
     }
     ["generate-grammar-artifacts"] = new Step {
-        glob = List("crates/structurizr-grammar/grammar.js")
+        glob = List("crates/strz-grammar/grammar.js")
         stage = List(
-            "crates/structurizr-grammar/src/parser.c",
-            "crates/structurizr-grammar/src/grammar.json",
-            "crates/structurizr-grammar/src/node-types.json",
+            "crates/strz-grammar/src/parser.c",
+            "crates/strz-grammar/src/grammar.json",
+            "crates/strz-grammar/src/node-types.json",
         )
         exclusive = true
-        check = "just generate && git diff --exit-code -- crates/structurizr-grammar/src/parser.c crates/structurizr-grammar/src/grammar.json crates/structurizr-grammar/src/node-types.json"
+        check = "just generate && git diff --exit-code -- crates/strz-grammar/src/parser.c crates/strz-grammar/src/grammar.json crates/strz-grammar/src/node-types.json"
         fix = "just generate"
     }
     ["shellcheck"] = Builtins.shellcheck

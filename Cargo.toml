@@ -1,56 +1,57 @@
 [workspace]
 resolver = "2"
 members = [
-  "crates/structurizr-analysis",
-  "crates/structurizr-cli",
-  "crates/structurizr-grammar",
-  "crates/structurizr-lsp",
+  "crates/strz-*",
 ]
 
 [workspace.package]
-authors = ["Rob Hand <146272+sinon@users.noreply.github.com>"]
 version = "0.1.0"
+authors = ["Rob Hand <146272+sinon@users.noreply.github.com>"]
 edition = "2024"
-license = "MIT OR Apache-2.0"
-homepage =  "https://github.com/sinon/tree-sitter-structurizr"
-repository = "https://github.com/sinon/tree-sitter-structurizr"
-documentation = "https://github.com/sinon/tree-sitter-structurizr"
 description = "LSP for Structurizr C4 modelling language with tree-sitter grammar"
+documentation = "https://github.com/sinon/tree-sitter-structurizr"
+homepage = "https://github.com/sinon/tree-sitter-structurizr"
+repository = "https://github.com/sinon/tree-sitter-structurizr"
+license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
-structurizr-analysis = { path = "crates/structurizr-analysis" }
-structurizr-cli = { path = "crates/structurizr-cli" }
-tree-sitter-structurizr = { path = "crates/structurizr-grammar" }
-structurizr-lsp = { path = "crates/structurizr-lsp" }
+strz-analysis = { path = "crates/strz-analysis" }
+strz-cli = { path = "crates/strz-cli" }
+strz-lsp = { path = "crates/strz-lsp" }
+tree-sitter-structurizr = { path = "crates/strz-grammar" }
 
-anstream = {version = "1.0.0"}
-anstyle = {version = "1.0.14"}
+anstream = { version = "1.0.0" }
+anstyle = { version = "1.0.14" }
 anyhow = { version = "1.0.102" }
-cc = {version = "1.2"}
+cc = { version = "1.2" }
 clap = { version = "4.6.0", features = ["derive", "wrap_help"] }
-criterion = { version = "4.4.1", package = "codspeed-criterion-compat" }
-futures = {version = "0.3"}
-ignore = {version = "0.4.25"}
+criterion = { package = "codspeed-criterion-compat", version = "4.4.1" }
+futures = { version = "0.3" }
+ignore = { version = "0.4.25" }
+indoc = { version = "2.0" }
 insta = { version = "1.43" }
 insta-cmd = { version = "0.6.0" }
-indoc = {version = "2.0" }
-line-index = {version = "0.1.2"}
-proptest = {version="1.11.0"}
-rstest = {version = "0.26"}
-salsa = {version = "0.26"}
+line-index = { version = "0.1.2" }
+proptest = { version = "1.11.0" }
+rstest = { version = "0.26" }
+salsa = { version = "0.26" }
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = {version = "1.0.149"}
+serde_json = { version = "1.0.149" }
+tempfile = { version = "3.27" }
+tokio = { version = "1.50.0", features = [
+  "io-std",
+  "macros",
+  "rt-multi-thread",
+  "sync",
+  "time"
+] }
 tower = { version = "0.5", features = ["util"] }
-tower-lsp-server = {version = "0.23.0"}
-tokio = { version = "1.50.0", features = ["macros", "rt-multi-thread", "io-std", "sync", "time"] }
-tracing = {version = "0.1.44"}
-tracing-log = {version = "0.2.0"}
+tower-lsp-server = { version = "0.23.0" }
+tracing = { version = "0.1.44" }
+tracing-log = { version = "0.2.0" }
 tracing-subscriber = { version = "0.3.23", features = ["env-filter", "json"] }
-tempfile = {version = "3.27"}
-tree-sitter = {version = "0.26.7"}
-tree-sitter-language = {version = "0.1"}
-
-
+tree-sitter = { version = "0.26.7" }
+tree-sitter-language = { version = "0.1" }
 
 # The profile that 'dist' will build with
 [profile.dist]

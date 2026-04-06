@@ -32,7 +32,7 @@ This creates an important constraint:
 - the grammar must remain buildable from a standard Tree-sitter grammar directory that Zed can target explicitly
 
 That no longer means the grammar has to live at the repository root. Zed can pin
-this repository and build the grammar from [`crates/structurizr-grammar/`](../../../crates/structurizr-grammar/) via the
+this repository and build the grammar from [`crates/strz-grammar/`](../../../crates/strz-grammar/) via the
 grammar entry's `path` field, so the Cargo workspace can use a clearer internal
 layout without making extension development awkward.
 
@@ -139,7 +139,7 @@ Zed's docs allow grammar repositories to be loaded from `file://` URLs during lo
 That gives a good workflow:
 
 1. keep working on grammar and LSP in this repository
-1. point the dev extension at `file:///Users/rob/dev/tree-sitter-structurizr` with `path = "crates/structurizr-grammar"` for grammar changes
+1. point the dev extension at `file:///Users/rob/dev/tree-sitter-structurizr` with `path = "crates/strz-grammar"` for grammar changes
 1. point the extension at a locally built LSP binary for server changes
 1. only pin commit SHAs and package binaries when preparing a real extension release
 
@@ -151,7 +151,7 @@ This keeps fast iteration local without forcing every experiment through git tag
 
 Own:
 
-- [`crates/structurizr-grammar/grammar.js`](../../../crates/structurizr-grammar/grammar.js)
+- [`crates/strz-grammar/grammar.js`](../../../crates/strz-grammar/grammar.js)
 - generated parser artifacts
 - Rust bindings
 - portable query surfaces that make sense outside Zed

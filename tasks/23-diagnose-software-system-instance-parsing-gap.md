@@ -13,7 +13,7 @@ That suggests a grammar/parity gap rather than an analysis-validation gap.
 
 ## Root Cause
 
-[`crates/structurizr-grammar/grammar.js`](../crates/structurizr-grammar/grammar.js)
+[`crates/strz-grammar/grammar.js`](../crates/strz-grammar/grammar.js)
 and its generated artifacts define the syntax accepted for deployment-instance
 declarations.
 

@@ -10,7 +10,7 @@ system instances, and container instances.
 
 ## Root Cause
 
-[`crates/structurizr-lsp/src/convert/completion.rs`](../crates/structurizr-lsp/src/convert/completion.rs)
+[`crates/strz-lsp/src/convert/completion.rs`](../crates/strz-lsp/src/convert/completion.rs)
 currently suppresses deployment-layer relationship completion altogether.
 
 The analysis workspace index already exposes deployment bindings through

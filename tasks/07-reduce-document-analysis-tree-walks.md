@@ -9,11 +9,11 @@ any future workspace invalidation flow that has to rebuild document facts.
 
 ## Root Cause
 
-[`crates/structurizr-analysis/src/parse.rs`](../crates/structurizr-analysis/src/parse.rs)
+[`crates/strz-analysis/src/parse.rs`](../crates/strz-analysis/src/parse.rs)
 caches `parsed_document(...)` behind the Salsa-backed
 `IncrementalAnalysisDatabase`.
 
-But [`crates/structurizr-analysis/src/snapshot.rs`](../crates/structurizr-analysis/src/snapshot.rs)
+But [`crates/strz-analysis/src/snapshot.rs`](../crates/strz-analysis/src/snapshot.rs)
 still has `DocumentSyntaxFacts::collect(...)` fan out into separate passes for
 syntax diagnostics, includes, constants, identifier modes, and
 symbols/references.

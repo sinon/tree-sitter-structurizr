@@ -1,0 +1,402 @@
+---
+source: crates/strz-analysis/tests/document_snapshots.rs
+expression: "SnapshotView::from(&snapshot)"
+---
+SnapshotView {
+    has_syntax_errors: false,
+    diagnostics: [],
+    include_directives: [],
+    identifier_modes: [],
+    symbols: [
+        Symbol {
+            id: SymbolId(
+                0,
+            ),
+            kind: Person,
+            display_name: "User",
+            binding_name: Some(
+                "user",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 32,
+                    end_byte: 36,
+                    start_point: TextPoint {
+                        row: 2,
+                        column: 8,
+                    },
+                    end_point: TextPoint {
+                        row: 2,
+                        column: 12,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 32,
+                end_byte: 52,
+                start_point: TextPoint {
+                    row: 2,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 2,
+                    column: 28,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "person",
+        },
+        Symbol {
+            id: SymbolId(
+                1,
+            ),
+            kind: SoftwareSystem,
+            display_name: "System",
+            binding_name: Some(
+                "system",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 61,
+                    end_byte: 67,
+                    start_point: TextPoint {
+                        row: 3,
+                        column: 8,
+                    },
+                    end_point: TextPoint {
+                        row: 3,
+                        column: 14,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 61,
+                end_byte: 199,
+                start_point: TextPoint {
+                    row: 3,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 7,
+                    column: 9,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "software_system",
+        },
+        Symbol {
+            id: SymbolId(
+                2,
+            ),
+            kind: Container,
+            display_name: "API",
+            binding_name: Some(
+                "api",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 108,
+                    end_byte: 111,
+                    start_point: TextPoint {
+                        row: 4,
+                        column: 12,
+                    },
+                    end_point: TextPoint {
+                        row: 4,
+                        column: 15,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 108,
+                end_byte: 189,
+                start_point: TextPoint {
+                    row: 4,
+                    column: 12,
+                },
+                end_point: TextPoint {
+                    row: 6,
+                    column: 13,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    1,
+                ),
+            ),
+            syntax_node_kind: "container",
+        },
+        Symbol {
+            id: SymbolId(
+                3,
+            ),
+            kind: Component,
+            display_name: "Worker",
+            binding_name: Some(
+                "worker",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 148,
+                    end_byte: 154,
+                    start_point: TextPoint {
+                        row: 5,
+                        column: 16,
+                    },
+                    end_point: TextPoint {
+                        row: 5,
+                        column: 22,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 148,
+                end_byte: 175,
+                start_point: TextPoint {
+                    row: 5,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 5,
+                    column: 43,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    2,
+                ),
+            ),
+            syntax_node_kind: "component",
+        },
+    ],
+    references: [
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "user",
+            span: TextSpan {
+                start_byte: 209,
+                end_byte: 213,
+                start_point: TextPoint {
+                    row: 9,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 9,
+                    column: 12,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "system",
+            span: TextSpan {
+                start_byte: 217,
+                end_byte: 223,
+                start_point: TextPoint {
+                    row: 9,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 9,
+                    column: 22,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "user",
+            span: TextSpan {
+                start_byte: 239,
+                end_byte: 243,
+                start_point: TextPoint {
+                    row: 10,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 10,
+                    column: 12,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "api",
+            span: TextSpan {
+                start_byte: 247,
+                end_byte: 250,
+                start_point: TextPoint {
+                    row: 10,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 10,
+                    column: 19,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "user",
+            span: TextSpan {
+                start_byte: 267,
+                end_byte: 271,
+                start_point: TextPoint {
+                    row: 11,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 11,
+                    column: 12,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "worker",
+            span: TextSpan {
+                start_byte: 275,
+                end_byte: 281,
+                start_point: TextPoint {
+                    row: 11,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 11,
+                    column: 22,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewScope,
+            raw_text: "system",
+            span: TextSpan {
+                start_byte: 334,
+                end_byte: 340,
+                start_point: TextPoint {
+                    row: 15,
+                    column: 22,
+                },
+                end_point: TextPoint {
+                    row: 15,
+                    column: 28,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "system_context_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewInclude,
+            raw_text: "user",
+            span: TextSpan {
+                start_byte: 380,
+                end_byte: 384,
+                start_point: TextPoint {
+                    row: 16,
+                    column: 20,
+                },
+                end_point: TextPoint {
+                    row: 16,
+                    column: 24,
+                },
+            },
+            target_hint: ElementOrRelationship,
+            container_node_kind: "system_context_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewScope,
+            raw_text: "system",
+            span: TextSpan {
+                start_byte: 414,
+                end_byte: 420,
+                start_point: TextPoint {
+                    row: 19,
+                    column: 18,
+                },
+                end_point: TextPoint {
+                    row: 19,
+                    column: 24,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "container_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewInclude,
+            raw_text: "api",
+            span: TextSpan {
+                start_byte: 460,
+                end_byte: 463,
+                start_point: TextPoint {
+                    row: 20,
+                    column: 20,
+                },
+                end_point: TextPoint {
+                    row: 20,
+                    column: 23,
+                },
+            },
+            target_hint: ElementOrRelationship,
+            container_node_kind: "container_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewScope,
+            raw_text: "api",
+            span: TextSpan {
+                start_byte: 493,
+                end_byte: 496,
+                start_point: TextPoint {
+                    row: 23,
+                    column: 18,
+                },
+                end_point: TextPoint {
+                    row: 23,
+                    column: 21,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "component_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewInclude,
+            raw_text: "worker",
+            span: TextSpan {
+                start_byte: 536,
+                end_byte: 542,
+                start_point: TextPoint {
+                    row: 24,
+                    column: 20,
+                },
+                end_point: TextPoint {
+                    row: 24,
+                    column: 26,
+                },
+            },
+            target_hint: ElementOrRelationship,
+            container_node_kind: "component_view",
+            containing_symbol: None,
+        },
+    ],
+}
