@@ -4,10 +4,10 @@
 DSL documents.
 
 It sits between the checked-in Tree-sitter grammar in this repository and the
-tools that consume semantic facts, such as the `strz` contributor CLI and the
-future language server. Its job is to turn source text
-into stable, owned, editor-oriented facts without pulling in LSP types, async
-runtime concerns, or runtime-style Structurizr semantics.
+tools that consume semantic facts, such as the `strz check` and `strz lsp`.
+Its job is to turn source text into stable, owned, editor-oriented facts
+without pulling in LSP types, async runtime concerns, or runtime-style
+Structurizr semantics.
 
 ## Purpose
 
@@ -15,7 +15,7 @@ This crate exists so that semantic extraction has a clear home that is neither:
 
 - the parser crate, which should stay focused on grammar artifacts such as
   `LANGUAGE`, `NODE_TYPES`, and queries
-- the future LSP crate, which should stay focused on protocol handling,
+- the LSP crate, which should stay focused on protocol handling,
   workspace coordination, and editor integration
 - the `strz` CLI, which should stay focused on rendering and
   command-line UX rather than owning semantic extraction
@@ -44,26 +44,6 @@ Today the crate owns:
 
 The public API intentionally exposes owned facts rather than borrowed
 Tree-sitter nodes so snapshots are easy to store, test, and pass across layers.
-
-## What this crate does not own
-
-This crate should not become:
-
-- the grammar crate
-- an LSP transport crate
-- a Structurizr runtime or full semantic validator
-
-In practice that means it does not own:
-
-- grammar generation, `LANGUAGE`, `NODE_TYPES`, or query packaging
-- `lsp-types`, `tower-lsp-server`, editor glue, or async orchestration
-- workspace indexing, cross-file semantic resolution, or runtime-style model
-  validation
-
-The current workspace layer is still intentionally lighter than a full semantic
-workspace index. It discovers files, follows explicit includes, and emits
-file-level include diagnostics, but it does not yet build instance-scoped symbol
-tables or cross-file semantic resolution.
 
 ## Crate layout
 
@@ -135,19 +115,3 @@ just test-analysis
 just test-analysis-fast
 cargo test -p strz-analysis
 ```
-
-## Design direction
-
-This crate is meant to stay synchronous, owned, and transport-agnostic for as
-long as possible.
-
-That keeps the layering clean:
-
-- `tree-sitter-structurizr` owns syntax
-- `strz-analysis` owns extracted document facts
-- `strz` owns contributor and CI-oriented CLI presentation
-- the future LSP crate will own protocol and workspace orchestration
-
-As the editor tooling grows, this crate is the intended home for later
-workspace-aware indexing and include-resolution logic, but only after the
-single-document analysis and discovery surface are stable.

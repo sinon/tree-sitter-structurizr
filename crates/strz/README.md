@@ -1,12 +1,6 @@
 # strz
 
-`strz` provides the `strz` binary.
-
-Use it when you want to:
-
-- run syntax, include, and bounded semantic diagnostics without an editor
-- inspect analysis-layer facts as text or JSON
-- launch the same stdio LSP entrypoint that downstream editor integrations should execute
+`strz` provides the `strz` binary which is the CLI interface for `strz-analysis` and `strz-lsp`.
 
 ## Command surface
 
