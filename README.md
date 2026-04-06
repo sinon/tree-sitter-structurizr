@@ -1,6 +1,6 @@
 # tree-sitter-structurizr
 
-Structurizr editor tooling built around the `strz` language server and a Tree-sitter grammar for `.dsl`.
+Structurizr editor tooling built around the `strz` LSP, linter built on top of a Tree-sitter grammar for `.dsl`.
 
 ## What are you here for?
 
@@ -67,39 +67,6 @@ For deeper status, delivery, and configuration detail, continue with:
 - [`docs/lsp/00-current-state.md`](./docs/lsp/00-current-state.md)
 - [`docs/lsp/03-delivery/roadmap.md`](./docs/lsp/03-delivery/roadmap.md)
 - [`docs/lsp/03-delivery/zed-extension-language-server-wiring.md`](./docs/lsp/03-delivery/zed-extension-language-server-wiring.md)
-
-## Using the grammar directly
-
-If you only want syntax parsing or the Rust grammar crate, start here:
-
-```toml
-[dependencies]
-tree-sitter = "0.26.7"
-tree-sitter-structurizr = "0.0.1"
-```
-
-```rust
-let code = r#"
-workspace {
-    model {
-    }
-
-    views {
-    }
-}
-"#;
-
-let mut parser = tree_sitter::Parser::new();
-let language = tree_sitter_structurizr::LANGUAGE;
-parser
-    .set_language(&language.into())
-    .expect("Error loading Structurizr parser");
-
-let tree = parser.parse(code, None).unwrap();
-assert!(!tree.root_node().has_error());
-```
-
-For grammar coverage details, test surfaces, and contributor workflow, start with [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ## Contributing
 
