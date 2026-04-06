@@ -1,6 +1,6 @@
 [package]
 name = "strz"
-version = "0.0.1"
+version = "0.0.1-alpha"
 authors = { workspace = true }
 edition = { workspace = true }
 description = "`strz` CLI for running Structurizr LSP server and linter"
