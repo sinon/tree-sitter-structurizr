@@ -133,7 +133,9 @@ fn deployment_instances_highlight_identifiers_targets_groups_and_keywords() {
         "app",
     ] {
         assert!(
-            captures.iter().any(|(name, text)| name == "type" && text == ty),
+            captures
+                .iter()
+                .any(|(name, text)| name == "type" && text == ty),
             "expected `{ty}` to be highlighted as a type, got {captures:#?}"
         );
     }

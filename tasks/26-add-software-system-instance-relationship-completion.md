@@ -28,9 +28,6 @@ stable until that parser gap is settled.
 
 ## Proposed Option
 
-Sequence this task after the parser/parity work in
-[`tasks/23-diagnose-software-system-instance-parsing-gap.md`](./23-diagnose-software-system-instance-parsing-gap.md).
-
 Once the supported syntax surface is pinned down, add deployment-aware source
 kind resolution for `SoftwareSystemInstance` and filter destination completion
 to `InfrastructureNode` only. Keep the multi-instance and duplicate-binding
