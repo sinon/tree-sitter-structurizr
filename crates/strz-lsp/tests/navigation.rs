@@ -1954,7 +1954,13 @@ async fn diagnostics_publish_bounded_semantic_errors() {
                 .expect("diagnostic message should be a string")
         })
         .collect::<Vec<_>>();
-    assert_eq!(alpha_messages, vec!["duplicate element binding: api"]);
+    assert_eq!(
+        alpha_messages,
+        vec![
+            "multiple model sections are not permitted in a DSL definition",
+            "duplicate element binding: api",
+        ]
+    );
 
     close_document(&mut service, &alpha_uri).await;
     let _ = next_publish_diagnostics_for_uri(&mut socket, alpha_uri.as_str()).await;

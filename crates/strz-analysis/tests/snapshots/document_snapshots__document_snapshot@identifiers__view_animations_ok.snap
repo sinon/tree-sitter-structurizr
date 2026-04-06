@@ -1,5 +1,6 @@
 ---
 source: crates/strz-analysis/tests/document_snapshots.rs
+assertion_line: 46
 expression: "SnapshotView::from(&snapshot)"
 ---
 SnapshotView {
@@ -214,6 +215,44 @@ SnapshotView {
             id: SymbolId(
                 5,
             ),
+            kind: DeploymentEnvironment,
+            display_name: "Live",
+            binding_name: Some(
+                "live",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 243,
+                    end_byte: 247,
+                    start_point: TextPoint {
+                        row: 10,
+                        column: 8,
+                    },
+                    end_point: TextPoint {
+                        row: 10,
+                        column: 12,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 243,
+                end_byte: 524,
+                start_point: TextPoint {
+                    row: 10,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 17,
+                    column: 9,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "deployment_environment",
+        },
+        Symbol {
+            id: SymbolId(
+                6,
+            ),
             kind: DeploymentNode,
             display_name: "Primary",
             binding_name: Some(
@@ -245,12 +284,16 @@ SnapshotView {
                     column: 13,
                 },
             },
-            parent: None,
+            parent: Some(
+                SymbolId(
+                    5,
+                ),
+            ),
             syntax_node_kind: "deployment_node",
         },
         Symbol {
             id: SymbolId(
-                6,
+                7,
             ),
             kind: ContainerInstance,
             display_name: "webInstance",
@@ -285,14 +328,14 @@ SnapshotView {
             },
             parent: Some(
                 SymbolId(
-                    5,
+                    6,
                 ),
             ),
             syntax_node_kind: "container_instance",
         },
         Symbol {
             id: SymbolId(
-                7,
+                8,
             ),
             kind: DeploymentNode,
             display_name: "Secondary",
@@ -325,12 +368,16 @@ SnapshotView {
                     column: 13,
                 },
             },
-            parent: None,
+            parent: Some(
+                SymbolId(
+                    5,
+                ),
+            ),
             syntax_node_kind: "deployment_node",
         },
         Symbol {
             id: SymbolId(
-                8,
+                9,
             ),
             kind: ContainerInstance,
             display_name: "apiInstance",
@@ -365,7 +412,7 @@ SnapshotView {
             },
             parent: Some(
                 SymbolId(
-                    7,
+                    8,
                 ),
             ),
             syntax_node_kind: "container_instance",
@@ -391,7 +438,7 @@ SnapshotView {
             container_node_kind: "container_instance",
             containing_symbol: Some(
                 SymbolId(
-                    6,
+                    7,
                 ),
             ),
         },
@@ -414,7 +461,7 @@ SnapshotView {
             container_node_kind: "container_instance",
             containing_symbol: Some(
                 SymbolId(
-                    8,
+                    9,
                 ),
             ),
         },

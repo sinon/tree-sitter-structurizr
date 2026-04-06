@@ -353,8 +353,14 @@ impl IncludeDiagnostic {
 pub enum SemanticDiagnosticKind {
     /// More than one definition claimed the same canonical binding key.
     DuplicateBinding,
+    /// One DSL definition contained more than one top-level `model` or `views` section.
+    RepeatedWorkspaceSection,
+    /// A supported `!element` selector target resolved to no known target.
+    UnresolvedElementSelector,
     /// A supported identifier reference resolved to no known target.
     UnresolvedReference,
+    /// A declared workspace scope conflicts with the assembled model depth.
+    WorkspaceScopeMismatch,
     /// A supported identifier reference could not be resolved confidently.
     AmbiguousReference,
 }
@@ -365,7 +371,10 @@ impl SemanticDiagnosticKind {
     pub const fn rule(self) -> &'static RuleMetadata {
         match self {
             Self::DuplicateBinding => &rules::SEMANTIC_DUPLICATE_BINDING,
+            Self::RepeatedWorkspaceSection => &rules::SEMANTIC_REPEATED_WORKSPACE_SECTION,
+            Self::UnresolvedElementSelector => &rules::SEMANTIC_UNRESOLVED_ELEMENT_SELECTOR,
             Self::UnresolvedReference => &rules::SEMANTIC_UNRESOLVED_REFERENCE,
+            Self::WorkspaceScopeMismatch => &rules::SEMANTIC_WORKSPACE_SCOPE_MISMATCH,
             Self::AmbiguousReference => &rules::SEMANTIC_AMBIGUOUS_REFERENCE,
         }
     }
@@ -464,6 +473,36 @@ impl SemanticDiagnostic {
         }
     }
 
+    pub(crate) fn repeated_workspace_section(
+        document: &DocumentId,
+        section_name: &str,
+        span: TextSpan,
+    ) -> Self {
+        Self {
+            document: document.clone(),
+            kind: SemanticDiagnosticKind::RepeatedWorkspaceSection,
+            message: format!(
+                "multiple {section_name} sections are not permitted in a DSL definition"
+            ),
+            span,
+            annotations: Vec::new(),
+        }
+    }
+
+    pub(crate) fn unresolved_element_selector(
+        document: &DocumentId,
+        raw_text: &str,
+        span: TextSpan,
+    ) -> Self {
+        Self {
+            document: document.clone(),
+            kind: SemanticDiagnosticKind::UnresolvedElementSelector,
+            message: format!("unresolved !element selector target: {raw_text}"),
+            span,
+            annotations: Vec::new(),
+        }
+    }
+
     pub(crate) fn unresolved_reference(
         document: &DocumentId,
         raw_text: &str,
@@ -473,6 +512,20 @@ impl SemanticDiagnostic {
             document: document.clone(),
             kind: SemanticDiagnosticKind::UnresolvedReference,
             message: format!("unresolved identifier reference: {raw_text}"),
+            span,
+            annotations: Vec::new(),
+        }
+    }
+
+    pub(crate) fn workspace_scope_mismatch(
+        document: &DocumentId,
+        message: impl Into<String>,
+        span: TextSpan,
+    ) -> Self {
+        Self {
+            document: document.clone(),
+            kind: SemanticDiagnosticKind::WorkspaceScopeMismatch,
+            message: message.into(),
             span,
             annotations: Vec::new(),
         }

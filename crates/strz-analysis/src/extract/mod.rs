@@ -3,4 +3,5 @@
 pub mod constants;
 pub mod diagnostics;
 pub mod includes;
+pub mod semantic;
 pub mod symbols;

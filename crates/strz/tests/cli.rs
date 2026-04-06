@@ -112,6 +112,7 @@ fn check_text_reports_unresolved_semantic_diagnostics() {
 }
 
 #[test]
+#[allow(clippy::too_many_lines)]
 fn check_json_reports_merged_semantic_diagnostics() {
     assert_cmd_snapshot!(
         command()
@@ -126,11 +127,30 @@ fn check_json_reports_merged_semantic_diagnostics() {
     {
       "summary": {
         "documents_checked": 3,
-        "diagnostics": 3,
-        "errors": 3,
+        "diagnostics": 5,
+        "errors": 5,
         "warnings": 0
       },
       "diagnostics": [
+        {
+          "path": "tests/lsp/workspaces/duplicate-bindings/alpha.dsl",
+          "severity": "error",
+          "code": "semantic.repeated-workspace-section",
+          "source": "semantic",
+          "message": "multiple model sections are not permitted in a DSL definition",
+          "span": {
+            "start_byte": 0,
+            "end_byte": 46,
+            "start": {
+              "line": 1,
+              "column": 1
+            },
+            "end": {
+              "line": 3,
+              "column": 2
+            }
+          }
+        },
         {
           "path": "tests/lsp/workspaces/duplicate-bindings/alpha.dsl",
           "severity": "error",
@@ -147,6 +167,25 @@ fn check_json_reports_merged_semantic_diagnostics() {
             "end": {
               "line": 2,
               "column": 37
+            }
+          }
+        },
+        {
+          "path": "tests/lsp/workspaces/duplicate-bindings/beta.dsl",
+          "severity": "error",
+          "code": "semantic.repeated-workspace-section",
+          "source": "semantic",
+          "message": "multiple model sections are not permitted in a DSL definition",
+          "span": {
+            "start_byte": 0,
+            "end_byte": 45,
+            "start": {
+              "line": 1,
+              "column": 1
+            },
+            "end": {
+              "line": 3,
+              "column": 2
             }
           }
         },

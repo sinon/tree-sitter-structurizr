@@ -20,6 +20,8 @@ pub enum SymbolKind {
     Container,
     /// A `component` declaration.
     Component,
+    /// A `deploymentEnvironment` declaration with a binding identifier.
+    DeploymentEnvironment,
     /// A `deploymentNode` declaration with a binding identifier.
     DeploymentNode,
     /// An `infrastructureNode` declaration with a binding identifier.

@@ -245,6 +245,7 @@ fn symbol_kind_name(kind: SymbolKind) -> String {
         SymbolKind::SoftwareSystem => "software_system".to_owned(),
         SymbolKind::Container => "container".to_owned(),
         SymbolKind::Component => "component".to_owned(),
+        SymbolKind::DeploymentEnvironment => "deployment_environment".to_owned(),
         SymbolKind::DeploymentNode => "deployment_node".to_owned(),
         SymbolKind::InfrastructureNode => "infrastructure_node".to_owned(),
         SymbolKind::ContainerInstance => "container_instance".to_owned(),
