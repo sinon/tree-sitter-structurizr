@@ -5,7 +5,7 @@ Structurizr editor tooling built around the `strz` LSP, linter built on top of a
 ## What are you here for?
 
 - **Use Structurizr in Zed** -> start with [Using `strz` with Zed today](#using-strz-with-zed-today)
-- **Parse Structurizr DSL directly in Rust** -> jump to [Using the grammar directly](#using-the-grammar-directly)
+- **Parse Structurizr DSL directly in Rust** -> jump to [Using the grammar directly](./crates/strz-grammar/README.md#Usage)
 - **Contribute to the grammar, analysis layer, or LSP** -> start with [`CONTRIBUTING.md`](./CONTRIBUTING.md)
 - **Understand the current LSP architecture and roadmap** -> start with [`docs/lsp/README.md`](./docs/lsp/README.md)
 
