@@ -1,31 +1,34 @@
 [package]
 name = "structurizr-cli"
-version = "0.1.0"
-edition = "2024"
-autobins = false
-repository = "https://github.com/sinon/tree-sitter-structurizr/"
-homepage = "https://github.com/sinon/tree-sitter-structurizr/"
-license = "MIT OR Apache-2.0"
-readme = "README.md"
+version = "0.0.1"
+authors = { workspace = true }
+edition = { workspace = true }
 description = "`strz` CLI for running Structurizr LSP server and linter"
+documentation = { workspace = true }
+readme = "../../README.md"
+homepage = { workspace = true }
+repository = { workspace = true }
+license = { workspace = true }
+publish = false
+autobins = false
 
 [[bin]]
 name = "strz"
 path = "src/main.rs"
 
 [dependencies]
-anstream = "1.0.0"
-anstyle = "1.0.14"
-anyhow = "1.0.102"
-clap = { version = "4.6.0", features = ["derive", "wrap_help"] }
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.149"
-structurizr-analysis = { version = "0.1.0", path = "../structurizr-analysis" }
-structurizr-lsp = { version = "0.1.0", path = "../structurizr-lsp" }
-tokio = { version = "1.50.0", features = ["macros", "rt-multi-thread"] }
-tracing-log = "0.2.0"
-tracing-subscriber = { version = "0.3.23", features = ["env-filter", "json"] }
+anstream = { workspace = true }
+anstyle = { workspace = true }
+anyhow = { workspace = true }
+clap = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+structurizr-analysis = { workspace = true }
+structurizr-lsp = { workspace = true }
+tokio = { workspace = true }
+tracing-log = { workspace = true }
+tracing-subscriber = { workspace = true }
 
 [dev-dependencies]
-insta = "1.47.0"
-insta-cmd = "0.6.0"
+insta = { workspace = true }
+insta-cmd = { workspace = true }

@@ -1,16 +1,16 @@
 [package]
 name = "tree-sitter-structurizr"
+version = "0.0.0"
+authors = { workspace = true }
+edition = { workspace = true }
 description = "Grammar for the Structurizr DSL for describing C4 models"
-version = "0.0.1"
-authors = ["Rob Hand <146272+sinon@users.noreply.github.com>"]
-license = "MIT OR Apache-2.0"
-readme = "README.md"
-keywords = ["incremental", "parsing", "tree-sitter", "structurizr"]
+documentation = { workspace = true }
+readme = "../../README.md"
+homepage = { workspace = true }
+repository = { workspace = true }
+license = { workspace = true }
+keywords = ["incremental", "parsing", "structurizr", "tree-sitter"]
 categories = ["parser-implementations", "parsing", "text-editors"]
-repository = "https://github.com/sinon/tree-sitter-structurizr"
-homepage = "https://github.com/sinon/tree-sitter-structurizr"
-edition = "2024"
-autoexamples = false
 build = "bindings/rust/build.rs"
 include = [
   "README.md",
@@ -20,20 +20,22 @@ include = [
   "src/*",
   "tree-sitter.json",
 ]
+autoexamples = false
 
 [lib]
 path = "bindings/rust/lib.rs"
 
 [dependencies]
-tree-sitter-language = "0.1"
-
-[build-dependencies]
-anyhow = "1.0.102"
-cc = "1.2"
+tree-sitter-language = { workspace = true }
 
 [dev-dependencies]
-indoc = "2.0"
-insta = "1.43"
-proptest = "1.11.0"
-rstest = "0.26"
-tree-sitter = "0.26.7"
+anyhow = { workspace = true }
+indoc = { workspace = true }
+insta = { workspace = true }
+proptest = { workspace = true }
+rstest = { workspace = true }
+tree-sitter = { workspace = true }
+
+[build-dependencies]
+anyhow = { workspace = true }
+cc = { workspace = true }

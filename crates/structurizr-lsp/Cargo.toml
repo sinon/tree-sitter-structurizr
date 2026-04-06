@@ -1,33 +1,42 @@
 [package]
 name = "structurizr-lsp"
-version = "0.1.0"
-edition = "2024"
-repository = "https://github.com/sinon/tree-sitter-structurizr/"
-home_page = "https://github.com/sinon/tree-sitter-structurizr/"
-license = "MIT OR Apache-2.0"
-readme = "README.md"
+version = "0.0.0"
+authors = { workspace = true }
+edition = { workspace = true }
+description = "LSP for Structurizr C4 modelling language"
+documentation = { workspace = true }
+readme = "../../README.md"
+homepage = { workspace = true }
+repository = { workspace = true }
+license = { workspace = true }
 keywords = ["lsp", "structurizr"]
 categories = ["lsp", "parsing", "text-editors"]
-description = "LSP for Structurizr C4 modelling language"
+publish = false
 
 [[bench]]
-name = "session"
 harness = false
+name = "session"
 
 [dependencies]
-line-index = "0.1.2"
-structurizr-analysis = { version = "0.1.0", path = "../structurizr-analysis" }
-tokio = { version = "1.50.0", features = ["macros", "rt-multi-thread", "io-std", "sync", "time"] }
-tower-lsp-server = "0.23.0"
-tracing = "0.1.44"
-tree-sitter = "0.26.7"
+line-index = { workspace = true }
+structurizr-analysis = { workspace = true }
+tokio = { workspace = true, features = [
+  "io-std",
+  "macros",
+  "rt-multi-thread",
+  "sync",
+  "time"
+] }
+tower-lsp-server = { workspace = true }
+tracing = { workspace = true }
+tree-sitter = { workspace = true }
 
 [dev-dependencies]
-criterion = { version = "4.4.1", package = "codspeed-criterion-compat" }
-futures = "0.3"
-indoc = "2.0"
-serde_json = "1"
-tempfile = "3.27.0"
-tower = { version = "0.5", features = ["util"] }
-tracing-log = "0.2.0"
-tracing-subscriber = { version = "0.3.23", features = ["env-filter", "json"] }
+criterion = { workspace = true }
+futures = { workspace = true }
+indoc = { workspace = true }
+serde_json = { workspace = true }
+tempfile = { workspace = true }
+tower = { workspace = true }
+tracing-log = { workspace = true }
+tracing-subscriber = { workspace = true }

@@ -1,23 +1,28 @@
 [package]
 name = "structurizr-analysis"
-version = "0.1.0"
-edition = "2024"
-repository = "https://github.com/sinon/tree-sitter-structurizr/"
+version = "0.0.0"
+authors = { workspace = true }
+edition = { workspace = true }
+documentation = { workspace = true }
+homepage = { workspace = true }
+repository = { workspace = true }
+license = { workspace = true }
+publish = false
 
 [[bench]]
-name = "analysis"
 harness = false
+name = "analysis"
 
 [dependencies]
-ignore = "0.4.25"
-salsa = "0.26.0"
-tree-sitter = "0.26.7"
-tree-sitter-structurizr = { version = "0.0.1", path = "../structurizr-grammar" }
+ignore = { workspace = true }
+salsa = { workspace = true }
+tree-sitter = { workspace = true }
+tree-sitter-structurizr = { workspace = true }
 
 [dev-dependencies]
-criterion = { version = "4.4.1", package = "codspeed-criterion-compat" }
-indoc = "2.0"
-insta = "1.43"
-proptest = "1.11.0"
-rstest = "0.26"
-tempfile = "3.27.0"
+criterion = { workspace = true }
+indoc = { workspace = true }
+insta = { workspace = true }
+proptest = { workspace = true }
+rstest = { workspace = true }
+tempfile = { workspace = true }
