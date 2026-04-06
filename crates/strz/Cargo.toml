@@ -9,7 +9,6 @@ readme = "../../README.md"
 homepage = { workspace = true }
 repository = { workspace = true }
 license = { workspace = true }
-publish = false
 autobins = false
 
 [[bin]]
