@@ -1447,8 +1447,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
-name = "structurizr-analysis"
-version = "0.1.0"
+name = "strz"
+version = "0.0.1"
+dependencies = [
+ "anstream",
+ "anstyle",
+ "anyhow",
+ "clap",
+ "insta",
+ "insta-cmd",
+ "serde",
+ "serde_json",
+ "strz-analysis",
+ "strz-lsp",
+ "tokio",
+ "tracing-log",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "strz-analysis"
+version = "0.0.0"
 dependencies = [
  "codspeed-criterion-compat",
  "ignore",
@@ -1463,34 +1482,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "structurizr-cli"
-version = "0.1.0"
-dependencies = [
- "anstream",
- "anstyle",
- "anyhow",
- "clap",
- "insta",
- "insta-cmd",
- "serde",
- "serde_json",
- "structurizr-analysis",
- "structurizr-lsp",
- "tokio",
- "tracing-log",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "structurizr-lsp"
-version = "0.1.0"
+name = "strz-lsp"
+version = "0.0.0"
 dependencies = [
  "codspeed-criterion-compat",
  "futures",
  "indoc",
  "line-index",
  "serde_json",
- "structurizr-analysis",
+ "strz-analysis",
  "tempfile",
  "tokio",
  "tower",
@@ -1789,7 +1789,7 @@ checksum = "009994f150cc0cd50ff54917d5bc8bffe8cad10ca10d81c34da2ec421ae61782"
 
 [[package]]
 name = "tree-sitter-structurizr"
-version = "0.0.1"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "cc",

@@ -7,9 +7,9 @@ This is the best starting point if you want to understand the design, what alrea
 The project stays editor-oriented rather than runtime-oriented:
 
 - the Tree-sitter grammar owns syntax, parse-tree shape, and portable query files
-- `structurizr-analysis` owns extracted document facts and workspace/include modeling
-- `structurizr-lsp` owns protocol handling and editor-facing request flow
-- `structurizr-cli` exposes the same analysis and `strz server` entrypoints outside an editor loop
+- `strz-analysis` owns extracted document facts and workspace/include modeling
+- `strz-lsp` owns protocol handling and editor-facing request flow
+- `strz` exposes the same analysis and `strz server` entrypoints outside an editor loop
 - downstream editor integrations such as `zed-structurizr` stay thin launchers and packaging layers
 
 This layering is deliberate. We want good editor support for real `.dsl` files without turning this repository into an unofficial Structurizr runtime.
@@ -19,9 +19,9 @@ This layering is deliberate. We want good editor support for real `.dsl` files w
 The repository already contains:
 
 - the checked-in grammar, parser artifacts, bindings, and query files
-- [`crates/structurizr-analysis/`](../../crates/structurizr-analysis/) for document snapshots, symbol/reference extraction, diagnostics, and workspace discovery
-- [`crates/structurizr-lsp/`](../../crates/structurizr-lsp/) for the stdio language server and handler layer
-- [`crates/structurizr-cli/`](../../crates/structurizr-cli/) for `strz check`, `strz dump`, and `strz server`
+- [`crates/strz-analysis/`](../../crates/strz-analysis/) for document snapshots, symbol/reference extraction, diagnostics, and workspace discovery
+- [`crates/strz-lsp/`](../../crates/strz-lsp/) for the stdio language server and handler layer
+- [`crates/strz/`](../../crates/strz/) for `strz check`, `strz dump`, and `strz server`
 - realistic multi-file fixtures and integration tests that exercise the bounded semantic surface
 
 The question is no longer whether an in-repo bounded slice is feasible. That slice already exists. The useful question now is how to make the current editor-tooling stack easier to understand, easier to ship downstream, and broader without losing architectural discipline.

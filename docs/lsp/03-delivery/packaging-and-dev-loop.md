@@ -56,8 +56,8 @@ The near-term model should be:
    - downloads or locates the LSP binary
 1. keep local development fast with:
    - `file://` grammar overrides
-   - `lsp.structurizr-lsp.binary.path` local binary overrides
-   - optional `STRUCTURIZR_LSP_BIN` terminal overrides
+   - `lsp.strz-lsp.binary.path` local binary overrides
+   - optional `STRZ_LSP_BIN` terminal overrides
 
 This preserves fast iteration while keeping published installs reproducible.
 
@@ -65,10 +65,10 @@ This preserves fast iteration while keeping published installs reproducible.
 
 | Artifact                           | Home                                           | Primary consumers                                                 | Distribution form            | Release unit                |
 | ---------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------- | ---------------------------- | --------------------------- |
-| Tree-sitter grammar + parser crate | this repo root                                 | Zed grammar loader, Rust parser consumers, `structurizr-analysis` | source repository            | git commit / pinned `rev`   |
-| `structurizr-analysis`             | workspace crate in this repo                   | `structurizr-lsp`, `structurizr-cli`                              | source-only workspace member | none initially              |
-| `structurizr-lsp`                  | workspace crate in this repo                   | `structurizr-cli`                                                 | source-only workspace member | none directly               |
-| `strz`                             | `structurizr-cli` workspace crate in this repo | Zed extension, other editors, manual users                        | platform binaries / archives | GitHub release tag + assets |
+| Tree-sitter grammar + parser crate | this repo root                                 | Zed grammar loader, Rust parser consumers, `strz-analysis` | source repository            | git commit / pinned `rev`   |
+| `strz-analysis`             | workspace crate in this repo                   | `strz-lsp`, `strz`                              | source-only workspace member | none initially              |
+| `strz-lsp`                  | workspace crate in this repo                   | `strz`                                                 | source-only workspace member | none directly               |
+| `strz`                             | `strz` workspace crate in this repo | Zed extension, other editors, manual users                        | platform binaries / archives | GitHub release tag + assets |
 | `zed-structurizr`                  | separate repo                                  | Zed users                                                         | Zed extension package        | extension version           |
 
 ## Packaging decisions
@@ -142,8 +142,8 @@ The LSP should be acquirable in three modes, ordered from most local to most pub
 
 Use:
 
-- `lsp.structurizr-lsp.binary.path = "/absolute/path/to/strz"`
-- or, for one-shot terminal launches, `STRUCTURIZR_LSP_BIN=/absolute/path/to/strz`
+- `lsp.strz-lsp.binary.path = "/absolute/path/to/strz"`
+- or, for one-shot terminal launches, `STRZ_LSP_BIN=/absolute/path/to/strz`
 
 This is the preferred contributor loop because it:
 
@@ -299,14 +299,14 @@ when you want the broader Rust + grammar validation pass before landing or relea
 For local Zed iteration:
 
 - install `/Users/rob/dev/zed-structurizr` as a dev extension
-- temporarily point its grammar entry at `file:///Users/rob/dev/tree-sitter-structurizr` with `path = "crates/structurizr-grammar"`
+- temporarily point its grammar entry at `file:///Users/rob/dev/tree-sitter-structurizr` with `path = "crates/strz-grammar"`
 - open a representative `.dsl` file such as `big-bank.dsl`
 
 This loop does not require an LSP yet.
 
 ## Loop 2: LSP implementation work
 
-Now that [`crates/structurizr-analysis/`](../../../crates/structurizr-analysis/), [`crates/structurizr-lsp/`](../../../crates/structurizr-lsp/), and [`crates/structurizr-cli/`](../../../crates/structurizr-cli/) exist, the day-to-day loop should stay mostly in this repository.
+Now that [`crates/strz-analysis/`](../../../crates/strz-analysis/), [`crates/strz-lsp/`](../../../crates/strz-lsp/), and [`crates/strz/`](../../../crates/strz/) exist, the day-to-day loop should stay mostly in this repository.
 
 Recommended loop:
 
@@ -337,15 +337,15 @@ When a change spans:
 use the integrated dev loop:
 
 1. build the local `strz` binary in this repo
-1. set `lsp.structurizr-lsp.binary.path` to that binary
+1. set `lsp.strz-lsp.binary.path` to that binary
 1. point the Zed dev extension at the local grammar repo with `file://`
 1. run Zed in foreground mode
 1. smoke-test both editor-native and LSP-provided behavior
 
 For one-off terminal launches, step 2 can temporarily use
-`STRUCTURIZR_LSP_BIN=... zed --foreground` instead, but only when starting a
+`strz_lsp_BIN=... zed --foreground` instead, but only when starting a
 fresh Zed instance. If Zed is already running, prefer
-`lsp.structurizr-lsp.binary.path`.
+`lsp.strz-lsp.binary.path`.
 
 This is the slowest loop, so it should be reserved for:
 
@@ -363,7 +363,7 @@ Recommended rehearsal:
 
 1. create or identify the intended `strz` release assets
 1. ensure the extension is pinned to the intended LSP tag
-1. remove `lsp.structurizr-lsp.binary.path` and `STRUCTURIZR_LSP_BIN` overrides
+1. remove `lsp.strz-lsp.binary.path` and `strz_lsp_BIN` overrides
 1. ensure the result works via:
    - downloaded asset path
    - or, when explicitly testing it, `PATH` fallback
@@ -447,9 +447,9 @@ And validate:
 Use:
 
 - `/Users/rob/dev/zed-structurizr/big-bank.dsl`
-- [`crates/structurizr-lsp/tests/fixtures/includes/`](../../../crates/structurizr-lsp/tests/fixtures/includes/)
-- [`crates/structurizr-lsp/tests/fixtures/identifiers/`](../../../crates/structurizr-lsp/tests/fixtures/identifiers/)
-- [`crates/structurizr-lsp/tests/fixtures/relationships/`](../../../crates/structurizr-lsp/tests/fixtures/relationships/)
+- [`crates/strz-lsp/tests/fixtures/includes/`](../../../crates/strz-lsp/tests/fixtures/includes/)
+- [`crates/strz-lsp/tests/fixtures/identifiers/`](../../../crates/strz-lsp/tests/fixtures/identifiers/)
+- [`crates/strz-lsp/tests/fixtures/relationships/`](../../../crates/strz-lsp/tests/fixtures/relationships/)
 
 as the first representative smoke-test set.
 
@@ -462,7 +462,7 @@ The first packaging story should stay simple, but it should point toward eventua
 Recommended eventual automation:
 
 - continue running grammar validation with the existing Justfile commands
-- add release automation for `strz` platform builds from the `structurizr-cli` crate
+- add release automation for `strz` platform builds from the `strz` crate
 - publish release assets from tagged commits
 
 The key design choice is:

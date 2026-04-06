@@ -1,0 +1,127 @@
+---
+source: crates/strz-analysis/tests/document_snapshots.rs
+expression: "SnapshotView::from(&snapshot)"
+---
+SnapshotView {
+    has_syntax_errors: true,
+    diagnostics: [
+        SyntaxDiagnostic {
+            kind: MissingNode,
+            message: "missing ->",
+            span: TextSpan {
+                start_byte: 94,
+                end_byte: 94,
+                start_point: TextPoint {
+                    row: 5,
+                    column: 5,
+                },
+                end_point: TextPoint {
+                    row: 5,
+                    column: 5,
+                },
+            },
+        },
+    ],
+    include_directives: [
+        IncludeDirective {
+            raw_value: "\"model-fragment-ok.dsl\"",
+            value_kind: String,
+            span: TextSpan {
+                start_byte: 16,
+                end_byte: 48,
+                start_point: TextPoint {
+                    row: 1,
+                    column: 4,
+                },
+                end_point: TextPoint {
+                    row: 1,
+                    column: 36,
+                },
+            },
+            value_span: TextSpan {
+                start_byte: 25,
+                end_byte: 48,
+                start_point: TextPoint {
+                    row: 1,
+                    column: 13,
+                },
+                end_point: TextPoint {
+                    row: 1,
+                    column: 36,
+                },
+            },
+            container: Workspace,
+        },
+        IncludeDirective {
+            raw_value: "\"views-fragment-ok.dsl\"",
+            value_kind: String,
+            span: TextSpan {
+                start_byte: 53,
+                end_byte: 85,
+                start_point: TextPoint {
+                    row: 2,
+                    column: 4,
+                },
+                end_point: TextPoint {
+                    row: 2,
+                    column: 36,
+                },
+            },
+            value_span: TextSpan {
+                start_byte: 62,
+                end_byte: 85,
+                start_point: TextPoint {
+                    row: 2,
+                    column: 13,
+                },
+                end_point: TextPoint {
+                    row: 2,
+                    column: 36,
+                },
+            },
+            container: Workspace,
+        },
+    ],
+    identifier_modes: [],
+    symbols: [],
+    references: [
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "hello",
+            span: TextSpan {
+                start_byte: 89,
+                end_byte: 94,
+                start_point: TextPoint {
+                    row: 5,
+                    column: 0,
+                },
+                end_point: TextPoint {
+                    row: 5,
+                    column: 5,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "world",
+            span: TextSpan {
+                start_byte: 95,
+                end_byte: 100,
+                start_point: TextPoint {
+                    row: 5,
+                    column: 6,
+                },
+                end_point: TextPoint {
+                    row: 5,
+                    column: 11,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+    ],
+}

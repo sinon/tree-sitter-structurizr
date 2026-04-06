@@ -2,7 +2,7 @@
 
 > Status: implemented in bounded form.
 >
-> `structurizr-analysis` now exists in-repo. Read this note as the architectural
+> `strz-analysis` now exists in-repo. Read this note as the architectural
 > contract for that crate shape and as background for future expansion work.
 
 This note turns Phase 2 of [`docs/lsp/03-delivery/roadmap.md`](../03-delivery/roadmap.md) into a concrete crate shape.
@@ -42,8 +42,8 @@ So the analysis crate should become the first place where “Structurizr editor 
 This repository already has an important packaging shape:
 
 - the root [`Cargo.toml`](../../../Cargo.toml) is the parser crate package
-- the parser crate's library entry point is [`crates/structurizr-grammar/bindings/rust/lib.rs`](../../../crates/structurizr-grammar/bindings/rust/lib.rs)
-- there is **not** a separate `crates/structurizr-grammar/bindings/rust/Cargo.toml`
+- the parser crate's library entry point is [`crates/strz-grammar/bindings/rust/lib.rs`](../../../crates/strz-grammar/bindings/rust/lib.rs)
+- there is **not** a separate `crates/strz-grammar/bindings/rust/Cargo.toml`
 - the repository root must remain a normal Tree-sitter grammar repo for Zed and other grammar consumers
 
 That means the analysis crate should be added **alongside** the existing parser crate, not by moving the parser into a new nested Cargo package.
@@ -54,8 +54,8 @@ The recommended near-term layout is:
 
 ```text
 Cargo.toml                      existing parser crate package at repo root
-crates/structurizr-grammar/bindings/rust/lib.rs            existing parser crate entry point
-crates/structurizr-analysis/    new analysis crate
+crates/strz-grammar/bindings/rust/lib.rs            existing parser crate entry point
+crates/strz-analysis/    new analysis crate
 ```
 
 The root [`Cargo.toml`](../../../Cargo.toml) should eventually become a combined package + workspace:
@@ -67,7 +67,7 @@ name = "tree-sitter-structurizr"
 
 [workspace]
 resolver = "2"
-members = ["crates/structurizr-analysis"]
+members = ["crates/strz-analysis"]
 
 [workspace.dependencies]
 tree-sitter = "0.26.7"
@@ -79,12 +79,12 @@ And the new crate should look roughly like:
 
 ```toml
 [package]
-name = "structurizr-analysis"
+name = "strz-analysis"
 edition = "2021"
 
 [dependencies]
 tree-sitter = { workspace = true }
-tree-sitter-structurizr = { path = "../structurizr-grammar" }
+tree-sitter-structurizr = { path = "../strz-grammar" }
 
 [dev-dependencies]
 insta = { workspace = true }
@@ -241,7 +241,7 @@ The roadmap already sketched a coarse Phase 2 layout.
 A more concrete starting point is:
 
 ```text
-crates/structurizr-analysis/
+crates/strz-analysis/
   Cargo.toml
   src/lib.rs
   src/parse.rs
@@ -282,7 +282,7 @@ That should stay **private or absent** until a real portable query surface exist
 In practice:
 
 - the initial symbol and directive extractors should be handwritten tree walks based on the audit docs
-- when `crates/structurizr-grammar/queries/tags.scm` lands, a private query helper can be introduced without forcing the whole analysis architecture to depend on queries from day one
+- when `crates/strz-grammar/queries/tags.scm` lands, a private query helper can be introduced without forcing the whole analysis architecture to depend on queries from day one
 
 This keeps the skeleton honest about the current repo state.
 
@@ -437,7 +437,7 @@ The analysis crate should reuse the repository's existing testing style rather t
 Continue treating repo-root fixtures as the canonical DSL inputs:
 
 - [`fixtures/`](../../../fixtures/)
-- [`crates/structurizr-lsp/tests/fixtures/`](../../../crates/structurizr-lsp/tests/fixtures/)
+- [`crates/strz-lsp/tests/fixtures/`](../../../crates/strz-lsp/tests/fixtures/)
 
 Do **not** duplicate the same DSL files under the crate directory.
 
@@ -446,7 +446,7 @@ Do **not** duplicate the same DSL files under the crate directory.
 Use crate-local Rust integration tests for extracted facts:
 
 ```text
-crates/structurizr-analysis/tests/
+crates/strz-analysis/tests/
   document_snapshots.rs
 ```
 
@@ -493,7 +493,7 @@ Those are real future concerns, but they are not required to get the first trans
 ## Recommended implementation sequence
 
 1. Add the Cargo workspace metadata without moving the parser crate.
-1. Create [`crates/structurizr-analysis/`](../../../crates/structurizr-analysis/) with `lib.rs` plus the core type modules.
+1. Create [`crates/strz-analysis/`](../../../crates/strz-analysis/) with `lib.rs` plus the core type modules.
 1. Implement single-document parsing and syntax-diagnostic extraction.
 1. Implement raw `!include` and `!identifiers` fact extraction.
 1. Implement bounded-MVP symbol/reference extraction from the audited node shapes.
@@ -516,8 +516,8 @@ It gives us:
 ## Sources
 
 - [`Cargo.toml`](../../../Cargo.toml)
-- [`crates/structurizr-grammar/bindings/rust/lib.rs`](../../../crates/structurizr-grammar/bindings/rust/lib.rs)
-- [`crates/structurizr-grammar/bindings/rust/build.rs`](../../../crates/structurizr-grammar/bindings/rust/build.rs)
+- [`crates/strz-grammar/bindings/rust/lib.rs`](../../../crates/strz-grammar/bindings/rust/lib.rs)
+- [`crates/strz-grammar/bindings/rust/build.rs`](../../../crates/strz-grammar/bindings/rust/build.rs)
 - [`Justfile`](../../../Justfile)
 - [`README.md`](../../../README.md)
 - [`docs/lsp/03-delivery/roadmap.md`](../03-delivery/roadmap.md)

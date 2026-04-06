@@ -7,9 +7,9 @@ This roadmap is no longer about proving that an in-repo bounded MVP can exist. T
 The repository already contains:
 
 - the checked-in Tree-sitter grammar, bindings, and query files
-- [`crates/structurizr-analysis/`](../../../crates/structurizr-analysis/) for extracted document and workspace facts
-- [`crates/structurizr-lsp/`](../../../crates/structurizr-lsp/) for the stdio language server
-- [`crates/structurizr-cli/`](../../../crates/structurizr-cli/) for `strz check`, `strz dump`, and `strz server`
+- [`crates/strz-analysis/`](../../../crates/strz-analysis/) for extracted document and workspace facts
+- [`crates/strz-lsp/`](../../../crates/strz-lsp/) for the stdio language server
+- [`crates/strz/`](../../../crates/strz/) for `strz check`, `strz dump`, and `strz server`
 - multi-file fixtures and LSP integration tests that cover the current bounded semantic surface
 
 ## Status of the original roadmap phases
@@ -18,7 +18,7 @@ The repository already contains:
 | --------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------ |
 | Phase 0: boundaries and dev loop        | Done in repo             | The grammar/analysis/LSP split is established, and the local CLI loop exists.                                      |
 | Phase 1: grammar/query hardening        | Done as ongoing baseline | The grammar and query surface are real and continue to harden through fixtures and audits.                         |
-| Phase 2: analysis crate                 | Done in repo             | `structurizr-analysis` is the transport-agnostic semantic layer.                                                   |
+| Phase 2: analysis crate                 | Done in repo             | `strz-analysis` is the transport-agnostic semantic layer.                                                   |
 | Phase 3: workspace indexing             | Done in bounded form     | Workspace discovery, include-following, and bounded workspace facts already exist.                                 |
 | Phase 4: LSP crate and bounded handlers | Done in repo             | The current server already ships diagnostics, symbols, completion, navigation, and links within the bounded scope. |
 | Phase 5: downstream editor delivery     | Next                     | Zed wiring, packaging, and release choreography are the nearest delivery milestone.                                |

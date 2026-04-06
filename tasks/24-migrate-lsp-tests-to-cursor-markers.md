@@ -6,14 +6,14 @@ bytes mentally.
 
 This is already visible in the new hover tests, but it is broader than hover:
 
-- [`crates/structurizr-lsp/tests/hover.rs`](../crates/structurizr-lsp/tests/hover.rs)
+- [`crates/strz-lsp/tests/hover.rs`](../crates/strz-lsp/tests/hover.rs)
   currently uses the pattern for all hover request sites
-- [`crates/structurizr-lsp/tests/navigation.rs`](../crates/structurizr-lsp/tests/navigation.rs)
+- [`crates/strz-lsp/tests/navigation.rs`](../crates/strz-lsp/tests/navigation.rs)
   still has many definition/reference/path-navigation cases using magic offsets
 
 ## Root Cause
 
-[`crates/structurizr-lsp/tests/support/mod.rs`](../crates/structurizr-lsp/tests/support/mod.rs)
+[`crates/strz-lsp/tests/support/mod.rs`](../crates/strz-lsp/tests/support/mod.rs)
 currently exposes `position_in(text, needle, byte_offset_within_needle)`, which
 is easy to implement but not easy to review.
 

@@ -2,21 +2,14 @@
 
 ## Purpose of this repository
 
-This repository contains a Tree-sitter grammar for the Structurizr DSL, with Rust bindings checked in for downstream editor tooling.
-
-The main goal is editor support rather than DSL execution:
-
-- syntax highlighting
-- code folding
-- indentation/query support
-- robust parsing of real `.dsl` files for Zed and other Rust-based consumers
+This repository contains an LSP and linter for the Structurizr DSL, built on top of tree-sitter grammar.
 
 This project is not trying to become a Structurizr runtime. It should preserve and expose syntax structure faithfully enough for editor features, tests, and iterative grammar hardening.
 
 ## Current LSP work and boundaries
 
 - [`docs/lsp/README.md`](docs/lsp/README.md) and [`docs/lsp/00-current-state.md`](docs/lsp/00-current-state.md) are the entry points for the current LSP architecture, status, and roadmap docs.
-- This repo now already contains [`crates/structurizr-analysis/`](crates/structurizr-analysis/), [`crates/structurizr-lsp/`](crates/structurizr-lsp/), and [`crates/structurizr-cli/`](crates/structurizr-cli/) alongside the grammar.
+- This repo now already contains [`crates/strz-analysis/`](crates/strz-analysis/), [`crates/strz-lsp/`](crates/strz-lsp/), and [`crates/strz/`](crates/strz/) alongside the grammar.
 - Keep `/Users/rob/dev/zed-structurizr` as a separate downstream editor integration repo.
 - Treat the grammar as the syntax layer and the LSP as a separate semantic layer; do not distort grammar rules just to model runtime semantics.
 - Prefer transport-agnostic analysis logic and keep protocol/editor glue thin.
@@ -24,17 +17,17 @@ This project is not trying to become a Structurizr runtime. It should preserve a
 ## Core files and layout
 
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — contributor workflow and canonical command surface
-- [`crates/structurizr-grammar/grammar.js`](crates/structurizr-grammar/grammar.js) — source of truth for the grammar
-- [`crates/structurizr-grammar/src/parser.c`](crates/structurizr-grammar/src/parser.c), [`crates/structurizr-grammar/src/grammar.json`](crates/structurizr-grammar/src/grammar.json), [`crates/structurizr-grammar/src/node-types.json`](crates/structurizr-grammar/src/node-types.json) — generated artifacts
-- [`crates/structurizr-analysis/`](crates/structurizr-analysis/) — transport-agnostic document and workspace facts
-- [`crates/structurizr-lsp/`](crates/structurizr-lsp/) — language server implementation
-- [`crates/structurizr-cli/`](crates/structurizr-cli/) — `strz` CLI including `strz server`
+- [`crates/strz-grammar/grammar.js`](crates/strz-grammar/grammar.js) — source of truth for the grammar
+- [`crates/strz-grammar/src/parser.c`](crates/strz-grammar/src/parser.c), [`crates/strz-grammar/src/grammar.json`](crates/strz-grammar/src/grammar.json), [`crates/strz-grammar/src/node-types.json`](crates/strz-grammar/src/node-types.json) — generated artifacts
+- [`crates/strz-analysis/`](crates/strz-analysis/) — transport-agnostic document and workspace facts
+- [`crates/strz-lsp/`](crates/strz-lsp/) — language server implementation
+- [`crates/strz/`](crates/strz/) — `strz` CLI including `strz server`
 - [`tools/upstream_audit.rs`](tools/upstream_audit.rs) — contributor-only single-file Cargo script for downloading upstream Structurizr DSL fixtures and auditing parser coverage
-- [`crates/structurizr-grammar/tests/fixtures.rs`](crates/structurizr-grammar/tests/fixtures.rs) — fixture-driven Rust tests with snapshots
-- [`crates/structurizr-grammar/test/corpus/`](crates/structurizr-grammar/test/corpus/) — Tree-sitter CLI corpus tests
+- [`crates/strz-grammar/tests/fixtures.rs`](crates/strz-grammar/tests/fixtures.rs) — fixture-driven Rust tests with snapshots
+- [`crates/strz-grammar/test/corpus/`](crates/strz-grammar/test/corpus/) — Tree-sitter CLI corpus tests
 - [`fixtures/`](fixtures/) — the main Rust fixture tree, organized by feature area
-- [`crates/structurizr-lsp/tests/fixtures/`](crates/structurizr-lsp/tests/fixtures/) — LSP-specific single-document fixtures
-- [`crates/structurizr-grammar/queries/`](crates/structurizr-grammar/queries/) — checked-in highlighting/folding/indentation queries
+- [`crates/strz-lsp/tests/fixtures/`](crates/strz-lsp/tests/fixtures/) — LSP-specific single-document fixtures
+- [`crates/strz-grammar/queries/`](crates/strz-grammar/queries/) — checked-in highlighting/folding/indentation queries
 - [`docs/lsp/`](docs/lsp/) — current LSP architecture, status, and delivery docs
 - [`Justfile`](Justfile) — canonical command surface
 
@@ -53,7 +46,7 @@ This project is not trying to become a Structurizr runtime. It should preserve a
 - Use tmp/ (project-local) for intermediate files and comparison artifacts, not /tmp. This keeps outputs discoverable and project-scoped. The tmp/ directory is gitignored.
 - Use `gh` for fetching files from github instead of fetching web content.
 - When you include a reference to a markdown doc in another markdown file include a fragment link so that lychee can catch drift
-- Run `just check-links` after doc edits. It uses `lychee` with local file and fragment checking so relative markdown links inside [`README.md`](README.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), [`AGENTS.md`](AGENTS.md), [`SESSION.md`](SESSION.md), `docs/**`, markdown docs under `crates/**`, and [`tasks/`](tasks/) stay valid.
+- Run `just check-links` after markdown edits.
 - Use `hk fix` as the final mutating pass for repo hygiene and formatting. Keep it at the end of a workflow so agents do not need to re-read files after formatter churn.
 
 ## Test harnesses and why they exist
@@ -66,7 +59,7 @@ Command:
 just test-grammar
 ```
 
-This runs `tree-sitter test` against [`crates/structurizr-grammar/test/corpus/`](crates/structurizr-grammar/test/corpus/).
+This runs `tree-sitter test` against [`crates/strz-grammar/test/corpus/`](crates/strz-grammar/test/corpus/).
 
 Use this harness for:
 
@@ -118,9 +111,7 @@ Command:
 just audit-upstream
 ```
 
-This runs the contributor-only Rust audit script in [`tools/upstream_audit.rs`](tools/upstream_audit.rs).
-
-It currently relies on nightly Cargo's unstable `-Zscript` support, so it is development-only and should be documented as such in `CONTRIBUTORS.md`.
+This runs the audit script in [`tools/upstream_audit.rs`](tools/upstream_audit.rs).
 
 It downloads upstream Structurizr DSL fixtures from the Structurizr repository, parses them with the local grammar, and reports:
 
@@ -157,8 +148,8 @@ When changing the grammar, use this loop:
 1. Add or adjust local coverage first:
    - fixture files under [`fixtures/`](fixtures/), organized by feature area
    - use `-ok.dsl` or `-err.dsl` suffixes to express expected outcome
-   - corpus coverage under [`crates/structurizr-grammar/test/corpus/`](crates/structurizr-grammar/test/corpus/) if the syntax belongs in the compact CLI suite
-1. Update [`crates/structurizr-grammar/grammar.js`](crates/structurizr-grammar/grammar.js).
+   - corpus coverage under [`crates/strz-grammar/test/corpus/`](crates/strz-grammar/test/corpus/) if the syntax belongs in the compact CLI suite
+1. Update [`crates/strz-grammar/grammar.js`](crates/strz-grammar/grammar.js).
 1. Regenerate parser artifacts:
 
 ```sh
@@ -189,7 +180,7 @@ just audit-upstream
 
 ## How to decide where a test belongs
 
-Use [`crates/structurizr-grammar/test/corpus/`](crates/structurizr-grammar/test/corpus/) when:
+Use [`crates/strz-grammar/test/corpus/`](crates/strz-grammar/test/corpus/) when:
 
 - the example is small
 - the tree shape is important
@@ -225,42 +216,3 @@ Explicitly unsupported:
 
 - `!script`
 - `!plugin`
-
-Ignored upstream negatives:
-
-- files containing `unexpected-`
-
-Do not spend time implementing `!script` or `!plugin` unless the project scope changes explicitly.
-
-## Progressive coverage strategy
-
-The preferred way to improve the grammar is incremental and audit-driven:
-
-1. Run `just audit-upstream`
-1. Choose one broad bucket
-1. Narrow to a smaller sub-slice by file or feature
-1. Implement only enough syntax to make that slice parse well
-1. Add local corpus/fixture coverage
-1. Regenerate and update snapshots
-1. Re-run the audit and measure the drop in failures
-
-Avoid trying to “solve the DSL” in one pass. The grammar is intentionally being hardened in slices so node names, snapshots, and future editor queries remain understandable.
-
-## Good handoff habits for the next agent
-
-- Keep changes surgical and feature-scoped.
-- Prefer adding representative fixtures from upstream examples over inventing synthetic mega-tests.
-- If a grammar rule becomes too permissive, tighten it rather than silently reclassifying broken tests.
-- When support moves from pending to implemented, update [`README.md`](README.md).
-- When the audit filtering policy changes, update [`tools/upstream_audit.rs`](tools/upstream_audit.rs), `CONTRIBUTORS.md`, [`README.md`](README.md), and any affected command docs.
-- Before ending work, leave the repo in a validated state. Keep formatting last, then only run non-mutating validation after it:
-
-```sh
-just generate
-just test-grammar
-INSTA_UPDATE=always just test-rust
-hk fix
-just audit-upstream
-```
-
-If `just audit-upstream` still fails, that is acceptable only if the remaining failures belong to features outside the slice you worked on. In that case, summarize the remaining buckets and call out what changed.

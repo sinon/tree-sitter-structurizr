@@ -1,6 +1,6 @@
 # tree-sitter-structurizr
 
-Structurizr editor tooling built around the `strz` language server and a Tree-sitter grammar for `.dsl`.
+Structurizr editor tooling built around the `strz` LSP, linter built on top of a Tree-sitter grammar for `.dsl`.
 
 ## What are you here for?
 
@@ -16,7 +16,7 @@ Today the most reliable setup is local and explicit: install a Rust toolchain, b
 1. Build the binary:
 
 ```sh
-cargo build -p structurizr-cli --bin strz --release
+cargo build -p strz --bin strz --release
 ```
 
 2. Verify the binary works:
@@ -37,7 +37,7 @@ cargo build -p structurizr-cli --bin strz --release
 ```json
 {
   "lsp": {
-    "structurizr-lsp": {
+    "strz-lsp": {
       "binary": {
         "path": "~/path/to/tree-sitter-structurizr/target/release/strz"
       }
@@ -68,39 +68,6 @@ For deeper status, delivery, and configuration detail, continue with:
 - [`docs/lsp/03-delivery/roadmap.md`](./docs/lsp/03-delivery/roadmap.md)
 - [`docs/lsp/03-delivery/zed-extension-language-server-wiring.md`](./docs/lsp/03-delivery/zed-extension-language-server-wiring.md)
 
-## Using the grammar directly
-
-If you only want syntax parsing or the Rust grammar crate, start here:
-
-```toml
-[dependencies]
-tree-sitter = "0.26.7"
-tree-sitter-structurizr = "0.0.1"
-```
-
-```rust
-let code = r#"
-workspace {
-    model {
-    }
-
-    views {
-    }
-}
-"#;
-
-let mut parser = tree_sitter::Parser::new();
-let language = tree_sitter_structurizr::LANGUAGE;
-parser
-    .set_language(&language.into())
-    .expect("Error loading Structurizr parser");
-
-let tree = parser.parse(code, None).unwrap();
-assert!(!tree.root_node().has_error());
-```
-
-For grammar coverage details, test surfaces, and contributor workflow, start with [`CONTRIBUTING.md`](./CONTRIBUTING.md).
-
 ## Contributing
 
 For grammar, analysis, LSP, benchmarking, and release workflow, start with [`CONTRIBUTING.md`](./CONTRIBUTING.md).
@@ -115,9 +82,9 @@ This repository also includes material copied or adapted from the Apache-2.0 lic
 
 These consist of:
 
-- Structurizr DSL corpus material under [`crates/structurizr-grammar/test/corpus/`](crates/structurizr-grammar/test/corpus/)
+- Structurizr DSL corpus material under [`crates/strz-grammar/test/corpus/`](crates/strz-grammar/test/corpus/)
 - General Structurizr DSL fixtures under [`fixtures/`](fixtures/)
-- LSP-specific single-document fixtures under [`crates/structurizr-lsp/tests/fixtures/`](crates/structurizr-lsp/tests/fixtures/)
+- LSP-specific single-document fixtures under [`crates/strz-lsp/tests/fixtures/`](crates/strz-lsp/tests/fixtures/)
 - Multi-file workspace fixtures under [`tests/lsp/workspaces/`](tests/lsp/workspaces/)
 
 ## References

@@ -1,0 +1,32 @@
+---
+source: crates/strz-analysis/tests/document_snapshots.rs
+expression: "SnapshotView::from(&snapshot)"
+---
+SnapshotView {
+    has_syntax_errors: false,
+    diagnostics: [],
+    include_directives: [],
+    identifier_modes: [],
+    symbols: [],
+    references: [
+        Reference {
+            kind: ViewScope,
+            raw_text: "system",
+            span: TextSpan {
+                start_byte: 22,
+                end_byte: 28,
+                start_point: TextPoint {
+                    row: 1,
+                    column: 14,
+                },
+                end_point: TextPoint {
+                    row: 1,
+                    column: 20,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "container_view",
+            containing_symbol: None,
+        },
+    ],
+}

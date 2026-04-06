@@ -15,11 +15,11 @@ The recent fixture parity run found multiple upstream failures in this family:
 
 ## Root Cause
 
-[`crates/structurizr-analysis/src/extract/symbols.rs`](../crates/structurizr-analysis/src/extract/symbols.rs)
+[`crates/strz-analysis/src/extract/symbols.rs`](../crates/strz-analysis/src/extract/symbols.rs)
 already extracts path-bearing directives such as `!docs`, `!adrs`, and image
 sources so editor features can find them.
 
-[`crates/structurizr-analysis/src/workspace.rs`](../crates/structurizr-analysis/src/workspace.rs)
+[`crates/strz-analysis/src/workspace.rs`](../crates/strz-analysis/src/workspace.rs)
 does not currently validate whether those referenced paths exist, whether they
 contain the expected resource shape, or whether view properties such as
 `plantuml.url` are present when a view form requires them.

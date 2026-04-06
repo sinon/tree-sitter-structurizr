@@ -20,9 +20,9 @@ without trying to become a general Structurizr execution environment.
 The current in-repo architecture is:
 
 - repo root grammar crate: syntax, parser artifacts, Rust bindings, and portable query files
-- [`crates/structurizr-analysis/`](../../../crates/structurizr-analysis/): owned document snapshots, extracted facts, and workspace/include modeling
-- [`crates/structurizr-lsp/`](../../../crates/structurizr-lsp/): protocol-facing server state and request handlers
-- [`crates/structurizr-cli/`](../../../crates/structurizr-cli/): the `strz` binary for local checks, dumps, and `strz server`
+- [`crates/strz-analysis/`](../../../crates/strz-analysis/): owned document snapshots, extracted facts, and workspace/include modeling
+- [`crates/strz-lsp/`](../../../crates/strz-lsp/): protocol-facing server state and request handlers
+- [`crates/strz/`](../../../crates/strz/): the `strz` binary for local checks, dumps, and `strz server`
 - downstream editor integration such as `zed-structurizr`: grammar pinning, launcher behavior, and editor-specific packaging
 
 ## Why the layers stay separate
@@ -34,7 +34,7 @@ Keeping these layers distinct preserves the main architectural safety rails:
 - the LSP stays thin enough to consume analysis facts instead of re-walking syntax trees ad hoc
 - downstream extensions can stay mostly launcher and packaging layers instead of becoming semantic forks
 
-In other words, Tree-sitter stays the syntax source of truth, `structurizr-analysis` owns extracted facts, and the LSP mostly translates those facts into editor behavior.
+In other words, Tree-sitter stays the syntax source of truth, `strz-analysis` owns extracted facts, and the LSP mostly translates those facts into editor behavior.
 
 ## What Tree-sitter should keep owning
 
@@ -50,7 +50,7 @@ Keeping this work Tree-sitter-native avoids forcing the LSP to duplicate editor 
 
 ## What the analysis layer should keep owning
 
-`structurizr-analysis` is the bridge between parse trees and editor semantics.
+`strz-analysis` is the bridge between parse trees and editor semantics.
 
 It is the right home for:
 
@@ -64,7 +64,7 @@ The important rule is that these remain transport-agnostic. The analysis layer s
 
 ## What the LSP layer should keep owning
 
-`structurizr-lsp` is the protocol and orchestration layer.
+`strz-lsp` is the protocol and orchestration layer.
 
 It should own:
 
@@ -73,7 +73,7 @@ It should own:
 - translation between analysis facts and LSP payloads
 - LSP-specific compatibility behavior, such as path-opening fallbacks for editors that do not surface `textDocument/documentLink`
 
-It should avoid becoming a second semantic engine. If a handler needs new semantic understanding, the right fix is usually to extend `structurizr-analysis`, not to special-case the handler.
+It should avoid becoming a second semantic engine. If a handler needs new semantic understanding, the right fix is usually to extend `strz-analysis`, not to special-case the handler.
 
 ## What downstream editor integrations should keep owning
 
@@ -102,9 +102,9 @@ This is not a sign that the architecture is incomplete. It is a deliberate polic
 The current happy-path pipeline is:
 
 1. Tree-sitter parses source text into a syntax tree.
-1. `structurizr-analysis` turns that tree into owned document facts.
+1. `strz-analysis` turns that tree into owned document facts.
 1. The workspace layer merges per-file facts into include-aware workspace facts.
-1. `structurizr-lsp` turns those facts into diagnostics, navigation results, and completion items.
+1. `strz-lsp` turns those facts into diagnostics, navigation results, and completion items.
 1. `strz server` exposes the same LSP entrypoint that downstream editors should run.
 
 ## Non-goals that should stay stable

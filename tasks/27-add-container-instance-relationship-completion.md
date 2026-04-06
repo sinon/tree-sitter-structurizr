@@ -9,7 +9,7 @@ infrastructure-node destinations.
 
 ## Root Cause
 
-[`crates/structurizr-lsp/src/convert/completion.rs`](../crates/structurizr-lsp/src/convert/completion.rs)
+[`crates/strz-lsp/src/convert/completion.rs`](../crates/strz-lsp/src/convert/completion.rs)
 currently suppresses deployment-layer relationship sites before candidate
 selection starts.
 

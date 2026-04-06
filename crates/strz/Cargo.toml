@@ -1,0 +1,33 @@
+[package]
+name = "strz"
+version = "0.0.1"
+authors = { workspace = true }
+edition = { workspace = true }
+description = "`strz` CLI for running Structurizr LSP server and linter"
+documentation = { workspace = true }
+readme = "../../README.md"
+homepage = { workspace = true }
+repository = { workspace = true }
+license = { workspace = true }
+autobins = false
+
+[[bin]]
+name = "strz"
+path = "src/main.rs"
+
+[dependencies]
+anstream = { workspace = true }
+anstyle = { workspace = true }
+anyhow = { workspace = true }
+clap = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+strz-analysis = { workspace = true }
+strz-lsp = { workspace = true }
+tokio = { workspace = true }
+tracing-log = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[dev-dependencies]
+insta = { workspace = true }
+insta-cmd = { workspace = true }

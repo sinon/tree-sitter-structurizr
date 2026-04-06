@@ -10,28 +10,28 @@ paths.
 
 ## Root Cause
 
-[`crates/structurizr-lsp/src/documents.rs`](../crates/structurizr-lsp/src/documents.rs)
+[`crates/strz-lsp/src/documents.rs`](../crates/strz-lsp/src/documents.rs)
 stores `canonical_path` and `workspace_document_id` on `DocumentState`, and the
 main diagnostics/navigation paths reuse that cached identity.
 
 The remaining repeated normalization lives mostly in
-[`crates/structurizr-analysis/src/workspace.rs`](../crates/structurizr-analysis/src/workspace.rs):
+[`crates/strz-analysis/src/workspace.rs`](../crates/strz-analysis/src/workspace.rs):
 
 - `scan_workspace_root(...)`
 - `resolve_local_include(...)`
 - `collect_directory_include_paths(...)`
 
 On the LSP side,
-[`crates/structurizr-lsp/src/handlers/text_sync.rs`](../crates/structurizr-lsp/src/handlers/text_sync.rs)
+[`crates/strz-lsp/src/handlers/text_sync.rs`](../crates/strz-lsp/src/handlers/text_sync.rs)
 configured workspace roots, and
-[`crates/structurizr-lsp/src/handlers/directive_paths.rs`](../crates/structurizr-lsp/src/handlers/directive_paths.rs)
+[`crates/strz-lsp/src/handlers/directive_paths.rs`](../crates/strz-lsp/src/handlers/directive_paths.rs)
 snapshot locations and include targets on demand.
 
 ## Options
 
 - Keep canonicalization at the remaining call sites and accept the repeated
   filesystem work.
-- Add a per-load canonical-path cache in `structurizr-analysis` and reuse
+- Add a per-load canonical-path cache in `strz-analysis` and reuse
   canonical workspace root identities in the LSP helper layer.
 - Relax some normalization boundaries and canonicalize only selected edges.
 

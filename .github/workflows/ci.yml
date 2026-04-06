@@ -98,7 +98,7 @@ jobs:
         run: just generate
 
       - name: Check generated files are in sync
-        run: git diff --exit-code -- crates/structurizr-grammar/src/parser.c crates/structurizr-grammar/src/grammar.json crates/structurizr-grammar/src/node-types.json
+        run: git diff --exit-code -- crates/strz-grammar/src/parser.c crates/strz-grammar/src/grammar.json crates/strz-grammar/src/node-types.json
 
       - name: Run grammar tests
         run: just test-grammar

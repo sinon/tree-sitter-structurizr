@@ -8,7 +8,7 @@ path does more ordered-container work than seems necessary.
 
 ## Root Cause
 
-[`crates/structurizr-analysis/src/workspace.rs`](../crates/structurizr-analysis/src/workspace.rs) builds the final workspace facts through several clone-heavy phases:
+[`crates/strz-analysis/src/workspace.rs`](../crates/strz-analysis/src/workspace.rs) builds the final workspace facts through several clone-heavy phases:
 
 - `cycle_include_indices(...)`
 - `build_workspace_indexes(...)`

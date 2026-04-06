@@ -8,7 +8,7 @@ plausible source of unnecessary load-time cost.
 
 ## Root Cause
 
-In [`crates/structurizr-analysis/src/workspace.rs`](../crates/structurizr-analysis/src/workspace.rs),
+In [`crates/strz-analysis/src/workspace.rs`](../crates/strz-analysis/src/workspace.rs),
 `process_document_context(...)` clones a document's constant definitions and
 include directives out of the snapshot and then feeds them through
 `document_directive_events(...)`, which allocates and sorts a merged event

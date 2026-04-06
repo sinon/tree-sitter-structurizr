@@ -5,7 +5,7 @@ element-compatibility rules for each view kind.
 
 The recent fixture parity run found multiple upstream failures in this family:
 
-- [`crates/structurizr-lsp/tests/fixtures/identifiers/view-animations-ok.dsl`](../crates/structurizr-lsp/tests/fixtures/identifiers/view-animations-ok.dsl)
+- [`crates/strz-lsp/tests/fixtures/identifiers/view-animations-ok.dsl`](../crates/strz-lsp/tests/fixtures/identifiers/view-animations-ok.dsl)
   failed with `The element "worker" can not be added to this type of view`
 - [`fixtures/views/advanced-ok.dsl`](../fixtures/views/advanced-ok.dsl)
   failed with `The element "user" can not be added to this type of view`
@@ -14,11 +14,11 @@ The recent fixture parity run found multiple upstream failures in this family:
 
 ## Root Cause
 
-[`crates/structurizr-analysis/src/extract/symbols.rs`](../crates/structurizr-analysis/src/extract/symbols.rs)
+[`crates/strz-analysis/src/extract/symbols.rs`](../crates/strz-analysis/src/extract/symbols.rs)
 already extracts view scopes, include arguments, animation references, and
 definition targets for navigation.
 
-[`crates/structurizr-analysis/src/workspace.rs`](../crates/structurizr-analysis/src/workspace.rs)
+[`crates/strz-analysis/src/workspace.rs`](../crates/strz-analysis/src/workspace.rs)
 does not currently validate whether the referenced element kinds are legal for
 the declared view type, or whether a view redundantly includes the element that
 already defines its scope.

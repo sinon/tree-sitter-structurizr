@@ -1,0 +1,41 @@
+[package]
+name = "tree-sitter-structurizr"
+version = "0.0.0"
+authors = { workspace = true }
+edition = { workspace = true }
+description = "Grammar for the Structurizr DSL for describing C4 models"
+documentation = { workspace = true }
+readme = "../../README.md"
+homepage = { workspace = true }
+repository = { workspace = true }
+license = { workspace = true }
+keywords = ["incremental", "parsing", "structurizr", "tree-sitter"]
+categories = ["parser-implementations", "parsing", "text-editors"]
+build = "bindings/rust/build.rs"
+include = [
+  "README.md",
+  "bindings/rust/*",
+  "grammar.js",
+  "queries/*",
+  "src/*",
+  "tree-sitter.json",
+]
+autoexamples = false
+
+[lib]
+path = "bindings/rust/lib.rs"
+
+[dependencies]
+tree-sitter-language = { workspace = true }
+
+[dev-dependencies]
+anyhow = { workspace = true }
+indoc = { workspace = true }
+insta = { workspace = true }
+proptest = { workspace = true }
+rstest = { workspace = true }
+tree-sitter = { workspace = true }
+
+[build-dependencies]
+anyhow = { workspace = true }
+cc = { workspace = true }

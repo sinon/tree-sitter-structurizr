@@ -9,12 +9,12 @@ instead of the subset of workspace state actually affected by the change.
 
 ## Root Cause
 
-[`crates/structurizr-lsp/src/server.rs`](../crates/structurizr-lsp/src/server.rs)
+[`crates/strz-lsp/src/server.rs`](../crates/strz-lsp/src/server.rs)
 hosts one shared `WorkspaceLoader`, and
-[`crates/structurizr-lsp/src/documents.rs`](../crates/structurizr-lsp/src/documents.rs)
+[`crates/strz-lsp/src/documents.rs`](../crates/strz-lsp/src/documents.rs)
 already caches canonical path / `DocumentId` state for open documents.
 
-[`crates/structurizr-lsp/src/handlers/text_sync.rs`](../crates/structurizr-lsp/src/handlers/text_sync.rs)
+[`crates/strz-lsp/src/handlers/text_sync.rs`](../crates/strz-lsp/src/handlers/text_sync.rs)
 can also reuse a snapshot from freshly recomputed `WorkspaceFacts` instead of
 immediately reanalyzing the current file again.
 

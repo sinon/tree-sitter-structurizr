@@ -335,9 +335,9 @@ There are also two grammar-alignment questions worth carrying forward:
 
 ## Sources
 
-- [`crates/structurizr-grammar/grammar.js`](../../../crates/structurizr-grammar/grammar.js)
-- [`crates/structurizr-grammar/src/node-types.json`](../../../crates/structurizr-grammar/src/node-types.json)
-- [`crates/structurizr-grammar/test/corpus/workspace.txt`](../../../crates/structurizr-grammar/test/corpus/workspace.txt)
-- [`crates/structurizr-grammar/test/corpus/model.txt`](../../../crates/structurizr-grammar/test/corpus/model.txt)
+- [`crates/strz-grammar/grammar.js`](../../../crates/strz-grammar/grammar.js)
+- [`crates/strz-grammar/src/node-types.json`](../../../crates/strz-grammar/src/node-types.json)
+- [`crates/strz-grammar/test/corpus/workspace.txt`](../../../crates/strz-grammar/test/corpus/workspace.txt)
+- [`crates/strz-grammar/test/corpus/model.txt`](../../../crates/strz-grammar/test/corpus/model.txt)
 - [`fixtures/workspace/extension_directives-ok.dsl`](../../../fixtures/workspace/extension_directives-ok.dsl)
 - [`fixtures/views/advanced-ok.dsl`](../../../fixtures/views/advanced-ok.dsl)

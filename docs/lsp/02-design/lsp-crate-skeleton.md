@@ -2,7 +2,7 @@
 
 > Status: implemented in bounded form.
 >
-> `structurizr-lsp` now exists in-repo. Read this note as the crate-shape
+> `strz-lsp` now exists in-repo. Read this note as the crate-shape
 > contract and rationale for keeping the server thin rather than as a greenfield
 > proposal.
 
@@ -52,8 +52,8 @@ That means the LSP crate should be added alongside the analysis crate:
 
 ```text
 Cargo.toml                      existing parser crate package at repo root
-crates/structurizr-analysis/    future analysis crate
-crates/structurizr-lsp/         future LSP crate
+crates/strz-analysis/    future analysis crate
+crates/strz-lsp/         future LSP crate
 ```
 
 The LSP crate should not force the grammar repo to stop looking like a standard Tree-sitter grammar repository.
@@ -70,7 +70,7 @@ That gives a better testing story than pushing everything into `main.rs`.
 Recommended shape:
 
 ```text
-crates/structurizr-lsp/
+crates/strz-lsp/
   Cargo.toml
   src/lib.rs
   src/main.rs
@@ -121,8 +121,8 @@ The eventual workspace should include both future crates:
 [workspace]
 resolver = "2"
 members = [
-  "crates/structurizr-analysis",
-  "crates/structurizr-lsp",
+  "crates/strz-analysis",
+  "crates/strz-lsp",
 ]
 ```
 
@@ -130,11 +130,11 @@ And the LSP crate should look roughly like:
 
 ```toml
 [package]
-name = "structurizr-lsp"
+name = "strz-lsp"
 edition = "2021"
 
 [dependencies]
-structurizr-analysis = { path = "../structurizr-analysis" }
+strz-analysis = { path = "../strz-analysis" }
 tower-lsp-server = "0.20"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "io-std", "sync"] }
 lsp-types = "0.97"
@@ -149,7 +149,7 @@ assert-json-diff = "2"
 
 Important boundary:
 
-- the LSP crate should depend on `structurizr-analysis`
+- the LSP crate should depend on `strz-analysis`
 - it should avoid a direct dependency on the parser crate unless a very specific transport concern requires it
 
 That keeps the “semantic layer below protocol layer” boundary real.
@@ -605,7 +605,7 @@ The first LSP crate should not:
 
 ## Recommended implementation sequence
 
-1. Add the workspace member for [`crates/structurizr-lsp/`](../../../crates/structurizr-lsp/).
+1. Add the workspace member for [`crates/strz-lsp/`](../../../crates/strz-lsp/).
 1. Create the library + binary skeleton with `tower-lsp-server` stdio bootstrap.
 1. Add state, capability, and text-sync scaffolding.
 1. Wire document open/change/close to whole-document analysis snapshots.

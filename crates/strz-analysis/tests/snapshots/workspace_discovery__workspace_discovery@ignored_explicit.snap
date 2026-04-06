@@ -1,0 +1,40 @@
+---
+source: crates/strz-analysis/tests/workspace_discovery.rs
+expression: "WorkspaceView::from_facts(&facts, &fixture_root)"
+---
+WorkspaceView {
+    documents: [
+        WorkspaceDocumentView {
+            path: "ignored/model.inc",
+            kind: Fragment,
+            discovered_by_scan: false,
+            include_targets: [],
+            symbol_bindings: [
+                "user",
+            ],
+        },
+        WorkspaceDocumentView {
+            path: "workspace.dsl",
+            kind: Entry,
+            discovered_by_scan: true,
+            include_targets: [
+                "\"ignored/model.inc\"",
+            ],
+            symbol_bindings: [],
+        },
+    ],
+    includes: [
+        WorkspaceIncludeView {
+            including_document: "workspace.dsl",
+            raw_value: "\"ignored/model.inc\"",
+            target_text: "ignored/model.inc",
+            target: LocalFile {
+                path: "ignored/model.inc",
+            },
+            discovered_documents: [
+                "ignored/model.inc",
+            ],
+        },
+    ],
+    diagnostics: [],
+}

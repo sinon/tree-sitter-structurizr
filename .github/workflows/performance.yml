@@ -56,15 +56,15 @@ jobs:
           fallback: cargo-binstall
 
       - name: Build CodSpeed benchmarks
-        run: cargo codspeed build -p structurizr-analysis -p structurizr-lsp
+        run: cargo codspeed build -p strz-analysis -p strz-lsp
 
       - name: Run CodSpeed benchmarks
         uses: CodSpeedHQ/action@1c8ae4843586d3ba879736b7f6b7b0c990757fab # v4.12.1
         with:
           mode: simulation
           run: |
-            cargo codspeed run -p structurizr-analysis
-            cargo codspeed run -p structurizr-lsp
+            cargo codspeed run -p strz-analysis
+            cargo codspeed run -p strz-lsp
 
   black-box:
     if: github.event_name == 'workflow_dispatch'
@@ -96,7 +96,7 @@ jobs:
           sudo apt-get install -y hyperfine
 
       - name: Build release CLI
-        run: cargo build -p structurizr-cli --bin strz --release
+        run: cargo build -p strz --bin strz --release
 
       - name: Run black-box benchmarks
         run: tools/bench_black_box.sh --mode quick --output-dir tmp/benchmark-results/github-actions --binary target/release/strz

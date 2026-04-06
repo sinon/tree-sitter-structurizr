@@ -14,7 +14,7 @@ import sys
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, IO
+from typing import IO, Any
 
 
 @dataclass(frozen=True)
@@ -35,7 +35,7 @@ def replay_cases(root: Path) -> dict[str, ReplayCase]:
     return {
         "small": ReplayCase(
             document_path=root
-            / "crates/structurizr-lsp/tests/fixtures/relationships/named-relationships-ok.dsl",
+            / "crates/strz-lsp/tests/fixtures/relationships/named-relationships-ok.dsl",
             workspace_roots=(),
         ),
         "large": ReplayCase(

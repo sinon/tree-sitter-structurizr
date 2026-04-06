@@ -7,24 +7,24 @@ important relationship detail such as technology.
 
 Recent fixture parity runs hit two concrete upstream failures:
 
-- [`crates/structurizr-lsp/tests/fixtures/identifiers/dynamic-views-ok.dsl`](../crates/structurizr-lsp/tests/fixtures/identifiers/dynamic-views-ok.dsl)
+- [`crates/strz-lsp/tests/fixtures/identifiers/dynamic-views-ok.dsl`](../crates/strz-lsp/tests/fixtures/identifiers/dynamic-views-ok.dsl)
   failed with `A relationship between Web Application and Sign In Controller does not exist in model`
 - [`fixtures/views/advanced-ok.dsl`](../fixtures/views/advanced-ok.dsl)
   failed with `A relationship between User and App with technology HTTPS does not exist in model`
 
 ## Root Cause
 
-[`crates/structurizr-analysis/src/extract/symbols.rs`](../crates/structurizr-analysis/src/extract/symbols.rs)
+[`crates/strz-analysis/src/extract/symbols.rs`](../crates/strz-analysis/src/extract/symbols.rs)
 already extracts `dynamic_view` scope identifiers and `dynamic_relationship`
 endpoints for navigation and reference indexing.
 
-[`crates/structurizr-analysis/src/workspace.rs`](../crates/structurizr-analysis/src/workspace.rs)
+[`crates/strz-analysis/src/workspace.rs`](../crates/strz-analysis/src/workspace.rs)
 does not currently add a semantic validation pass that checks whether each
 dynamic-view edge corresponds to an existing declared relationship in the
 assembled model, including a compatible technology when the step spells one
 out explicitly.
 
-[`crates/structurizr-cli/src/check.rs`](../crates/structurizr-cli/src/check.rs)
+[`crates/strz/src/check.rs`](../crates/strz/src/check.rs)
 already emits semantic diagnostics, but the analysis layer has no rule for this
 upstream-parity mismatch yet.
 

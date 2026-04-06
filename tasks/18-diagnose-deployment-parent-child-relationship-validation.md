@@ -4,18 +4,18 @@ Our local analysis accepts deployment relationships whose endpoints are in a
 parent/child containment relationship, but upstream Structurizr rejects them.
 
 The recent fixture parity run hit this in
-[`crates/structurizr-lsp/tests/fixtures/deployment/deployment-navigation-ok.dsl`](../crates/structurizr-lsp/tests/fixtures/deployment/deployment-navigation-ok.dsl),
+[`crates/strz-lsp/tests/fixtures/deployment/deployment-navigation-ok.dsl`](../crates/strz-lsp/tests/fixtures/deployment/deployment-navigation-ok.dsl),
 where upstream `validate` reported:
 
 `Relationships cannot be added between parents and children`
 
 ## Root Cause
 
-[`crates/structurizr-analysis/src/extract/symbols.rs`](../crates/structurizr-analysis/src/extract/symbols.rs)
+[`crates/strz-analysis/src/extract/symbols.rs`](../crates/strz-analysis/src/extract/symbols.rs)
 already resolves deployment identifiers and relationship endpoints for
 navigation.
 
-[`crates/structurizr-analysis/src/workspace.rs`](../crates/structurizr-analysis/src/workspace.rs)
+[`crates/strz-analysis/src/workspace.rs`](../crates/strz-analysis/src/workspace.rs)
 does not currently add a semantic validation pass that checks whether a
 deployment relationship connects an ancestor node to one of its descendants.
 
