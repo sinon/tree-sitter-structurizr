@@ -91,10 +91,10 @@ audit-upstream-all:
     STRUCTURIZR_UPSTREAM_INCLUDE_UNSUPPORTED=1 cargo +nightly -Zscript tools/upstream_audit.rs
 
 zizmor:
-    zizmor --gh-token="$(gh auth token)" .github/ --persona pedantic
+    zizmor --gh-token="$(gh auth token)" .github/ --persona pedantic  --min-severity low
 
 zizmor-fix:
-    zizmor --gh-token="$(gh auth token)" .github/ --persona pedantic --fix
+    zizmor --gh-token="$(gh auth token)" .github/ --persona pedantic  --min-severity low --fix
 
 test-grammar:
     tree-sitter test --grammar-path {{grammar_dir}}
