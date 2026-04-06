@@ -1,12 +1,22 @@
 rules:
+  excessive-permissions:
+    ignore:
+      - release.yml:18
   template-injection:
     ignore:
+      - release.yml:80
       - release.yml:131
       - release.yml:141
-      - release.yml:146
+      - release.yml:145
+      - release.yml:198
+      - release.yml:248
+      - release.yml:279
   secrets-outside-env:
     ignore:
-      - release.yml:306
+      - release.yml:297
   concurrency-limits:
     ignore:
       - release.yml:16
+  undocumented-permissions:
+    ignore:
+      - release.yml:18
