@@ -6,7 +6,7 @@
 
 mod constants;
 mod diagnostics;
-mod extract;
+pub(crate) mod extract;
 pub(crate) mod includes;
 mod parse;
 mod rule;
@@ -20,11 +20,12 @@ mod workspace;
 pub use constants::ConstantDefinition;
 pub use diagnostics::{
     Annotation, DiagnosticSeverity, IncludeDiagnostic, IncludeDiagnosticKind, SemanticDiagnostic,
-    SemanticDiagnosticKind, SyntaxDiagnostic, SyntaxDiagnosticKind, diagnostic_rule_registry,
+    SemanticDiagnosticKind, SyntaxDiagnostic, SyntaxDiagnosticKind,
 };
 pub use includes::{DirectiveContainer, DirectiveValueKind, IncludeDirective};
 pub use parse::DocumentAnalyzer;
 pub use rule::{Level, RuleMetadata, RuleRegistry, RuleRegistryBuilder};
+pub use rules::diagnostic_rule_registry;
 pub use semantic::{
     AutoLayoutFact, ConfigurationScopeFact, DynamicRelationshipFact,
     DynamicRelationshipReferenceFact, DynamicViewStepFact, ElementDirectiveFact, ImageSourceFact,

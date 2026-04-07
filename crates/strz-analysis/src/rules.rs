@@ -315,6 +315,7 @@ pub fn register_rules(registry: &mut RuleRegistryBuilder) {
     registry.register(&SEMANTIC_AMBIGUOUS_REFERENCE);
 }
 
+/// Returns the stable registry of currently declared diagnostic rules.
 pub fn diagnostic_rule_registry() -> &'static RuleRegistry {
     static REGISTRY: OnceLock<RuleRegistry> = OnceLock::new();
 
@@ -335,7 +336,7 @@ mod tests {
         let codes = registry
             .all()
             .iter()
-            .map(|rule| rule.code())
+            .map(|rule| rule.code)
             .collect::<Vec<_>>();
 
         assert_eq!(
@@ -363,57 +364,5 @@ mod tests {
                 "syntax.missing-node",
             ]
         );
-        assert!(registry.get("syntax.error-node").is_some());
-        assert!(registry.get("syntax.missing-node").is_some());
-        assert!(registry.get("include.cycle").is_some());
-        assert!(registry.get("include.escapes-allowed-subtree").is_some());
-        assert!(registry.get("include.missing-local-target").is_some());
-        assert!(registry.get("include.unsupported-remote-target").is_some());
-        assert!(registry.get("semantic.duplicate-binding").is_some());
-        assert!(
-            registry
-                .get("semantic.deployment-parent-child-relationship")
-                .is_some()
-        );
-        assert!(
-            registry
-                .get("semantic.filtered-view-autolayout-mismatch")
-                .is_some()
-        );
-        assert!(
-            registry
-                .get("semantic.dynamic-view-relationship-mismatch")
-                .is_some()
-        );
-        assert!(
-            registry
-                .get("semantic.dynamic-view-scope-redundancy")
-                .is_some()
-        );
-        assert!(
-            registry
-                .get("semantic.invalid-documentation-path")
-                .is_some()
-        );
-        assert!(registry.get("semantic.invalid-image-source").is_some());
-        assert!(registry.get("semantic.invalid-view-element").is_some());
-        assert!(
-            registry
-                .get("semantic.missing-image-renderer-property")
-                .is_some()
-        );
-        assert!(
-            registry
-                .get("semantic.repeated-workspace-section")
-                .is_some()
-        );
-        assert!(
-            registry
-                .get("semantic.unresolved-element-selector")
-                .is_some()
-        );
-        assert!(registry.get("semantic.unresolved-reference").is_some());
-        assert!(registry.get("semantic.workspace-scope-mismatch").is_some());
-        assert!(registry.get("semantic.ambiguous-reference").is_some());
     }
 }

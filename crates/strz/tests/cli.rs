@@ -112,126 +112,13 @@ fn check_text_reports_unresolved_semantic_diagnostics() {
 }
 
 #[test]
-#[allow(clippy::too_many_lines)]
 fn check_json_reports_merged_semantic_diagnostics() {
     assert_cmd_snapshot!(
         command()
             .arg("--output-format")
             .arg("json")
             .arg("check")
-            .arg("tests/lsp/workspaces/duplicate-bindings"),
-        @r###"
-    success: false
-    exit_code: 1
-    ----- stdout -----
-    {
-      "summary": {
-        "documents_checked": 3,
-        "diagnostics": 5,
-        "errors": 5,
-        "warnings": 0
-      },
-      "diagnostics": [
-        {
-          "path": "tests/lsp/workspaces/duplicate-bindings/alpha.dsl",
-          "severity": "error",
-          "code": "semantic.repeated-workspace-section",
-          "source": "semantic",
-          "message": "multiple model sections are not permitted in a DSL definition",
-          "span": {
-            "start_byte": 0,
-            "end_byte": 46,
-            "start": {
-              "line": 1,
-              "column": 1
-            },
-            "end": {
-              "line": 3,
-              "column": 2
-            }
-          }
-        },
-        {
-          "path": "tests/lsp/workspaces/duplicate-bindings/alpha.dsl",
-          "severity": "error",
-          "code": "semantic.duplicate-binding",
-          "source": "semantic",
-          "message": "duplicate element binding: api",
-          "span": {
-            "start_byte": 12,
-            "end_byte": 44,
-            "start": {
-              "line": 2,
-              "column": 5
-            },
-            "end": {
-              "line": 2,
-              "column": 37
-            }
-          }
-        },
-        {
-          "path": "tests/lsp/workspaces/duplicate-bindings/beta.dsl",
-          "severity": "error",
-          "code": "semantic.repeated-workspace-section",
-          "source": "semantic",
-          "message": "multiple model sections are not permitted in a DSL definition",
-          "span": {
-            "start_byte": 0,
-            "end_byte": 45,
-            "start": {
-              "line": 1,
-              "column": 1
-            },
-            "end": {
-              "line": 3,
-              "column": 2
-            }
-          }
-        },
-        {
-          "path": "tests/lsp/workspaces/duplicate-bindings/beta.dsl",
-          "severity": "error",
-          "code": "semantic.duplicate-binding",
-          "source": "semantic",
-          "message": "duplicate element binding: api",
-          "span": {
-            "start_byte": 12,
-            "end_byte": 43,
-            "start": {
-              "line": 2,
-              "column": 5
-            },
-            "end": {
-              "line": 2,
-              "column": 36
-            }
-          }
-        },
-        {
-          "path": "tests/lsp/workspaces/duplicate-bindings/workspace.dsl",
-          "severity": "error",
-          "code": "semantic.ambiguous-reference",
-          "source": "semantic",
-          "message": "ambiguous identifier reference: api",
-          "span": {
-            "start_byte": 119,
-            "end_byte": 122,
-            "start": {
-              "line": 7,
-              "column": 17
-            },
-            "end": {
-              "line": 7,
-              "column": 20
-            }
-          }
-        }
-      ]
-    }
-
-    ----- stderr -----
-    "###
+            .arg("tests/lsp/workspaces/duplicate-bindings")
     );
 }
 

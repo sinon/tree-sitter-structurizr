@@ -168,7 +168,7 @@ fn related_annotation(
         message: annotation
             .message
             .clone()
-            .unwrap_or_else(|| "related location".to_owned()),
+            .unwrap_or_else(|| "related source location".to_owned()),
     })
 }
 
@@ -184,6 +184,14 @@ fn annotation_location(
         });
     };
 
+    // Only workspace-scoped diagnostics attach cross-document annotations. When
+    // one of those annotations reaches the converter without workspace facts, we
+    // cannot recover the related URI and should treat it as a publish-pipeline
+    // bug rather than guess.
+    debug_assert!(
+        workspace_facts.is_some(),
+        "BUG: cross-document annotations require workspace facts"
+    );
     let workspace_facts = workspace_facts?;
     let related_document = workspace_facts.document(annotation_document)?;
     let snapshot = related_document.snapshot();

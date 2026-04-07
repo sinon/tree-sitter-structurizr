@@ -11,9 +11,8 @@ use strz_analysis::{
 };
 use tempfile::TempDir;
 
-const DEPLOYMENT_PARENT_CHILD_RELATIONSHIP_ERR_SOURCE: &str = include_str!(
-    "../../strz-lsp/tests/fixtures/deployment/deployment-parent-child-relationship-err.dsl"
-);
+const DEPLOYMENT_PARENT_CHILD_RELATIONSHIP_ERR_SOURCE: &str =
+    include_str!("../../../fixtures/deployment/deployment-parent-child-relationship-err.dsl");
 
 macro_rules! set_snapshot_suffix {
     ($($expr:expr),* $(,)?) => {

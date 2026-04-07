@@ -39,44 +39,6 @@ pub struct RuleMetadata {
     pub line: u32,
 }
 
-impl RuleMetadata {
-    /// Returns the stable diagnostic code for this rule.
-    #[must_use]
-    pub const fn code(&self) -> &'static str {
-        self.code
-    }
-
-    /// Returns the one-line summary for this rule.
-    #[must_use]
-    pub const fn summary(&self) -> &'static str {
-        self.summary
-    }
-
-    /// Returns the declaration-site documentation for this rule.
-    #[must_use]
-    pub const fn documentation(&self) -> &'static str {
-        self.raw_documentation
-    }
-
-    /// Returns the default emission level for this rule.
-    #[must_use]
-    pub const fn default_level(&self) -> Level {
-        self.default_level
-    }
-
-    /// Returns the source file where this rule was declared.
-    #[must_use]
-    pub const fn file(&self) -> &'static str {
-        self.file
-    }
-
-    /// Returns the one-based line number where this rule was declared.
-    #[must_use]
-    pub const fn line(&self) -> u32 {
-        self.line
-    }
-}
-
 pub const fn rule_metadata_defaults() -> RuleMetadata {
     RuleMetadata {
         code: "",

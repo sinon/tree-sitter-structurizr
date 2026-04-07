@@ -3,7 +3,7 @@
 use std::fmt;
 
 use crate::{
-    rule::{Level, RuleMetadata, RuleRegistry},
+    rule::{Level, RuleMetadata},
     rules,
     snapshot::DocumentId,
     span::TextSpan,
@@ -89,13 +89,13 @@ impl SyntaxDiagnosticKind {
     /// Returns the stable diagnostic code for this syntax problem.
     #[must_use]
     pub const fn code(self) -> &'static str {
-        self.rule().code()
+        self.rule().code
     }
 
     /// Returns the severity for this syntax problem.
     #[must_use]
     pub const fn severity(self) -> DiagnosticSeverity {
-        DiagnosticSeverity::from_level(self.rule().default_level())
+        DiagnosticSeverity::from_level(self.rule().default_level)
     }
 }
 
@@ -136,13 +136,13 @@ impl SyntaxDiagnostic {
     /// Returns the stable diagnostic code for this syntax problem.
     #[must_use]
     pub const fn code(&self) -> &'static str {
-        self.rule().code()
+        self.rule().code
     }
 
     /// Returns the severity for this syntax problem.
     #[must_use]
     pub const fn severity(&self) -> DiagnosticSeverity {
-        DiagnosticSeverity::from_level(self.rule().default_level())
+        DiagnosticSeverity::from_level(self.rule().default_level)
     }
 
     /// Returns any secondary source context attached to this diagnostic.
@@ -203,13 +203,13 @@ impl IncludeDiagnosticKind {
     /// Returns the stable diagnostic code for this include problem.
     #[must_use]
     pub const fn code(self) -> &'static str {
-        self.rule().code()
+        self.rule().code
     }
 
     /// Returns the severity for this include problem.
     #[must_use]
     pub const fn severity(self) -> DiagnosticSeverity {
-        DiagnosticSeverity::from_level(self.rule().default_level())
+        DiagnosticSeverity::from_level(self.rule().default_level)
     }
 }
 
@@ -259,13 +259,13 @@ impl IncludeDiagnostic {
     /// Returns the stable diagnostic code for this include problem.
     #[must_use]
     pub const fn code(&self) -> &'static str {
-        self.rule().code()
+        self.rule().code
     }
 
     /// Returns the severity for this include problem.
     #[must_use]
     pub const fn severity(&self) -> DiagnosticSeverity {
-        DiagnosticSeverity::from_level(self.rule().default_level())
+        DiagnosticSeverity::from_level(self.rule().default_level)
     }
 
     /// Returns any secondary source context attached to this diagnostic.
@@ -412,20 +412,14 @@ impl SemanticDiagnosticKind {
     /// Returns the stable diagnostic code for this semantic rule.
     #[must_use]
     pub const fn code(self) -> &'static str {
-        self.rule().code()
+        self.rule().code
     }
 
     /// Returns the default severity for this semantic rule.
     #[must_use]
     pub const fn severity(self) -> DiagnosticSeverity {
-        DiagnosticSeverity::from_level(self.rule().default_level())
+        DiagnosticSeverity::from_level(self.rule().default_level)
     }
-}
-
-/// Returns the registry of currently declared diagnostic rules.
-#[must_use]
-pub fn diagnostic_rule_registry() -> &'static RuleRegistry {
-    rules::diagnostic_rule_registry()
 }
 
 /// Describes one semantic problem attached to a definition or reference site.
@@ -468,13 +462,13 @@ impl SemanticDiagnostic {
     /// Returns the stable diagnostic code for this semantic rule.
     #[must_use]
     pub const fn code(&self) -> &'static str {
-        self.rule().code()
+        self.rule().code
     }
 
     /// Returns the severity for this semantic rule.
     #[must_use]
     pub const fn severity(&self) -> DiagnosticSeverity {
-        DiagnosticSeverity::from_level(self.rule().default_level())
+        DiagnosticSeverity::from_level(self.rule().default_level)
     }
 
     /// Returns any secondary source context attached to this diagnostic.

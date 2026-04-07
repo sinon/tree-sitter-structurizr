@@ -11,18 +11,20 @@ use crate::semantic::{
 };
 use crate::span::TextSpan;
 
+#[allow(clippy::redundant_pub_crate)]
 #[derive(Debug, Default)]
-pub struct CollectedSemanticFacts {
-    pub workspace_sections: Vec<WorkspaceSectionFact>,
-    pub configuration_scopes: Vec<ConfigurationScopeFact>,
-    pub property_facts: Vec<PropertyFact>,
-    pub resource_directives: Vec<ResourceDirectiveFact>,
-    pub element_directives: Vec<ElementDirectiveFact>,
-    pub relationship_facts: Vec<RelationshipFact>,
-    pub view_facts: Vec<ViewFact>,
+pub(crate) struct CollectedSemanticFacts {
+    pub(crate) workspace_sections: Vec<WorkspaceSectionFact>,
+    pub(crate) configuration_scopes: Vec<ConfigurationScopeFact>,
+    pub(crate) property_facts: Vec<PropertyFact>,
+    pub(crate) resource_directives: Vec<ResourceDirectiveFact>,
+    pub(crate) element_directives: Vec<ElementDirectiveFact>,
+    pub(crate) relationship_facts: Vec<RelationshipFact>,
+    pub(crate) view_facts: Vec<ViewFact>,
 }
 
-pub fn collect(tree: &Tree, source: &str) -> CollectedSemanticFacts {
+#[allow(clippy::redundant_pub_crate)]
+pub(crate) fn collect(tree: &Tree, source: &str) -> CollectedSemanticFacts {
     let mut collector = SemanticCollector {
         source,
         facts: CollectedSemanticFacts::default(),
@@ -219,6 +221,9 @@ impl SemanticCollector<'_> {
             });
         }
 
+        // Tree-sitter recovery can wrap a valid `autoLayout` under intermediate
+        // error nodes, so keep walking until we find the first real statement
+        // rather than assuming one fixed child shape for every view body.
         let mut cursor = node.walk();
         for child in node.named_children(&mut cursor) {
             if let Some(auto_layout) = self.first_auto_layout(child) {

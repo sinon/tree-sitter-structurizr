@@ -2015,25 +2015,15 @@ fn build_workspace_index(
         .processed_context_revision(&start_context.key)
         .expect("BUG: start context should be processed before building indexes");
 
-    let mut visited_contexts = BTreeSet::new();
-    let mut seen_documents = BTreeSet::new();
-    let mut instance_documents = Vec::new();
-    collect_instance_documents(
+    let instance_documents = collect_documents_for_context(
         &start_context.key,
         processed_contexts,
-        &mut visited_contexts,
-        &mut seen_documents,
-        &mut instance_documents,
+        ContextDocumentCollection::Instance,
     );
-    let mut definition_visited_contexts = BTreeSet::new();
-    let mut definition_seen_documents = BTreeSet::new();
-    let mut definition_documents = Vec::new();
-    collect_definition_documents(
+    let definition_documents = collect_documents_for_context(
         &start_context.key,
         processed_contexts,
-        &mut definition_visited_contexts,
-        &mut definition_seen_documents,
-        &mut definition_documents,
+        ContextDocumentCollection::Definition,
     );
     let document_semantic_generations = instance_documents
         .iter()
@@ -2158,6 +2148,9 @@ fn build_derived_workspace_instance(
     documents: &[&WorkspaceSemanticDocumentFacts],
     definition_documents: &[&WorkspaceSemanticDocumentFacts],
 ) -> DerivedWorkspaceInstance {
+    // First, assemble the canonical binding surface that every later rule shares.
+    // The validators below deliberately work from these normalized tables instead
+    // of re-deriving identifiers from syntax in slightly different ways.
     let inherited_workspace_mode =
         document_workspace_identifier_mode(&root_document.identifier_modes);
     let bindings = build_binding_tables(documents, inherited_workspace_mode.as_ref());
@@ -2165,6 +2158,10 @@ fn build_derived_workspace_instance(
     semantic_diagnostics.extend(workspace_structure_diagnostics(definition_documents));
     semantic_diagnostics.extend(workspace_scope_diagnostics(definition_documents, documents));
     semantic_diagnostics.extend(element_selector_diagnostics(documents, &bindings));
+
+    // Next, resolve every reference once and share that result across the later
+    // deployment and view passes. Those validators reason about different rules,
+    // but they all need the same bounded identifier-resolution answers.
     let reference_tables = build_reference_resolution_tables(documents, &bindings);
     let documents_by_id = documents
         .iter()
@@ -2180,6 +2177,8 @@ fn build_derived_workspace_instance(
     semantic_diagnostics.extend(resource_semantic_diagnostics);
     semantic_diagnostics.extend(view_semantic_diagnostics);
 
+    // Finally, normalize the merged outputs so downstream consumers can render
+    // deterministic diagnostics and reference lists without re-sorting them.
     let mut references_by_target = reference_tables.references_by_target;
     for references in references_by_target.values_mut() {
         references.sort();
@@ -2206,43 +2205,38 @@ fn build_derived_workspace_instance(
     }
 }
 
-fn collect_instance_documents(
-    context_key: &DocumentContextKey,
-    processed_contexts: &BTreeMap<DocumentContextKey, ProcessedDocumentContext>,
-    visited_contexts: &mut BTreeSet<DocumentContextKey>,
-    seen_documents: &mut BTreeSet<DocumentId>,
-    instance_documents: &mut Vec<DocumentId>,
-) {
-    if !visited_contexts.insert(context_key.clone()) {
-        return;
-    }
-
-    let document_id = document_id_from_path(&context_key.path);
-    if seen_documents.insert(document_id.clone()) {
-        instance_documents.push(document_id);
-    }
-
-    let Some(processed_context) = processed_contexts.get(context_key) else {
-        return;
-    };
-
-    for child_context in processed_context_dependency_keys(processed_context) {
-        collect_instance_documents(
-            child_context,
-            processed_contexts,
-            visited_contexts,
-            seen_documents,
-            instance_documents,
-        );
-    }
+#[derive(Clone, Copy)]
+enum ContextDocumentCollection {
+    Instance,
+    Definition,
 }
 
-fn collect_definition_documents(
+fn collect_documents_for_context(
     context_key: &DocumentContextKey,
     processed_contexts: &BTreeMap<DocumentContextKey, ProcessedDocumentContext>,
+    collection: ContextDocumentCollection,
+) -> Vec<DocumentId> {
+    let mut visited_contexts = BTreeSet::new();
+    let mut seen_documents = BTreeSet::new();
+    let mut collected_documents = Vec::new();
+    collect_context_documents(
+        context_key,
+        processed_contexts,
+        collection,
+        &mut visited_contexts,
+        &mut seen_documents,
+        &mut collected_documents,
+    );
+    collected_documents
+}
+
+fn collect_context_documents(
+    context_key: &DocumentContextKey,
+    processed_contexts: &BTreeMap<DocumentContextKey, ProcessedDocumentContext>,
+    collection: ContextDocumentCollection,
     visited_contexts: &mut BTreeSet<DocumentContextKey>,
     seen_documents: &mut BTreeSet<DocumentId>,
-    definition_documents: &mut Vec<DocumentId>,
+    collected_documents: &mut Vec<DocumentId>,
 ) {
     if !visited_contexts.insert(context_key.clone()) {
         return;
@@ -2250,21 +2244,38 @@ fn collect_definition_documents(
 
     let document_id = document_id_from_path(&context_key.path);
     if seen_documents.insert(document_id.clone()) {
-        definition_documents.push(document_id);
+        collected_documents.push(document_id);
     }
 
     let Some(processed_context) = processed_contexts.get(context_key) else {
         return;
     };
 
-    for child_context in &processed_context.included_contexts {
-        collect_definition_documents(
-            child_context,
-            processed_contexts,
-            visited_contexts,
-            seen_documents,
-            definition_documents,
-        );
+    match collection {
+        ContextDocumentCollection::Instance => {
+            for child_context in processed_context_dependency_keys(processed_context) {
+                collect_context_documents(
+                    child_context,
+                    processed_contexts,
+                    collection,
+                    visited_contexts,
+                    seen_documents,
+                    collected_documents,
+                );
+            }
+        }
+        ContextDocumentCollection::Definition => {
+            for child_context in &processed_context.included_contexts {
+                collect_context_documents(
+                    child_context,
+                    processed_contexts,
+                    collection,
+                    visited_contexts,
+                    seen_documents,
+                    collected_documents,
+                );
+            }
+        }
     }
 }
 
@@ -2313,9 +2324,12 @@ fn build_binding_tables(
                 | SymbolKind::SoftwareSystem
                 | SymbolKind::Container
                 | SymbolKind::Component => {
-                    let Some(binding_key) =
-                        canonical_element_binding_key(&document.symbols, symbol.id, element_mode)
-                    else {
+                    let Some(binding_key) = canonical_binding_key(
+                        &document.symbols,
+                        symbol.id,
+                        element_mode,
+                        CanonicalBindingKind::Element,
+                    ) else {
                         continue;
                     };
 
@@ -2329,10 +2343,11 @@ fn build_binding_tables(
                 | SymbolKind::InfrastructureNode
                 | SymbolKind::ContainerInstance
                 | SymbolKind::SoftwareSystemInstance => {
-                    let Some(binding_key) = canonical_deployment_binding_key(
+                    let Some(binding_key) = canonical_binding_key(
                         &document.symbols,
                         symbol.id,
                         element_mode,
+                        CanonicalBindingKind::Deployment,
                     ) else {
                         continue;
                     };
@@ -3491,7 +3506,6 @@ fn dynamic_view_relationship_diagnostics(
                     &destination_handle,
                     technology,
                     declared_relationships,
-                    documents_by_id,
                 ) {
                     diagnostic.annotate(annotation);
                 }
@@ -3785,7 +3799,6 @@ fn dynamic_relationship_annotation(
     destination: &SymbolHandle,
     technology: Option<&str>,
     declared_relationships: &[DeclaredRelationship],
-    _documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
 ) -> Option<Annotation> {
     technology?;
     let candidate = declared_relationships.iter().find(|relationship| {
@@ -3966,27 +3979,23 @@ fn contextual_reference_prefixes(
     mode: ElementIdentifierMode,
     target_hint: ReferenceTargetHint,
 ) -> Vec<String> {
-    let mut prefixes = Vec::new();
-    let mut current = Some(containing_symbol);
-
-    while let Some(symbol_id) = current {
-        let symbol = symbols
-            .get(symbol_id.0)
-            .expect("BUG: contextual reference symbol should exist");
-        let prefix = match target_hint {
-            ReferenceTargetHint::Element => canonical_element_binding_key(symbols, symbol_id, mode),
-            ReferenceTargetHint::Deployment => {
-                canonical_deployment_binding_key(symbols, symbol_id, mode)
-            }
-            ReferenceTargetHint::Relationship | ReferenceTargetHint::ElementOrRelationship => None,
-        };
-        if let Some(prefix) = prefix {
-            prefixes.push(prefix);
+    match target_hint {
+        ReferenceTargetHint::Element => contextual_prefixes(
+            symbols,
+            containing_symbol,
+            mode,
+            &[CanonicalBindingKind::Element],
+        ),
+        ReferenceTargetHint::Deployment => contextual_prefixes(
+            symbols,
+            containing_symbol,
+            mode,
+            &[CanonicalBindingKind::Deployment],
+        ),
+        ReferenceTargetHint::Relationship | ReferenceTargetHint::ElementOrRelationship => {
+            Vec::new()
         }
-        current = symbol.parent;
     }
-
-    prefixes
 }
 
 fn contextual_selector_prefixes(
@@ -3994,18 +4003,37 @@ fn contextual_selector_prefixes(
     containing_symbol: SymbolId,
     mode: ElementIdentifierMode,
 ) -> Vec<String> {
+    contextual_prefixes(
+        symbols,
+        containing_symbol,
+        mode,
+        &[
+            CanonicalBindingKind::Element,
+            CanonicalBindingKind::Deployment,
+        ],
+    )
+}
+
+fn contextual_prefixes(
+    symbols: &[Symbol],
+    containing_symbol: SymbolId,
+    mode: ElementIdentifierMode,
+    binding_kinds: &[CanonicalBindingKind],
+) -> Vec<String> {
+    // Symbol-context references and `!element` selectors both walk outward
+    // through the same ancestor chain. The only difference is whether one pass
+    // should consider element bindings, deployment bindings, or both.
     let mut prefixes = Vec::new();
     let mut current = Some(containing_symbol);
 
     while let Some(symbol_id) = current {
         let symbol = symbols
             .get(symbol_id.0)
-            .expect("BUG: contextual selector symbol should exist");
-        if let Some(prefix) = canonical_element_binding_key(symbols, symbol_id, mode) {
-            prefixes.push(prefix);
-        }
-        if let Some(prefix) = canonical_deployment_binding_key(symbols, symbol_id, mode) {
-            prefixes.push(prefix);
+            .expect("BUG: contextual prefix symbol should exist");
+        for binding_kind in binding_kinds {
+            if let Some(prefix) = canonical_binding_key(symbols, symbol_id, mode, *binding_kind) {
+                prefixes.push(prefix);
+            }
         }
         current = symbol.parent;
     }
@@ -4196,48 +4224,39 @@ fn last_identifier_mode_for_container(
         .map(|fact| fact.mode.clone())
 }
 
-fn canonical_element_binding_key(
-    symbols: &[Symbol],
-    symbol_id: SymbolId,
-    mode: ElementIdentifierMode,
-) -> Option<String> {
-    let symbol = symbols.get(symbol_id.0)?;
-    let binding_name = symbol.binding_name.as_deref()?;
+#[derive(Clone, Copy)]
+enum CanonicalBindingKind {
+    Element,
+    Deployment,
+}
 
-    match mode {
-        ElementIdentifierMode::Flat => Some(binding_name.to_owned()),
-        ElementIdentifierMode::Deferred => None,
-        ElementIdentifierMode::Hierarchical => {
-            let mut segments = vec![binding_name.to_owned()];
-            let mut parent = symbol.parent;
-
-            while let Some(parent_id) = parent {
-                let ancestor = symbols.get(parent_id.0)?;
-                if !matches!(
-                    ancestor.kind,
-                    SymbolKind::Person
-                        | SymbolKind::SoftwareSystem
-                        | SymbolKind::Container
-                        | SymbolKind::Component
-                ) {
-                    return None;
-                }
-
-                let ancestor_binding = ancestor.binding_name.as_deref()?;
-                segments.push(ancestor_binding.to_owned());
-                parent = ancestor.parent;
-            }
-
-            segments.reverse();
-            Some(segments.join("."))
+impl CanonicalBindingKind {
+    const fn allows_ancestor(self, kind: SymbolKind) -> bool {
+        match self {
+            Self::Element => matches!(
+                kind,
+                SymbolKind::Person
+                    | SymbolKind::SoftwareSystem
+                    | SymbolKind::Container
+                    | SymbolKind::Component
+            ),
+            Self::Deployment => matches!(
+                kind,
+                SymbolKind::DeploymentEnvironment
+                    | SymbolKind::DeploymentNode
+                    | SymbolKind::InfrastructureNode
+                    | SymbolKind::ContainerInstance
+                    | SymbolKind::SoftwareSystemInstance
+            ),
         }
     }
 }
 
-fn canonical_deployment_binding_key(
+fn canonical_binding_key(
     symbols: &[Symbol],
     symbol_id: SymbolId,
     mode: ElementIdentifierMode,
+    binding_kind: CanonicalBindingKind,
 ) -> Option<String> {
     let symbol = symbols.get(symbol_id.0)?;
     let binding_name = symbol.binding_name.as_deref()?;
@@ -4251,14 +4270,7 @@ fn canonical_deployment_binding_key(
 
             while let Some(parent_id) = parent {
                 let ancestor = symbols.get(parent_id.0)?;
-                if !matches!(
-                    ancestor.kind,
-                    SymbolKind::DeploymentEnvironment
-                        | SymbolKind::DeploymentNode
-                        | SymbolKind::InfrastructureNode
-                        | SymbolKind::ContainerInstance
-                        | SymbolKind::SoftwareSystemInstance
-                ) {
+                if !binding_kind.allows_ancestor(ancestor.kind) {
                     return None;
                 }
 
