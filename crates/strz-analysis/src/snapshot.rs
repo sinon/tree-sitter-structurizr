@@ -9,8 +9,8 @@ use crate::diagnostics::SyntaxDiagnostic;
 use crate::extract;
 use crate::includes::IncludeDirective;
 use crate::semantic::{
-    ConfigurationScopeFact, ElementDirectiveFact, PropertyFact, ResourceDirectiveFact, ViewFact,
-    WorkspaceSectionFact,
+    ConfigurationScopeFact, ElementDirectiveFact, PropertyFact, RelationshipFact,
+    ResourceDirectiveFact, ViewFact, WorkspaceSectionFact,
 };
 use crate::symbols::{IdentifierModeFact, Reference, Symbol};
 use crate::workspace::{ElementIdentifierMode, effective_element_identifier_mode_from_facts};
@@ -145,6 +145,7 @@ pub struct DocumentSyntaxFacts {
     property_facts: Vec<PropertyFact>,
     resource_directives: Vec<ResourceDirectiveFact>,
     element_directives: Vec<ElementDirectiveFact>,
+    relationship_facts: Vec<RelationshipFact>,
     view_facts: Vec<ViewFact>,
 }
 
@@ -171,6 +172,7 @@ impl DocumentSyntaxFacts {
             property_facts: semantic_facts.property_facts,
             resource_directives: semantic_facts.resource_directives,
             element_directives: semantic_facts.element_directives,
+            relationship_facts: semantic_facts.relationship_facts,
             view_facts: semantic_facts.view_facts,
         }
     }
@@ -251,6 +253,12 @@ impl DocumentSyntaxFacts {
     #[must_use]
     pub fn element_directives(&self) -> &[ElementDirectiveFact] {
         &self.element_directives
+    }
+
+    /// Returns all extracted declared relationships.
+    #[must_use]
+    pub fn relationship_facts(&self) -> &[RelationshipFact] {
+        &self.relationship_facts
     }
 
     /// Returns all extracted view definitions plus their body facts.
@@ -414,6 +422,12 @@ impl DocumentSnapshot {
     /// Returns all extracted `!element` directive targets.
     pub fn element_directives(&self) -> &[ElementDirectiveFact] {
         self.syntax_facts.element_directives()
+    }
+
+    #[must_use]
+    /// Returns all extracted declared relationships.
+    pub fn relationship_facts(&self) -> &[RelationshipFact] {
+        self.syntax_facts.relationship_facts()
     }
 
     #[must_use]

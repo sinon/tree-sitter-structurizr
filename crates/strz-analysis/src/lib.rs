@@ -28,8 +28,9 @@ pub use rule::{Level, RuleMetadata, RuleRegistry, RuleRegistryBuilder};
 pub use semantic::{
     AutoLayoutFact, ConfigurationScopeFact, DynamicRelationshipFact,
     DynamicRelationshipReferenceFact, DynamicViewStepFact, ElementDirectiveFact, ImageSourceFact,
-    ImageSourceKind, ImageSourceMode, PropertyFact, ResourceDirectiveFact, ResourceDirectiveKind,
-    ValueFact, ViewFact, ViewKind, WorkspaceScope, WorkspaceSectionFact, WorkspaceSectionKind,
+    ImageSourceKind, ImageSourceMode, PropertyFact, RelationshipFact, ResourceDirectiveFact,
+    ResourceDirectiveKind, ValueFact, ViewFact, ViewKind, WorkspaceScope, WorkspaceSectionFact,
+    WorkspaceSectionKind,
 };
 pub use snapshot::{
     DocumentId, DocumentInput, DocumentLocation, DocumentSnapshot, DocumentSyntaxFacts,

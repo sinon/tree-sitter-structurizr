@@ -170,6 +170,21 @@ pub struct AutoLayoutFact {
     pub node_separation: Option<String>,
 }
 
+/// One declared model or deployment relationship.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RelationshipFact {
+    /// Source span covered by the whole relationship declaration.
+    pub span: TextSpan,
+    /// Source endpoint identifier.
+    pub source: ValueFact,
+    /// Destination endpoint identifier.
+    pub destination: ValueFact,
+    /// Optional description text.
+    pub description: Option<ValueFact>,
+    /// Optional technology text.
+    pub technology: Option<ValueFact>,
+}
+
 /// One explicit dynamic-relationship step.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DynamicRelationshipFact {

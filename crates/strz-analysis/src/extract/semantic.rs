@@ -5,8 +5,9 @@ use tree_sitter::{Node, Tree};
 use crate::semantic::{
     AutoLayoutFact, ConfigurationScopeFact, DynamicRelationshipFact,
     DynamicRelationshipReferenceFact, DynamicViewStepFact, ElementDirectiveFact, ImageSourceFact,
-    ImageSourceKind, ImageSourceMode, PropertyFact, ResourceDirectiveFact, ResourceDirectiveKind,
-    ValueFact, ViewFact, ViewKind, WorkspaceScope, WorkspaceSectionFact, WorkspaceSectionKind,
+    ImageSourceKind, ImageSourceMode, PropertyFact, RelationshipFact, ResourceDirectiveFact,
+    ResourceDirectiveKind, ValueFact, ViewFact, ViewKind, WorkspaceScope, WorkspaceSectionFact,
+    WorkspaceSectionKind,
 };
 use crate::span::TextSpan;
 
@@ -17,6 +18,7 @@ pub struct CollectedSemanticFacts {
     pub property_facts: Vec<PropertyFact>,
     pub resource_directives: Vec<ResourceDirectiveFact>,
     pub element_directives: Vec<ElementDirectiveFact>,
+    pub relationship_facts: Vec<RelationshipFact>,
     pub view_facts: Vec<ViewFact>,
 }
 
@@ -74,6 +76,11 @@ impl SemanticCollector<'_> {
             "element_directive" => {
                 if let Some(element_fact) = self.element_directive(node) {
                     self.facts.element_directives.push(element_fact);
+                }
+            }
+            "relationship" => {
+                if let Some(relationship_fact) = self.relationship_fact(node) {
+                    self.facts.relationship_facts.push(relationship_fact);
                 }
             }
             "system_landscape_view"
@@ -140,6 +147,22 @@ impl SemanticCollector<'_> {
             target: self.value_from_field(node, "target")?,
             span: TextSpan::from_node(node),
             container_node_kind: direct_parent_kind(node),
+        })
+    }
+
+    fn relationship_fact(&self, node: Node<'_>) -> Option<RelationshipFact> {
+        let mut cursor = node.walk();
+        let mut attributes = node
+            .children_by_field_name("attribute", &mut cursor)
+            .map(|attribute| self.value_from_node(attribute))
+            .filter(|value| !value.normalized_text.is_empty());
+
+        Some(RelationshipFact {
+            span: TextSpan::from_node(node),
+            source: self.value_from_field(node, "source")?,
+            destination: self.value_from_field(node, "destination")?,
+            description: attributes.next(),
+            technology: attributes.next(),
         })
     }
 

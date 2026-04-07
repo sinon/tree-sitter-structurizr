@@ -15,8 +15,9 @@ use crate::{
     ReferenceTargetHint, SemanticDiagnostic, Symbol, SymbolId, SymbolKind, TextSpan,
     includes::{DirectiveContainer, DirectiveValueKind, normalized_directive_value},
     semantic::{
-        ConfigurationScopeFact, ElementDirectiveFact, PropertyFact, ResourceDirectiveFact,
-        ViewFact, WorkspaceScope, WorkspaceSectionFact, WorkspaceSectionKind,
+        ConfigurationScopeFact, DynamicViewStepFact, ElementDirectiveFact, PropertyFact,
+        RelationshipFact, ResourceDirectiveFact, ViewFact, ViewKind, WorkspaceScope,
+        WorkspaceSectionFact, WorkspaceSectionKind,
     },
 };
 
@@ -306,6 +307,7 @@ struct WorkspaceSemanticDocumentFacts {
     property_facts: Vec<PropertyFact>,
     resource_directives: Vec<ResourceDirectiveFact>,
     element_directives: Vec<ElementDirectiveFact>,
+    relationship_facts: Vec<RelationshipFact>,
     view_facts: Vec<ViewFact>,
 }
 
@@ -322,6 +324,7 @@ impl WorkspaceSemanticDocumentFacts {
             property_facts: snapshot.property_facts().to_vec(),
             resource_directives: snapshot.resource_directives().to_vec(),
             element_directives: snapshot.element_directives().to_vec(),
+            relationship_facts: snapshot.relationship_facts().to_vec(),
             view_facts: snapshot.view_facts().to_vec(),
         }
     }
@@ -2139,7 +2142,9 @@ fn build_derived_workspace_instance(
     semantic_diagnostics.extend(workspace_scope_diagnostics(definition_documents, documents));
     semantic_diagnostics.extend(element_selector_diagnostics(documents, &bindings));
     let reference_tables = build_reference_resolution_tables(documents, &bindings);
+    let view_semantic_diagnostics = view_semantic_diagnostics(documents, &reference_tables);
     semantic_diagnostics.extend(reference_tables.semantic_diagnostics);
+    semantic_diagnostics.extend(view_semantic_diagnostics);
 
     let mut references_by_target = reference_tables.references_by_target;
     for references in references_by_target.values_mut() {
@@ -2705,6 +2710,542 @@ fn build_reference_resolution_tables(
         references_by_target,
         semantic_diagnostics,
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct ViewLocation {
+    document: DocumentId,
+    view_index: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct RelationshipLocation {
+    document: DocumentId,
+    span: TextSpan,
+}
+
+impl RelationshipLocation {
+    fn from_relationship(relationship: &DeclaredRelationship) -> Self {
+        Self {
+            document: relationship.document.clone(),
+            span: relationship.span,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct DeclaredRelationship {
+    document: DocumentId,
+    span: TextSpan,
+    source: SymbolHandle,
+    destination: SymbolHandle,
+    technology: Option<String>,
+}
+
+fn view_semantic_diagnostics(
+    documents: &[&WorkspaceSemanticDocumentFacts],
+    reference_tables: &WorkspaceReferenceTables,
+) -> Vec<SemanticDiagnostic> {
+    let documents_by_id = documents
+        .iter()
+        .map(|document| (document.document_id.clone(), *document))
+        .collect::<BTreeMap<_, _>>();
+    let views_by_key = index_views_by_key(documents);
+    let declared_relationships =
+        collect_declared_relationships(documents, &documents_by_id, reference_tables);
+
+    let mut diagnostics = Vec::new();
+    diagnostics.extend(filtered_view_autolayout_diagnostics(
+        documents,
+        &documents_by_id,
+        &views_by_key,
+    ));
+    diagnostics.extend(invalid_view_element_diagnostics(
+        documents,
+        &documents_by_id,
+        reference_tables,
+    ));
+    diagnostics.extend(dynamic_view_relationship_diagnostics(
+        documents,
+        &documents_by_id,
+        reference_tables,
+        &declared_relationships,
+    ));
+    diagnostics
+}
+
+fn filtered_view_autolayout_diagnostics(
+    documents: &[&WorkspaceSemanticDocumentFacts],
+    documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
+    views_by_key: &BTreeMap<String, Vec<ViewLocation>>,
+) -> Vec<SemanticDiagnostic> {
+    let mut diagnostics = Vec::new();
+
+    for document in documents {
+        if document.has_syntax_errors {
+            continue;
+        }
+
+        for view in &document.view_facts {
+            if view.kind != ViewKind::Filtered {
+                continue;
+            }
+
+            let Some(base_key) = view.base_key.as_ref() else {
+                continue;
+            };
+            let Some(base_view_locations) = views_by_key.get(&base_key.normalized_text) else {
+                continue;
+            };
+            let [base_view_location] = base_view_locations.as_slice() else {
+                continue;
+            };
+            let Some(base_document) = documents_by_id.get(&base_view_location.document) else {
+                continue;
+            };
+            if base_document.has_syntax_errors {
+                continue;
+            }
+            let Some(base_view) = base_document.view_facts.get(base_view_location.view_index)
+            else {
+                continue;
+            };
+            let Some(auto_layout) = base_view.auto_layout.as_ref() else {
+                continue;
+            };
+
+            let mut diagnostic = SemanticDiagnostic::filtered_view_autolayout_mismatch(
+                &document.document_id,
+                &base_key.normalized_text,
+                base_key.span,
+            );
+            diagnostic.annotate(secondary_annotation(
+                &document.document_id,
+                &base_document.document_id,
+                auto_layout.span,
+                "base view enables automatic layout here",
+            ));
+            diagnostics.push(diagnostic);
+        }
+    }
+
+    diagnostics
+}
+
+fn invalid_view_element_diagnostics(
+    documents: &[&WorkspaceSemanticDocumentFacts],
+    documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
+    reference_tables: &WorkspaceReferenceTables,
+) -> Vec<SemanticDiagnostic> {
+    let mut diagnostics = Vec::new();
+
+    for document in documents {
+        if document.has_syntax_errors {
+            continue;
+        }
+
+        for view in &document.view_facts {
+            if !matches!(
+                view.kind,
+                ViewKind::SystemLandscape
+                    | ViewKind::SystemContext
+                    | ViewKind::Container
+                    | ViewKind::Component
+            ) {
+                continue;
+            }
+
+            push_invalid_view_value_diagnostics(
+                document,
+                view,
+                &view.include_values,
+                ReferenceKind::ViewInclude,
+                documents_by_id,
+                reference_tables,
+                &mut diagnostics,
+            );
+            push_invalid_view_value_diagnostics(
+                document,
+                view,
+                &view.animation_values,
+                ReferenceKind::ViewAnimation,
+                documents_by_id,
+                reference_tables,
+                &mut diagnostics,
+            );
+        }
+    }
+
+    diagnostics
+}
+
+fn push_invalid_view_value_diagnostics(
+    document: &WorkspaceSemanticDocumentFacts,
+    view: &ViewFact,
+    values: &[crate::ValueFact],
+    reference_kind: ReferenceKind,
+    documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
+    reference_tables: &WorkspaceReferenceTables,
+    diagnostics: &mut Vec<SemanticDiagnostic>,
+) {
+    for value in values {
+        let Some(target_handle) =
+            resolved_reference_target(document, reference_kind, value.span, reference_tables)
+        else {
+            continue;
+        };
+        let Some(target_symbol) = symbol_for_handle(documents_by_id, &target_handle) else {
+            continue;
+        };
+        if target_symbol.kind == SymbolKind::Relationship {
+            continue;
+        }
+        if is_view_element_kind_allowed(view.kind, target_symbol.kind) {
+            continue;
+        }
+
+        diagnostics.push(SemanticDiagnostic::invalid_view_element(
+            &document.document_id,
+            &value.normalized_text,
+            value.span,
+        ));
+    }
+}
+
+fn dynamic_view_relationship_diagnostics(
+    documents: &[&WorkspaceSemanticDocumentFacts],
+    documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
+    reference_tables: &WorkspaceReferenceTables,
+    declared_relationships: &[DeclaredRelationship],
+) -> Vec<SemanticDiagnostic> {
+    let mut diagnostics = Vec::new();
+
+    for document in documents {
+        if document.has_syntax_errors {
+            continue;
+        }
+
+        for view in &document.view_facts {
+            if view.kind != ViewKind::Dynamic {
+                continue;
+            }
+
+            let mut seen_relationships = BTreeSet::<RelationshipLocation>::new();
+
+            for step in &view.dynamic_steps {
+                let DynamicViewStepFact::Relationship(step) = step else {
+                    continue;
+                };
+                let Some(source_handle) = resolved_reference_target(
+                    document,
+                    ReferenceKind::RelationshipSource,
+                    step.source.span,
+                    reference_tables,
+                ) else {
+                    continue;
+                };
+                let Some(destination_handle) = resolved_reference_target(
+                    document,
+                    ReferenceKind::RelationshipDestination,
+                    step.destination.span,
+                    reference_tables,
+                ) else {
+                    continue;
+                };
+                let Some(source_symbol) = symbol_for_handle(documents_by_id, &source_handle) else {
+                    continue;
+                };
+                let Some(destination_symbol) =
+                    symbol_for_handle(documents_by_id, &destination_handle)
+                else {
+                    continue;
+                };
+                let technology = step
+                    .technology
+                    .as_ref()
+                    .map(|value| value.normalized_text.as_str());
+
+                if let Some(relationship) = matching_declared_relationship(
+                    &source_handle,
+                    &destination_handle,
+                    technology,
+                    declared_relationships,
+                ) {
+                    seen_relationships
+                        .insert(RelationshipLocation::from_relationship(relationship));
+                    continue;
+                }
+
+                if response_relationship_is_in_view(
+                    &source_handle,
+                    &destination_handle,
+                    technology,
+                    declared_relationships,
+                    &seen_relationships,
+                ) {
+                    continue;
+                }
+
+                let mut diagnostic = SemanticDiagnostic::dynamic_view_relationship_mismatch(
+                    &document.document_id,
+                    &source_symbol.display_name,
+                    &destination_symbol.display_name,
+                    technology,
+                    step.span,
+                );
+                if let Some(annotation) = dynamic_relationship_annotation(
+                    &document.document_id,
+                    &source_handle,
+                    &destination_handle,
+                    technology,
+                    declared_relationships,
+                    documents_by_id,
+                ) {
+                    diagnostic.annotate(annotation);
+                }
+                diagnostics.push(diagnostic);
+            }
+        }
+    }
+
+    diagnostics
+}
+
+fn index_views_by_key(
+    documents: &[&WorkspaceSemanticDocumentFacts],
+) -> BTreeMap<String, Vec<ViewLocation>> {
+    let mut views_by_key = BTreeMap::<String, Vec<ViewLocation>>::new();
+
+    for document in documents {
+        if document.has_syntax_errors {
+            continue;
+        }
+
+        for (view_index, view) in document.view_facts.iter().enumerate() {
+            let Some(key) = view.key.as_ref() else {
+                continue;
+            };
+            views_by_key
+                .entry(key.normalized_text.clone())
+                .or_default()
+                .push(ViewLocation {
+                    document: document.document_id.clone(),
+                    view_index,
+                });
+        }
+    }
+
+    views_by_key
+}
+
+fn collect_declared_relationships(
+    documents: &[&WorkspaceSemanticDocumentFacts],
+    documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
+    reference_tables: &WorkspaceReferenceTables,
+) -> Vec<DeclaredRelationship> {
+    let mut relationships = Vec::new();
+
+    for document in documents {
+        if document.has_syntax_errors {
+            continue;
+        }
+
+        for relationship in &document.relationship_facts {
+            let Some(source) = resolved_relationship_target(
+                document,
+                ReferenceKind::RelationshipSource,
+                ReferenceKind::DeploymentRelationshipSource,
+                relationship.source.span,
+                reference_tables,
+            ) else {
+                continue;
+            };
+            let Some(destination) = resolved_relationship_target(
+                document,
+                ReferenceKind::RelationshipDestination,
+                ReferenceKind::DeploymentRelationshipDestination,
+                relationship.destination.span,
+                reference_tables,
+            ) else {
+                continue;
+            };
+            let Some(source_symbol) = symbol_for_handle(documents_by_id, &source) else {
+                continue;
+            };
+            let Some(destination_symbol) = symbol_for_handle(documents_by_id, &destination) else {
+                continue;
+            };
+            if !is_model_element_kind(source_symbol.kind)
+                || !is_model_element_kind(destination_symbol.kind)
+            {
+                continue;
+            }
+
+            relationships.push(DeclaredRelationship {
+                document: document.document_id.clone(),
+                span: relationship.span,
+                source,
+                destination,
+                technology: relationship
+                    .technology
+                    .as_ref()
+                    .map(|value| value.normalized_text.clone()),
+            });
+        }
+    }
+
+    relationships
+}
+
+fn resolved_relationship_target(
+    document: &WorkspaceSemanticDocumentFacts,
+    primary_kind: ReferenceKind,
+    fallback_kind: ReferenceKind,
+    span: TextSpan,
+    reference_tables: &WorkspaceReferenceTables,
+) -> Option<SymbolHandle> {
+    resolved_reference_target(document, primary_kind, span, reference_tables)
+        .or_else(|| resolved_reference_target(document, fallback_kind, span, reference_tables))
+}
+
+fn resolved_reference_target(
+    document: &WorkspaceSemanticDocumentFacts,
+    reference_kind: ReferenceKind,
+    span: TextSpan,
+    reference_tables: &WorkspaceReferenceTables,
+) -> Option<SymbolHandle> {
+    let (reference_index, _) = document
+        .references
+        .iter()
+        .enumerate()
+        .find(|(_, reference)| reference.kind == reference_kind && reference.span == span)?;
+    let handle = ReferenceHandle {
+        document: document.document_id.clone(),
+        reference_index,
+    };
+    match reference_tables.resolutions.get(&handle) {
+        Some(ReferenceResolutionStatus::Resolved(target)) => Some(target.clone()),
+        _ => None,
+    }
+}
+
+fn symbol_for_handle<'a>(
+    documents_by_id: &'a BTreeMap<DocumentId, &'a WorkspaceSemanticDocumentFacts>,
+    handle: &SymbolHandle,
+) -> Option<&'a Symbol> {
+    documents_by_id
+        .get(handle.document())
+        .and_then(|document| document.symbols.get(handle.symbol_id().0))
+}
+
+const fn is_model_element_kind(kind: SymbolKind) -> bool {
+    matches!(
+        kind,
+        SymbolKind::Person
+            | SymbolKind::SoftwareSystem
+            | SymbolKind::Container
+            | SymbolKind::Component
+    )
+}
+
+const fn is_view_element_kind_allowed(view_kind: ViewKind, symbol_kind: SymbolKind) -> bool {
+    match view_kind {
+        ViewKind::SystemLandscape | ViewKind::SystemContext => {
+            matches!(symbol_kind, SymbolKind::Person | SymbolKind::SoftwareSystem)
+        }
+        ViewKind::Container => matches!(
+            symbol_kind,
+            SymbolKind::Person | SymbolKind::SoftwareSystem | SymbolKind::Container
+        ),
+        ViewKind::Component => matches!(
+            symbol_kind,
+            SymbolKind::Person
+                | SymbolKind::SoftwareSystem
+                | SymbolKind::Container
+                | SymbolKind::Component
+        ),
+        ViewKind::Filtered
+        | ViewKind::Dynamic
+        | ViewKind::Deployment
+        | ViewKind::Custom
+        | ViewKind::Image => false,
+    }
+}
+
+fn matching_declared_relationship<'a>(
+    source: &SymbolHandle,
+    destination: &SymbolHandle,
+    technology: Option<&str>,
+    declared_relationships: &'a [DeclaredRelationship],
+) -> Option<&'a DeclaredRelationship> {
+    declared_relationships.iter().find(|relationship| {
+        relationship.source == *source
+            && relationship.destination == *destination
+            && relationship_technology_matches(relationship.technology.as_deref(), technology)
+    })
+}
+
+fn response_relationship_is_in_view(
+    source: &SymbolHandle,
+    destination: &SymbolHandle,
+    technology: Option<&str>,
+    declared_relationships: &[DeclaredRelationship],
+    seen_relationships: &BTreeSet<RelationshipLocation>,
+) -> bool {
+    declared_relationships.iter().any(|relationship| {
+        relationship.source == *destination
+            && relationship.destination == *source
+            && relationship_technology_matches(relationship.technology.as_deref(), technology)
+            && seen_relationships.contains(&RelationshipLocation::from_relationship(relationship))
+    })
+}
+
+fn dynamic_relationship_annotation(
+    primary_document: &DocumentId,
+    source: &SymbolHandle,
+    destination: &SymbolHandle,
+    technology: Option<&str>,
+    declared_relationships: &[DeclaredRelationship],
+    _documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
+) -> Option<Annotation> {
+    technology?;
+    let candidate = declared_relationships.iter().find(|relationship| {
+        relationship.source == *source && relationship.destination == *destination
+    })?;
+    let message = candidate.technology.as_deref().map_or_else(
+        || "declared relationship here does not declare a technology".to_owned(),
+        |existing| format!("declared relationship here uses technology {existing}"),
+    );
+
+    Some(secondary_annotation(
+        primary_document,
+        &candidate.document,
+        candidate.span,
+        message,
+    ))
+}
+
+fn relationship_technology_matches(
+    declared_technology: Option<&str>,
+    expected_technology: Option<&str>,
+) -> bool {
+    expected_technology.is_none_or(|expected_technology| {
+        declared_technology == Some(expected_technology)
+    })
+}
+
+fn secondary_annotation(
+    primary_document: &DocumentId,
+    related_document: &DocumentId,
+    span: TextSpan,
+    message: impl Into<String>,
+) -> Annotation {
+    let annotation = if primary_document == related_document {
+        Annotation::secondary(span)
+    } else {
+        Annotation::secondary(span).in_document(related_document)
+    };
+    annotation.message(message)
 }
 
 fn split_binding_table(

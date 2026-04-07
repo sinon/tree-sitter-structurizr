@@ -353,6 +353,12 @@ impl IncludeDiagnostic {
 pub enum SemanticDiagnosticKind {
     /// More than one definition claimed the same canonical binding key.
     DuplicateBinding,
+    /// A filtered view derives from a base view that already enables auto-layout.
+    FilteredViewAutoLayoutMismatch,
+    /// A dynamic-view step does not correspond to any compatible declared relationship.
+    DynamicViewRelationshipMismatch,
+    /// A resolved view element is incompatible with the current view kind.
+    InvalidViewElement,
     /// One DSL definition contained more than one top-level `model` or `views` section.
     RepeatedWorkspaceSection,
     /// A supported `!element` selector target resolved to no known target.
@@ -371,6 +377,13 @@ impl SemanticDiagnosticKind {
     pub const fn rule(self) -> &'static RuleMetadata {
         match self {
             Self::DuplicateBinding => &rules::SEMANTIC_DUPLICATE_BINDING,
+            Self::FilteredViewAutoLayoutMismatch => {
+                &rules::SEMANTIC_FILTERED_VIEW_AUTOLAYOUT_MISMATCH
+            }
+            Self::DynamicViewRelationshipMismatch => {
+                &rules::SEMANTIC_DYNAMIC_VIEW_RELATIONSHIP_MISMATCH
+            }
+            Self::InvalidViewElement => &rules::SEMANTIC_INVALID_VIEW_ELEMENT,
             Self::RepeatedWorkspaceSection => &rules::SEMANTIC_REPEATED_WORKSPACE_SECTION,
             Self::UnresolvedElementSelector => &rules::SEMANTIC_UNRESOLVED_ELEMENT_SELECTOR,
             Self::UnresolvedReference => &rules::SEMANTIC_UNRESOLVED_REFERENCE,
@@ -468,6 +481,65 @@ impl SemanticDiagnostic {
             document: document.clone(),
             kind: SemanticDiagnosticKind::DuplicateBinding,
             message: format!("duplicate {binding_kind} binding: {key}"),
+            span,
+            annotations: Vec::new(),
+        }
+    }
+
+    pub(crate) fn filtered_view_autolayout_mismatch(
+        document: &DocumentId,
+        base_key: &str,
+        span: TextSpan,
+    ) -> Self {
+        Self {
+            document: document.clone(),
+            kind: SemanticDiagnosticKind::FilteredViewAutoLayoutMismatch,
+            message: format!(
+                "The view \"{base_key}\" has automatic layout enabled - this is not supported for filtered views"
+            ),
+            span,
+            annotations: Vec::new(),
+        }
+    }
+
+    pub(crate) fn dynamic_view_relationship_mismatch(
+        document: &DocumentId,
+        source_name: &str,
+        destination_name: &str,
+        technology: Option<&str>,
+        span: TextSpan,
+    ) -> Self {
+        let message = technology.map_or_else(
+            || {
+                format!(
+                    "A relationship between {source_name} and {destination_name} does not exist in model."
+                )
+            },
+            |technology| {
+                format!(
+                "A relationship between {source_name} and {destination_name} with technology {technology} does not exist in model."
+                )
+            },
+        );
+
+        Self {
+            document: document.clone(),
+            kind: SemanticDiagnosticKind::DynamicViewRelationshipMismatch,
+            message,
+            span,
+            annotations: Vec::new(),
+        }
+    }
+
+    pub(crate) fn invalid_view_element(
+        document: &DocumentId,
+        raw_text: &str,
+        span: TextSpan,
+    ) -> Self {
+        Self {
+            document: document.clone(),
+            kind: SemanticDiagnosticKind::InvalidViewElement,
+            message: format!("The element \"{raw_text}\" can not be added to this type of view"),
             span,
             annotations: Vec::new(),
         }
