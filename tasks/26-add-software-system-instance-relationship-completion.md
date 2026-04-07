@@ -12,12 +12,6 @@ represented in the LSP completion layer.
 The shipped semantic completion path only resolves core element bindings and
 intentionally returns no answer for deployment-layer relationship sites.
 
-For `softwareSystemInstance` specifically, there is also an adjacent syntax/parity
-risk already captured in
-[`tasks/23-diagnose-software-system-instance-parsing-gap.md`](./23-diagnose-software-system-instance-parsing-gap.md).
-The follow-up completion work should not assume every assigned instance form is
-stable until that parser gap is settled.
-
 ## Options
 
 - Defer software-system-instance completion until the parser/parity task is
