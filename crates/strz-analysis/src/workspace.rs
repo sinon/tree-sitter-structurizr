@@ -2142,9 +2142,16 @@ fn build_derived_workspace_instance(
     semantic_diagnostics.extend(workspace_scope_diagnostics(definition_documents, documents));
     semantic_diagnostics.extend(element_selector_diagnostics(documents, &bindings));
     let reference_tables = build_reference_resolution_tables(documents, &bindings);
+    let documents_by_id = documents
+        .iter()
+        .map(|document| (document.document_id.clone(), *document))
+        .collect::<BTreeMap<_, _>>();
+    let deployment_semantic_diagnostics =
+        deployment_semantic_diagnostics(documents, &documents_by_id, &reference_tables);
     let view_semantic_diagnostics =
-        view_semantic_diagnostics(documents, &bindings, &reference_tables);
+        view_semantic_diagnostics(documents, &documents_by_id, &bindings, &reference_tables);
     semantic_diagnostics.extend(reference_tables.semantic_diagnostics);
+    semantic_diagnostics.extend(deployment_semantic_diagnostics);
     semantic_diagnostics.extend(view_semantic_diagnostics);
 
     let mut references_by_target = reference_tables.references_by_target;
@@ -2744,43 +2751,147 @@ struct DeclaredRelationship {
     technology: Option<String>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DeploymentContainmentRelation {
+    SourceAncestor,
+    DestinationAncestor,
+}
+
+fn deployment_semantic_diagnostics(
+    documents: &[&WorkspaceSemanticDocumentFacts],
+    documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
+    reference_tables: &WorkspaceReferenceTables,
+) -> Vec<SemanticDiagnostic> {
+    deployment_parent_child_relationship_diagnostics(documents, documents_by_id, reference_tables)
+}
+
 fn view_semantic_diagnostics(
     documents: &[&WorkspaceSemanticDocumentFacts],
+    documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
     bindings: &WorkspaceBindingTables,
     reference_tables: &WorkspaceReferenceTables,
 ) -> Vec<SemanticDiagnostic> {
-    let documents_by_id = documents
-        .iter()
-        .map(|document| (document.document_id.clone(), *document))
-        .collect::<BTreeMap<_, _>>();
     let views_by_key = index_views_by_key(documents);
     let declared_relationships =
-        collect_declared_relationships(documents, &documents_by_id, reference_tables);
+        collect_declared_relationships(documents, documents_by_id, reference_tables);
 
     let mut diagnostics = Vec::new();
     diagnostics.extend(filtered_view_autolayout_diagnostics(
         documents,
-        &documents_by_id,
+        documents_by_id,
         &views_by_key,
     ));
     diagnostics.extend(invalid_view_element_diagnostics(
         documents,
-        &documents_by_id,
+        documents_by_id,
         reference_tables,
     ));
     diagnostics.extend(dynamic_view_scope_redundancy_diagnostics(
         documents,
-        &documents_by_id,
+        documents_by_id,
         bindings,
         reference_tables,
         &declared_relationships,
     ));
     diagnostics.extend(dynamic_view_relationship_diagnostics(
         documents,
-        &documents_by_id,
+        documents_by_id,
         reference_tables,
         &declared_relationships,
     ));
+    diagnostics
+}
+
+fn deployment_parent_child_relationship_diagnostics(
+    documents: &[&WorkspaceSemanticDocumentFacts],
+    documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
+    reference_tables: &WorkspaceReferenceTables,
+) -> Vec<SemanticDiagnostic> {
+    let mut diagnostics = Vec::new();
+
+    for document in documents {
+        if document.has_syntax_errors {
+            continue;
+        }
+
+        for relationship in &document.relationship_facts {
+            let Some(source_handle) = resolved_reference_target(
+                document,
+                ReferenceKind::DeploymentRelationshipSource,
+                relationship.source.span,
+                reference_tables,
+            ) else {
+                continue;
+            };
+            let Some(destination_handle) = resolved_reference_target(
+                document,
+                ReferenceKind::DeploymentRelationshipDestination,
+                relationship.destination.span,
+                reference_tables,
+            ) else {
+                continue;
+            };
+            let Some(source_symbol) = symbol_for_handle(documents_by_id, &source_handle) else {
+                continue;
+            };
+            let Some(destination_symbol) = symbol_for_handle(documents_by_id, &destination_handle)
+            else {
+                continue;
+            };
+            if !is_deployment_element_kind(source_symbol.kind)
+                || !is_deployment_element_kind(destination_symbol.kind)
+            {
+                continue;
+            }
+            let Some(relation) = deployment_containment_relation(
+                documents_by_id,
+                &source_handle,
+                &destination_handle,
+            ) else {
+                continue;
+            };
+
+            let mut diagnostic = SemanticDiagnostic::deployment_parent_child_relationship(
+                &document.document_id,
+                relationship.span,
+            );
+            let (ancestor_handle, ancestor_symbol, descendant_handle, descendant_symbol) =
+                match relation {
+                    DeploymentContainmentRelation::SourceAncestor => (
+                        &source_handle,
+                        source_symbol,
+                        &destination_handle,
+                        destination_symbol,
+                    ),
+                    DeploymentContainmentRelation::DestinationAncestor => (
+                        &destination_handle,
+                        destination_symbol,
+                        &source_handle,
+                        source_symbol,
+                    ),
+                };
+            diagnostic.annotate(secondary_annotation(
+                &document.document_id,
+                ancestor_handle.document(),
+                ancestor_symbol.span,
+                format!(
+                    "ancestor deployment element {} is declared here",
+                    ancestor_symbol.display_name
+                ),
+            ));
+            diagnostic.annotate(secondary_annotation(
+                &document.document_id,
+                descendant_handle.document(),
+                descendant_symbol.span,
+                format!(
+                    "descendant deployment element {} is declared here",
+                    descendant_symbol.display_name
+                ),
+            ));
+            diagnostics.push(diagnostic);
+        }
+    }
+
     diagnostics
 }
 
@@ -3327,6 +3438,17 @@ const fn is_model_element_kind(kind: SymbolKind) -> bool {
     )
 }
 
+const fn is_deployment_element_kind(kind: SymbolKind) -> bool {
+    matches!(
+        kind,
+        SymbolKind::DeploymentEnvironment
+            | SymbolKind::DeploymentNode
+            | SymbolKind::InfrastructureNode
+            | SymbolKind::ContainerInstance
+            | SymbolKind::SoftwareSystemInstance
+    )
+}
+
 const fn is_view_element_kind_allowed(view_kind: ViewKind, symbol_kind: SymbolKind) -> bool {
     match view_kind {
         ViewKind::SystemLandscape | ViewKind::SystemContext => {
@@ -3371,6 +3493,52 @@ fn declared_relationship_for_handle<'a>(
     declared_relationships
         .iter()
         .find(|relationship| relationship.handle.as_ref() == Some(handle))
+}
+
+fn deployment_containment_relation(
+    documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
+    source: &SymbolHandle,
+    destination: &SymbolHandle,
+) -> Option<DeploymentContainmentRelation> {
+    if deployment_is_ancestor(documents_by_id, source, destination) {
+        Some(DeploymentContainmentRelation::SourceAncestor)
+    } else if deployment_is_ancestor(documents_by_id, destination, source) {
+        Some(DeploymentContainmentRelation::DestinationAncestor)
+    } else {
+        None
+    }
+}
+
+fn deployment_is_ancestor(
+    documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
+    ancestor: &SymbolHandle,
+    descendant: &SymbolHandle,
+) -> bool {
+    let mut current = deployment_parent_handle(documents_by_id, descendant);
+
+    while let Some(parent_handle) = current {
+        if &parent_handle == ancestor {
+            return true;
+        }
+        current = deployment_parent_handle(documents_by_id, &parent_handle);
+    }
+
+    false
+}
+
+fn deployment_parent_handle(
+    documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
+    handle: &SymbolHandle,
+) -> Option<SymbolHandle> {
+    let symbol = symbol_for_handle(documents_by_id, handle)?;
+    let parent_id = symbol.parent?;
+    let document = documents_by_id.get(handle.document())?;
+    let parent = document.symbols.get(parent_id.0)?;
+    if !is_deployment_element_kind(parent.kind) {
+        return None;
+    }
+
+    Some(SymbolHandle::new(handle.document().clone(), parent.id))
 }
 
 fn response_relationship_is_in_view(

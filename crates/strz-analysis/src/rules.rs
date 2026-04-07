@@ -105,6 +105,20 @@ declare_rule! {
 
 declare_rule! {
     /// ## What it does
+    /// Reports deployment relationships whose endpoints are in the same containment chain.
+    ///
+    /// ## Why is this bad?
+    /// Structurizr rejects relationships between deployment parents and their
+    /// children because containment already describes that topology.
+    pub static SEMANTIC_DEPLOYMENT_PARENT_CHILD_RELATIONSHIP = {
+        code: "semantic.deployment-parent-child-relationship",
+        summary: "reports deployment relationships between parents and children",
+        default_level: Level::Error,
+    };
+}
+
+declare_rule! {
+    /// ## What it does
     /// Reports filtered views whose base view already enables automatic layout.
     ///
     /// ## Why is this bad?
@@ -241,6 +255,7 @@ pub fn register_rules(registry: &mut RuleRegistryBuilder) {
     registry.register(&INCLUDE_CYCLE);
     registry.register(&INCLUDE_UNSUPPORTED_REMOTE_TARGET);
     registry.register(&SEMANTIC_DUPLICATE_BINDING);
+    registry.register(&SEMANTIC_DEPLOYMENT_PARENT_CHILD_RELATIONSHIP);
     registry.register(&SEMANTIC_FILTERED_VIEW_AUTOLAYOUT_MISMATCH);
     registry.register(&SEMANTIC_DYNAMIC_VIEW_RELATIONSHIP_MISMATCH);
     registry.register(&SEMANTIC_DYNAMIC_VIEW_SCOPE_REDUNDANCY);
@@ -283,6 +298,7 @@ mod tests {
                 "include.missing-local-target",
                 "include.unsupported-remote-target",
                 "semantic.ambiguous-reference",
+                "semantic.deployment-parent-child-relationship",
                 "semantic.duplicate-binding",
                 "semantic.dynamic-view-relationship-mismatch",
                 "semantic.dynamic-view-scope-redundancy",
@@ -303,6 +319,11 @@ mod tests {
         assert!(registry.get("include.missing-local-target").is_some());
         assert!(registry.get("include.unsupported-remote-target").is_some());
         assert!(registry.get("semantic.duplicate-binding").is_some());
+        assert!(
+            registry
+                .get("semantic.deployment-parent-child-relationship")
+                .is_some()
+        );
         assert!(
             registry
                 .get("semantic.filtered-view-autolayout-mismatch")

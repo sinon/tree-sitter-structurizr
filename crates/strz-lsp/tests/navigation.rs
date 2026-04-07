@@ -1537,7 +1537,7 @@ async fn goto_definition_resolves_deployment_relationship_endpoints() {
 
     for expectation in [
         DefinitionExpectation {
-            needle: "primary -> gateway",
+            needle: "primary -> secondary",
             byte_offset_within_needle: 1,
             expected_uri: workspace_uri.as_str(),
             expected_line: 7,
@@ -1549,10 +1549,10 @@ async fn goto_definition_resolves_deployment_relationship_endpoints() {
             expected_line: 8,
         },
         DefinitionExpectation {
-            needle: "gateway -> apiInstance",
+            needle: "gateway -> secondaryApiInstance",
             byte_offset_within_needle: 11,
             expected_uri: workspace_uri.as_str(),
-            expected_line: 9,
+            expected_line: 15,
         },
     ] {
         assert_definition_target(&mut service, &workspace_uri, &workspace_source, expectation)
@@ -1666,7 +1666,7 @@ async fn goto_type_definition_resolves_instance_references_to_model_elements() {
     let workspace_uri = file_uri_from_path(&workspace_path);
     open_document(&mut service, &workspace_uri, &workspace_source).await;
 
-    let position = position_in(&workspace_source, "gateway -> apiInstance", 11);
+    let position = position_in(&workspace_source, "gateway -> secondaryApiInstance", 11);
     let response = request_json(
         &mut service,
         "textDocument/typeDefinition",
@@ -1780,7 +1780,7 @@ async fn references_follow_instance_targets_from_model_declarations() {
         })
         .collect::<Vec<_>>();
 
-    assert_eq!(lines, vec![3, 9]);
+    assert_eq!(lines, vec![3, 9, 15]);
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -1819,7 +1819,7 @@ async fn references_follow_deployment_symbols_from_relationship_endpoints() {
         })
         .collect::<Vec<_>>();
 
-    assert_eq!(lines, vec![8, 10, 15, 16]);
+    assert_eq!(lines, vec![8, 10, 19]);
 }
 
 #[tokio::test(flavor = "current_thread")]

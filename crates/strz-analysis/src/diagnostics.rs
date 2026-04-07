@@ -353,6 +353,8 @@ impl IncludeDiagnostic {
 pub enum SemanticDiagnosticKind {
     /// More than one definition claimed the same canonical binding key.
     DuplicateBinding,
+    /// A deployment relationship connects endpoints in the same containment chain.
+    DeploymentParentChildRelationship,
     /// A filtered view derives from a base view that already enables auto-layout.
     FilteredViewAutoLayoutMismatch,
     /// A dynamic-view step does not correspond to any compatible declared relationship.
@@ -379,6 +381,9 @@ impl SemanticDiagnosticKind {
     pub const fn rule(self) -> &'static RuleMetadata {
         match self {
             Self::DuplicateBinding => &rules::SEMANTIC_DUPLICATE_BINDING,
+            Self::DeploymentParentChildRelationship => {
+                &rules::SEMANTIC_DEPLOYMENT_PARENT_CHILD_RELATIONSHIP
+            }
             Self::FilteredViewAutoLayoutMismatch => {
                 &rules::SEMANTIC_FILTERED_VIEW_AUTOLAYOUT_MISMATCH
             }
@@ -484,6 +489,19 @@ impl SemanticDiagnostic {
             document: document.clone(),
             kind: SemanticDiagnosticKind::DuplicateBinding,
             message: format!("duplicate {binding_kind} binding: {key}"),
+            span,
+            annotations: Vec::new(),
+        }
+    }
+
+    pub(crate) fn deployment_parent_child_relationship(
+        document: &DocumentId,
+        span: TextSpan,
+    ) -> Self {
+        Self {
+            document: document.clone(),
+            kind: SemanticDiagnosticKind::DeploymentParentChildRelationship,
+            message: "Relationships cannot be added between parents and children".to_owned(),
             span,
             annotations: Vec::new(),
         }

@@ -11,6 +11,10 @@ use strz_analysis::{
 };
 use tempfile::TempDir;
 
+const DEPLOYMENT_PARENT_CHILD_RELATIONSHIP_ERR_SOURCE: &str = include_str!(
+    "../../strz-lsp/tests/fixtures/deployment/deployment-parent-child-relationship-err.dsl"
+);
+
 macro_rules! set_snapshot_suffix {
     ($($expr:expr),* $(,)?) => {
         let mut settings = insta::Settings::clone_current();
@@ -385,6 +389,70 @@ fn extended_workspaces_inherit_base_bindings_without_repeated_section_diagnostic
             .unique_deployment_bindings()
             .contains_key("live.aws.region.route53")
     );
+}
+
+#[test]
+fn deployment_parent_child_relationships_surface_semantic_diagnostics() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            DEPLOYMENT_PARENT_CHILD_RELATIONSHIP_ERR_SOURCE,
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_kind(
+        &facts,
+        SemanticDiagnosticKind::DeploymentParentChildRelationship,
+    );
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].message,
+        "Relationships cannot be added between parents and children"
+    );
+    assert_eq!(diagnostics[0].annotations.len(), 2);
+    assert_eq!(
+        diagnostics[0].annotations[0].message.as_deref(),
+        Some("ancestor deployment element Primary is declared here")
+    );
+    assert_eq!(
+        diagnostics[0].annotations[1].message.as_deref(),
+        Some("descendant deployment element Gateway is declared here")
+    );
+}
+
+#[test]
+fn deployment_sibling_relationships_remain_valid_for_current_upstream_parity() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        system = softwareSystem "System" {
+                            api = container "API"
+                        }
+
+                        live = deploymentEnvironment "Live" {
+                            primary = deploymentNode "Primary" {
+                                gateway = infrastructureNode "Gateway"
+                                apiInstance = containerInstance api {
+                                    gateway -> this "Routes traffic"
+                                }
+                            }
+                        }
+                    }
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_kind(
+        &facts,
+        SemanticDiagnosticKind::DeploymentParentChildRelationship,
+    );
+    assert!(diagnostics.is_empty(), "{diagnostics:#?}");
 }
 
 #[test]
