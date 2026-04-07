@@ -661,6 +661,103 @@ async fn completion_inside_fresh_relationship_source_before_deployment_environme
 }
 
 #[tokio::test(flavor = "current_thread")]
+async fn assigned_deployment_environment_after_partial_relationship_suppresses_only_recovery_equals_diagnostic()
+ {
+    let temp_workspace = TempWorkspace::new(
+        "relationship-completion-before-assigned-deployment-environment",
+        "workspace {\n  !include model.dsl\n  !include relationships.dsl\n}\n",
+        &[],
+        &[
+            (
+                Path::new("model.dsl"),
+                "model {\n  customer = person \"Customer\"\n  webApplication = softwareSystem \"Web Application\"\n}\n",
+            ),
+            (
+                Path::new("relationships.dsl"),
+                "model {\n  customer -> webApplication \"Uses\"\n\n  env = deploymentEnvironment \"Development\" {\n  }\n}\n",
+            ),
+        ],
+    );
+    let (mut service, mut socket) = new_service();
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(temp_workspace.path())])
+        .await;
+    initialized(&mut service).await;
+
+    let document_path = temp_workspace.path().join("relationships.dsl");
+    let document_source = read_workspace_file(&document_path);
+    let fresh_source = annotated_source(&document_source.replacen(
+        "\n\n  env = deploymentEnvironment",
+        "\n\n  cust<CURSOR>\n  env = deploymentEnvironment",
+        1,
+    ));
+    let document_uri = file_uri_from_path(&document_path);
+    open_document(&mut service, &document_uri, &document_source).await;
+    let _ = next_publish_diagnostics_for_uri(&mut socket, document_uri.as_str()).await;
+    change_document(&mut service, &document_uri, 2, fresh_source.source()).await;
+    let diagnostics_notification =
+        next_publish_diagnostics_for_uri(&mut socket, document_uri.as_str()).await;
+    let diagnostics = diagnostics_notification["params"]["diagnostics"]
+        .as_array()
+        .expect("publishDiagnostics should include a diagnostics array");
+
+    assert!(
+        diagnostics.is_empty(),
+        "partial relationship source before assigned deploymentEnvironment should not publish the recovery `=` diagnostic: {diagnostics:?}"
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn assigned_deployment_environment_syntax_errors_still_publish_diagnostics_after_partial_relationship()
+ {
+    let temp_workspace = TempWorkspace::new(
+        "relationship-errors-before-assigned-deployment-environment",
+        "workspace {\n  !include model.dsl\n  !include relationships.dsl\n}\n",
+        &[],
+        &[
+            (
+                Path::new("model.dsl"),
+                "model {\n  customer = person \"Customer\"\n  webApplication = softwareSystem \"Web Application\"\n}\n",
+            ),
+            (
+                Path::new("relationships.dsl"),
+                "model {\n  customer -> webApplication \"Uses\"\n\n  env = deploymentEnvironment \"Development\" {\n  }\n}\n",
+            ),
+        ],
+    );
+    let (mut service, mut socket) = new_service();
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(temp_workspace.path())])
+        .await;
+    initialized(&mut service).await;
+
+    let document_path = temp_workspace.path().join("relationships.dsl");
+    let document_source = read_workspace_file(&document_path);
+    let fresh_source = document_source.replacen(
+        "\n\n  env = deploymentEnvironment \"Development\" {",
+        "\n\n  cust\n  env = deploymentEnvironment {",
+        1,
+    );
+    let document_uri = file_uri_from_path(&document_path);
+    open_document(&mut service, &document_uri, &document_source).await;
+    let _ = next_publish_diagnostics_for_uri(&mut socket, document_uri.as_str()).await;
+    change_document(&mut service, &document_uri, 2, &fresh_source).await;
+    let diagnostics_notification =
+        next_publish_diagnostics_for_uri(&mut socket, document_uri.as_str()).await;
+    let diagnostics = diagnostics_notification["params"]["diagnostics"]
+        .as_array()
+        .expect("publishDiagnostics should include a diagnostics array");
+
+    assert!(
+        diagnostics.iter().any(|diagnostic| {
+            diagnostic["message"] == "unexpected syntax"
+                && diagnostic["range"]["start"]["line"] == 4
+        }),
+        "malformed assigned deploymentEnvironment syntax should still publish a diagnostic on the deployment line: {diagnostics:?}"
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
 async fn completion_inside_relationship_destination_suppresses_hierarchical_mode() {
     let (mut service, _socket) = new_service();
 

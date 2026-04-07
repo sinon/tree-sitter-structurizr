@@ -4350,16 +4350,33 @@
               "type": "CHOICE",
               "members": [
                 {
-                  "type": "PREC",
-                  "value": 2,
-                  "content": {
-                    "type": "SEQ",
-                    "members": [
-                      {
-                        "type": "SYMBOL",
-                        "name": "_inline_gap"
-                      },
-                      {
+                  "type": "CHOICE",
+                  "members": [
+                    {
+                      "type": "PREC",
+                      "value": 2,
+                      "content": {
+                        "type": "SEQ",
+                        "members": [
+                          {
+                            "type": "SYMBOL",
+                            "name": "_inline_gap"
+                          },
+                          {
+                            "type": "FIELD",
+                            "name": "body",
+                            "content": {
+                              "type": "SYMBOL",
+                              "name": "deployment_instance_block"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "PREC",
+                      "value": 1,
+                      "content": {
                         "type": "FIELD",
                         "name": "body",
                         "content": {
@@ -4367,64 +4384,27 @@
                           "name": "deployment_instance_block"
                         }
                       }
-                    ]
-                  }
-                },
-                {
-                  "type": "PREC",
-                  "value": 1,
-                  "content": {
-                    "type": "FIELD",
-                    "name": "body",
-                    "content": {
-                      "type": "SYMBOL",
-                      "name": "deployment_instance_block"
                     }
-                  }
+                  ]
                 },
                 {
                   "type": "SEQ",
                   "members": [
                     {
-                      "type": "SYMBOL",
-                      "name": "_inline_gap"
-                    },
-                    {
-                      "type": "FIELD",
-                      "name": "deployment_group",
-                      "content": {
-                        "type": "SYMBOL",
-                        "name": "_value"
-                      }
-                    },
-                    {
-                      "type": "CHOICE",
+                      "type": "SEQ",
                       "members": [
                         {
-                          "type": "SEQ",
-                          "members": [
-                            {
-                              "type": "SYMBOL",
-                              "name": "_inline_gap"
-                            },
-                            {
-                              "type": "FIELD",
-                              "name": "tags",
-                              "content": {
-                                "type": "SYMBOL",
-                                "name": "_tag_value"
-                              }
-                            }
-                          ]
+                          "type": "SYMBOL",
+                          "name": "_inline_gap"
                         },
                         {
-                          "type": "BLANK"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "CHOICE",
-                      "members": [
+                          "type": "FIELD",
+                          "name": "deployment_group",
+                          "content": {
+                            "type": "SYMBOL",
+                            "name": "_value"
+                          }
+                        },
                         {
                           "type": "CHOICE",
                           "members": [
@@ -4437,20 +4417,58 @@
                                 },
                                 {
                                   "type": "FIELD",
-                                  "name": "body",
+                                  "name": "tags",
                                   "content": {
                                     "type": "SYMBOL",
-                                    "name": "deployment_instance_block"
+                                    "name": "_tag_value"
                                   }
                                 }
                               ]
                             },
                             {
-                              "type": "FIELD",
-                              "name": "body",
+                              "type": "BLANK"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "CHOICE",
+                      "members": [
+                        {
+                          "type": "CHOICE",
+                          "members": [
+                            {
+                              "type": "PREC",
+                              "value": 2,
                               "content": {
-                                "type": "SYMBOL",
-                                "name": "deployment_instance_block"
+                                "type": "SEQ",
+                                "members": [
+                                  {
+                                    "type": "SYMBOL",
+                                    "name": "_inline_gap"
+                                  },
+                                  {
+                                    "type": "FIELD",
+                                    "name": "body",
+                                    "content": {
+                                      "type": "SYMBOL",
+                                      "name": "deployment_instance_block"
+                                    }
+                                  }
+                                ]
+                              }
+                            },
+                            {
+                              "type": "PREC",
+                              "value": 1,
+                              "content": {
+                                "type": "FIELD",
+                                "name": "body",
+                                "content": {
+                                  "type": "SYMBOL",
+                                  "name": "deployment_instance_block"
+                                }
                               }
                             }
                           ]
@@ -4522,16 +4540,33 @@
               "type": "CHOICE",
               "members": [
                 {
-                  "type": "PREC",
-                  "value": 2,
-                  "content": {
-                    "type": "SEQ",
-                    "members": [
-                      {
-                        "type": "SYMBOL",
-                        "name": "_inline_gap"
-                      },
-                      {
+                  "type": "CHOICE",
+                  "members": [
+                    {
+                      "type": "PREC",
+                      "value": 2,
+                      "content": {
+                        "type": "SEQ",
+                        "members": [
+                          {
+                            "type": "SYMBOL",
+                            "name": "_inline_gap"
+                          },
+                          {
+                            "type": "FIELD",
+                            "name": "body",
+                            "content": {
+                              "type": "SYMBOL",
+                              "name": "deployment_instance_block"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "PREC",
+                      "value": 1,
+                      "content": {
                         "type": "FIELD",
                         "name": "body",
                         "content": {
@@ -4539,64 +4574,27 @@
                           "name": "deployment_instance_block"
                         }
                       }
-                    ]
-                  }
-                },
-                {
-                  "type": "PREC",
-                  "value": 1,
-                  "content": {
-                    "type": "FIELD",
-                    "name": "body",
-                    "content": {
-                      "type": "SYMBOL",
-                      "name": "deployment_instance_block"
                     }
-                  }
+                  ]
                 },
                 {
                   "type": "SEQ",
                   "members": [
                     {
-                      "type": "SYMBOL",
-                      "name": "_inline_gap"
-                    },
-                    {
-                      "type": "FIELD",
-                      "name": "deployment_group",
-                      "content": {
-                        "type": "SYMBOL",
-                        "name": "_value"
-                      }
-                    },
-                    {
-                      "type": "CHOICE",
+                      "type": "SEQ",
                       "members": [
                         {
-                          "type": "SEQ",
-                          "members": [
-                            {
-                              "type": "SYMBOL",
-                              "name": "_inline_gap"
-                            },
-                            {
-                              "type": "FIELD",
-                              "name": "tags",
-                              "content": {
-                                "type": "SYMBOL",
-                                "name": "_tag_value"
-                              }
-                            }
-                          ]
+                          "type": "SYMBOL",
+                          "name": "_inline_gap"
                         },
                         {
-                          "type": "BLANK"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "CHOICE",
-                      "members": [
+                          "type": "FIELD",
+                          "name": "deployment_group",
+                          "content": {
+                            "type": "SYMBOL",
+                            "name": "_value"
+                          }
+                        },
                         {
                           "type": "CHOICE",
                           "members": [
@@ -4609,20 +4607,58 @@
                                 },
                                 {
                                   "type": "FIELD",
-                                  "name": "body",
+                                  "name": "tags",
                                   "content": {
                                     "type": "SYMBOL",
-                                    "name": "deployment_instance_block"
+                                    "name": "_tag_value"
                                   }
                                 }
                               ]
                             },
                             {
-                              "type": "FIELD",
-                              "name": "body",
+                              "type": "BLANK"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "CHOICE",
+                      "members": [
+                        {
+                          "type": "CHOICE",
+                          "members": [
+                            {
+                              "type": "PREC",
+                              "value": 2,
                               "content": {
-                                "type": "SYMBOL",
-                                "name": "deployment_instance_block"
+                                "type": "SEQ",
+                                "members": [
+                                  {
+                                    "type": "SYMBOL",
+                                    "name": "_inline_gap"
+                                  },
+                                  {
+                                    "type": "FIELD",
+                                    "name": "body",
+                                    "content": {
+                                      "type": "SYMBOL",
+                                      "name": "deployment_instance_block"
+                                    }
+                                  }
+                                ]
+                              }
+                            },
+                            {
+                              "type": "PREC",
+                              "value": 1,
+                              "content": {
+                                "type": "FIELD",
+                                "name": "body",
+                                "content": {
+                                  "type": "SYMBOL",
+                                  "name": "deployment_instance_block"
+                                }
                               }
                             }
                           ]

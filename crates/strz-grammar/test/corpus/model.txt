@@ -483,3 +483,70 @@ workspace {
                     (identifier)
                     (identifier)
                     (string)))))))))))
+
+===========================================
+Deployment instance groups, tags, and bodies
+===========================================
+
+workspace {
+  model {
+    system = softwareSystem "System" {
+      app = container "App"
+    }
+
+    live = deploymentEnvironment "Live" {
+      blue = deploymentGroup "Blue"
+
+      node = deploymentNode "Node" {
+        canarySystem = softwareSystemInstance system blue "Canary" {
+          tag "Observed"
+        }
+        canaryApp = containerInstance app blue "Canary" {
+          url "https://example.com/app"
+        }
+      }
+    }
+  }
+}
+
+---
+
+(source_file
+  (workspace
+    (workspace_block
+      (model
+        (model_block
+          (software_system
+            (identifier)
+            (string)
+            (software_system_block
+              (container
+                (identifier)
+                (string))))
+          (deployment_environment
+            (identifier)
+            (string)
+            (deployment_environment_block
+              (deployment_group
+                (identifier)
+                (string))
+              (deployment_node
+                (identifier)
+                (string)
+                (deployment_node_block
+                  (software_system_instance
+                    (identifier)
+                    (identifier)
+                    (identifier)
+                    (string)
+                    (deployment_instance_block
+                      (tag_statement
+                        (string))))
+                  (container_instance
+                    (identifier)
+                    (identifier)
+                    (identifier)
+                    (string)
+                    (deployment_instance_block
+                      (url_statement
+                        (string)))))))))))))

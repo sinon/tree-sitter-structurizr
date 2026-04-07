@@ -215,29 +215,46 @@ function enumValueChoices(values, { quoted = false } = {}) {
   });
 }
 
+function deploymentInstanceBody($) {
+  return field("body", $.deployment_instance_block);
+}
+
+function deploymentInstanceOptionalBody($) {
+  return choice(
+    prec(2, seq($._inline_gap, deploymentInstanceBody($))),
+    prec(1, deploymentInstanceBody($)),
+  );
+}
+
+function deploymentInstanceGroupAndTags($) {
+  return seq(
+    $._inline_gap,
+    field("deployment_group", $._value),
+    optional(seq($._inline_gap, field("tags", $._tag_value))),
+  );
+}
+
+function deploymentInstanceGroupedTail($) {
+  return seq(
+    deploymentInstanceGroupAndTags($),
+    optional(deploymentInstanceOptionalBody($)),
+  );
+}
+
 function deploymentInstanceRule($, keyword) {
+  // Upstream deployment instances accept three header shapes:
+  //   1. `softwareSystemInstance system`
+  //   2. `softwareSystemInstance system { ... }`
+  //   3. `softwareSystemInstance system blue "Canary" { ... }`
+  //
+  // Keep those branches named here so future grammar work can reason about
+  // target-only, direct-body, and grouped-header forms separately.
   return seq(
     optional(seq(field("identifier", $._assignment_identifier), "=")),
     keyword,
     $._inline_gap,
     field("target", $.identifier),
-    optional(
-      choice(
-        prec(2, seq($._inline_gap, field("body", $.deployment_instance_block))),
-        prec(1, field("body", $.deployment_instance_block)),
-        seq(
-          $._inline_gap,
-          field("deployment_group", $._value),
-          optional(seq($._inline_gap, field("tags", $._tag_value))),
-          optional(
-            choice(
-              seq($._inline_gap, field("body", $.deployment_instance_block)),
-              field("body", $.deployment_instance_block),
-            ),
-          ),
-        ),
-      ),
-    ),
+    optional(choice(deploymentInstanceOptionalBody($), deploymentInstanceGroupedTail($))),
   );
 }
 

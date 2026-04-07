@@ -341,8 +341,7 @@ impl<'a> SymbolExtractor<'a> {
         kind: SymbolKind,
         parent_symbol: Option<SymbolId>,
     ) -> Option<SymbolId> {
-        let shape = instance_shape(node);
-        let identifier = shape.child_by_field_name("identifier")?;
+        let identifier = node.child_by_field_name("identifier")?;
         if identifier.kind() != "identifier" {
             return None;
         }
@@ -369,8 +368,7 @@ impl<'a> SymbolExtractor<'a> {
         instance: Node<'_>,
         containing_symbol: Option<SymbolId>,
     ) {
-        let shape = instance_shape(instance);
-        let Some(target) = shape.child_by_field_name("target") else {
+        let Some(target) = instance.child_by_field_name("target") else {
             return;
         };
 
@@ -610,10 +608,6 @@ fn is_deployment_relationship(node: Node<'_>) -> bool {
     false
 }
 
-const fn instance_shape(node: Node<'_>) -> Node<'_> {
-    node
-}
-
 fn declaration_metadata(node: Node<'_>, source: &str) -> ExtractedSymbolMetadata {
     match node.kind() {
         "person" | "software_system" | "container" | "component" => element_metadata(node, source),
@@ -686,6 +680,9 @@ fn deployment_metadata(node: Node<'_>, source: &str) -> ExtractedSymbolMetadata 
 
 fn instance_metadata(node: Node<'_>, source: &str) -> ExtractedSymbolMetadata {
     let mut metadata = ExtractedSymbolMetadata::default();
+    if let Some(tags) = normalized_nonempty_field(node, "tags", source) {
+        extend_tags(&mut metadata.tags, &tags);
+    }
     if let Some(body) = node.child_by_field_name("body") {
         apply_body_metadata(&mut metadata, body, source);
     }

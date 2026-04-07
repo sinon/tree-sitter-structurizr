@@ -366,6 +366,41 @@ mod tests {
     }
 
     #[test]
+    fn analysis_extracts_deployment_instance_hover_metadata_from_header_tags() {
+        let mut analyzer = DocumentAnalyzer::new();
+        let snapshot = analyzer.analyze(DocumentInput::new(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        system = softwareSystem "Payments"
+
+                        deploymentEnvironment "Live" {
+                            edge = deploymentNode "Edge" {
+                                canary = softwareSystemInstance system blue "Canary" {
+                                    tag "Observed"
+                                    url "https://example.com/canary"
+                                }
+                            }
+                        }
+                    }
+                }
+            "#},
+        ));
+
+        let canary = snapshot
+            .symbols()
+            .iter()
+            .find(|symbol| symbol.binding_name.as_deref() == Some("canary"))
+            .expect("software system instance should exist");
+        assert_eq!(canary.display_name, "canary");
+        assert_eq!(canary.description, None);
+        assert_eq!(canary.technology, None);
+        assert_eq!(canary.tags, vec!["Canary", "Observed"]);
+        assert_eq!(canary.url.as_deref(), Some("https://example.com/canary"));
+    }
+
+    #[test]
     fn analysis_preserves_empty_relationship_placeholder_slots() {
         let mut analyzer = DocumentAnalyzer::new();
         let snapshot = analyzer.analyze(DocumentInput::new(

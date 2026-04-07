@@ -33,10 +33,10 @@ pub fn document_diagnostics(
 ///
 /// Every syntax diagnostic passes through a narrow suppression step first because one
 /// specific partial-edit state still recovers poorly in the grammar: a lone
-/// relationship source identifier immediately before a `deploymentEnvironment`
-/// statement. Without that guard, the editor shows a cascaded syntax error on the
-/// deployment line while the user is still typing the relationship and relying on
-/// completion to finish it.
+/// relationship source identifier immediately before an assigned
+/// `deploymentEnvironment` statement. Without that guard, the editor can show a
+/// cascaded syntax error for the stray recovery `=` token while the user is still
+/// typing the relationship and relying on completion to finish it.
 fn syntax_diagnostic(
     document: &DocumentState,
     diagnostic: &SyntaxDiagnostic,
@@ -117,22 +117,22 @@ fn workspace_document_id(document: &DocumentState) -> Option<DocumentId> {
     document.workspace_document_id().cloned()
 }
 
-/// Suppress the transient `deploymentEnvironment` error produced by partial
-/// relationship recovery.
+/// Suppress the stray `=` error produced by partial relationship recovery before an
+/// assigned `deploymentEnvironment` statement.
 ///
 /// The upstream Structurizr parser is effectively line-oriented, but our Tree-sitter
-/// grammar currently treats a bare identifier on the previous line as recoverable
-/// input. During an in-progress edit like:
+/// grammar can still recover a bare relationship-source line into the identifier on
+/// the next assigned deployment-environment header. During an in-progress edit like:
 ///
 /// ```text
 /// customer
-/// deploymentEnvironment "Prod" {
+/// env = deploymentEnvironment "Prod" {
 /// ```
 ///
-/// recovery can attach the resulting `ERROR` node to the `deploymentEnvironment`
-/// statement instead of the incomplete relationship source. We keep this workaround in
-/// the LSP conversion layer so it stays tightly scoped to that known editor-only
-/// recovery artifact rather than weakening syntax diagnostics more broadly.
+/// recovery leaves a standalone `=` error on the deployment line even though the
+/// rest of the line still forms a valid assigned `deploymentEnvironment` statement.
+/// We keep this workaround in the LSP conversion layer and only suppress that exact
+/// `=` artifact so genuine deployment-environment syntax errors still surface.
 fn suppress_partial_relationship_recovery_diagnostic(
     document: &DocumentState,
     diagnostic: &SyntaxDiagnostic,
@@ -141,16 +141,28 @@ fn suppress_partial_relationship_recovery_diagnostic(
         return false;
     }
 
-    let Some(range) = span_to_range(document.line_index(), diagnostic.span) else {
+    if diagnostic.span.start_point.row != diagnostic.span.end_point.row {
+        return false;
+    }
+
+    let Some(diagnostic_text) = document
+        .text()
+        .get(diagnostic.span.start_byte..diagnostic.span.end_byte)
+        .map(str::trim)
+    else {
         return false;
     };
+    if diagnostic_text != "=" {
+        return false;
+    }
+
     let lines = document.text().split('\n').collect::<Vec<_>>();
     let current_line = lines
-        .get(range.start.line as usize)
+        .get(diagnostic.span.start_point.row)
         .map(|line| line.trim_end_matches('\r'));
     let previous_nonempty_line = lines
         .iter()
-        .take(range.start.line as usize)
+        .take(diagnostic.span.start_point.row)
         .rev()
         .map(|line| line.trim_end_matches('\r'))
         .find(|line| !line.trim().is_empty());
@@ -158,24 +170,77 @@ fn suppress_partial_relationship_recovery_diagnostic(
     matches!(
         (current_line, previous_nonempty_line),
         (Some(current_line), Some(previous_nonempty_line))
-            if is_deployment_environment_statement(current_line)
+            if is_complete_assigned_deployment_environment_statement(current_line)
                 && is_bare_identifier_line(previous_nonempty_line)
     )
 }
 
-fn is_deployment_environment_statement(line: &str) -> bool {
+fn is_complete_assigned_deployment_environment_statement(line: &str) -> bool {
     let trimmed = line.trim_start();
-    starts_with_keyword(trimmed, "deploymentEnvironment")
-        || trimmed.split_once('=').is_some_and(|(_, rest)| {
-            starts_with_keyword(rest.trim_start(), "deploymentEnvironment")
-        })
+    let Some(rest) = consume_identifier(trimmed) else {
+        return false;
+    };
+    let Some(rest) = consume_prefix(consume_whitespace(rest), "=") else {
+        return false;
+    };
+    let Some(rest) = consume_keyword(consume_whitespace(rest), "deploymentEnvironment") else {
+        return false;
+    };
+    let Some(rest) = consume_value(consume_whitespace(rest)) else {
+        return false;
+    };
+
+    matches!(consume_whitespace(rest), "" | "{")
 }
 
-fn starts_with_keyword(line: &str, keyword: &str) -> bool {
-    line == keyword
-        || line
-            .strip_prefix(keyword)
-            .is_some_and(|rest| rest.starts_with(char::is_whitespace))
+fn consume_whitespace(line: &str) -> &str {
+    line.trim_start_matches(char::is_whitespace)
+}
+
+fn consume_prefix<'a>(line: &'a str, prefix: &str) -> Option<&'a str> {
+    line.strip_prefix(prefix)
+}
+
+fn consume_keyword<'a>(line: &'a str, keyword: &str) -> Option<&'a str> {
+    let rest = line.strip_prefix(keyword)?;
+    rest.chars()
+        .next()
+        .is_none_or(char::is_whitespace)
+        .then_some(rest)
+}
+
+fn consume_identifier(line: &str) -> Option<&str> {
+    let mut end = 0;
+    for (index, ch) in line.char_indices() {
+        let is_valid = if index == 0 {
+            ch.is_ascii_alphabetic() || ch == '_'
+        } else {
+            ch.is_ascii_alphanumeric() || matches!(ch, '_' | '.' | '-')
+        };
+        if !is_valid {
+            break;
+        }
+        end = index + ch.len_utf8();
+    }
+
+    (end > 0).then_some(&line[end..])
+}
+
+fn consume_value(line: &str) -> Option<&str> {
+    if let Some(rest) = line.strip_prefix('"') {
+        let mut escaped = false;
+        for (index, ch) in rest.char_indices() {
+            match (escaped, ch) {
+                (true, _) => escaped = false,
+                (false, '\\') => escaped = true,
+                (false, '"') => return Some(&rest[index + ch.len_utf8()..]),
+                (false, _) => {}
+            }
+        }
+        None
+    } else {
+        consume_identifier(line)
+    }
 }
 
 fn is_bare_identifier_line(line: &str) -> bool {
