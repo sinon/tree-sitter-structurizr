@@ -357,6 +357,8 @@ pub enum SemanticDiagnosticKind {
     FilteredViewAutoLayoutMismatch,
     /// A dynamic-view step does not correspond to any compatible declared relationship.
     DynamicViewRelationshipMismatch,
+    /// A dynamic-view step redundantly re-adds the view scope.
+    DynamicViewScopeRedundancy,
     /// A resolved view element is incompatible with the current view kind.
     InvalidViewElement,
     /// One DSL definition contained more than one top-level `model` or `views` section.
@@ -383,6 +385,7 @@ impl SemanticDiagnosticKind {
             Self::DynamicViewRelationshipMismatch => {
                 &rules::SEMANTIC_DYNAMIC_VIEW_RELATIONSHIP_MISMATCH
             }
+            Self::DynamicViewScopeRedundancy => &rules::SEMANTIC_DYNAMIC_VIEW_SCOPE_REDUNDANCY,
             Self::InvalidViewElement => &rules::SEMANTIC_INVALID_VIEW_ELEMENT,
             Self::RepeatedWorkspaceSection => &rules::SEMANTIC_REPEATED_WORKSPACE_SECTION,
             Self::UnresolvedElementSelector => &rules::SEMANTIC_UNRESOLVED_ELEMENT_SELECTOR,
@@ -526,6 +529,22 @@ impl SemanticDiagnostic {
             document: document.clone(),
             kind: SemanticDiagnosticKind::DynamicViewRelationshipMismatch,
             message,
+            span,
+            annotations: Vec::new(),
+        }
+    }
+
+    pub(crate) fn dynamic_view_scope_redundancy(
+        document: &DocumentId,
+        scope_name: &str,
+        span: TextSpan,
+    ) -> Self {
+        Self {
+            document: document.clone(),
+            kind: SemanticDiagnosticKind::DynamicViewScopeRedundancy,
+            message: format!(
+                "{scope_name} is already the scope of this view and cannot be added to it"
+            ),
             span,
             annotations: Vec::new(),
         }

@@ -505,6 +505,96 @@ fn dynamic_view_relationship_technology_mismatches_surface_semantic_diagnostics(
 }
 
 #[test]
+fn dynamic_view_scope_steps_surface_semantic_diagnostics() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        user = person "User"
+                        system = softwareSystem "System" {
+                            api = container "API"
+                        }
+
+                        user -> api "Uses"
+                        api -> user "Responds"
+                    }
+
+                    views {
+                        dynamic api "dynamic-view" {
+                            user -> api "Uses"
+                            api -> user "Responds"
+                        }
+                    }
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics =
+        diagnostics_of_kind(&facts, SemanticDiagnosticKind::DynamicViewScopeRedundancy);
+    assert_eq!(diagnostics.len(), 2);
+    assert!(diagnostics.iter().all(|diagnostic| {
+        diagnostic.message == "API is already the scope of this view and cannot be added to it"
+            && diagnostic.annotations.len() == 1
+            && diagnostic.annotations[0].message.as_deref() == Some("view scope is declared here")
+    }));
+
+    let mismatch_diagnostics = diagnostics_of_kind(
+        &facts,
+        SemanticDiagnosticKind::DynamicViewRelationshipMismatch,
+    );
+    assert!(mismatch_diagnostics.is_empty(), "{mismatch_diagnostics:#?}");
+}
+
+#[test]
+fn dynamic_view_scope_relationship_references_surface_semantic_diagnostics() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        user = person "User"
+                        system = softwareSystem "System" {
+                            api = container "API"
+                        }
+
+                        rel = user -> api "Uses"
+                    }
+
+                    views {
+                        dynamic api "dynamic-view" {
+                            rel "Uses"
+                        }
+                    }
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics =
+        diagnostics_of_kind(&facts, SemanticDiagnosticKind::DynamicViewScopeRedundancy);
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].message,
+        "API is already the scope of this view and cannot be added to it"
+    );
+    assert_eq!(diagnostics[0].annotations.len(), 2);
+    assert_eq!(
+        diagnostics[0].annotations[0].message.as_deref(),
+        Some("view scope is declared here")
+    );
+    assert_eq!(
+        diagnostics[0].annotations[1].message.as_deref(),
+        Some("referenced relationship here already includes API")
+    );
+}
+
+#[test]
 fn invalid_container_view_elements_surface_include_and_animation_diagnostics() {
     let (_workspace, facts) = load_temp_workspace(
         &[(

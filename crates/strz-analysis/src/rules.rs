@@ -134,6 +134,21 @@ declare_rule! {
 
 declare_rule! {
     /// ## What it does
+    /// Reports dynamic-view steps that redundantly re-add the view's scoped element.
+    ///
+    /// ## Why is this bad?
+    /// Scoped dynamic views already imply the chosen element, so adding it again
+    /// in a step or a referenced relationship is rejected by upstream validation
+    /// and usually means the view should be widened to `*` instead.
+    pub static SEMANTIC_DYNAMIC_VIEW_SCOPE_REDUNDANCY = {
+        code: "semantic.dynamic-view-scope-redundancy",
+        summary: "reports dynamic-view steps that re-add the scoped element",
+        default_level: Level::Error,
+    };
+}
+
+declare_rule! {
+    /// ## What it does
     /// Reports view elements whose kind is incompatible with the current view type.
     ///
     /// ## Why is this bad?
@@ -228,6 +243,7 @@ pub fn register_rules(registry: &mut RuleRegistryBuilder) {
     registry.register(&SEMANTIC_DUPLICATE_BINDING);
     registry.register(&SEMANTIC_FILTERED_VIEW_AUTOLAYOUT_MISMATCH);
     registry.register(&SEMANTIC_DYNAMIC_VIEW_RELATIONSHIP_MISMATCH);
+    registry.register(&SEMANTIC_DYNAMIC_VIEW_SCOPE_REDUNDANCY);
     registry.register(&SEMANTIC_INVALID_VIEW_ELEMENT);
     registry.register(&SEMANTIC_REPEATED_WORKSPACE_SECTION);
     registry.register(&SEMANTIC_UNRESOLVED_ELEMENT_SELECTOR);
@@ -269,6 +285,7 @@ mod tests {
                 "semantic.ambiguous-reference",
                 "semantic.duplicate-binding",
                 "semantic.dynamic-view-relationship-mismatch",
+                "semantic.dynamic-view-scope-redundancy",
                 "semantic.filtered-view-autolayout-mismatch",
                 "semantic.invalid-view-element",
                 "semantic.repeated-workspace-section",
@@ -294,6 +311,11 @@ mod tests {
         assert!(
             registry
                 .get("semantic.dynamic-view-relationship-mismatch")
+                .is_some()
+        );
+        assert!(
+            registry
+                .get("semantic.dynamic-view-scope-redundancy")
                 .is_some()
         );
         assert!(registry.get("semantic.invalid-view-element").is_some());

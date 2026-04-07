@@ -2142,7 +2142,8 @@ fn build_derived_workspace_instance(
     semantic_diagnostics.extend(workspace_scope_diagnostics(definition_documents, documents));
     semantic_diagnostics.extend(element_selector_diagnostics(documents, &bindings));
     let reference_tables = build_reference_resolution_tables(documents, &bindings);
-    let view_semantic_diagnostics = view_semantic_diagnostics(documents, &reference_tables);
+    let view_semantic_diagnostics =
+        view_semantic_diagnostics(documents, &bindings, &reference_tables);
     semantic_diagnostics.extend(reference_tables.semantic_diagnostics);
     semantic_diagnostics.extend(view_semantic_diagnostics);
 
@@ -2735,6 +2736,7 @@ impl RelationshipLocation {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct DeclaredRelationship {
+    handle: Option<SymbolHandle>,
     document: DocumentId,
     span: TextSpan,
     source: SymbolHandle,
@@ -2744,6 +2746,7 @@ struct DeclaredRelationship {
 
 fn view_semantic_diagnostics(
     documents: &[&WorkspaceSemanticDocumentFacts],
+    bindings: &WorkspaceBindingTables,
     reference_tables: &WorkspaceReferenceTables,
 ) -> Vec<SemanticDiagnostic> {
     let documents_by_id = documents
@@ -2764,6 +2767,13 @@ fn view_semantic_diagnostics(
         documents,
         &documents_by_id,
         reference_tables,
+    ));
+    diagnostics.extend(dynamic_view_scope_redundancy_diagnostics(
+        documents,
+        &documents_by_id,
+        bindings,
+        reference_tables,
+        &declared_relationships,
     ));
     diagnostics.extend(dynamic_view_relationship_diagnostics(
         documents,
@@ -2912,6 +2922,141 @@ fn push_invalid_view_value_diagnostics(
     }
 }
 
+fn dynamic_view_scope_redundancy_diagnostics(
+    documents: &[&WorkspaceSemanticDocumentFacts],
+    documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
+    bindings: &WorkspaceBindingTables,
+    reference_tables: &WorkspaceReferenceTables,
+    declared_relationships: &[DeclaredRelationship],
+) -> Vec<SemanticDiagnostic> {
+    let mut diagnostics = Vec::new();
+
+    for document in documents {
+        if document.has_syntax_errors {
+            continue;
+        }
+
+        for view in &document.view_facts {
+            if view.kind != ViewKind::Dynamic {
+                continue;
+            }
+
+            let Some(scope) = view.scope.as_ref() else {
+                continue;
+            };
+            let Some(scope_handle) = resolved_reference_target(
+                document,
+                ReferenceKind::ViewScope,
+                scope.span,
+                reference_tables,
+            ) else {
+                continue;
+            };
+            let Some(scope_symbol) = symbol_for_handle(documents_by_id, &scope_handle) else {
+                continue;
+            };
+
+            for step in &view.dynamic_steps {
+                match step {
+                    DynamicViewStepFact::Relationship(step) => {
+                        let Some(source_handle) = resolved_reference_target(
+                            document,
+                            ReferenceKind::RelationshipSource,
+                            step.source.span,
+                            reference_tables,
+                        ) else {
+                            continue;
+                        };
+                        let Some(destination_handle) = resolved_reference_target(
+                            document,
+                            ReferenceKind::RelationshipDestination,
+                            step.destination.span,
+                            reference_tables,
+                        ) else {
+                            continue;
+                        };
+                        if source_handle != scope_handle && destination_handle != scope_handle {
+                            continue;
+                        }
+
+                        let diagnostic = dynamic_view_scope_diagnostic(
+                            &document.document_id,
+                            scope,
+                            &scope_symbol.display_name,
+                            step.span,
+                        );
+                        diagnostics.push(diagnostic);
+                    }
+                    DynamicViewStepFact::RelationshipReference(step) => {
+                        let Some(relationship_handle) = resolved_relationship_binding(
+                            &step.relationship.normalized_text,
+                            bindings,
+                        ) else {
+                            continue;
+                        };
+                        let Some(relationship) = declared_relationship_for_handle(
+                            &relationship_handle,
+                            declared_relationships,
+                        ) else {
+                            continue;
+                        };
+                        if relationship.source != scope_handle
+                            && relationship.destination != scope_handle
+                        {
+                            continue;
+                        }
+
+                        let mut diagnostic = dynamic_view_scope_diagnostic(
+                            &document.document_id,
+                            scope,
+                            &scope_symbol.display_name,
+                            step.span,
+                        );
+                        diagnostic.annotate(dynamic_view_scope_relationship_annotation(
+                            &document.document_id,
+                            &scope_symbol.display_name,
+                            relationship,
+                        ));
+                        diagnostics.push(diagnostic);
+                    }
+                }
+            }
+        }
+    }
+
+    diagnostics
+}
+
+fn dynamic_view_scope_diagnostic(
+    document: &DocumentId,
+    scope: &crate::ValueFact,
+    scope_name: &str,
+    step_span: TextSpan,
+) -> SemanticDiagnostic {
+    let mut diagnostic =
+        SemanticDiagnostic::dynamic_view_scope_redundancy(document, scope_name, step_span);
+    diagnostic.annotate(secondary_annotation(
+        document,
+        document,
+        scope.span,
+        "view scope is declared here",
+    ));
+    diagnostic
+}
+
+fn dynamic_view_scope_relationship_annotation(
+    primary_document: &DocumentId,
+    scope_name: &str,
+    relationship: &DeclaredRelationship,
+) -> Annotation {
+    secondary_annotation(
+        primary_document,
+        &relationship.document,
+        relationship.span,
+        format!("referenced relationship here already includes {scope_name}"),
+    )
+}
+
 fn dynamic_view_relationship_diagnostics(
     documents: &[&WorkspaceSemanticDocumentFacts],
     documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
@@ -2930,6 +3075,14 @@ fn dynamic_view_relationship_diagnostics(
                 continue;
             }
 
+            let scope_handle = view.scope.as_ref().and_then(|scope| {
+                resolved_reference_target(
+                    document,
+                    ReferenceKind::ViewScope,
+                    scope.span,
+                    reference_tables,
+                )
+            });
             let mut seen_relationships = BTreeSet::<RelationshipLocation>::new();
 
             for step in &view.dynamic_steps {
@@ -2960,6 +3113,11 @@ fn dynamic_view_relationship_diagnostics(
                 else {
                     continue;
                 };
+                if scope_handle.as_ref().is_some_and(|scope_handle| {
+                    *scope_handle == source_handle || *scope_handle == destination_handle
+                }) {
+                    continue;
+                }
                 let technology = step
                     .technology
                     .as_ref()
@@ -3082,6 +3240,13 @@ fn collect_declared_relationships(
             }
 
             relationships.push(DeclaredRelationship {
+                handle: document
+                    .symbols
+                    .iter()
+                    .find(|symbol| {
+                        symbol.kind == SymbolKind::Relationship && symbol.span == relationship.span
+                    })
+                    .map(|symbol| SymbolHandle::new(document.document_id.clone(), symbol.id)),
                 document: document.document_id.clone(),
                 span: relationship.span,
                 source,
@@ -3125,6 +3290,20 @@ fn resolved_reference_target(
     };
     match reference_tables.resolutions.get(&handle) {
         Some(ReferenceResolutionStatus::Resolved(target)) => Some(target.clone()),
+        _ => None,
+    }
+}
+
+fn resolved_relationship_binding(
+    binding_name: &str,
+    bindings: &WorkspaceBindingTables,
+) -> Option<SymbolHandle> {
+    match resolve_reference_against_binding_table(
+        binding_name,
+        &bindings.unique_relationships,
+        &bindings.duplicate_relationships,
+    ) {
+        ReferenceResolutionStatus::Resolved(handle) => Some(handle),
         _ => None,
     }
 }
@@ -3185,6 +3364,15 @@ fn matching_declared_relationship<'a>(
     })
 }
 
+fn declared_relationship_for_handle<'a>(
+    handle: &SymbolHandle,
+    declared_relationships: &'a [DeclaredRelationship],
+) -> Option<&'a DeclaredRelationship> {
+    declared_relationships
+        .iter()
+        .find(|relationship| relationship.handle.as_ref() == Some(handle))
+}
+
 fn response_relationship_is_in_view(
     source: &SymbolHandle,
     destination: &SymbolHandle,
@@ -3229,9 +3417,8 @@ fn relationship_technology_matches(
     declared_technology: Option<&str>,
     expected_technology: Option<&str>,
 ) -> bool {
-    expected_technology.is_none_or(|expected_technology| {
-        declared_technology == Some(expected_technology)
-    })
+    expected_technology
+        .is_none_or(|expected_technology| declared_technology == Some(expected_technology))
 }
 
 fn secondary_annotation(
