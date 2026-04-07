@@ -48,8 +48,7 @@ fn lsp_fixtures_produce_stable_snapshots(
 
 #[rstest]
 fn shared_fixtures_produce_stable_snapshots(
-    #[files("../../fixtures/deployment/deployment-parent-child-relationship-err.dsl")]
-    path: PathBuf,
+    #[files("../../fixtures/deployment/deployment-parent-child-relationship-ok.dsl")] path: PathBuf,
 ) {
     assert_fixture_snapshot(
         &path,
