@@ -361,8 +361,14 @@ pub enum SemanticDiagnosticKind {
     DynamicViewRelationshipMismatch,
     /// A dynamic-view step redundantly re-adds the view scope.
     DynamicViewScopeRedundancy,
+    /// A `!docs` or `!adrs` directive points at a missing or incompatible local path.
+    InvalidDocumentationPath,
+    /// An image-view source points at a missing or incompatible local file.
+    InvalidImageSource,
     /// A resolved view element is incompatible with the current view kind.
     InvalidViewElement,
+    /// An image view uses a renderer source without the required supporting property.
+    MissingImageRendererProperty,
     /// One DSL definition contained more than one top-level `model` or `views` section.
     RepeatedWorkspaceSection,
     /// A supported `!element` selector target resolved to no known target.
@@ -391,7 +397,10 @@ impl SemanticDiagnosticKind {
                 &rules::SEMANTIC_DYNAMIC_VIEW_RELATIONSHIP_MISMATCH
             }
             Self::DynamicViewScopeRedundancy => &rules::SEMANTIC_DYNAMIC_VIEW_SCOPE_REDUNDANCY,
+            Self::InvalidDocumentationPath => &rules::SEMANTIC_INVALID_DOCUMENTATION_PATH,
+            Self::InvalidImageSource => &rules::SEMANTIC_INVALID_IMAGE_SOURCE,
             Self::InvalidViewElement => &rules::SEMANTIC_INVALID_VIEW_ELEMENT,
+            Self::MissingImageRendererProperty => &rules::SEMANTIC_MISSING_IMAGE_RENDERER_PROPERTY,
             Self::RepeatedWorkspaceSection => &rules::SEMANTIC_REPEATED_WORKSPACE_SECTION,
             Self::UnresolvedElementSelector => &rules::SEMANTIC_UNRESOLVED_ELEMENT_SELECTOR,
             Self::UnresolvedReference => &rules::SEMANTIC_UNRESOLVED_REFERENCE,
@@ -577,6 +586,51 @@ impl SemanticDiagnostic {
             document: document.clone(),
             kind: SemanticDiagnosticKind::InvalidViewElement,
             message: format!("The element \"{raw_text}\" can not be added to this type of view"),
+            span,
+            annotations: Vec::new(),
+        }
+    }
+
+    pub(crate) fn invalid_documentation_path(
+        document: &DocumentId,
+        message: impl Into<String>,
+        span: TextSpan,
+    ) -> Self {
+        Self {
+            document: document.clone(),
+            kind: SemanticDiagnosticKind::InvalidDocumentationPath,
+            message: message.into(),
+            span,
+            annotations: Vec::new(),
+        }
+    }
+
+    pub(crate) fn invalid_image_source(
+        document: &DocumentId,
+        message: impl Into<String>,
+        span: TextSpan,
+    ) -> Self {
+        Self {
+            document: document.clone(),
+            kind: SemanticDiagnosticKind::InvalidImageSource,
+            message: message.into(),
+            span,
+            annotations: Vec::new(),
+        }
+    }
+
+    pub(crate) fn missing_image_renderer_property(
+        document: &DocumentId,
+        property_name: &str,
+        service_name: &str,
+        span: TextSpan,
+    ) -> Self {
+        Self {
+            document: document.clone(),
+            kind: SemanticDiagnosticKind::MissingImageRendererProperty,
+            message: format!(
+                "Please define a view/viewset property named {property_name} to specify your {service_name} server"
+            ),
             span,
             annotations: Vec::new(),
         }

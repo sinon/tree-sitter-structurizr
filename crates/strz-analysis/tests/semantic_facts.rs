@@ -48,6 +48,9 @@ fn workspace_view_and_resource_snapshot() -> strz_analysis::DocumentSnapshot {
                 }
 
                 image * "image-view" {
+                    properties {
+                        "mermaid.url" "https://example.com/mermaid"
+                    }
                     plantuml "diagram.puml"
                 }
             }
@@ -113,16 +116,29 @@ fn assert_resource_selector_and_property_facts(snapshot: &strz_analysis::Documen
         ]
     );
 
-    let property = snapshot
-        .property_facts()
-        .first()
-        .expect("views property should exist");
-    assert_eq!(property.name.normalized_text, "plantuml.url");
     assert_eq!(
-        property.value.normalized_text,
-        "https://example.com/plantuml"
+        snapshot
+            .property_facts()
+            .iter()
+            .map(|property| (
+                property.name.normalized_text.as_str(),
+                property.value.normalized_text.as_str(),
+                property.container_node_kind.as_str(),
+            ))
+            .collect::<Vec<_>>(),
+        vec![
+            (
+                "plantuml.url",
+                "https://example.com/plantuml",
+                "views_block",
+            ),
+            (
+                "mermaid.url",
+                "https://example.com/mermaid",
+                "image_view_block",
+            ),
+        ]
     );
-    assert_eq!(property.container_node_kind, "views_block");
 
     let selector = snapshot
         .element_directives()

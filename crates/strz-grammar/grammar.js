@@ -1793,6 +1793,7 @@ export default grammar({
             $.image_source,
             $.light_image_sources,
             $.dark_image_sources,
+            $.properties_block,
             $.default_statement,
             $.title_statement,
             $.description_statement,

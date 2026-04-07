@@ -15,9 +15,9 @@ use crate::{
     ReferenceTargetHint, SemanticDiagnostic, Symbol, SymbolId, SymbolKind, TextSpan,
     includes::{DirectiveContainer, DirectiveValueKind, normalized_directive_value},
     semantic::{
-        ConfigurationScopeFact, DynamicViewStepFact, ElementDirectiveFact, PropertyFact,
-        RelationshipFact, ResourceDirectiveFact, ViewFact, ViewKind, WorkspaceScope,
-        WorkspaceSectionFact, WorkspaceSectionKind,
+        ConfigurationScopeFact, DynamicViewStepFact, ElementDirectiveFact, ImageSourceKind,
+        PropertyFact, RelationshipFact, ResourceDirectiveFact, ResourceDirectiveKind, ViewFact,
+        ViewKind, WorkspaceScope, WorkspaceSectionFact, WorkspaceSectionKind,
     },
 };
 
@@ -1740,6 +1740,30 @@ fn is_supported_local_include_path(path: &Path) -> bool {
         })
 }
 
+fn resolve_local_resource_path(document: &DocumentId, value: &crate::ValueFact) -> Option<PathBuf> {
+    if value.value_kind == DirectiveValueKind::TextBlockString
+        || value.normalized_text.contains("${")
+        || is_remote_resource_value(&value.normalized_text)
+    {
+        return None;
+    }
+
+    let relative_path = PathBuf::from(&value.normalized_text);
+    if !is_supported_local_include_path(&relative_path) {
+        return None;
+    }
+
+    // TODO: Expand `${...}` substitutions here once workspace semantic packets
+    // carry the effective constant environment for each processed document.
+    let document_path = Path::new(document.as_str());
+    let parent_directory = document_path.parent()?;
+    Some(parent_directory.join(relative_path))
+}
+
+fn is_remote_resource_value(value: &str) -> bool {
+    value.starts_with("http://") || value.starts_with("https://") || value.starts_with("data:")
+}
+
 fn collect_directory_include_paths(
     directory: &Path,
     allowed_root: &Path,
@@ -2148,10 +2172,12 @@ fn build_derived_workspace_instance(
         .collect::<BTreeMap<_, _>>();
     let deployment_semantic_diagnostics =
         deployment_semantic_diagnostics(documents, &documents_by_id, &reference_tables);
+    let resource_semantic_diagnostics = resource_semantic_diagnostics(documents);
     let view_semantic_diagnostics =
         view_semantic_diagnostics(documents, &documents_by_id, &bindings, &reference_tables);
     semantic_diagnostics.extend(reference_tables.semantic_diagnostics);
     semantic_diagnostics.extend(deployment_semantic_diagnostics);
+    semantic_diagnostics.extend(resource_semantic_diagnostics);
     semantic_diagnostics.extend(view_semantic_diagnostics);
 
     let mut references_by_target = reference_tables.references_by_target;
@@ -2763,6 +2789,203 @@ fn deployment_semantic_diagnostics(
     reference_tables: &WorkspaceReferenceTables,
 ) -> Vec<SemanticDiagnostic> {
     deployment_parent_child_relationship_diagnostics(documents, documents_by_id, reference_tables)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct ImageRendererRequirement {
+    property_name: &'static str,
+    service_name: &'static str,
+}
+
+fn resource_semantic_diagnostics(
+    documents: &[&WorkspaceSemanticDocumentFacts],
+) -> Vec<SemanticDiagnostic> {
+    let mut diagnostics = documentation_resource_diagnostics(documents);
+    diagnostics.extend(image_resource_diagnostics(documents));
+    diagnostics
+}
+
+fn documentation_resource_diagnostics(
+    documents: &[&WorkspaceSemanticDocumentFacts],
+) -> Vec<SemanticDiagnostic> {
+    let mut diagnostics = Vec::new();
+
+    for document in documents {
+        if document.has_syntax_errors {
+            continue;
+        }
+
+        for directive in &document.resource_directives {
+            let Some(path) = resolve_local_resource_path(&document.document_id, &directive.path)
+            else {
+                continue;
+            };
+            let Some(message) = documentation_resource_path_message(directive, &path) else {
+                continue;
+            };
+            diagnostics.push(SemanticDiagnostic::invalid_documentation_path(
+                &document.document_id,
+                message,
+                directive.path.span,
+            ));
+        }
+    }
+
+    diagnostics
+}
+
+fn documentation_resource_path_message(
+    directive: &ResourceDirectiveFact,
+    path: &Path,
+) -> Option<String> {
+    match fs::metadata(path) {
+        Ok(metadata) => match directive.kind {
+            ResourceDirectiveKind::Docs => None,
+            ResourceDirectiveKind::Adrs if metadata.is_dir() => None,
+            ResourceDirectiveKind::Adrs => Some(format!(
+                "Documentation path {} is not a directory",
+                path.display()
+            )),
+        },
+        Err(error)
+            if matches!(
+                error.kind(),
+                io::ErrorKind::NotFound | io::ErrorKind::NotADirectory
+            ) =>
+        {
+            Some(format!(
+                "Documentation path {} does not exist",
+                path.display()
+            ))
+        }
+        Err(error) => Some(error.to_string()),
+    }
+}
+
+fn image_resource_diagnostics(
+    documents: &[&WorkspaceSemanticDocumentFacts],
+) -> Vec<SemanticDiagnostic> {
+    let viewset_property_names = documents
+        .iter()
+        .filter(|document| !document.has_syntax_errors)
+        .flat_map(|document| {
+            document
+                .property_facts
+                .iter()
+                .filter(|property| property.container_node_kind == "views_block")
+                .map(|property| property.name.normalized_text.clone())
+        })
+        .collect::<BTreeSet<_>>();
+    let mut diagnostics = Vec::new();
+
+    for document in documents {
+        if document.has_syntax_errors {
+            continue;
+        }
+
+        for view in &document.view_facts {
+            if view.kind != ViewKind::Image {
+                continue;
+            }
+
+            for source in &view.image_sources {
+                if let Some(requirement) = required_image_renderer(source.kind)
+                    && !image_renderer_property_is_defined(
+                        document,
+                        view,
+                        &viewset_property_names,
+                        requirement.property_name,
+                    )
+                {
+                    diagnostics.push(SemanticDiagnostic::missing_image_renderer_property(
+                        &document.document_id,
+                        requirement.property_name,
+                        requirement.service_name,
+                        source.span,
+                    ));
+                }
+
+                let Some(path) = resolve_local_resource_path(&document.document_id, &source.value)
+                else {
+                    continue;
+                };
+                let Some(message) = image_source_path_message(source.kind, &path) else {
+                    continue;
+                };
+                diagnostics.push(SemanticDiagnostic::invalid_image_source(
+                    &document.document_id,
+                    message,
+                    source.value.span,
+                ));
+            }
+        }
+    }
+
+    diagnostics
+}
+
+const fn required_image_renderer(kind: ImageSourceKind) -> Option<ImageRendererRequirement> {
+    Some(match kind {
+        ImageSourceKind::PlantUml => ImageRendererRequirement {
+            property_name: "plantuml.url",
+            service_name: "PlantUML",
+        },
+        ImageSourceKind::Mermaid => ImageRendererRequirement {
+            property_name: "mermaid.url",
+            service_name: "Mermaid",
+        },
+        ImageSourceKind::Kroki => ImageRendererRequirement {
+            property_name: "kroki.url",
+            service_name: "Kroki",
+        },
+        ImageSourceKind::Image => return None,
+    })
+}
+
+fn image_renderer_property_is_defined(
+    document: &WorkspaceSemanticDocumentFacts,
+    view: &ViewFact,
+    viewset_property_names: &BTreeSet<String>,
+    property_name: &str,
+) -> bool {
+    viewset_property_names.contains(property_name)
+        || image_view_local_property_is_defined(document, view, property_name)
+}
+
+fn image_view_local_property_is_defined(
+    document: &WorkspaceSemanticDocumentFacts,
+    view: &ViewFact,
+    property_name: &str,
+) -> bool {
+    let Some(body_span) = view.body_span else {
+        return false;
+    };
+
+    document.property_facts.iter().any(|property| {
+        property.name.normalized_text == property_name && span_within(body_span, property.span)
+    })
+}
+
+fn image_source_path_message(kind: ImageSourceKind, path: &Path) -> Option<String> {
+    match fs::metadata(path) {
+        Ok(metadata) if metadata.is_file() => None,
+        Ok(metadata) if metadata.is_dir() => Some(match kind {
+            ImageSourceKind::Image => format!("{} is not a file", path.display()),
+            ImageSourceKind::PlantUml | ImageSourceKind::Mermaid | ImageSourceKind::Kroki => {
+                "Is a directory".to_owned()
+            }
+        }),
+        Ok(_) => Some(format!("{} is not a file", path.display())),
+        Err(error)
+            if matches!(
+                error.kind(),
+                io::ErrorKind::NotFound | io::ErrorKind::NotADirectory
+            ) =>
+        {
+            Some(format!("The file at {} does not exist", path.display()))
+        }
+        Err(error) => Some(error.to_string()),
+    }
 }
 
 fn view_semantic_diagnostics(
