@@ -1,10 +1,18 @@
-use std::path::{Path, PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
+use indoc::indoc;
 use rstest::rstest;
 use strz_analysis::{
-    ReferenceHandle, ReferenceResolutionStatus, SemanticDiagnostic, SymbolHandle, TextSpan,
-    WorkspaceFacts, WorkspaceLoader,
+    ReferenceHandle, ReferenceResolutionStatus, SemanticDiagnostic, SemanticDiagnosticKind,
+    SymbolHandle, TextSpan, WorkspaceFacts, WorkspaceLoader,
 };
+use tempfile::TempDir;
+
+const DEPLOYMENT_PARENT_CHILD_RELATIONSHIP_ERR_SOURCE: &str =
+    include_str!("../../../fixtures/deployment/deployment-parent-child-relationship-ok.dsl");
 
 macro_rules! set_snapshot_suffix {
     ($($expr:expr),* $(,)?) => {
@@ -212,6 +220,679 @@ fn workspace_fixtures_produce_stable_workspace_indexes(#[case] fixture_name: &st
     );
 }
 
+#[test]
+fn repeated_model_sections_report_related_context() {
+    let (workspace, facts) = load_temp_workspace(
+        &[
+            (
+                "workspace.dsl",
+                indoc! {r#"
+                    workspace {
+                        !include "model-a.dsl"
+                        !include "model-b.dsl"
+                    }
+                "#},
+            ),
+            (
+                "model-a.dsl",
+                indoc! {r#"
+                    model {
+                        user = person "User"
+                    }
+                "#},
+            ),
+            (
+                "model-b.dsl",
+                indoc! {r#"
+                    model {
+                        admin = person "Admin"
+                    }
+                "#},
+            ),
+        ],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_kind(&facts, SemanticDiagnosticKind::RepeatedWorkspaceSection);
+    assert_eq!(diagnostics.len(), 1);
+
+    let diagnostic = diagnostics[0];
+    assert_eq!(
+        display_document_id(diagnostic.document.as_str(), workspace.root()),
+        "model-b.dsl"
+    );
+    assert_eq!(
+        diagnostic.message,
+        "multiple model sections are not permitted in a DSL definition"
+    );
+    assert_eq!(diagnostic.annotations.len(), 1);
+    assert_eq!(
+        diagnostic.annotations[0]
+            .document
+            .as_ref()
+            .map(|document| display_document_id(document.as_str(), workspace.root())),
+        Some("model-a.dsl".to_owned())
+    );
+    assert_eq!(
+        diagnostic.annotations[0].message.as_deref(),
+        Some("first model section here")
+    );
+}
+
+#[test]
+fn workspace_scope_mismatch_reports_offending_owner() {
+    let (workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        system = softwareSystem "System" {
+                            app = container "App"
+                        }
+                    }
+
+                    configuration {
+                        scope landscape
+                    }
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_kind(&facts, SemanticDiagnosticKind::WorkspaceScopeMismatch);
+    assert_eq!(diagnostics.len(), 1);
+
+    let diagnostic = diagnostics[0];
+    assert_eq!(
+        display_document_id(diagnostic.document.as_str(), workspace.root()),
+        "workspace.dsl"
+    );
+    assert_eq!(
+        diagnostic.message,
+        "workspace is landscape scoped, but the software system named System has containers"
+    );
+    assert_eq!(diagnostic.annotations.len(), 1);
+    assert!(diagnostic.annotations[0].document.is_none());
+    assert_eq!(
+        diagnostic.annotations[0].message.as_deref(),
+        Some("software system named System has containers")
+    );
+}
+
+#[test]
+fn extended_workspaces_inherit_base_bindings_without_repeated_section_diagnostics() {
+    let (workspace, facts) = load_temp_workspace(
+        &[
+            (
+                "base.dsl",
+                indoc! {r#"
+                    workspace {
+                        !identifiers hierarchical
+
+                        model {
+                            live = deploymentEnvironment "Live" {
+                                aws = deploymentNode "AWS" {
+                                    region = deploymentNode "Region" {
+                                        route53 = infrastructureNode "Route 53"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                "#},
+            ),
+            (
+                "workspace.dsl",
+                indoc! {r#"
+                    workspace extends "base.dsl" {
+                        model {
+                            !element live.aws.region {
+                                extra = infrastructureNode "Extra" {
+                                    -> route53
+                                }
+                            }
+                        }
+                    }
+                "#},
+            ),
+        ],
+        "workspace.dsl",
+    );
+
+    let diagnostics = facts
+        .semantic_diagnostics()
+        .iter()
+        .filter(|diagnostic| {
+            matches!(
+                diagnostic.kind,
+                SemanticDiagnosticKind::RepeatedWorkspaceSection
+                    | SemanticDiagnosticKind::UnresolvedElementSelector
+                    | SemanticDiagnosticKind::UnresolvedReference
+                    | SemanticDiagnosticKind::AmbiguousReference
+            )
+        })
+        .collect::<Vec<_>>();
+    assert!(diagnostics.is_empty(), "{diagnostics:#?}");
+
+    let root_document = workspace.root().join("workspace.dsl");
+    let index = facts
+        .workspace_indexes()
+        .iter()
+        .find(|index| index.root_document().as_str() == root_document.to_string_lossy())
+        .expect("explicit workspace root should produce one workspace index");
+    assert!(index.unique_deployment_bindings().contains_key("live"));
+    assert!(
+        index
+            .unique_deployment_bindings()
+            .contains_key("live.aws.region.route53")
+    );
+}
+
+#[test]
+fn deployment_parent_child_relationships_surface_semantic_diagnostics() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            DEPLOYMENT_PARENT_CHILD_RELATIONSHIP_ERR_SOURCE,
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_kind(
+        &facts,
+        SemanticDiagnosticKind::DeploymentParentChildRelationship,
+    );
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].message,
+        "Relationships cannot be added between parents and children"
+    );
+    assert_eq!(diagnostics[0].annotations.len(), 2);
+    assert_eq!(
+        diagnostics[0].annotations[0].message.as_deref(),
+        Some("ancestor deployment element Primary is declared here")
+    );
+    assert_eq!(
+        diagnostics[0].annotations[1].message.as_deref(),
+        Some("descendant deployment element Gateway is declared here")
+    );
+}
+
+#[test]
+fn deployment_sibling_relationships_remain_valid_for_current_upstream_parity() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        system = softwareSystem "System" {
+                            api = container "API"
+                        }
+
+                        live = deploymentEnvironment "Live" {
+                            primary = deploymentNode "Primary" {
+                                gateway = infrastructureNode "Gateway"
+                                apiInstance = containerInstance api {
+                                    gateway -> this "Routes traffic"
+                                }
+                            }
+                        }
+                    }
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_kind(
+        &facts,
+        SemanticDiagnosticKind::DeploymentParentChildRelationship,
+    );
+    assert!(diagnostics.is_empty(), "{diagnostics:#?}");
+}
+
+#[test]
+fn missing_documentation_paths_surface_semantic_diagnostics() {
+    let (workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    !docs "docs"
+                    !adrs "adrs"
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_kind(&facts, SemanticDiagnosticKind::InvalidDocumentationPath);
+    assert_eq!(diagnostics.len(), 2);
+    assert_eq!(
+        diagnostics
+            .iter()
+            .map(|diagnostic| diagnostic.message.clone())
+            .collect::<Vec<_>>(),
+        vec![
+            format!(
+                "Documentation path {} does not exist",
+                workspace.root().join("docs").display()
+            ),
+            format!(
+                "Documentation path {} does not exist",
+                workspace.root().join("adrs").display()
+            ),
+        ]
+    );
+}
+
+#[test]
+fn adrs_paths_must_resolve_to_directories_while_docs_can_use_files() {
+    let (workspace, facts) = load_temp_workspace(
+        &[
+            (
+                "workspace.dsl",
+                indoc! {r#"
+                    workspace {
+                        !docs "docs/readme.md"
+                        !adrs "adrs/0001.md"
+                    }
+                "#},
+            ),
+            ("docs/readme.md", "# Readme\n"),
+            ("adrs/0001.md", "# Decision\n"),
+        ],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_kind(&facts, SemanticDiagnosticKind::InvalidDocumentationPath);
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].message,
+        format!(
+            "Documentation path {} is not a directory",
+            workspace.root().join("adrs/0001.md").display()
+        )
+    );
+}
+
+#[test]
+fn image_source_paths_surface_file_and_directory_diagnostics() {
+    let (workspace, facts) = load_temp_workspace(
+        &[
+            (
+                "workspace.dsl",
+                indoc! {r#"
+                    workspace {
+                        views {
+                            properties {
+                                "plantuml.url" "https://plantuml.example.com"
+                            }
+
+                            image * "image-view" {
+                                plantuml "diagram.puml"
+                                image "assets"
+                                plantuml """
+                                    @startuml
+                                    Alice -> Bob
+                                    @enduml
+                                """
+                                image "https://example.com/logo.png"
+                            }
+                        }
+                    }
+                "#},
+            ),
+            ("assets/.keep", ""),
+        ],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_kind(&facts, SemanticDiagnosticKind::InvalidImageSource);
+    assert_eq!(diagnostics.len(), 2);
+    assert_eq!(
+        diagnostics
+            .iter()
+            .map(|diagnostic| diagnostic.message.clone())
+            .collect::<Vec<_>>(),
+        vec![
+            format!(
+                "The file at {} does not exist",
+                workspace.root().join("diagram.puml").display()
+            ),
+            format!(
+                "{} is not a file",
+                workspace.root().join("assets").display()
+            ),
+        ]
+    );
+}
+
+#[test]
+fn image_renderer_properties_can_be_view_local_or_viewset_level() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[
+            (
+                "workspace.dsl",
+                indoc! {r#"
+                    workspace {
+                        views {
+                            properties {
+                                "mermaid.url" "https://mermaid.example.com"
+                            }
+
+                            image * "image-view" {
+                                properties {
+                                    "plantuml.url" "https://plantuml.example.com"
+                                }
+                                plantuml "diagram.puml"
+                                mermaid "diagram.mmd"
+                                kroki plantuml "diagram.kroki"
+                            }
+                        }
+                    }
+                "#},
+            ),
+            ("diagram.puml", "@startuml\n@enduml\n"),
+            ("diagram.mmd", "graph TD\n"),
+            ("diagram.kroki", "graph TD\n"),
+        ],
+        "workspace.dsl",
+    );
+
+    let diagnostics =
+        diagnostics_of_kind(&facts, SemanticDiagnosticKind::MissingImageRendererProperty);
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].message,
+        "Please define a view/viewset property named kroki.url to specify your Kroki server"
+    );
+    let invalid_image_sources =
+        diagnostics_of_kind(&facts, SemanticDiagnosticKind::InvalidImageSource);
+    assert!(
+        invalid_image_sources.is_empty(),
+        "{invalid_image_sources:#?}"
+    );
+}
+
+#[test]
+fn unresolved_element_selector_targets_surface_semantic_diagnostics() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    !identifiers hierarchical
+
+                    model {
+                        system = softwareSystem "System"
+
+                        !element system.api {
+                            properties {
+                                "team" "Core"
+                            }
+                        }
+                    }
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics =
+        diagnostics_of_kind(&facts, SemanticDiagnosticKind::UnresolvedElementSelector);
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].message,
+        "unresolved !element selector target: system.api"
+    );
+}
+
+#[test]
+fn filtered_views_with_autolayout_bases_surface_semantic_diagnostics() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        system = softwareSystem "System"
+                    }
+
+                    views {
+                        systemLandscape landscape {
+                            include system
+                            autoLayout
+                        }
+
+                        filtered landscape include "Element" filtered-landscape
+                    }
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_kind(
+        &facts,
+        SemanticDiagnosticKind::FilteredViewAutoLayoutMismatch,
+    );
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].message,
+        "The view \"landscape\" has automatic layout enabled - this is not supported for filtered views"
+    );
+    assert_eq!(diagnostics[0].annotations.len(), 1);
+    assert_eq!(
+        diagnostics[0].annotations[0].message.as_deref(),
+        Some("base view enables automatic layout here")
+    );
+}
+
+#[test]
+fn dynamic_view_relationship_technology_mismatches_surface_semantic_diagnostics() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        user = person "User"
+                        system = softwareSystem "System" {
+                            app = container "App"
+                        }
+
+                        user -> app "Uses" "HTTP"
+                    }
+
+                    views {
+                        dynamic system "dynamic-view" {
+                            1: user -> app "Requests data" "HTTPS"
+                        }
+                    }
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_kind(
+        &facts,
+        SemanticDiagnosticKind::DynamicViewRelationshipMismatch,
+    );
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].message,
+        "A relationship between User and App with technology HTTPS does not exist in model."
+    );
+    assert_eq!(diagnostics[0].annotations.len(), 1);
+    assert_eq!(
+        diagnostics[0].annotations[0].message.as_deref(),
+        Some("declared relationship here uses technology HTTP")
+    );
+}
+
+#[test]
+fn dynamic_view_scope_steps_surface_semantic_diagnostics() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        user = person "User"
+                        system = softwareSystem "System" {
+                            api = container "API"
+                        }
+
+                        user -> api "Uses"
+                        api -> user "Responds"
+                    }
+
+                    views {
+                        dynamic api "dynamic-view" {
+                            user -> api "Uses"
+                            api -> user "Responds"
+                        }
+                    }
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics =
+        diagnostics_of_kind(&facts, SemanticDiagnosticKind::DynamicViewScopeRedundancy);
+    assert_eq!(diagnostics.len(), 2);
+    assert!(diagnostics.iter().all(|diagnostic| {
+        diagnostic.message == "API is already the scope of this view and cannot be added to it"
+            && diagnostic.annotations.len() == 1
+            && diagnostic.annotations[0].message.as_deref() == Some("view scope is declared here")
+    }));
+
+    let mismatch_diagnostics = diagnostics_of_kind(
+        &facts,
+        SemanticDiagnosticKind::DynamicViewRelationshipMismatch,
+    );
+    assert!(mismatch_diagnostics.is_empty(), "{mismatch_diagnostics:#?}");
+}
+
+#[test]
+fn dynamic_view_scope_relationship_references_surface_semantic_diagnostics() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        user = person "User"
+                        system = softwareSystem "System" {
+                            api = container "API"
+                        }
+
+                        rel = user -> api "Uses"
+                    }
+
+                    views {
+                        dynamic api "dynamic-view" {
+                            rel "Uses"
+                        }
+                    }
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics =
+        diagnostics_of_kind(&facts, SemanticDiagnosticKind::DynamicViewScopeRedundancy);
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].message,
+        "API is already the scope of this view and cannot be added to it"
+    );
+    assert_eq!(diagnostics[0].annotations.len(), 2);
+    assert_eq!(
+        diagnostics[0].annotations[0].message.as_deref(),
+        Some("view scope is declared here")
+    );
+    assert_eq!(
+        diagnostics[0].annotations[1].message.as_deref(),
+        Some("referenced relationship here already includes API")
+    );
+}
+
+#[test]
+fn invalid_container_view_elements_surface_include_and_animation_diagnostics() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        system = softwareSystem "System" {
+                            api = container "API" {
+                                worker = component "Worker"
+                            }
+                        }
+                    }
+
+                    views {
+                        container system "container-view" {
+                            include api worker
+                            animation {
+                                api worker
+                            }
+                        }
+                    }
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_kind(&facts, SemanticDiagnosticKind::InvalidViewElement);
+    assert_eq!(diagnostics.len(), 2);
+    assert!(diagnostics.iter().all(|diagnostic| {
+        diagnostic.message == "The element \"worker\" can not be added to this type of view"
+    }));
+}
+
+#[test]
+fn system_context_scope_elements_remain_valid_for_current_upstream_parity() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        user = person "User"
+                        system = softwareSystem "System" {
+                            api = container "API"
+                        }
+                    }
+
+                    views {
+                        systemContext system "system-context" {
+                            include user system
+                            animation {
+                                user system
+                            }
+                        }
+                    }
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_kind(&facts, SemanticDiagnosticKind::InvalidViewElement);
+    assert!(diagnostics.is_empty(), "{diagnostics:#?}");
+}
+
 fn workspace_fixture_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../tests/lsp/workspaces")
@@ -302,4 +983,57 @@ fn display_path(path: &Path, root: &Path) -> String {
     }
 
     path.display().to_string()
+}
+
+#[derive(Debug)]
+struct TempWorkspace {
+    _root_dir: TempDir,
+    root: PathBuf,
+}
+
+impl TempWorkspace {
+    fn root(&self) -> &Path {
+        &self.root
+    }
+}
+
+fn load_temp_workspace(files: &[(&str, &str)], root_file: &str) -> (TempWorkspace, WorkspaceFacts) {
+    let root_dir = tempfile::tempdir().expect("tempdir should create");
+    let root = root_dir
+        .path()
+        .canonicalize()
+        .expect("tempdir path should canonicalize");
+
+    for (relative_path, source) in files {
+        let path = root.join(relative_path);
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).expect("parent directories should create");
+        }
+        fs::write(path, source).expect("workspace fixture file should write");
+    }
+
+    let root_file = root.join(root_file);
+    let mut loader = WorkspaceLoader::new();
+    let facts = loader
+        .load_paths([root_file.as_path()])
+        .expect("temp workspace should load successfully");
+
+    (
+        TempWorkspace {
+            _root_dir: root_dir,
+            root,
+        },
+        facts,
+    )
+}
+
+fn diagnostics_of_kind(
+    facts: &WorkspaceFacts,
+    kind: SemanticDiagnosticKind,
+) -> Vec<&strz_analysis::SemanticDiagnostic> {
+    facts
+        .semantic_diagnostics()
+        .iter()
+        .filter(|diagnostic| diagnostic.kind == kind)
+        .collect()
 }

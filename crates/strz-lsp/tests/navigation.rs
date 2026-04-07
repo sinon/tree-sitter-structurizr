@@ -568,16 +568,30 @@ async fn completion_inside_unterminated_workspace_string_returns_no_items() {
 async fn completion_inside_relationship_destination_uses_workspace_symbols_across_files() {
     let temp_workspace = TempWorkspace::new(
         "relationship-completion-cross-file",
-        "workspace {\n  !include shared/model.dsl\n  !include shared/relationships.dsl\n}\n",
+        indoc! {r"
+            workspace {
+              model {
+                !include shared/model.dsl
+                !include shared/relationships.dsl
+              }
+            }
+        "},
         &[Path::new("shared")],
         &[
             (
                 Path::new("shared/model.dsl"),
-                "model {\n  user = person \"User\"\n  system = softwareSystem \"System\" {\n    api = container \"API\"\n  }\n}\n",
+                indoc! {r#"
+                    user = person "User"
+                    system = softwareSystem "System" {
+                      api = container "API"
+                    }
+                "#},
             ),
             (
                 Path::new("shared/relationships.dsl"),
-                "model {\n  user -> \n}\n",
+                indoc! {r"
+                    user ->
+                "},
             ),
         ],
     );
@@ -589,7 +603,7 @@ async fn completion_inside_relationship_destination_uses_workspace_symbols_acros
 
     let relationships_path = temp_workspace.path().join("shared/relationships.dsl");
     let relationships_source = annotated_source(
-        &read_workspace_file(&relationships_path).replacen("user -> ", "user -> <CURSOR>", 1),
+        &read_workspace_file(&relationships_path).replacen("user ->", "user -> <CURSOR>", 1),
     );
     let relationships_uri = file_uri_from_path(&relationships_path);
     open_document(
@@ -611,16 +625,31 @@ async fn completion_inside_fresh_relationship_source_before_deployment_environme
  {
     let temp_workspace = TempWorkspace::new(
         "relationship-completion-before-deployment-environment",
-        "workspace {\n  !include model.dsl\n  !include relationships.dsl\n}\n",
+        indoc! {r"
+            workspace {
+              !include relationships.dsl
+            }
+        "},
         &[],
         &[
             (
                 Path::new("model.dsl"),
-                "model {\n  customer = person \"Customer\"\n  webApplication = softwareSystem \"Web Application\"\n}\n",
+                indoc! {r#"
+                    customer = person "Customer"
+                    webApplication = softwareSystem "Web Application"
+                "#},
             ),
             (
                 Path::new("relationships.dsl"),
-                "model {\n  customer -> webApplication \"Uses\"\n\n  deploymentEnvironment \"Development\" {\n  }\n}\n",
+                indoc! {r#"
+                    model {
+                      !include model.dsl
+                      customer -> webApplication "Uses"
+
+                      deploymentEnvironment "Development" {
+                      }
+                    }
+                "#},
             ),
         ],
     );
@@ -665,16 +694,31 @@ async fn assigned_deployment_environment_after_partial_relationship_suppresses_o
  {
     let temp_workspace = TempWorkspace::new(
         "relationship-completion-before-assigned-deployment-environment",
-        "workspace {\n  !include model.dsl\n  !include relationships.dsl\n}\n",
+        indoc! {r"
+            workspace {
+              !include relationships.dsl
+            }
+        "},
         &[],
         &[
             (
                 Path::new("model.dsl"),
-                "model {\n  customer = person \"Customer\"\n  webApplication = softwareSystem \"Web Application\"\n}\n",
+                indoc! {r#"
+                    customer = person "Customer"
+                    webApplication = softwareSystem "Web Application"
+                "#},
             ),
             (
                 Path::new("relationships.dsl"),
-                "model {\n  customer -> webApplication \"Uses\"\n\n  env = deploymentEnvironment \"Development\" {\n  }\n}\n",
+                indoc! {r#"
+                    model {
+                      !include model.dsl
+                      customer -> webApplication "Uses"
+
+                      env = deploymentEnvironment "Development" {
+                      }
+                    }
+                "#},
             ),
         ],
     );
@@ -712,16 +756,31 @@ async fn assigned_deployment_environment_syntax_errors_still_publish_diagnostics
  {
     let temp_workspace = TempWorkspace::new(
         "relationship-errors-before-assigned-deployment-environment",
-        "workspace {\n  !include model.dsl\n  !include relationships.dsl\n}\n",
+        indoc! {r"
+            workspace {
+              !include relationships.dsl
+            }
+        "},
         &[],
         &[
             (
                 Path::new("model.dsl"),
-                "model {\n  customer = person \"Customer\"\n  webApplication = softwareSystem \"Web Application\"\n}\n",
+                indoc! {r#"
+                    customer = person "Customer"
+                    webApplication = softwareSystem "Web Application"
+                "#},
             ),
             (
                 Path::new("relationships.dsl"),
-                "model {\n  customer -> webApplication \"Uses\"\n\n  env = deploymentEnvironment \"Development\" {\n  }\n}\n",
+                indoc! {r#"
+                    model {
+                      !include model.dsl
+                      customer -> webApplication "Uses"
+
+                      env = deploymentEnvironment "Development" {
+                      }
+                    }
+                "#},
             ),
         ],
     );
@@ -751,7 +810,7 @@ async fn assigned_deployment_environment_syntax_errors_still_publish_diagnostics
     assert!(
         diagnostics.iter().any(|diagnostic| {
             diagnostic["message"] == "unexpected syntax"
-                && diagnostic["range"]["start"]["line"] == 4
+                && diagnostic["range"]["start"]["line"] == 5
         }),
         "malformed assigned deploymentEnvironment syntax should still publish a diagnostic on the deployment line: {diagnostics:?}"
     );
@@ -789,24 +848,46 @@ async fn completion_inside_relationship_destination_suppresses_hierarchical_mode
 async fn completion_inside_multi_instance_relationship_fragment_returns_no_result() {
     let temp_workspace = TempWorkspace::new(
         "relationship-completion-multi-instance",
-        "workspace {\n  !include shared/model-alpha.dsl\n  !include shared/relationships.dsl\n}\n",
+        indoc! {r"
+            workspace {
+              model {
+                !include shared/model-alpha.dsl
+                !include shared/relationships.dsl
+              }
+            }
+        "},
         &[Path::new("shared")],
         &[
             (
                 Path::new("beta.dsl"),
-                "workspace {\n  !include shared/model-beta.dsl\n  !include shared/relationships.dsl\n}\n",
+                indoc! {r"
+                    workspace {
+                      model {
+                        !include shared/model-beta.dsl
+                        !include shared/relationships.dsl
+                      }
+                    }
+                "},
             ),
             (
                 Path::new("shared/model-alpha.dsl"),
-                "model {\n  user = person \"User\"\n  systemAlpha = softwareSystem \"Alpha\"\n}\n",
+                indoc! {r#"
+                    user = person "User"
+                    systemAlpha = softwareSystem "Alpha"
+                "#},
             ),
             (
                 Path::new("shared/model-beta.dsl"),
-                "model {\n  user = person \"User\"\n  systemBeta = softwareSystem \"Beta\"\n}\n",
+                indoc! {r#"
+                    user = person "User"
+                    systemBeta = softwareSystem "Beta"
+                "#},
             ),
             (
                 Path::new("shared/relationships.dsl"),
-                "model {\n  user -> \n}\n",
+                indoc! {r"
+                    user ->
+                "},
             ),
         ],
     );
@@ -818,7 +899,7 @@ async fn completion_inside_multi_instance_relationship_fragment_returns_no_resul
 
     let relationships_path = temp_workspace.path().join("shared/relationships.dsl");
     let relationships_source = annotated_source(
-        &read_workspace_file(&relationships_path).replacen("user -> ", "user -> <CURSOR>", 1),
+        &read_workspace_file(&relationships_path).replacen("user ->", "user -> <CURSOR>", 1),
     );
     let relationships_uri = file_uri_from_path(&relationships_path);
     open_document(
@@ -1259,7 +1340,12 @@ async fn document_links_resolve_docs_and_adrs_directive_paths() {
 async fn goto_definition_ignores_docs_and_adrs_importer_arguments() {
     let temp_workspace = TempWorkspace::new(
         "directive-importers",
-        "workspace {\n  !docs docs com.example.documentation.CustomDocumentationImporter\n  !adrs decisions com.example.documentation.CustomDecisionImporter\n}\n",
+        indoc! {r"
+            workspace {
+              !docs docs com.example.documentation.CustomDocumentationImporter
+              !adrs decisions com.example.documentation.CustomDecisionImporter
+            }
+        "},
         &[Path::new("docs"), Path::new("decisions")],
         &[
             (Path::new("docs/01-context.md"), "# Context"),
@@ -1346,7 +1432,18 @@ async fn goto_definition_ignores_docs_and_adrs_importer_arguments() {
 async fn diagnostics_do_not_report_syntax_errors_for_docs_and_adrs_importers() {
     let temp_workspace = TempWorkspace::new(
         "directive-importer-diagnostics",
-        "workspace \"Some System\" \"Description\" {\n  model {\n    contributor = person \"Person\"\n    someSystem = softwareSystem \"Some System\" {\n      !docs docs com.example.documentation.CustomDocumentationImporter\n      !adrs decisions adrtools\n      someContainer = container \"Some Container\" \"\" \"\"\n    }\n  }\n}\n",
+        indoc! {r#"
+            workspace "Some System" "Description" {
+              model {
+                contributor = person "Person"
+                someSystem = softwareSystem "Some System" {
+                  !docs docs com.example.documentation.CustomDocumentationImporter
+                  !adrs decisions adrtools
+                  someContainer = container "Some Container" "" ""
+                }
+              }
+            }
+        "#},
         &[Path::new("docs"), Path::new("decisions")],
         &[
             (Path::new("docs/01-context.md"), "# Context"),
@@ -1411,7 +1508,10 @@ async fn document_links_resolve_interpolated_include_paths() {
 async fn goto_definition_returns_no_result_for_empty_docs_and_adrs_directories() {
     let temp_workspace = TempWorkspace::new(
         "empty-path-targets",
-        "!docs docs\n!adrs adrs\n",
+        indoc! {r"
+            !docs docs
+            !adrs adrs
+        "},
         &[Path::new("docs"), Path::new("adrs")],
         &[],
     );
@@ -1455,7 +1555,9 @@ async fn goto_definition_returns_no_result_for_empty_docs_and_adrs_directories()
 async fn goto_definition_uses_direct_child_docs_files_only() {
     let temp_workspace = TempWorkspace::new(
         "direct-child-docs",
-        "!docs docs\n",
+        indoc! {r"
+            !docs docs
+        "},
         &[Path::new("docs/nested")],
         &[
             (Path::new("docs/01-top.md"), "# Top"),
@@ -1537,7 +1639,7 @@ async fn goto_definition_resolves_deployment_relationship_endpoints() {
 
     for expectation in [
         DefinitionExpectation {
-            needle: "primary -> gateway",
+            needle: "primary -> secondary",
             byte_offset_within_needle: 1,
             expected_uri: workspace_uri.as_str(),
             expected_line: 7,
@@ -1549,10 +1651,10 @@ async fn goto_definition_resolves_deployment_relationship_endpoints() {
             expected_line: 8,
         },
         DefinitionExpectation {
-            needle: "gateway -> apiInstance",
+            needle: "gateway -> secondaryApiInstance",
             byte_offset_within_needle: 11,
             expected_uri: workspace_uri.as_str(),
-            expected_line: 9,
+            expected_line: 15,
         },
     ] {
         assert_definition_target(&mut service, &workspace_uri, &workspace_source, expectation)
@@ -1666,7 +1768,7 @@ async fn goto_type_definition_resolves_instance_references_to_model_elements() {
     let workspace_uri = file_uri_from_path(&workspace_path);
     open_document(&mut service, &workspace_uri, &workspace_source).await;
 
-    let position = position_in(&workspace_source, "gateway -> apiInstance", 11);
+    let position = position_in(&workspace_source, "gateway -> secondaryApiInstance", 11);
     let response = request_json(
         &mut service,
         "textDocument/typeDefinition",
@@ -1780,7 +1882,7 @@ async fn references_follow_instance_targets_from_model_declarations() {
         })
         .collect::<Vec<_>>();
 
-    assert_eq!(lines, vec![3, 9]);
+    assert_eq!(lines, vec![3, 9, 15]);
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -1819,7 +1921,7 @@ async fn references_follow_deployment_symbols_from_relationship_endpoints() {
         })
         .collect::<Vec<_>>();
 
-    assert_eq!(lines, vec![8, 10, 15, 16]);
+    assert_eq!(lines, vec![8, 10, 19]);
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -1954,7 +2056,13 @@ async fn diagnostics_publish_bounded_semantic_errors() {
                 .expect("diagnostic message should be a string")
         })
         .collect::<Vec<_>>();
-    assert_eq!(alpha_messages, vec!["duplicate element binding: api"]);
+    assert_eq!(
+        alpha_messages,
+        vec![
+            "multiple model sections are not permitted in a DSL definition",
+            "duplicate element binding: api",
+        ]
+    );
 
     close_document(&mut service, &alpha_uri).await;
     let _ = next_publish_diagnostics_for_uri(&mut socket, alpha_uri.as_str()).await;

@@ -1,7 +1,71 @@
 //! Transport-agnostic diagnostics derived from parsing and workspace discovery.
 
-use crate::snapshot::DocumentId;
-use crate::span::TextSpan;
+use std::fmt;
+
+use crate::{
+    rule::{Level, RuleMetadata},
+    rules,
+    snapshot::DocumentId,
+    span::TextSpan,
+};
+
+/// Severity carried by transport-agnostic diagnostics.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum DiagnosticSeverity {
+    /// A diagnostic that should fail normal validation flows.
+    Error,
+    /// A diagnostic that should be shown without failing by default.
+    Warning,
+}
+
+impl DiagnosticSeverity {
+    /// Maps one declared rule level to the corresponding transport severity.
+    #[must_use]
+    pub const fn from_level(level: Level) -> Self {
+        match level {
+            Level::Warn => Self::Warning,
+            Level::Error => Self::Error,
+        }
+    }
+}
+
+/// Secondary source context attached to a diagnostic.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Annotation {
+    /// Optional document identity when the annotation points outside the primary
+    /// diagnostic document.
+    pub document: Option<DocumentId>,
+    /// Byte and point range covered by the related source span.
+    pub span: TextSpan,
+    /// Human-readable explanation for why the related span matters.
+    pub message: Option<String>,
+}
+
+impl Annotation {
+    /// Creates a secondary annotation in the same document as the primary span.
+    #[must_use]
+    pub const fn secondary(span: TextSpan) -> Self {
+        Self {
+            document: None,
+            span,
+            message: None,
+        }
+    }
+
+    /// Associates the annotation with a different document.
+    #[must_use]
+    pub fn in_document(mut self, document: &DocumentId) -> Self {
+        self.document = Some(document.clone());
+        self
+    }
+
+    /// Attaches a terse explanatory message to the annotation.
+    #[must_use]
+    pub fn message(mut self, message: impl Into<String>) -> Self {
+        self.message = Some(message.into());
+        self
+    }
+}
 
 /// Categorizes the syntax problem Tree-sitter reported for a source range.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -12,8 +76,31 @@ pub enum SyntaxDiagnosticKind {
     MissingNode,
 }
 
+impl SyntaxDiagnosticKind {
+    /// Returns the declared rule metadata for this syntax problem.
+    #[must_use]
+    pub const fn rule(self) -> &'static RuleMetadata {
+        match self {
+            Self::ErrorNode => &rules::SYNTAX_ERROR_NODE,
+            Self::MissingNode => &rules::SYNTAX_MISSING_NODE,
+        }
+    }
+
+    /// Returns the stable diagnostic code for this syntax problem.
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        self.rule().code
+    }
+
+    /// Returns the severity for this syntax problem.
+    #[must_use]
+    pub const fn severity(self) -> DiagnosticSeverity {
+        DiagnosticSeverity::from_level(self.rule().default_level)
+    }
+}
+
 /// Describes a syntax problem extracted from the parse tree.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct SyntaxDiagnostic {
     /// The parser-reported category of syntax problem.
     pub kind: SyntaxDiagnosticKind,
@@ -21,14 +108,60 @@ pub struct SyntaxDiagnostic {
     pub message: String,
     /// Byte and point range covered by the diagnostic.
     pub span: TextSpan,
+    /// Secondary source spans that provide extra context.
+    pub annotations: Vec<Annotation>,
+}
+
+impl fmt::Debug for SyntaxDiagnostic {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut debug = formatter.debug_struct("SyntaxDiagnostic");
+        debug
+            .field("kind", &self.kind)
+            .field("message", &self.message)
+            .field("span", &self.span);
+        if !self.annotations.is_empty() {
+            debug.field("annotations", &self.annotations);
+        }
+        debug.finish()
+    }
 }
 
 impl SyntaxDiagnostic {
+    /// Returns the declared rule metadata for this syntax problem.
+    #[must_use]
+    pub const fn rule(&self) -> &'static RuleMetadata {
+        self.kind.rule()
+    }
+
+    /// Returns the stable diagnostic code for this syntax problem.
+    #[must_use]
+    pub const fn code(&self) -> &'static str {
+        self.rule().code
+    }
+
+    /// Returns the severity for this syntax problem.
+    #[must_use]
+    pub const fn severity(&self) -> DiagnosticSeverity {
+        DiagnosticSeverity::from_level(self.rule().default_level)
+    }
+
+    /// Returns any secondary source context attached to this diagnostic.
+    #[must_use]
+    pub fn annotations(&self) -> &[Annotation] {
+        &self.annotations
+    }
+
+    /// Attaches one secondary annotation to this diagnostic.
+    pub fn annotate(&mut self, annotation: Annotation) {
+        self.annotations.push(annotation);
+    }
+
     pub(crate) fn unexpected_syntax(span: TextSpan) -> Self {
         Self {
             kind: SyntaxDiagnosticKind::ErrorNode,
             message: "unexpected syntax".to_owned(),
             span,
+            annotations: Vec::new(),
         }
     }
 
@@ -37,6 +170,7 @@ impl SyntaxDiagnostic {
             kind: SyntaxDiagnosticKind::MissingNode,
             message: format!("missing {kind}"),
             span,
+            annotations: Vec::new(),
         }
     }
 }
@@ -54,8 +188,33 @@ pub enum IncludeDiagnosticKind {
     UnsupportedRemoteTarget,
 }
 
+impl IncludeDiagnosticKind {
+    /// Returns the declared rule metadata for this include problem.
+    #[must_use]
+    pub const fn rule(self) -> &'static RuleMetadata {
+        match self {
+            Self::MissingLocalTarget => &rules::INCLUDE_MISSING_LOCAL_TARGET,
+            Self::EscapesAllowedSubtree => &rules::INCLUDE_ESCAPES_ALLOWED_SUBTREE,
+            Self::IncludeCycle => &rules::INCLUDE_CYCLE,
+            Self::UnsupportedRemoteTarget => &rules::INCLUDE_UNSUPPORTED_REMOTE_TARGET,
+        }
+    }
+
+    /// Returns the stable diagnostic code for this include problem.
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        self.rule().code
+    }
+
+    /// Returns the severity for this include problem.
+    #[must_use]
+    pub const fn severity(self) -> DiagnosticSeverity {
+        DiagnosticSeverity::from_level(self.rule().default_level)
+    }
+}
+
 /// Describes one include-resolution problem attached to a directive site.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct IncludeDiagnostic {
     /// The including document that should surface this diagnostic.
     pub document: DocumentId,
@@ -69,9 +228,57 @@ pub struct IncludeDiagnostic {
     pub span: TextSpan,
     /// Span of the directive value node in the including document.
     pub value_span: TextSpan,
+    /// Secondary source spans that provide extra context.
+    pub annotations: Vec<Annotation>,
+}
+
+impl fmt::Debug for IncludeDiagnostic {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut debug = formatter.debug_struct("IncludeDiagnostic");
+        debug
+            .field("document", &self.document)
+            .field("kind", &self.kind)
+            .field("message", &self.message)
+            .field("target_text", &self.target_text)
+            .field("span", &self.span)
+            .field("value_span", &self.value_span);
+        if !self.annotations.is_empty() {
+            debug.field("annotations", &self.annotations);
+        }
+        debug.finish()
+    }
 }
 
 impl IncludeDiagnostic {
+    /// Returns the declared rule metadata for this include problem.
+    #[must_use]
+    pub const fn rule(&self) -> &'static RuleMetadata {
+        self.kind.rule()
+    }
+
+    /// Returns the stable diagnostic code for this include problem.
+    #[must_use]
+    pub const fn code(&self) -> &'static str {
+        self.rule().code
+    }
+
+    /// Returns the severity for this include problem.
+    #[must_use]
+    pub const fn severity(&self) -> DiagnosticSeverity {
+        DiagnosticSeverity::from_level(self.rule().default_level)
+    }
+
+    /// Returns any secondary source context attached to this diagnostic.
+    #[must_use]
+    pub fn annotations(&self) -> &[Annotation] {
+        &self.annotations
+    }
+
+    /// Attaches one secondary annotation to this diagnostic.
+    pub fn annotate(&mut self, annotation: Annotation) {
+        self.annotations.push(annotation);
+    }
+
     pub(crate) fn missing_local_target(
         document: &DocumentId,
         target_text: &str,
@@ -85,6 +292,7 @@ impl IncludeDiagnostic {
             target_text: target_text.to_owned(),
             span,
             value_span,
+            annotations: Vec::new(),
         }
     }
 
@@ -101,6 +309,7 @@ impl IncludeDiagnostic {
             target_text: target_text.to_owned(),
             span,
             value_span,
+            annotations: Vec::new(),
         }
     }
 
@@ -117,6 +326,7 @@ impl IncludeDiagnostic {
             target_text: target_text.to_owned(),
             span,
             value_span,
+            annotations: Vec::new(),
         }
     }
 
@@ -133,6 +343,7 @@ impl IncludeDiagnostic {
             target_text: target_text.to_owned(),
             span,
             value_span,
+            annotations: Vec::new(),
         }
     }
 }
@@ -142,14 +353,77 @@ impl IncludeDiagnostic {
 pub enum SemanticDiagnosticKind {
     /// More than one definition claimed the same canonical binding key.
     DuplicateBinding,
+    /// A deployment relationship connects endpoints in the same containment chain.
+    DeploymentParentChildRelationship,
+    /// A filtered view derives from a base view that already enables auto-layout.
+    FilteredViewAutoLayoutMismatch,
+    /// A dynamic-view step does not correspond to any compatible declared relationship.
+    DynamicViewRelationshipMismatch,
+    /// A dynamic-view step redundantly re-adds the view scope.
+    DynamicViewScopeRedundancy,
+    /// A `!docs` or `!adrs` directive points at a missing or incompatible local path.
+    InvalidDocumentationPath,
+    /// An image-view source points at a missing or incompatible local file.
+    InvalidImageSource,
+    /// A resolved view element is incompatible with the current view kind.
+    InvalidViewElement,
+    /// An image view uses a renderer source without the required supporting property.
+    MissingImageRendererProperty,
+    /// One DSL definition contained more than one top-level `model` or `views` section.
+    RepeatedWorkspaceSection,
+    /// A supported `!element` selector target resolved to no known target.
+    UnresolvedElementSelector,
     /// A supported identifier reference resolved to no known target.
     UnresolvedReference,
+    /// A declared workspace scope conflicts with the assembled model depth.
+    WorkspaceScopeMismatch,
     /// A supported identifier reference could not be resolved confidently.
     AmbiguousReference,
 }
 
+impl SemanticDiagnosticKind {
+    /// Returns the declared rule metadata for this semantic problem.
+    #[must_use]
+    pub const fn rule(self) -> &'static RuleMetadata {
+        match self {
+            Self::DuplicateBinding => &rules::SEMANTIC_DUPLICATE_BINDING,
+            Self::DeploymentParentChildRelationship => {
+                &rules::SEMANTIC_DEPLOYMENT_PARENT_CHILD_RELATIONSHIP
+            }
+            Self::FilteredViewAutoLayoutMismatch => {
+                &rules::SEMANTIC_FILTERED_VIEW_AUTOLAYOUT_MISMATCH
+            }
+            Self::DynamicViewRelationshipMismatch => {
+                &rules::SEMANTIC_DYNAMIC_VIEW_RELATIONSHIP_MISMATCH
+            }
+            Self::DynamicViewScopeRedundancy => &rules::SEMANTIC_DYNAMIC_VIEW_SCOPE_REDUNDANCY,
+            Self::InvalidDocumentationPath => &rules::SEMANTIC_INVALID_DOCUMENTATION_PATH,
+            Self::InvalidImageSource => &rules::SEMANTIC_INVALID_IMAGE_SOURCE,
+            Self::InvalidViewElement => &rules::SEMANTIC_INVALID_VIEW_ELEMENT,
+            Self::MissingImageRendererProperty => &rules::SEMANTIC_MISSING_IMAGE_RENDERER_PROPERTY,
+            Self::RepeatedWorkspaceSection => &rules::SEMANTIC_REPEATED_WORKSPACE_SECTION,
+            Self::UnresolvedElementSelector => &rules::SEMANTIC_UNRESOLVED_ELEMENT_SELECTOR,
+            Self::UnresolvedReference => &rules::SEMANTIC_UNRESOLVED_REFERENCE,
+            Self::WorkspaceScopeMismatch => &rules::SEMANTIC_WORKSPACE_SCOPE_MISMATCH,
+            Self::AmbiguousReference => &rules::SEMANTIC_AMBIGUOUS_REFERENCE,
+        }
+    }
+
+    /// Returns the stable diagnostic code for this semantic rule.
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        self.rule().code
+    }
+
+    /// Returns the default severity for this semantic rule.
+    #[must_use]
+    pub const fn severity(self) -> DiagnosticSeverity {
+        DiagnosticSeverity::from_level(self.rule().default_level)
+    }
+}
+
 /// Describes one semantic problem attached to a definition or reference site.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SemanticDiagnostic {
     /// The document that should surface this diagnostic.
     pub document: DocumentId,
@@ -159,9 +433,55 @@ pub struct SemanticDiagnostic {
     pub message: String,
     /// Span of the affected symbol or reference.
     pub span: TextSpan,
+    /// Secondary source spans that provide extra context.
+    pub annotations: Vec<Annotation>,
+}
+
+impl fmt::Debug for SemanticDiagnostic {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut debug = formatter.debug_struct("SemanticDiagnostic");
+        debug
+            .field("document", &self.document)
+            .field("kind", &self.kind)
+            .field("message", &self.message)
+            .field("span", &self.span);
+        if !self.annotations.is_empty() {
+            debug.field("annotations", &self.annotations);
+        }
+        debug.finish()
+    }
 }
 
 impl SemanticDiagnostic {
+    /// Returns the declared rule metadata for this semantic problem.
+    #[must_use]
+    pub const fn rule(&self) -> &'static RuleMetadata {
+        self.kind.rule()
+    }
+
+    /// Returns the stable diagnostic code for this semantic rule.
+    #[must_use]
+    pub const fn code(&self) -> &'static str {
+        self.rule().code
+    }
+
+    /// Returns the severity for this semantic rule.
+    #[must_use]
+    pub const fn severity(&self) -> DiagnosticSeverity {
+        DiagnosticSeverity::from_level(self.rule().default_level)
+    }
+
+    /// Returns any secondary source context attached to this diagnostic.
+    #[must_use]
+    pub fn annotations(&self) -> &[Annotation] {
+        &self.annotations
+    }
+
+    /// Attaches one secondary annotation to this diagnostic.
+    pub fn annotate(&mut self, annotation: Annotation) {
+        self.annotations.push(annotation);
+    }
+
     pub(crate) fn duplicate_binding(
         document: &DocumentId,
         binding_kind: &str,
@@ -173,6 +493,170 @@ impl SemanticDiagnostic {
             kind: SemanticDiagnosticKind::DuplicateBinding,
             message: format!("duplicate {binding_kind} binding: {key}"),
             span,
+            annotations: Vec::new(),
+        }
+    }
+
+    pub(crate) fn deployment_parent_child_relationship(
+        document: &DocumentId,
+        span: TextSpan,
+    ) -> Self {
+        Self {
+            document: document.clone(),
+            kind: SemanticDiagnosticKind::DeploymentParentChildRelationship,
+            message: "Relationships cannot be added between parents and children".to_owned(),
+            span,
+            annotations: Vec::new(),
+        }
+    }
+
+    pub(crate) fn filtered_view_autolayout_mismatch(
+        document: &DocumentId,
+        base_key: &str,
+        span: TextSpan,
+    ) -> Self {
+        Self {
+            document: document.clone(),
+            kind: SemanticDiagnosticKind::FilteredViewAutoLayoutMismatch,
+            message: format!(
+                "The view \"{base_key}\" has automatic layout enabled - this is not supported for filtered views"
+            ),
+            span,
+            annotations: Vec::new(),
+        }
+    }
+
+    pub(crate) fn dynamic_view_relationship_mismatch(
+        document: &DocumentId,
+        source_name: &str,
+        destination_name: &str,
+        technology: Option<&str>,
+        span: TextSpan,
+    ) -> Self {
+        let message = technology.map_or_else(
+            || {
+                format!(
+                    "A relationship between {source_name} and {destination_name} does not exist in model."
+                )
+            },
+            |technology| {
+                format!(
+                "A relationship between {source_name} and {destination_name} with technology {technology} does not exist in model."
+                )
+            },
+        );
+
+        Self {
+            document: document.clone(),
+            kind: SemanticDiagnosticKind::DynamicViewRelationshipMismatch,
+            message,
+            span,
+            annotations: Vec::new(),
+        }
+    }
+
+    pub(crate) fn dynamic_view_scope_redundancy(
+        document: &DocumentId,
+        scope_name: &str,
+        span: TextSpan,
+    ) -> Self {
+        Self {
+            document: document.clone(),
+            kind: SemanticDiagnosticKind::DynamicViewScopeRedundancy,
+            message: format!(
+                "{scope_name} is already the scope of this view and cannot be added to it"
+            ),
+            span,
+            annotations: Vec::new(),
+        }
+    }
+
+    pub(crate) fn invalid_view_element(
+        document: &DocumentId,
+        raw_text: &str,
+        span: TextSpan,
+    ) -> Self {
+        Self {
+            document: document.clone(),
+            kind: SemanticDiagnosticKind::InvalidViewElement,
+            message: format!("The element \"{raw_text}\" can not be added to this type of view"),
+            span,
+            annotations: Vec::new(),
+        }
+    }
+
+    pub(crate) fn invalid_documentation_path(
+        document: &DocumentId,
+        message: impl Into<String>,
+        span: TextSpan,
+    ) -> Self {
+        Self {
+            document: document.clone(),
+            kind: SemanticDiagnosticKind::InvalidDocumentationPath,
+            message: message.into(),
+            span,
+            annotations: Vec::new(),
+        }
+    }
+
+    pub(crate) fn invalid_image_source(
+        document: &DocumentId,
+        message: impl Into<String>,
+        span: TextSpan,
+    ) -> Self {
+        Self {
+            document: document.clone(),
+            kind: SemanticDiagnosticKind::InvalidImageSource,
+            message: message.into(),
+            span,
+            annotations: Vec::new(),
+        }
+    }
+
+    pub(crate) fn missing_image_renderer_property(
+        document: &DocumentId,
+        property_name: &str,
+        service_name: &str,
+        span: TextSpan,
+    ) -> Self {
+        Self {
+            document: document.clone(),
+            kind: SemanticDiagnosticKind::MissingImageRendererProperty,
+            message: format!(
+                "Please define a view/viewset property named {property_name} to specify your {service_name} server"
+            ),
+            span,
+            annotations: Vec::new(),
+        }
+    }
+
+    pub(crate) fn repeated_workspace_section(
+        document: &DocumentId,
+        section_name: &str,
+        span: TextSpan,
+    ) -> Self {
+        Self {
+            document: document.clone(),
+            kind: SemanticDiagnosticKind::RepeatedWorkspaceSection,
+            message: format!(
+                "multiple {section_name} sections are not permitted in a DSL definition"
+            ),
+            span,
+            annotations: Vec::new(),
+        }
+    }
+
+    pub(crate) fn unresolved_element_selector(
+        document: &DocumentId,
+        raw_text: &str,
+        span: TextSpan,
+    ) -> Self {
+        Self {
+            document: document.clone(),
+            kind: SemanticDiagnosticKind::UnresolvedElementSelector,
+            message: format!("unresolved !element selector target: {raw_text}"),
+            span,
+            annotations: Vec::new(),
         }
     }
 
@@ -186,6 +670,21 @@ impl SemanticDiagnostic {
             kind: SemanticDiagnosticKind::UnresolvedReference,
             message: format!("unresolved identifier reference: {raw_text}"),
             span,
+            annotations: Vec::new(),
+        }
+    }
+
+    pub(crate) fn workspace_scope_mismatch(
+        document: &DocumentId,
+        message: impl Into<String>,
+        span: TextSpan,
+    ) -> Self {
+        Self {
+            document: document.clone(),
+            kind: SemanticDiagnosticKind::WorkspaceScopeMismatch,
+            message: message.into(),
+            span,
+            annotations: Vec::new(),
         }
     }
 
@@ -199,6 +698,7 @@ impl SemanticDiagnostic {
             kind: SemanticDiagnosticKind::AmbiguousReference,
             message: format!("ambiguous identifier reference: {raw_text}"),
             span,
+            annotations: Vec::new(),
         }
     }
 }

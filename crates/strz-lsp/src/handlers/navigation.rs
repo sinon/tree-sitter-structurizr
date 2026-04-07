@@ -641,7 +641,8 @@ pub(super) const fn is_element_symbol_kind(kind: SymbolKind) -> bool {
 pub(super) const fn is_deployment_symbol_kind(kind: SymbolKind) -> bool {
     matches!(
         kind,
-        SymbolKind::DeploymentNode
+        SymbolKind::DeploymentEnvironment
+            | SymbolKind::DeploymentNode
             | SymbolKind::InfrastructureNode
             | SymbolKind::ContainerInstance
             | SymbolKind::SoftwareSystemInstance

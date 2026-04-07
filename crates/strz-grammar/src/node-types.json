@@ -2972,6 +2972,10 @@
           "named": true
         },
         {
+          "type": "properties_block",
+          "named": true
+        },
+        {
           "type": "title_statement",
           "named": true
         }

@@ -65,6 +65,7 @@ const fn to_lsp_symbol_kind(kind: SymbolKind) -> LspSymbolKind {
         | SymbolKind::SoftwareSystem
         | SymbolKind::Container
         | SymbolKind::Component
+        | SymbolKind::DeploymentEnvironment
         | SymbolKind::DeploymentNode
         | SymbolKind::InfrastructureNode
         | SymbolKind::ContainerInstance

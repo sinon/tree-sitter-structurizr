@@ -79,27 +79,24 @@ impl<'a> SymbolExtractor<'a> {
     fn visit(&mut self, node: Node<'_>, parent_symbol: Option<SymbolId>) {
         // Declaration nodes build the hierarchical symbol tree, while
         // relationships and views contribute reference edges into that tree.
+        if let Some(kind) = element_symbol_kind(node.kind()) {
+            let symbol_id = self.push_declaration_symbol(node, kind, parent_symbol);
+            self.visit_children(node, Some(symbol_id));
+            return;
+        }
+        if let Some(kind) = named_deployment_symbol_kind(node.kind()) {
+            let symbol_id = self.push_named_deployment_symbol(node, kind, parent_symbol);
+            self.visit_children(node, symbol_id.or(parent_symbol));
+            return;
+        }
+        if let Some(kind) = instance_symbol_kind(node.kind()) {
+            let symbol_id = self.push_instance_symbol(node, kind, parent_symbol);
+            self.push_instance_target_reference(node, symbol_id.or(parent_symbol));
+            self.visit_children(node, symbol_id.or(parent_symbol));
+            return;
+        }
+
         match node.kind() {
-            "person" => {
-                let symbol_id =
-                    self.push_declaration_symbol(node, SymbolKind::Person, parent_symbol);
-                self.visit_children(node, Some(symbol_id));
-            }
-            "software_system" => {
-                let symbol_id =
-                    self.push_declaration_symbol(node, SymbolKind::SoftwareSystem, parent_symbol);
-                self.visit_children(node, Some(symbol_id));
-            }
-            "container" => {
-                let symbol_id =
-                    self.push_declaration_symbol(node, SymbolKind::Container, parent_symbol);
-                self.visit_children(node, Some(symbol_id));
-            }
-            "component" => {
-                let symbol_id =
-                    self.push_declaration_symbol(node, SymbolKind::Component, parent_symbol);
-                self.visit_children(node, Some(symbol_id));
-            }
             "relationship" => {
                 let relationship_symbol = self.push_relationship_symbol(node, parent_symbol);
                 let containing_symbol = relationship_symbol.or(parent_symbol);
@@ -119,37 +116,6 @@ impl<'a> SymbolExtractor<'a> {
                     target_hint,
                     containing_symbol,
                 );
-            }
-            "deployment_node" => {
-                let symbol_id = self.push_named_deployment_symbol(
-                    node,
-                    SymbolKind::DeploymentNode,
-                    parent_symbol,
-                );
-                self.visit_children(node, symbol_id.or(parent_symbol));
-            }
-            "infrastructure_node" => {
-                let symbol_id = self.push_named_deployment_symbol(
-                    node,
-                    SymbolKind::InfrastructureNode,
-                    parent_symbol,
-                );
-                self.visit_children(node, symbol_id.or(parent_symbol));
-            }
-            "container_instance" => {
-                let symbol_id =
-                    self.push_instance_symbol(node, SymbolKind::ContainerInstance, parent_symbol);
-                self.push_instance_target_reference(node, symbol_id.or(parent_symbol));
-                self.visit_children(node, symbol_id.or(parent_symbol));
-            }
-            "software_system_instance" => {
-                let symbol_id = self.push_instance_symbol(
-                    node,
-                    SymbolKind::SoftwareSystemInstance,
-                    parent_symbol,
-                );
-                self.push_instance_target_reference(node, symbol_id.or(parent_symbol));
-                self.visit_children(node, symbol_id.or(parent_symbol));
             }
             "system_landscape_view" => self.extract_view(
                 node,
@@ -570,6 +536,33 @@ impl<'a> SymbolExtractor<'a> {
     }
 }
 
+fn element_symbol_kind(node_kind: &str) -> Option<SymbolKind> {
+    match node_kind {
+        "person" => Some(SymbolKind::Person),
+        "software_system" => Some(SymbolKind::SoftwareSystem),
+        "container" => Some(SymbolKind::Container),
+        "component" => Some(SymbolKind::Component),
+        _ => None,
+    }
+}
+
+fn named_deployment_symbol_kind(node_kind: &str) -> Option<SymbolKind> {
+    match node_kind {
+        "deployment_environment" => Some(SymbolKind::DeploymentEnvironment),
+        "deployment_node" => Some(SymbolKind::DeploymentNode),
+        "infrastructure_node" => Some(SymbolKind::InfrastructureNode),
+        _ => None,
+    }
+}
+
+fn instance_symbol_kind(node_kind: &str) -> Option<SymbolKind> {
+    match node_kind {
+        "container_instance" => Some(SymbolKind::ContainerInstance),
+        "software_system_instance" => Some(SymbolKind::SoftwareSystemInstance),
+        _ => None,
+    }
+}
+
 fn relationship_reference_surface(
     relationship: Node<'_>,
 ) -> (ReferenceKind, ReferenceKind, ReferenceTargetHint) {
@@ -612,7 +605,9 @@ fn declaration_metadata(node: Node<'_>, source: &str) -> ExtractedSymbolMetadata
     match node.kind() {
         "person" | "software_system" | "container" | "component" => element_metadata(node, source),
         "relationship" => relationship_metadata(node, source),
-        "deployment_node" | "infrastructure_node" => deployment_metadata(node, source),
+        "deployment_environment" | "deployment_node" | "infrastructure_node" => {
+            deployment_metadata(node, source)
+        }
         "container_instance" | "software_system_instance" => instance_metadata(node, source),
         _ => ExtractedSymbolMetadata::default(),
     }

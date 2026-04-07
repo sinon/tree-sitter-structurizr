@@ -291,6 +291,40 @@ workspace {
               (plantuml_source
                 (text_block_string)))))))))
 
+===========================
+Image view local properties
+===========================
+
+workspace {
+  views {
+    image * "image" {
+      properties {
+        "plantuml.url" "https://plantuml.com/plantuml"
+      }
+
+      plantuml "diagram.puml"
+    }
+  }
+}
+
+---
+
+(source_file
+  (workspace
+    (workspace_block
+      (views
+        (views_block
+          (image_view
+            (wildcard)
+            (string)
+            (image_view_block
+              (properties_block
+                (property_entry
+                  (string)
+                  (string)))
+              (plantuml_source
+                (string)))))))))
+
 =====================
 Inline filtered views
 =====================

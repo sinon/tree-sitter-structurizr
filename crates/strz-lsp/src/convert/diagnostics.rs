@@ -1,10 +1,13 @@
 //! Convert analysis diagnostics into LSP diagnostics.
 
+use line_index::LineIndex;
 use strz_analysis::{
-    DocumentId, DocumentSnapshot, IncludeDiagnostic, IncludeDiagnosticKind, SemanticDiagnostic,
-    SyntaxDiagnostic, SyntaxDiagnosticKind, WorkspaceFacts,
+    Annotation, DiagnosticSeverity as AnalysisSeverity, DocumentId, DocumentSnapshot,
+    IncludeDiagnostic, SemanticDiagnostic, SyntaxDiagnostic, SyntaxDiagnosticKind, WorkspaceFacts,
 };
-use tower_lsp_server::ls_types::{Diagnostic, DiagnosticSeverity};
+use tower_lsp_server::ls_types::{
+    Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, Location, NumberOrString, Uri,
+};
 
 use crate::{convert::positions::span_to_range, documents::DocumentState};
 
@@ -18,7 +21,7 @@ pub fn document_diagnostics(
     let mut diagnostics = snapshot
         .syntax_diagnostics()
         .iter()
-        .filter_map(|diagnostic| syntax_diagnostic(document, diagnostic))
+        .filter_map(|diagnostic| syntax_diagnostic(document, diagnostic, workspace_facts))
         .collect::<Vec<_>>();
 
     if let Some(workspace_facts) = workspace_facts {
@@ -40,6 +43,7 @@ pub fn document_diagnostics(
 fn syntax_diagnostic(
     document: &DocumentState,
     diagnostic: &SyntaxDiagnostic,
+    workspace_facts: Option<&WorkspaceFacts>,
 ) -> Option<Diagnostic> {
     if suppress_partial_relationship_recovery_diagnostic(document, diagnostic) {
         return None;
@@ -47,9 +51,15 @@ fn syntax_diagnostic(
 
     Some(Diagnostic {
         range: span_to_range(document.line_index(), diagnostic.span)?,
-        severity: Some(DiagnosticSeverity::ERROR),
+        severity: Some(to_lsp_severity(diagnostic.severity())),
+        code: Some(NumberOrString::String(diagnostic.code().to_owned())),
         source: Some("strz".to_owned()),
         message: diagnostic.message.clone(),
+        related_information: related_information(
+            document,
+            workspace_facts,
+            diagnostic.annotations(),
+        ),
         ..Diagnostic::default()
     })
 }
@@ -64,7 +74,7 @@ fn include_diagnostics(
 
     workspace_facts
         .include_diagnostics_for(&document_id)
-        .filter_map(|diagnostic| include_diagnostic(document, diagnostic))
+        .filter_map(|diagnostic| include_diagnostic(document, diagnostic, workspace_facts))
         .collect()
 }
 
@@ -78,24 +88,26 @@ fn semantic_diagnostics(
 
     workspace_facts
         .semantic_diagnostics_for(&document_id)
-        .filter_map(|diagnostic| semantic_diagnostic(document, diagnostic))
+        .filter_map(|diagnostic| semantic_diagnostic(document, diagnostic, workspace_facts))
         .collect()
 }
 
 fn include_diagnostic(
     document: &DocumentState,
     diagnostic: &IncludeDiagnostic,
+    workspace_facts: &WorkspaceFacts,
 ) -> Option<Diagnostic> {
     Some(Diagnostic {
         range: span_to_range(document.line_index(), diagnostic.span)?,
-        severity: Some(match diagnostic.kind {
-            IncludeDiagnosticKind::UnsupportedRemoteTarget => DiagnosticSeverity::WARNING,
-            IncludeDiagnosticKind::MissingLocalTarget
-            | IncludeDiagnosticKind::EscapesAllowedSubtree
-            | IncludeDiagnosticKind::IncludeCycle => DiagnosticSeverity::ERROR,
-        }),
+        severity: Some(to_lsp_severity(diagnostic.severity())),
+        code: Some(NumberOrString::String(diagnostic.code().to_owned())),
         source: Some("strz".to_owned()),
         message: diagnostic.message.clone(),
+        related_information: related_information(
+            document,
+            Some(workspace_facts),
+            diagnostic.annotations(),
+        ),
         ..Diagnostic::default()
     })
 }
@@ -103,18 +115,94 @@ fn include_diagnostic(
 fn semantic_diagnostic(
     document: &DocumentState,
     diagnostic: &SemanticDiagnostic,
+    workspace_facts: &WorkspaceFacts,
 ) -> Option<Diagnostic> {
     Some(Diagnostic {
         range: span_to_range(document.line_index(), diagnostic.span)?,
-        severity: Some(DiagnosticSeverity::ERROR),
+        severity: Some(to_lsp_severity(diagnostic.severity())),
+        code: Some(NumberOrString::String(diagnostic.code().to_owned())),
         source: Some("strz".to_owned()),
         message: diagnostic.message.clone(),
+        related_information: related_information(
+            document,
+            Some(workspace_facts),
+            diagnostic.annotations(),
+        ),
         ..Diagnostic::default()
     })
 }
 
 fn workspace_document_id(document: &DocumentState) -> Option<DocumentId> {
     document.workspace_document_id().cloned()
+}
+
+const fn to_lsp_severity(severity: AnalysisSeverity) -> DiagnosticSeverity {
+    match severity {
+        AnalysisSeverity::Error => DiagnosticSeverity::ERROR,
+        AnalysisSeverity::Warning => DiagnosticSeverity::WARNING,
+    }
+}
+
+fn related_information(
+    document: &DocumentState,
+    workspace_facts: Option<&WorkspaceFacts>,
+    annotations: &[Annotation],
+) -> Option<Vec<DiagnosticRelatedInformation>> {
+    let related = annotations
+        .iter()
+        .filter_map(|annotation| related_annotation(document, workspace_facts, annotation))
+        .collect::<Vec<_>>();
+
+    (!related.is_empty()).then_some(related)
+}
+
+fn related_annotation(
+    document: &DocumentState,
+    workspace_facts: Option<&WorkspaceFacts>,
+    annotation: &Annotation,
+) -> Option<DiagnosticRelatedInformation> {
+    let location = annotation_location(document, workspace_facts, annotation)?;
+
+    Some(DiagnosticRelatedInformation {
+        location,
+        message: annotation
+            .message
+            .clone()
+            .unwrap_or_else(|| "related source location".to_owned()),
+    })
+}
+
+fn annotation_location(
+    document: &DocumentState,
+    workspace_facts: Option<&WorkspaceFacts>,
+    annotation: &Annotation,
+) -> Option<Location> {
+    let Some(annotation_document) = annotation.document.as_ref() else {
+        return Some(Location {
+            uri: document.uri().clone(),
+            range: span_to_range(document.line_index(), annotation.span)?,
+        });
+    };
+
+    // Only workspace-scoped diagnostics attach cross-document annotations. When
+    // one of those annotations reaches the converter without workspace facts, we
+    // cannot recover the related URI and should treat it as a publish-pipeline
+    // bug rather than guess.
+    debug_assert!(
+        workspace_facts.is_some(),
+        "BUG: cross-document annotations require workspace facts"
+    );
+    let workspace_facts = workspace_facts?;
+    let related_document = workspace_facts.document(annotation_document)?;
+    let snapshot = related_document.snapshot();
+    let location = snapshot.location()?;
+    let uri = Uri::from_file_path(location.path())?;
+    let line_index = LineIndex::new(snapshot.source());
+
+    Some(Location {
+        uri,
+        range: span_to_range(&line_index, annotation.span)?,
+    })
 }
 
 /// Suppress the stray `=` error produced by partial relationship recovery before an

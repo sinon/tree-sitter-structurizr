@@ -8,6 +8,10 @@ use crate::constants::ConstantDefinition;
 use crate::diagnostics::SyntaxDiagnostic;
 use crate::extract;
 use crate::includes::IncludeDirective;
+use crate::semantic::{
+    ConfigurationScopeFact, ElementDirectiveFact, PropertyFact, RelationshipFact,
+    ResourceDirectiveFact, ViewFact, WorkspaceSectionFact,
+};
 use crate::symbols::{IdentifierModeFact, Reference, Symbol};
 use crate::workspace::{ElementIdentifierMode, effective_element_identifier_mode_from_facts};
 
@@ -136,6 +140,13 @@ pub struct DocumentSyntaxFacts {
     identifier_modes: Vec<IdentifierModeFact>,
     symbols: Vec<Symbol>,
     references: Vec<Reference>,
+    workspace_sections: Vec<WorkspaceSectionFact>,
+    configuration_scopes: Vec<ConfigurationScopeFact>,
+    property_facts: Vec<PropertyFact>,
+    resource_directives: Vec<ResourceDirectiveFact>,
+    element_directives: Vec<ElementDirectiveFact>,
+    relationship_facts: Vec<RelationshipFact>,
+    view_facts: Vec<ViewFact>,
 }
 
 impl DocumentSyntaxFacts {
@@ -146,6 +157,7 @@ impl DocumentSyntaxFacts {
         let constant_definitions = extract::constants::collect(tree, source);
         let identifier_modes = extract::symbols::collect_identifier_modes(tree, source);
         let (symbols, references) = extract::symbols::collect_symbols_and_references(tree, source);
+        let semantic_facts = extract::semantic::collect(tree, source);
 
         Self {
             is_workspace_entry: contains_workspace_entry(tree),
@@ -155,6 +167,13 @@ impl DocumentSyntaxFacts {
             identifier_modes,
             symbols,
             references,
+            workspace_sections: semantic_facts.workspace_sections,
+            configuration_scopes: semantic_facts.configuration_scopes,
+            property_facts: semantic_facts.property_facts,
+            resource_directives: semantic_facts.resource_directives,
+            element_directives: semantic_facts.element_directives,
+            relationship_facts: semantic_facts.relationship_facts,
+            view_facts: semantic_facts.view_facts,
         }
     }
 
@@ -204,6 +223,48 @@ impl DocumentSyntaxFacts {
     #[must_use]
     pub fn references(&self) -> &[Reference] {
         &self.references
+    }
+
+    /// Returns top-level workspace sections such as `model` and `views`.
+    #[must_use]
+    pub fn workspace_sections(&self) -> &[WorkspaceSectionFact] {
+        &self.workspace_sections
+    }
+
+    /// Returns all extracted `configuration { scope ... }` statements.
+    #[must_use]
+    pub fn configuration_scopes(&self) -> &[ConfigurationScopeFact] {
+        &self.configuration_scopes
+    }
+
+    /// Returns all extracted `properties { ... }` entries.
+    #[must_use]
+    pub fn property_facts(&self) -> &[PropertyFact] {
+        &self.property_facts
+    }
+
+    /// Returns all extracted `!docs` and `!adrs` directives.
+    #[must_use]
+    pub fn resource_directives(&self) -> &[ResourceDirectiveFact] {
+        &self.resource_directives
+    }
+
+    /// Returns all extracted `!element` directive targets.
+    #[must_use]
+    pub fn element_directives(&self) -> &[ElementDirectiveFact] {
+        &self.element_directives
+    }
+
+    /// Returns all extracted declared relationships.
+    #[must_use]
+    pub fn relationship_facts(&self) -> &[RelationshipFact] {
+        &self.relationship_facts
+    }
+
+    /// Returns all extracted view definitions plus their body facts.
+    #[must_use]
+    pub fn view_facts(&self) -> &[ViewFact] {
+        &self.view_facts
     }
 }
 
@@ -331,6 +392,48 @@ impl DocumentSnapshot {
     /// Returns all symbol references extracted from the document.
     pub fn references(&self) -> &[Reference] {
         self.syntax_facts.references()
+    }
+
+    #[must_use]
+    /// Returns top-level workspace sections such as `model` and `views`.
+    pub fn workspace_sections(&self) -> &[WorkspaceSectionFact] {
+        self.syntax_facts.workspace_sections()
+    }
+
+    #[must_use]
+    /// Returns all extracted `configuration { scope ... }` statements.
+    pub fn configuration_scopes(&self) -> &[ConfigurationScopeFact] {
+        self.syntax_facts.configuration_scopes()
+    }
+
+    #[must_use]
+    /// Returns all extracted `properties { ... }` entries.
+    pub fn property_facts(&self) -> &[PropertyFact] {
+        self.syntax_facts.property_facts()
+    }
+
+    #[must_use]
+    /// Returns all extracted `!docs` and `!adrs` directives.
+    pub fn resource_directives(&self) -> &[ResourceDirectiveFact] {
+        self.syntax_facts.resource_directives()
+    }
+
+    #[must_use]
+    /// Returns all extracted `!element` directive targets.
+    pub fn element_directives(&self) -> &[ElementDirectiveFact] {
+        self.syntax_facts.element_directives()
+    }
+
+    #[must_use]
+    /// Returns all extracted declared relationships.
+    pub fn relationship_facts(&self) -> &[RelationshipFact] {
+        self.syntax_facts.relationship_facts()
+    }
+
+    #[must_use]
+    /// Returns all extracted view definitions plus their body facts.
+    pub fn view_facts(&self) -> &[ViewFact] {
+        self.syntax_facts.view_facts()
     }
 }
 

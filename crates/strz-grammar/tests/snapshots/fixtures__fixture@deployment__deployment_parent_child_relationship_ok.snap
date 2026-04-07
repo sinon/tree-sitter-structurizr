@@ -1,0 +1,35 @@
+---
+source: crates/strz-grammar/tests/fixtures.rs
+expression: tree_sexp(&tree)
+---
+(source_file
+  (workspace body:
+    (workspace_block
+      (model body:
+        (model_block
+          (software_system identifier:
+            (identifier) name:
+            (string) body:
+            (software_system_block
+              (container identifier:
+                (identifier) name:
+                (string))))
+          (deployment_environment identifier:
+            (identifier) name:
+            (string) body:
+            (deployment_environment_block
+              (deployment_node identifier:
+                (identifier) name:
+                (string) body:
+                (deployment_node_block
+                  (infrastructure_node identifier:
+                    (identifier) name:
+                    (string))
+                  (container_instance identifier:
+                    (identifier) target:
+                    (identifier))))
+              (relationship source:
+                (identifier) operator:
+                (relationship_operator) destination:
+                (identifier) attribute:
+                (string)))))))))

@@ -1,6 +1,5 @@
 ---
 source: crates/strz-analysis/tests/document_snapshots.rs
-assertion_line: 46
 expression: "SnapshotView::from(&snapshot)"
 ---
 SnapshotView {
@@ -114,13 +113,13 @@ SnapshotView {
             ),
             span: TextSpan {
                 start_byte: 120,
-                end_byte: 456,
+                end_byte: 385,
                 start_point: TextPoint {
                     row: 6,
                     column: 8,
                 },
                 end_point: TextPoint {
-                    row: 14,
+                    row: 13,
                     column: 9,
                 },
             },
@@ -152,13 +151,13 @@ SnapshotView {
             ),
             span: TextSpan {
                 start_byte: 170,
-                end_byte: 446,
+                end_byte: 327,
                 start_point: TextPoint {
                     row: 7,
                     column: 12,
                 },
                 end_point: TextPoint {
-                    row: 13,
+                    row: 10,
                     column: 13,
                 },
             },
@@ -236,14 +235,14 @@ SnapshotView {
             ),
             span: TextSpan {
                 start_byte: 278,
-                end_byte: 386,
+                end_byte: 313,
                 start_point: TextPoint {
                     row: 9,
                     column: 16,
                 },
                 end_point: TextPoint {
-                    row: 11,
-                    column: 17,
+                    row: 9,
+                    column: 51,
                 },
             },
             parent: Some(
@@ -280,47 +279,47 @@ SnapshotView {
         },
         Reference {
             kind: DeploymentRelationshipSource,
-            raw_text: "gateway",
+            raw_text: "primary",
             span: TextSpan {
-                start_byte: 336,
-                end_byte: 343,
+                start_byte: 341,
+                end_byte: 348,
                 start_point: TextPoint {
-                    row: 10,
-                    column: 20,
+                    row: 12,
+                    column: 12,
                 },
                 end_point: TextPoint {
-                    row: 10,
-                    column: 27,
+                    row: 12,
+                    column: 19,
                 },
             },
             target_hint: Deployment,
             container_node_kind: "relationship",
             containing_symbol: Some(
                 SymbolId(
-                    5,
+                    2,
                 ),
             ),
         },
         Reference {
-            kind: InstanceTarget,
-            raw_text: "system",
+            kind: DeploymentRelationshipDestination,
+            raw_text: "gateway",
             span: TextSpan {
-                start_byte: 426,
-                end_byte: 432,
+                start_byte: 352,
+                end_byte: 359,
                 start_point: TextPoint {
                     row: 12,
-                    column: 39,
+                    column: 23,
                 },
                 end_point: TextPoint {
                     row: 12,
-                    column: 45,
+                    column: 30,
                 },
             },
-            target_hint: Element,
-            container_node_kind: "software_system_instance",
+            target_hint: Deployment,
+            container_node_kind: "relationship",
             containing_symbol: Some(
                 SymbolId(
-                    3,
+                    2,
                 ),
             ),
         },

@@ -6,8 +6,8 @@ use std::{
 use anyhow::{Context, Result};
 use serde::Serialize;
 use strz_analysis::{
-    DocumentId, DocumentSnapshot, IncludeDiagnostic, IncludeDiagnosticKind, SemanticDiagnostic,
-    SemanticDiagnosticKind, SyntaxDiagnostic, SyntaxDiagnosticKind, TextPoint, TextSpan,
+    DiagnosticSeverity as AnalysisSeverity, DocumentId, DocumentSnapshot, IncludeDiagnostic,
+    SemanticDiagnostic, SyntaxDiagnostic, TextPoint, TextSpan,
 };
 
 /// Severity used by the CLI's normalized diagnostic model.
@@ -27,6 +27,15 @@ impl Severity {
         match self {
             Self::Error => "error",
             Self::Warning => "warning",
+        }
+    }
+}
+
+impl From<AnalysisSeverity> for Severity {
+    fn from(severity: AnalysisSeverity) -> Self {
+        match severity {
+            AnalysisSeverity::Error => Self::Error,
+            AnalysisSeverity::Warning => Self::Warning,
         }
     }
 }
@@ -84,8 +93,8 @@ impl DiagnosticView {
     pub fn syntax(path: String, diagnostic: &SyntaxDiagnostic) -> Self {
         Self {
             path,
-            severity: Severity::Error,
-            code: syntax_code(diagnostic.kind).to_owned(),
+            severity: diagnostic.severity().into(),
+            code: diagnostic.code().to_owned(),
             source: "syntax".to_owned(),
             message: diagnostic.message.clone(),
             span: diagnostic.span.into(),
@@ -97,13 +106,8 @@ impl DiagnosticView {
     pub fn include(path: String, diagnostic: &IncludeDiagnostic) -> Self {
         Self {
             path,
-            severity: match diagnostic.kind {
-                IncludeDiagnosticKind::UnsupportedRemoteTarget => Severity::Warning,
-                IncludeDiagnosticKind::MissingLocalTarget
-                | IncludeDiagnosticKind::EscapesAllowedSubtree
-                | IncludeDiagnosticKind::IncludeCycle => Severity::Error,
-            },
-            code: include_code(diagnostic.kind).to_owned(),
+            severity: diagnostic.severity().into(),
+            code: diagnostic.code().to_owned(),
             source: "include".to_owned(),
             message: diagnostic.message.clone(),
             span: diagnostic.span.into(),
@@ -115,8 +119,8 @@ impl DiagnosticView {
     pub fn semantic(path: String, diagnostic: &SemanticDiagnostic) -> Self {
         Self {
             path,
-            severity: Severity::Error,
-            code: semantic_code(diagnostic.kind).to_owned(),
+            severity: diagnostic.severity().into(),
+            code: diagnostic.code().to_owned(),
             source: "semantic".to_owned(),
             message: diagnostic.message.clone(),
             span: diagnostic.span.into(),
@@ -322,28 +326,4 @@ pub fn snapshot_display_path(snapshot: &DocumentSnapshot, cwd: &Path) -> String 
 #[must_use]
 pub fn document_id_display_path(id: &DocumentId, cwd: &Path) -> String {
     display_path(Path::new(id.as_str()), cwd)
-}
-
-const fn syntax_code(kind: SyntaxDiagnosticKind) -> &'static str {
-    match kind {
-        SyntaxDiagnosticKind::ErrorNode => "syntax.error-node",
-        SyntaxDiagnosticKind::MissingNode => "syntax.missing-node",
-    }
-}
-
-const fn include_code(kind: IncludeDiagnosticKind) -> &'static str {
-    match kind {
-        IncludeDiagnosticKind::MissingLocalTarget => "include.missing-local-target",
-        IncludeDiagnosticKind::EscapesAllowedSubtree => "include.escapes-allowed-subtree",
-        IncludeDiagnosticKind::IncludeCycle => "include.cycle",
-        IncludeDiagnosticKind::UnsupportedRemoteTarget => "include.unsupported-remote-target",
-    }
-}
-
-const fn semantic_code(kind: SemanticDiagnosticKind) -> &'static str {
-    match kind {
-        SemanticDiagnosticKind::DuplicateBinding => "semantic.duplicate-binding",
-        SemanticDiagnosticKind::UnresolvedReference => "semantic.unresolved-reference",
-        SemanticDiagnosticKind::AmbiguousReference => "semantic.ambiguous-reference",
-    }
 }

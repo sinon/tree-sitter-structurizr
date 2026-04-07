@@ -1,5 +1,6 @@
 ---
 source: crates/strz-analysis/tests/workspace_index.rs
+assertion_line: 214
 expression: "WorkspaceIndexSetView::from_facts(&facts, &fixture_root)"
 ---
 WorkspaceIndexSetView {
@@ -26,6 +27,23 @@ WorkspaceIndexSetView {
     merged_semantic_diagnostics: [
         DiagnosticView {
             document: "alpha.dsl",
+            kind: RepeatedWorkspaceSection,
+            message: "multiple model sections are not permitted in a DSL definition",
+            span: TextSpan {
+                start_byte: 0,
+                end_byte: 46,
+                start_point: TextPoint {
+                    row: 0,
+                    column: 0,
+                },
+                end_point: TextPoint {
+                    row: 2,
+                    column: 1,
+                },
+            },
+        },
+        DiagnosticView {
+            document: "alpha.dsl",
             kind: DuplicateBinding,
             message: "duplicate element binding: api",
             span: TextSpan {
@@ -38,6 +56,23 @@ WorkspaceIndexSetView {
                 end_point: TextPoint {
                     row: 1,
                     column: 36,
+                },
+            },
+        },
+        DiagnosticView {
+            document: "beta.dsl",
+            kind: RepeatedWorkspaceSection,
+            message: "multiple model sections are not permitted in a DSL definition",
+            span: TextSpan {
+                start_byte: 0,
+                end_byte: 45,
+                start_point: TextPoint {
+                    row: 0,
+                    column: 0,
+                },
+                end_point: TextPoint {
+                    row: 2,
+                    column: 1,
                 },
             },
         },
@@ -115,6 +150,23 @@ WorkspaceIndexSetView {
             semantic_diagnostics: [
                 DiagnosticView {
                     document: "alpha.dsl",
+                    kind: RepeatedWorkspaceSection,
+                    message: "multiple model sections are not permitted in a DSL definition",
+                    span: TextSpan {
+                        start_byte: 0,
+                        end_byte: 46,
+                        start_point: TextPoint {
+                            row: 0,
+                            column: 0,
+                        },
+                        end_point: TextPoint {
+                            row: 2,
+                            column: 1,
+                        },
+                    },
+                },
+                DiagnosticView {
+                    document: "alpha.dsl",
                     kind: DuplicateBinding,
                     message: "duplicate element binding: api",
                     span: TextSpan {
@@ -127,6 +179,23 @@ WorkspaceIndexSetView {
                         end_point: TextPoint {
                             row: 1,
                             column: 36,
+                        },
+                    },
+                },
+                DiagnosticView {
+                    document: "beta.dsl",
+                    kind: RepeatedWorkspaceSection,
+                    message: "multiple model sections are not permitted in a DSL definition",
+                    span: TextSpan {
+                        start_byte: 0,
+                        end_byte: 45,
+                        start_point: TextPoint {
+                            row: 0,
+                            column: 0,
+                        },
+                        end_point: TextPoint {
+                            row: 2,
+                            column: 1,
                         },
                     },
                 },
