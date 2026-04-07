@@ -14,16 +14,27 @@ expression: tree_sexp(&tree)
               (container identifier:
                 (identifier) name:
                 (string))))
-          (deployment_environment name:
+          (deployment_environment identifier:
+            (identifier) name:
             (string) body:
             (deployment_environment_block
-              (deployment_node name:
-                (string) attribute:
-                (string) attribute:
-                (string) attribute:
+              (deployment_group identifier:
+                (identifier) name:
+                (string))
+              (deployment_node identifier:
+                (identifier) name:
                 (string) body:
                 (deployment_node_block
+                  (software_system_instance identifier:
+                    (identifier) target:
+                    (identifier))
+                  (software_system_instance identifier:
+                    (identifier) target:
+                    (identifier) deployment_group:
+                    (identifier) tags:
+                    (string))
                   (container_instance identifier:
                     (identifier) target:
                     (identifier) deployment_group:
+                    (identifier) tags:
                     (string)))))))))))

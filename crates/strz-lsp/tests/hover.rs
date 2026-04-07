@@ -54,11 +54,27 @@ const DUPLICATE_BINDINGS_WORKSPACE_SOURCE: &str = r#"workspace {
     }
 }
 "#;
+const DEPLOYMENT_INSTANCE_HOVER_SOURCE: &str = r#"workspace {
+    model {
+        system = softwareSystem "Payments"
+
+        deploymentEnvironment "Live" {
+            edge = deploymentNode "Edge" {
+                <CURSOR:instance-declaration>canary = softwareSystemInstance system blue "Canary" {
+                    tag "Observed"
+                    url "https://example.com/canary"
+                }
+            }
+        }
+    }
+}
+"#;
 
 const API_HOVER: &str = "**Container** `api`\nPayments API\n\nProcesses payment requests\n\n**Technology:** Axum  \n**Tags:** Internal, HTTP, Edge  \n**URL:** <https://example.com/api>";
 const RELATIONSHIP_HOVER: &str = "**Relationship** `rel`\nPublishes jobs\n\nDelivers asynchronous jobs\n\n**Technology:** NATS  \n**Tags:** Async, Messaging, Observed  \n**URL:** <https://example.com/rel>";
 const PLACEHOLDER_RELATIONSHIP_HOVER: &str =
     "**Relationship** `rel`\n\n**Technology:** HTTPS  \n**Tags:** Async, Observed";
+const DEPLOYMENT_INSTANCE_HOVER: &str = "**Software System Instance** `canary`\n\n**Tags:** Canary, Observed  \n**URL:** <https://example.com/canary>";
 
 #[tokio::test(flavor = "current_thread")]
 async fn hover_returns_markdown_for_same_document_declarations() {
@@ -97,6 +113,22 @@ async fn hover_returns_markdown_for_same_document_references() {
     )
     .await;
     assert_hover_markdown(&relationship_hover, RELATIONSHIP_HOVER);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn hover_includes_inline_deployment_instance_tags() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(DEPLOYMENT_INSTANCE_HOVER_SOURCE);
+    let uri = file_uri("hover-deployment-instance.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let hover = request_hover(&mut service, &uri, source.position("instance-declaration")).await;
+
+    assert_hover_markdown(&hover, DEPLOYMENT_INSTANCE_HOVER);
 }
 
 #[tokio::test(flavor = "current_thread")]

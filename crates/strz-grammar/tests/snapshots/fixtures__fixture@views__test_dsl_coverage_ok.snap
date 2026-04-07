@@ -1,6 +1,6 @@
 ---
-source: tests/fixtures.rs
-expression: "common::tree_sexp(&tree)"
+source: crates/strz-grammar/tests/fixtures.rs
+expression: tree_sexp(&tree)
 ---
 (source_file
   (workspace body:
@@ -88,33 +88,32 @@ expression: "common::tree_sexp(&tree)"
                         (perspective_entry name:
                           (string) description:
                           (string)))))
-                  (container_instance
-                    (container_instance_simple identifier:
-                      (identifier) target:
-                      (identifier) body:
-                      (deployment_instance_block
-                        (url_statement value:
-                          (string))
-                        (properties_block
-                          (property_entry name:
-                            (string) value:
-                            (string)))
-                        (perspectives_block
-                          (perspective_entry name:
-                            (string) description:
-                            (string)))
-                        (health_check_statement name:
-                          (string) url:
-                          (string))
-                        (health_check_statement name:
-                          (string) url:
-                          (string) interval:
-                          (number))
-                        (health_check_statement name:
-                          (string) url:
-                          (string) interval:
-                          (number) timeout:
-                          (number)))))
+                  (container_instance identifier:
+                    (identifier) target:
+                    (identifier) body:
+                    (deployment_instance_block
+                      (url_statement value:
+                        (string))
+                      (properties_block
+                        (property_entry name:
+                          (string) value:
+                          (string)))
+                      (perspectives_block
+                        (perspective_entry name:
+                          (string) description:
+                          (string)))
+                      (health_check_statement name:
+                        (string) url:
+                        (string))
+                      (health_check_statement name:
+                        (string) url:
+                        (string) interval:
+                        (number))
+                      (health_check_statement name:
+                        (string) url:
+                        (string) interval:
+                        (number) timeout:
+                        (number))))
                   (instance_of identifier:
                     (identifier) target:
                     (identifier) body:

@@ -81,6 +81,35 @@
         ]
       }
     },
+    "_inline_gap": {
+      "type": "IMMEDIATE_TOKEN",
+      "content": {
+        "type": "CHOICE",
+        "members": [
+          {
+            "type": "PATTERN",
+            "value": "[ \\t]+"
+          },
+          {
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "STRING",
+                "value": "\\"
+              },
+              {
+                "type": "PATTERN",
+                "value": "\\r?\\n"
+              },
+              {
+                "type": "PATTERN",
+                "value": "[ \\t]*"
+              }
+            ]
+          }
+        ]
+      }
+    },
     "identifier": {
       "type": "PATTERN",
       "value": "[A-Za-z_][A-Za-z0-9_.-]*"
@@ -4271,19 +4300,6 @@
       ]
     },
     "container_instance": {
-      "type": "CHOICE",
-      "members": [
-        {
-          "type": "SYMBOL",
-          "name": "container_instance_simple"
-        },
-        {
-          "type": "SYMBOL",
-          "name": "container_instance_grouped"
-        }
-      ]
-    },
-    "container_instance_simple": {
       "type": "SEQ",
       "members": [
         {
@@ -4316,6 +4332,10 @@
           "value": "containerInstance"
         },
         {
+          "type": "SYMBOL",
+          "name": "_inline_gap"
+        },
+        {
           "type": "FIELD",
           "name": "target",
           "content": {
@@ -4327,78 +4347,140 @@
           "type": "CHOICE",
           "members": [
             {
-              "type": "FIELD",
-              "name": "body",
-              "content": {
-                "type": "SYMBOL",
-                "name": "deployment_instance_block"
-              }
-            },
-            {
-              "type": "BLANK"
-            }
-          ]
-        }
-      ]
-    },
-    "container_instance_grouped": {
-      "type": "SEQ",
-      "members": [
-        {
-          "type": "CHOICE",
-          "members": [
-            {
-              "type": "SEQ",
+              "type": "CHOICE",
               "members": [
                 {
-                  "type": "FIELD",
-                  "name": "identifier",
-                  "content": {
-                    "type": "SYMBOL",
-                    "name": "_assignment_identifier"
-                  }
+                  "type": "CHOICE",
+                  "members": [
+                    {
+                      "type": "PREC",
+                      "value": 2,
+                      "content": {
+                        "type": "SEQ",
+                        "members": [
+                          {
+                            "type": "SYMBOL",
+                            "name": "_inline_gap"
+                          },
+                          {
+                            "type": "FIELD",
+                            "name": "body",
+                            "content": {
+                              "type": "SYMBOL",
+                              "name": "deployment_instance_block"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "PREC",
+                      "value": 1,
+                      "content": {
+                        "type": "FIELD",
+                        "name": "body",
+                        "content": {
+                          "type": "SYMBOL",
+                          "name": "deployment_instance_block"
+                        }
+                      }
+                    }
+                  ]
                 },
                 {
-                  "type": "STRING",
-                  "value": "="
+                  "type": "SEQ",
+                  "members": [
+                    {
+                      "type": "SEQ",
+                      "members": [
+                        {
+                          "type": "SYMBOL",
+                          "name": "_inline_gap"
+                        },
+                        {
+                          "type": "FIELD",
+                          "name": "deployment_group",
+                          "content": {
+                            "type": "SYMBOL",
+                            "name": "_value"
+                          }
+                        },
+                        {
+                          "type": "CHOICE",
+                          "members": [
+                            {
+                              "type": "SEQ",
+                              "members": [
+                                {
+                                  "type": "SYMBOL",
+                                  "name": "_inline_gap"
+                                },
+                                {
+                                  "type": "FIELD",
+                                  "name": "tags",
+                                  "content": {
+                                    "type": "SYMBOL",
+                                    "name": "_tag_value"
+                                  }
+                                }
+                              ]
+                            },
+                            {
+                              "type": "BLANK"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "CHOICE",
+                      "members": [
+                        {
+                          "type": "CHOICE",
+                          "members": [
+                            {
+                              "type": "PREC",
+                              "value": 2,
+                              "content": {
+                                "type": "SEQ",
+                                "members": [
+                                  {
+                                    "type": "SYMBOL",
+                                    "name": "_inline_gap"
+                                  },
+                                  {
+                                    "type": "FIELD",
+                                    "name": "body",
+                                    "content": {
+                                      "type": "SYMBOL",
+                                      "name": "deployment_instance_block"
+                                    }
+                                  }
+                                ]
+                              }
+                            },
+                            {
+                              "type": "PREC",
+                              "value": 1,
+                              "content": {
+                                "type": "FIELD",
+                                "name": "body",
+                                "content": {
+                                  "type": "SYMBOL",
+                                  "name": "deployment_instance_block"
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "type": "BLANK"
+                        }
+                      ]
+                    }
+                  ]
                 }
               ]
-            },
-            {
-              "type": "BLANK"
-            }
-          ]
-        },
-        {
-          "type": "STRING",
-          "value": "containerInstance"
-        },
-        {
-          "type": "FIELD",
-          "name": "target",
-          "content": {
-            "type": "SYMBOL",
-            "name": "identifier"
-          }
-        },
-        {
-          "type": "FIELD",
-          "name": "deployment_group",
-          "content": {
-            "type": "SYMBOL",
-            "name": "_value"
-          }
-        },
-        {
-          "type": "CHOICE",
-          "members": [
-            {
-              "type": "FIELD",
-              "name": "body",
-              "content": {
-                "type": "SYMBOL",
-                "name": "deployment_instance_block"
-              }
             },
             {
               "type": "BLANK"
@@ -4408,19 +4490,6 @@
       ]
     },
     "software_system_instance": {
-      "type": "CHOICE",
-      "members": [
-        {
-          "type": "SYMBOL",
-          "name": "software_system_instance_simple"
-        },
-        {
-          "type": "SYMBOL",
-          "name": "software_system_instance_grouped"
-        }
-      ]
-    },
-    "software_system_instance_simple": {
       "type": "SEQ",
       "members": [
         {
@@ -4434,7 +4503,7 @@
                   "name": "identifier",
                   "content": {
                     "type": "SYMBOL",
-                    "name": "identifier"
+                    "name": "_assignment_identifier"
                   }
                 },
                 {
@@ -4453,6 +4522,10 @@
           "value": "softwareSystemInstance"
         },
         {
+          "type": "SYMBOL",
+          "name": "_inline_gap"
+        },
+        {
           "type": "FIELD",
           "name": "target",
           "content": {
@@ -4464,78 +4537,140 @@
           "type": "CHOICE",
           "members": [
             {
-              "type": "FIELD",
-              "name": "body",
-              "content": {
-                "type": "SYMBOL",
-                "name": "deployment_instance_block"
-              }
-            },
-            {
-              "type": "BLANK"
-            }
-          ]
-        }
-      ]
-    },
-    "software_system_instance_grouped": {
-      "type": "SEQ",
-      "members": [
-        {
-          "type": "CHOICE",
-          "members": [
-            {
-              "type": "SEQ",
+              "type": "CHOICE",
               "members": [
                 {
-                  "type": "FIELD",
-                  "name": "identifier",
-                  "content": {
-                    "type": "SYMBOL",
-                    "name": "identifier"
-                  }
+                  "type": "CHOICE",
+                  "members": [
+                    {
+                      "type": "PREC",
+                      "value": 2,
+                      "content": {
+                        "type": "SEQ",
+                        "members": [
+                          {
+                            "type": "SYMBOL",
+                            "name": "_inline_gap"
+                          },
+                          {
+                            "type": "FIELD",
+                            "name": "body",
+                            "content": {
+                              "type": "SYMBOL",
+                              "name": "deployment_instance_block"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "PREC",
+                      "value": 1,
+                      "content": {
+                        "type": "FIELD",
+                        "name": "body",
+                        "content": {
+                          "type": "SYMBOL",
+                          "name": "deployment_instance_block"
+                        }
+                      }
+                    }
+                  ]
                 },
                 {
-                  "type": "STRING",
-                  "value": "="
+                  "type": "SEQ",
+                  "members": [
+                    {
+                      "type": "SEQ",
+                      "members": [
+                        {
+                          "type": "SYMBOL",
+                          "name": "_inline_gap"
+                        },
+                        {
+                          "type": "FIELD",
+                          "name": "deployment_group",
+                          "content": {
+                            "type": "SYMBOL",
+                            "name": "_value"
+                          }
+                        },
+                        {
+                          "type": "CHOICE",
+                          "members": [
+                            {
+                              "type": "SEQ",
+                              "members": [
+                                {
+                                  "type": "SYMBOL",
+                                  "name": "_inline_gap"
+                                },
+                                {
+                                  "type": "FIELD",
+                                  "name": "tags",
+                                  "content": {
+                                    "type": "SYMBOL",
+                                    "name": "_tag_value"
+                                  }
+                                }
+                              ]
+                            },
+                            {
+                              "type": "BLANK"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "CHOICE",
+                      "members": [
+                        {
+                          "type": "CHOICE",
+                          "members": [
+                            {
+                              "type": "PREC",
+                              "value": 2,
+                              "content": {
+                                "type": "SEQ",
+                                "members": [
+                                  {
+                                    "type": "SYMBOL",
+                                    "name": "_inline_gap"
+                                  },
+                                  {
+                                    "type": "FIELD",
+                                    "name": "body",
+                                    "content": {
+                                      "type": "SYMBOL",
+                                      "name": "deployment_instance_block"
+                                    }
+                                  }
+                                ]
+                              }
+                            },
+                            {
+                              "type": "PREC",
+                              "value": 1,
+                              "content": {
+                                "type": "FIELD",
+                                "name": "body",
+                                "content": {
+                                  "type": "SYMBOL",
+                                  "name": "deployment_instance_block"
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "type": "BLANK"
+                        }
+                      ]
+                    }
+                  ]
                 }
               ]
-            },
-            {
-              "type": "BLANK"
-            }
-          ]
-        },
-        {
-          "type": "STRING",
-          "value": "softwareSystemInstance"
-        },
-        {
-          "type": "FIELD",
-          "name": "target",
-          "content": {
-            "type": "SYMBOL",
-            "name": "identifier"
-          }
-        },
-        {
-          "type": "FIELD",
-          "name": "deployment_group",
-          "content": {
-            "type": "SYMBOL",
-            "name": "_value"
-          }
-        },
-        {
-          "type": "CHOICE",
-          "members": [
-            {
-              "type": "FIELD",
-              "name": "body",
-              "content": {
-                "type": "SYMBOL",
-                "name": "deployment_instance_block"
-              }
             },
             {
               "type": "BLANK"
@@ -9864,14 +9999,6 @@
     }
   ],
   "conflicts": [
-    [
-      "container_instance_simple",
-      "container_instance_grouped"
-    ],
-    [
-      "software_system_instance_simple",
-      "software_system_instance_grouped"
-    ],
     [
       "person"
     ],

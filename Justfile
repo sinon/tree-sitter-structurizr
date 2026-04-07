@@ -35,10 +35,10 @@ test-analysis:
     cargo test -p strz-analysis
 
 test-analysis-fast:
-    cargo nextest run --workspace -p strz-analysis
+    cargo nextest run --profile agent --workspace -p strz-analysis
 
 test-cli:
-    cargo test -p strz
+    cargo nextest run --profile agent --workspace -p strz
 
 bench-analysis:
     cargo bench -p strz-analysis --bench analysis
@@ -63,11 +63,11 @@ bench-perf-stable:
     tools/run_benchmarks.sh --mode stable
 
 test-rust:
-    cargo nextest run --workspace --no-fail-fast
+    cargo nextest run --profile agent --workspace --no-fail-fast
     cargo test --workspace --doc
 
 test-rust-fast:
-    cargo nextest run --workspace
+    cargo nextest run --profile agent --workspace
 
 test-proptest *args:
     cargo test --workspace {{args}}

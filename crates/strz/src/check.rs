@@ -6,8 +6,8 @@ use strz_analysis::{DocumentId, WorkspaceFacts, WorkspaceLoader};
 use crate::{
     cli::CheckArgs,
     report::{
-        current_working_directory, document_id_display_path, snapshot_display_path, CheckReport,
-        DiagnosticView,
+        CheckReport, DiagnosticView, current_working_directory, document_id_display_path,
+        snapshot_display_path,
     },
 };
 

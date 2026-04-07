@@ -215,6 +215,49 @@ function enumValueChoices(values, { quoted = false } = {}) {
   });
 }
 
+function deploymentInstanceBody($) {
+  return field("body", $.deployment_instance_block);
+}
+
+function deploymentInstanceOptionalBody($) {
+  return choice(
+    prec(2, seq($._inline_gap, deploymentInstanceBody($))),
+    prec(1, deploymentInstanceBody($)),
+  );
+}
+
+function deploymentInstanceGroupAndTags($) {
+  return seq(
+    $._inline_gap,
+    field("deployment_group", $._value),
+    optional(seq($._inline_gap, field("tags", $._tag_value))),
+  );
+}
+
+function deploymentInstanceGroupedTail($) {
+  return seq(
+    deploymentInstanceGroupAndTags($),
+    optional(deploymentInstanceOptionalBody($)),
+  );
+}
+
+function deploymentInstanceRule($, keyword) {
+  // Upstream deployment instances accept three header shapes:
+  //   1. `softwareSystemInstance system`
+  //   2. `softwareSystemInstance system { ... }`
+  //   3. `softwareSystemInstance system blue "Canary" { ... }`
+  //
+  // Keep those branches named here so future grammar work can reason about
+  // target-only, direct-body, and grouped-header forms separately.
+  return seq(
+    optional(seq(field("identifier", $._assignment_identifier), "=")),
+    keyword,
+    $._inline_gap,
+    field("target", $.identifier),
+    optional(choice(deploymentInstanceOptionalBody($), deploymentInstanceGroupedTail($))),
+  );
+}
+
 export default grammar({
   name: "structurizr",
 
@@ -225,8 +268,6 @@ export default grammar({
   word: ($) => $.identifier,
 
   conflicts: ($) => [
-    [$.container_instance_simple, $.container_instance_grouped],
-    [$.software_system_instance_simple, $.software_system_instance_grouped],
     [$.person],
     [$.software_system],
     [$.container],
@@ -254,6 +295,12 @@ export default grammar({
       ),
 
     _line_continuation: (_) => token(seq("\\", /\r?\n/, /[ \t]*/)),
+
+    // The upstream parser tokenizes one logical statement per line unless the line
+    // ends with an explicit continuation marker. Reuse a same-line gap for
+    // deployment instance headers so optional group/tag slots do not absorb the next
+    // deployment item on a following line.
+    _inline_gap: (_) => token.immediate(choice(/[ \t]+/, seq("\\", /\r?\n/, /[ \t]*/))),
 
     identifier: (_) => /[A-Za-z_][A-Za-z0-9_.-]*/,
 
@@ -963,48 +1010,10 @@ export default grammar({
     deployment_node_block: ($) =>
       seq("{", repeat($._deployment_node_item), "}"),
 
-    container_instance: ($) =>
-      choice($.container_instance_simple, $.container_instance_grouped),
-
-    container_instance_simple: ($) =>
-      seq(
-        optional(seq(field("identifier", $._assignment_identifier), "=")),
-        "containerInstance",
-        field("target", $.identifier),
-        optional(field("body", $.deployment_instance_block)),
-      ),
-
-    container_instance_grouped: ($) =>
-      seq(
-        optional(seq(field("identifier", $._assignment_identifier), "=")),
-        "containerInstance",
-        field("target", $.identifier),
-        field("deployment_group", $._value),
-        optional(field("body", $.deployment_instance_block)),
-      ),
+    container_instance: ($) => deploymentInstanceRule($, "containerInstance"),
 
     software_system_instance: ($) =>
-      choice(
-        $.software_system_instance_simple,
-        $.software_system_instance_grouped,
-      ),
-
-    software_system_instance_simple: ($) =>
-      seq(
-        optional(seq(field("identifier", $.identifier), "=")),
-        "softwareSystemInstance",
-        field("target", $.identifier),
-        optional(field("body", $.deployment_instance_block)),
-      ),
-
-    software_system_instance_grouped: ($) =>
-      seq(
-        optional(seq(field("identifier", $.identifier), "=")),
-        "softwareSystemInstance",
-        field("target", $.identifier),
-        field("deployment_group", $._value),
-        optional(field("body", $.deployment_instance_block)),
-      ),
+      deploymentInstanceRule($, "softwareSystemInstance"),
 
     instance_of: ($) =>
       seq(

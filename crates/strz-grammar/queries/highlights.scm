@@ -136,6 +136,26 @@
 (infrastructure_node
   identifier: (identifier) @type)
 
+; Deployment instances now carry their assignment, target, and optional deployment
+; group fields directly on the instance node, so highlight those fields explicitly.
+(container_instance
+  identifier: (identifier) @type)
+
+(container_instance
+  target: (identifier) @type)
+
+(container_instance
+  deployment_group: (identifier) @type)
+
+(software_system_instance
+  identifier: (identifier) @type)
+
+(software_system_instance
+  target: (identifier) @type)
+
+(software_system_instance
+  deployment_group: (identifier) @type)
+
 (relationship
   source: (identifier) @variable
   destination: (identifier) @variable)

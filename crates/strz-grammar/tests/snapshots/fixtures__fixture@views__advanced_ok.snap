@@ -39,10 +39,9 @@ expression: tree_sexp(&tree)
                 (identifier) name:
                 (string) body:
                 (deployment_node_block
-                  (container_instance
-                    (container_instance_simple identifier:
-                      (identifier) target:
-                      (identifier)))))))))
+                  (container_instance identifier:
+                    (identifier) target:
+                    (identifier))))))))
       (views body:
         (views_block
           (properties_block

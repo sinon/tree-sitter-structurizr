@@ -234,11 +234,13 @@ fn check_include_only_suppresses_workspace_semantic_diagnostics() {
 
 #[test]
 fn check_json_big_bank_plc_reports_current_golden_record_diagnostics() {
-    assert_cmd_snapshot!(command()
-        .arg("--output-format")
-        .arg("json")
-        .arg("check")
-        .arg("tests/lsp/workspaces/big-bank-plc"));
+    assert_cmd_snapshot!(
+        command()
+            .arg("--output-format")
+            .arg("json")
+            .arg("check")
+            .arg("tests/lsp/workspaces/big-bank-plc")
+    );
 }
 
 #[test]

@@ -63,13 +63,13 @@ This preserves fast iteration while keeping published installs reproducible.
 
 ## Artifact matrix
 
-| Artifact                           | Home                                           | Primary consumers                                                 | Distribution form            | Release unit                |
-| ---------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------- | ---------------------------- | --------------------------- |
-| Tree-sitter grammar + parser crate | this repo root                                 | Zed grammar loader, Rust parser consumers, `strz-analysis` | source repository            | git commit / pinned `rev`   |
-| `strz-analysis`             | workspace crate in this repo                   | `strz-lsp`, `strz`                              | source-only workspace member | none initially              |
-| `strz-lsp`                  | workspace crate in this repo                   | `strz`                                                 | source-only workspace member | none directly               |
-| `strz`                             | `strz` workspace crate in this repo | Zed extension, other editors, manual users                        | platform binaries / archives | GitHub release tag + assets |
-| `zed-structurizr`                  | separate repo                                  | Zed users                                                         | Zed extension package        | extension version           |
+| Artifact                           | Home                                | Primary consumers                                          | Distribution form            | Release unit                |
+| ---------------------------------- | ----------------------------------- | ---------------------------------------------------------- | ---------------------------- | --------------------------- |
+| Tree-sitter grammar + parser crate | this repo root                      | Zed grammar loader, Rust parser consumers, `strz-analysis` | source repository            | git commit / pinned `rev`   |
+| `strz-analysis`                    | workspace crate in this repo        | `strz-lsp`, `strz`                                         | source-only workspace member | none initially              |
+| `strz-lsp`                         | workspace crate in this repo        | `strz`                                                     | source-only workspace member | none directly               |
+| `strz`                             | `strz` workspace crate in this repo | Zed extension, other editors, manual users                 | platform binaries / archives | GitHub release tag + assets |
+| `zed-structurizr`                  | separate repo                       | Zed users                                                  | Zed extension package        | extension version           |
 
 ## Packaging decisions
 

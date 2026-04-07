@@ -10,9 +10,9 @@ use strz_analysis::{
 use crate::{
     cli::{DumpArgs, DumpCommand},
     report::{
-        current_working_directory, display_path, document_id_display_path, snapshot_display_path,
         DiagnosticView, DocumentDump, DumpOutput, IdentifierModeView, IncludeDirectiveView,
         ReferenceView, ResolvedIncludeView, SymbolView, WorkspaceDocumentView, WorkspaceDump,
+        current_working_directory, display_path, document_id_display_path, snapshot_display_path,
     },
 };
 
