@@ -2497,6 +2497,11 @@ fn build_binding_tables(
 
 struct WorkspaceReferenceTables {
     resolutions: BTreeMap<ReferenceHandle, ReferenceResolutionStatus>,
+    // Later semantic passes ask "what symbol does this exact `(kind, span)` site
+    // resolve to?" far more often than they ask for the raw resolution enum.
+    // Cache that direct lookup once so view/deployment rules do not repeatedly
+    // rescan `document.references` just to rediscover the same target handle.
+    resolved_targets: BTreeMap<DocumentId, BTreeMap<(u8, TextSpan), SymbolHandle>>,
     references_by_target: BTreeMap<SymbolHandle, Vec<ReferenceHandle>>,
     semantic_diagnostics: Vec<RuledDiagnostic>,
 }
@@ -2506,6 +2511,8 @@ fn build_reference_resolution_tables(
     bindings: &WorkspaceBindingTables,
 ) -> WorkspaceReferenceTables {
     let mut reference_resolutions = BTreeMap::<ReferenceHandle, ReferenceResolutionStatus>::new();
+    let mut resolved_targets =
+        BTreeMap::<DocumentId, BTreeMap<(u8, TextSpan), SymbolHandle>>::new();
     let mut references_by_target = BTreeMap::<SymbolHandle, Vec<ReferenceHandle>>::new();
     let mut semantic_diagnostics = Vec::new();
 
@@ -2540,6 +2547,10 @@ fn build_reference_resolution_tables(
             }
 
             if let ReferenceResolutionStatus::Resolved(target) = &status {
+                resolved_targets
+                    .entry(document.document_id.clone())
+                    .or_default()
+                    .insert(reference_lookup_key(reference.kind, reference.span), target.clone());
                 references_by_target
                     .entry(target.clone())
                     .or_default()
@@ -2552,6 +2563,7 @@ fn build_reference_resolution_tables(
 
     WorkspaceReferenceTables {
         resolutions: reference_resolutions,
+        resolved_targets,
         references_by_target,
         semantic_diagnostics,
     }
@@ -2844,6 +2856,45 @@ struct DeclaredRelationship {
     technology: Option<String>,
 }
 
+// The dynamic-view rules share one interpretation phase before they diverge into
+// separate diagnostics:
+//
+// 1. resolve scope once
+// 2. resolve each step into concrete handles or declared relationships
+// 3. apply per-rule policy such as scope redundancy or request/response ordering
+//
+// Keeping that intermediate form explicit makes the order-sensitive response
+// logic easier to read and avoids duplicating the same reference lookups in both
+// dynamic-view passes.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ResolvedDynamicView {
+    scope: Option<ResolvedDynamicScope>,
+    steps: Vec<ResolvedDynamicStep>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ResolvedDynamicScope {
+    span: TextSpan,
+    handle: SymbolHandle,
+    display_name: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum ResolvedDynamicStep {
+    Relationship {
+        span: TextSpan,
+        source: SymbolHandle,
+        destination: SymbolHandle,
+        source_name: String,
+        destination_name: String,
+        technology: Option<String>,
+    },
+    RelationshipReference {
+        span: TextSpan,
+        relationship: DeclaredRelationship,
+    },
+}
+
 fn view_semantic_diagnostics(
     documents: &[&WorkspaceSemanticDocumentFacts],
     documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
@@ -2878,6 +2929,7 @@ fn view_semantic_diagnostics(
     diagnostics.extend(dynamic_view_relationship_diagnostics(
         documents,
         documents_by_id,
+        bindings,
         reference_tables,
         &declared_relationships,
     ));
@@ -3036,71 +3088,41 @@ fn dynamic_view_scope_redundancy_diagnostics(
         }
 
         for view in &document.view_facts {
-            if view.kind != ViewKind::Dynamic {
-                continue;
-            }
-
-            let Some(scope) = view.scope.as_ref() else {
-                continue;
-            };
-            let Some(scope_handle) = resolved_reference_target(
+            let Some(resolved_view) = resolved_dynamic_view(
                 document,
-                ReferenceKind::ViewScope,
-                scope.span,
+                view,
+                documents_by_id,
+                bindings,
                 reference_tables,
+                declared_relationships,
             ) else {
                 continue;
             };
-            let Some(scope_symbol) = symbol_for_handle(documents_by_id, &scope_handle) else {
+            let Some(scope) = resolved_view.scope.as_ref() else {
                 continue;
             };
 
-            for step in &view.dynamic_steps {
+            for step in &resolved_view.steps {
                 match step {
-                    DynamicViewStepFact::Relationship(step) => {
-                        let Some(source_handle) = resolved_reference_target(
-                            document,
-                            ReferenceKind::RelationshipSource,
-                            step.source.span,
-                            reference_tables,
-                        ) else {
-                            continue;
-                        };
-                        let Some(destination_handle) = resolved_reference_target(
-                            document,
-                            ReferenceKind::RelationshipDestination,
-                            step.destination.span,
-                            reference_tables,
-                        ) else {
-                            continue;
-                        };
-                        if source_handle != scope_handle && destination_handle != scope_handle {
+                    ResolvedDynamicStep::Relationship {
+                        span,
+                        source,
+                        destination,
+                        ..
+                    } => {
+                        if *source != scope.handle && *destination != scope.handle {
                             continue;
                         }
 
                         let diagnostic = dynamic_view_scope_diagnostic(
                             &document.document_id,
                             scope,
-                            &scope_symbol.display_name,
-                            step.span,
+                            *span,
                         );
                         diagnostics.push(diagnostic);
                     }
-                    DynamicViewStepFact::RelationshipReference(step) => {
-                        let Some(relationship_handle) = resolved_relationship_binding(
-                            &step.relationship.normalized_text,
-                            bindings,
-                        ) else {
-                            continue;
-                        };
-                        let Some(relationship) = declared_relationship_for_handle(
-                            &relationship_handle,
-                            declared_relationships,
-                        ) else {
-                            continue;
-                        };
-                        if relationship.source != scope_handle
-                            && relationship.destination != scope_handle
+                    ResolvedDynamicStep::RelationshipReference { span, relationship } => {
+                        if relationship.source != scope.handle && relationship.destination != scope.handle
                         {
                             continue;
                         }
@@ -3108,12 +3130,11 @@ fn dynamic_view_scope_redundancy_diagnostics(
                         let mut diagnostic = dynamic_view_scope_diagnostic(
                             &document.document_id,
                             scope,
-                            &scope_symbol.display_name,
-                            step.span,
+                            *span,
                         );
                         diagnostic.annotate(dynamic_view_scope_relationship_annotation(
                             &document.document_id,
-                            &scope_symbol.display_name,
+                            &scope.display_name,
                             relationship,
                         ));
                         diagnostics.push(diagnostic);
@@ -3128,11 +3149,11 @@ fn dynamic_view_scope_redundancy_diagnostics(
 
 fn dynamic_view_scope_diagnostic(
     document: &DocumentId,
-    scope: &ValueFact,
-    scope_name: &str,
+    scope: &ResolvedDynamicScope,
     step_span: TextSpan,
 ) -> RuledDiagnostic {
-    let mut diagnostic = RuledDiagnostic::dynamic_view_scope_redundancy(document, scope_name, step_span);
+    let mut diagnostic =
+        RuledDiagnostic::dynamic_view_scope_redundancy(document, &scope.display_name, step_span);
     diagnostic.annotate(secondary_annotation(
         document,
         document,
@@ -3158,6 +3179,7 @@ fn dynamic_view_scope_relationship_annotation(
 fn dynamic_view_relationship_diagnostics(
     documents: &[&WorkspaceSemanticDocumentFacts],
     documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
+    bindings: &WorkspaceBindingTables,
     reference_tables: &WorkspaceReferenceTables,
     declared_relationships: &[DeclaredRelationship],
 ) -> Vec<RuledDiagnostic> {
@@ -3169,100 +3191,181 @@ fn dynamic_view_relationship_diagnostics(
         }
 
         for view in &document.view_facts {
-            if view.kind != ViewKind::Dynamic {
+            let Some(resolved_view) = resolved_dynamic_view(
+                document,
+                view,
+                documents_by_id,
+                bindings,
+                reference_tables,
+                declared_relationships,
+            ) else {
                 continue;
-            }
+            };
 
-            let scope_handle = view.scope.as_ref().and_then(|scope| {
-                resolved_reference_target(
-                    document,
-                    ReferenceKind::ViewScope,
-                    scope.span,
-                    reference_tables,
-                )
-            });
+            // Upstream treats a reverse-direction step as a valid response only
+            // after the forward request has already appeared in the same dynamic
+            // view. Keep that history explicit so both identifier-written steps and
+            // named-relationship steps participate in the same ordering rule.
+            let scope_handle = resolved_view.scope.as_ref().map(|scope| &scope.handle);
             let mut seen_relationships = BTreeSet::<RelationshipLocation>::new();
 
-            for step in &view.dynamic_steps {
-                let DynamicViewStepFact::Relationship(step) = step else {
-                    continue;
-                };
-                let Some(source_handle) = resolved_reference_target(
-                    document,
-                    ReferenceKind::RelationshipSource,
-                    step.source.span,
-                    reference_tables,
-                ) else {
-                    continue;
-                };
-                let Some(destination_handle) = resolved_reference_target(
-                    document,
-                    ReferenceKind::RelationshipDestination,
-                    step.destination.span,
-                    reference_tables,
-                ) else {
-                    continue;
-                };
-                let Some(source_symbol) = symbol_for_handle(documents_by_id, &source_handle) else {
-                    continue;
-                };
-                let Some(destination_symbol) = symbol_for_handle(documents_by_id, &destination_handle)
-                else {
-                    continue;
-                };
-                if scope_handle.as_ref().is_some_and(|scope_handle| {
-                    *scope_handle == source_handle || *scope_handle == destination_handle
-                }) {
-                    continue;
-                }
-                let technology = step
-                    .technology
-                    .as_ref()
-                    .map(|value| value.normalized_text.as_str());
+            for step in &resolved_view.steps {
+                match step {
+                    ResolvedDynamicStep::RelationshipReference { relationship, .. } => {
+                        seen_relationships
+                            .insert(RelationshipLocation::from_relationship(relationship));
+                    }
+                    ResolvedDynamicStep::Relationship {
+                        span,
+                        source,
+                        destination,
+                        source_name,
+                        destination_name,
+                        technology,
+                    } => {
+                        if scope_handle.is_some_and(|scope_handle| {
+                            *scope_handle == *source || *scope_handle == *destination
+                        }) {
+                            continue;
+                        }
+                        let technology = technology.as_deref();
 
-                if let Some(relationship) = matching_declared_relationship(
-                    &source_handle,
-                    &destination_handle,
-                    technology,
-                    declared_relationships,
-                ) {
-                    seen_relationships
-                        .insert(RelationshipLocation::from_relationship(relationship));
-                    continue;
-                }
+                        if let Some(relationship) = matching_declared_relationship(
+                            source,
+                            destination,
+                            technology,
+                            declared_relationships,
+                        ) {
+                            seen_relationships
+                                .insert(RelationshipLocation::from_relationship(relationship));
+                            continue;
+                        }
 
-                if response_relationship_is_in_view(
-                    &source_handle,
-                    &destination_handle,
-                    technology,
-                    declared_relationships,
-                    &seen_relationships,
-                ) {
-                    continue;
-                }
+                        if response_relationship_is_in_view(
+                            source,
+                            destination,
+                            technology,
+                            declared_relationships,
+                            &seen_relationships,
+                        ) {
+                            continue;
+                        }
 
-                let mut diagnostic = RuledDiagnostic::dynamic_view_relationship_mismatch(
-                    &document.document_id,
-                    &source_symbol.display_name,
-                    &destination_symbol.display_name,
-                    technology,
-                    step.span,
-                );
-                if let Some(annotation) = dynamic_relationship_annotation(
-                    &document.document_id,
-                    &source_handle,
-                    &destination_handle,
-                    technology,
-                    declared_relationships,
-                ) {
-                    diagnostic.annotate(annotation);
+                        let mut diagnostic = RuledDiagnostic::dynamic_view_relationship_mismatch(
+                            &document.document_id,
+                            source_name,
+                            destination_name,
+                            technology,
+                            *span,
+                        );
+                        if let Some(annotation) = dynamic_relationship_annotation(
+                            &document.document_id,
+                            source,
+                            destination,
+                            technology,
+                            declared_relationships,
+                        ) {
+                            diagnostic.annotate(annotation);
+                        }
+                        diagnostics.push(diagnostic);
+                    }
                 }
-                diagnostics.push(diagnostic);
             }
         }
     }
 
     diagnostics
+}
+
+fn resolved_dynamic_view(
+    document: &WorkspaceSemanticDocumentFacts,
+    view: &ViewFact,
+    documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
+    bindings: &WorkspaceBindingTables,
+    reference_tables: &WorkspaceReferenceTables,
+    declared_relationships: &[DeclaredRelationship],
+) -> Option<ResolvedDynamicView> {
+    if view.kind != ViewKind::Dynamic {
+        return None;
+    }
+
+    let scope = view.scope.as_ref().and_then(|scope| {
+        let handle =
+            resolved_reference_target(document, ReferenceKind::ViewScope, scope.span, reference_tables)?;
+        let symbol = symbol_for_handle(documents_by_id, &handle)?;
+        Some(ResolvedDynamicScope {
+            span: scope.span,
+            handle,
+            display_name: symbol.display_name.clone(),
+        })
+    });
+
+    let steps = view
+        .dynamic_steps
+        .iter()
+        .filter_map(|step| {
+            // If a step cannot be resolved, the reference layer has already
+            // emitted the appropriate unresolved/ambiguous diagnostic. The
+            // view-specific passes only need the successfully resolved subset.
+            resolve_dynamic_step(
+                document,
+                step,
+                documents_by_id,
+                bindings,
+                reference_tables,
+                declared_relationships,
+            )
+        })
+        .collect();
+
+    Some(ResolvedDynamicView { scope, steps })
+}
+
+fn resolve_dynamic_step(
+    document: &WorkspaceSemanticDocumentFacts,
+    step: &DynamicViewStepFact,
+    documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
+    bindings: &WorkspaceBindingTables,
+    reference_tables: &WorkspaceReferenceTables,
+    declared_relationships: &[DeclaredRelationship],
+) -> Option<ResolvedDynamicStep> {
+    match step {
+        DynamicViewStepFact::Relationship(step) => {
+            let source =
+                resolved_reference_target(document, ReferenceKind::RelationshipSource, step.source.span, reference_tables)?;
+            let destination = resolved_reference_target(
+                document,
+                ReferenceKind::RelationshipDestination,
+                step.destination.span,
+                reference_tables,
+            )?;
+            let source_symbol = symbol_for_handle(documents_by_id, &source)?;
+            let destination_symbol = symbol_for_handle(documents_by_id, &destination)?;
+
+            Some(ResolvedDynamicStep::Relationship {
+                span: step.span,
+                source,
+                destination,
+                source_name: source_symbol.display_name.clone(),
+                destination_name: destination_symbol.display_name.clone(),
+                technology: step
+                    .technology
+                    .as_ref()
+                    .map(|value| value.normalized_text.clone()),
+            })
+        }
+        DynamicViewStepFact::RelationshipReference(step) => {
+            let relationship_handle =
+                resolved_relationship_binding(&step.relationship.normalized_text, bindings)?;
+            let relationship =
+                declared_relationship_for_handle(&relationship_handle, declared_relationships)?;
+
+            Some(ResolvedDynamicStep::RelationshipReference {
+                span: step.span,
+                relationship: relationship.clone(),
+            })
+        }
+    }
 }
 
 fn index_views_by_key(
@@ -3304,6 +3407,22 @@ fn collect_declared_relationships(
             continue;
         }
 
+        // Relationship facts already carry spans, while the symbol table owns the
+        // stable symbol IDs/handles. Index the relationship symbols once per
+        // document so later collection can join those two views of the same
+        // declaration without rescanning the whole symbol list for every fact.
+        let relationship_handles = document
+            .symbols
+            .iter()
+            .filter(|symbol| symbol.kind == SymbolKind::Relationship)
+            .map(|symbol| {
+                (
+                    symbol.span,
+                    SymbolHandle::new(document.document_id.clone(), symbol.id),
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+
         for relationship in &document.relationship_facts {
             let Some(source) = resolved_relationship_target(
                 document,
@@ -3336,13 +3455,7 @@ fn collect_declared_relationships(
             }
 
             relationships.push(DeclaredRelationship {
-                handle: document
-                    .symbols
-                    .iter()
-                    .find(|symbol| {
-                        symbol.kind == SymbolKind::Relationship && symbol.span == relationship.span
-                    })
-                    .map(|symbol| SymbolHandle::new(document.document_id.clone(), symbol.id)),
+                handle: relationship_handles.get(&relationship.span).cloned(),
                 document: document.document_id.clone(),
                 span: relationship.span,
                 source,
@@ -3375,18 +3488,31 @@ fn resolved_reference_target(
     span: TextSpan,
     reference_tables: &WorkspaceReferenceTables,
 ) -> Option<SymbolHandle> {
-    let (reference_index, _) = document
-        .references
-        .iter()
-        .enumerate()
-        .find(|(_, reference)| reference.kind == reference_kind && reference.span == span)?;
-    let handle = ReferenceHandle {
-        document: document.document_id.clone(),
-        reference_index,
-    };
-    match reference_tables.resolutions.get(&handle) {
-        Some(ReferenceResolutionStatus::Resolved(target)) => Some(target.clone()),
-        _ => None,
+    // Semantic rules talk about source spans and reference roles, not raw
+    // reference indices. Route everything through the prebuilt lookup so callers
+    // do not need to know how the reference table is stored internally.
+    reference_tables
+        .resolved_targets
+        .get(&document.document_id)?
+        .get(&reference_lookup_key(reference_kind, span))
+        .cloned()
+}
+
+const fn reference_lookup_key(reference_kind: ReferenceKind, span: TextSpan) -> (u8, TextSpan) {
+    (reference_kind_index(reference_kind), span)
+}
+
+const fn reference_kind_index(reference_kind: ReferenceKind) -> u8 {
+    match reference_kind {
+        ReferenceKind::RelationshipSource => 0,
+        ReferenceKind::RelationshipDestination => 1,
+        ReferenceKind::InstanceTarget => 2,
+        ReferenceKind::DeploymentRelationshipSource => 3,
+        ReferenceKind::DeploymentRelationshipDestination => 4,
+        ReferenceKind::ViewScope => 5,
+        ReferenceKind::ViewInclude => 6,
+        ReferenceKind::ViewExclude => 7,
+        ReferenceKind::ViewAnimation => 8,
     }
 }
 
@@ -3423,6 +3549,12 @@ const fn is_model_element_kind(kind: SymbolKind) -> bool {
     )
 }
 
+/// Encodes the current upstream parity boundary for view families whose include
+/// and animation members we validate semantically.
+///
+/// Keeping the matrix centralized makes later view-rule slices read in terms of
+/// "which elements may this view family show?" rather than scattering that policy
+/// across individual diagnostics.
 const fn is_view_element_kind_allowed(view_kind: ViewKind, symbol_kind: SymbolKind) -> bool {
     match view_kind {
         ViewKind::SystemLandscape | ViewKind::SystemContext => {
@@ -4110,7 +4242,10 @@ mod tests {
     use indoc::indoc;
     use tempfile::TempDir;
 
-    use super::{WorkspaceFacts, WorkspaceIndex, WorkspaceLoader, document_id_from_path};
+    use super::{
+        SymbolKind, ViewKind, WorkspaceFacts, WorkspaceIndex, WorkspaceLoader,
+        document_id_from_path, is_view_element_kind_allowed,
+    };
 
     #[test]
     fn loader_reuses_cached_document_snapshots_across_identical_loads() {
@@ -4151,6 +4286,45 @@ mod tests {
             .document(&document_id_from_path(&fixture.model_path()))
             .expect("included model document should exist");
         assert!(ptr::eq(first_model.snapshot(), second_model.snapshot()));
+    }
+
+    #[test]
+    fn view_element_matrix_matches_current_upstream_parity() {
+        assert!(is_view_element_kind_allowed(
+            ViewKind::SystemLandscape,
+            SymbolKind::SoftwareSystem
+        ));
+        assert!(!is_view_element_kind_allowed(
+            ViewKind::SystemLandscape,
+            SymbolKind::Container
+        ));
+
+        assert!(is_view_element_kind_allowed(
+            ViewKind::SystemContext,
+            SymbolKind::Person
+        ));
+        assert!(!is_view_element_kind_allowed(
+            ViewKind::SystemContext,
+            SymbolKind::Container
+        ));
+
+        assert!(is_view_element_kind_allowed(
+            ViewKind::Container,
+            SymbolKind::Container
+        ));
+        assert!(!is_view_element_kind_allowed(
+            ViewKind::Container,
+            SymbolKind::Component
+        ));
+
+        assert!(is_view_element_kind_allowed(
+            ViewKind::Component,
+            SymbolKind::Component
+        ));
+        assert!(!is_view_element_kind_allowed(
+            ViewKind::Component,
+            SymbolKind::Relationship
+        ));
     }
 
     #[test]
