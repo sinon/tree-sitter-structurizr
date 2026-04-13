@@ -524,6 +524,238 @@ fn unresolved_element_selector_targets_surface_semantic_diagnostics() {
 }
 
 #[test]
+fn filtered_views_with_autolayout_bases_surface_semantic_diagnostics() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        system = softwareSystem "System"
+                    }
+
+                    views {
+                        systemLandscape landscape {
+                            include system
+                            autoLayout
+                        }
+
+                        filtered landscape include "Element" filtered-landscape
+                    }
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_code(&facts, "semantic.filtered-view-autolayout-mismatch");
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].message(),
+        "The view \"landscape\" has automatic layout enabled - this is not supported for filtered views"
+    );
+    assert_eq!(diagnostics[0].annotations().len(), 1);
+    assert_eq!(
+        diagnostics[0].annotations()[0].message.as_deref(),
+        Some("base view enables automatic layout here")
+    );
+}
+
+#[test]
+fn dynamic_view_relationship_technology_mismatches_surface_semantic_diagnostics() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        user = person "User"
+                        system = softwareSystem "System" {
+                            app = container "App"
+                        }
+
+                        user -> app "Uses" "HTTP"
+                    }
+
+                    views {
+                        dynamic system "dynamic-view" {
+                            1: user -> app "Requests data" "HTTPS"
+                        }
+                    }
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_code(&facts, "semantic.dynamic-view-relationship-mismatch");
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].message(),
+        "A relationship between User and App with technology HTTPS does not exist in model."
+    );
+    assert_eq!(diagnostics[0].annotations().len(), 1);
+    assert_eq!(
+        diagnostics[0].annotations()[0].message.as_deref(),
+        Some("declared relationship here uses technology HTTP")
+    );
+}
+
+#[test]
+fn dynamic_view_scope_steps_surface_semantic_diagnostics() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        user = person "User"
+                        system = softwareSystem "System" {
+                            api = container "API"
+                        }
+
+                        user -> api "Uses"
+                        api -> user "Responds"
+                    }
+
+                    views {
+                        dynamic api "dynamic-view" {
+                            user -> api "Uses"
+                            api -> user "Responds"
+                        }
+                    }
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_code(&facts, "semantic.dynamic-view-scope-redundancy");
+    assert_eq!(diagnostics.len(), 2);
+    assert!(diagnostics.iter().all(|diagnostic| {
+        diagnostic.message() == "API is already the scope of this view and cannot be added to it"
+            && diagnostic.annotations().len() == 1
+            && diagnostic.annotations()[0].message.as_deref() == Some("view scope is declared here")
+    }));
+
+    let mismatch_diagnostics =
+        diagnostics_of_code(&facts, "semantic.dynamic-view-relationship-mismatch");
+    assert!(mismatch_diagnostics.is_empty(), "{mismatch_diagnostics:#?}");
+}
+
+#[test]
+fn dynamic_view_scope_relationship_references_surface_semantic_diagnostics() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        user = person "User"
+                        system = softwareSystem "System" {
+                            api = container "API"
+                        }
+
+                        rel = user -> api "Uses"
+                    }
+
+                    views {
+                        dynamic api "dynamic-view" {
+                            rel "Uses"
+                        }
+                    }
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_code(&facts, "semantic.dynamic-view-scope-redundancy");
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].message(),
+        "API is already the scope of this view and cannot be added to it"
+    );
+    assert_eq!(diagnostics[0].annotations().len(), 2);
+    assert_eq!(
+        diagnostics[0].annotations()[0].message.as_deref(),
+        Some("view scope is declared here")
+    );
+    assert_eq!(
+        diagnostics[0].annotations()[1].message.as_deref(),
+        Some("referenced relationship here already includes API")
+    );
+}
+
+#[test]
+fn invalid_container_view_elements_surface_include_and_animation_diagnostics() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        system = softwareSystem "System" {
+                            api = container "API" {
+                                worker = component "Worker"
+                            }
+                        }
+                    }
+
+                    views {
+                        container system "container-view" {
+                            include api worker
+                            animation {
+                                api worker
+                            }
+                        }
+                    }
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_code(&facts, "semantic.invalid-view-element");
+    assert_eq!(diagnostics.len(), 2);
+    assert!(diagnostics.iter().all(|diagnostic| {
+        diagnostic.message() == "The element \"worker\" can not be added to this type of view"
+    }));
+}
+
+#[test]
+fn system_context_scope_elements_remain_valid_for_current_upstream_parity() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        user = person "User"
+                        system = softwareSystem "System" {
+                            api = container "API"
+                        }
+                    }
+
+                    views {
+                        systemContext system "system-context" {
+                            include user system
+                            animation {
+                                user system
+                            }
+                        }
+                    }
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_code(&facts, "semantic.invalid-view-element");
+    assert!(diagnostics.is_empty(), "{diagnostics:#?}");
+}
+
+#[test]
 fn workspace_extends_rejects_escape_paths() {
     let (workspace, error) = load_temp_workspace_error(
         &[(

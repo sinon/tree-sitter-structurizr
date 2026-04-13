@@ -434,6 +434,82 @@ impl RuledDiagnostic {
         )
     }
 
+    pub(crate) fn filtered_view_autolayout_mismatch(
+        document: &DocumentId,
+        base_key: &str,
+        span: TextSpan,
+    ) -> Self {
+        Self::new(
+            rules::SEMANTIC_FILTERED_VIEW_AUTOLAYOUT_MISMATCH.id(),
+            Diagnostic::new(
+                format!(
+                    "The view \"{base_key}\" has automatic layout enabled - this is not supported for filtered views"
+                ),
+                span,
+            )
+            .in_document(document)
+            .with_target_text(base_key),
+        )
+    }
+
+    pub(crate) fn dynamic_view_relationship_mismatch(
+        document: &DocumentId,
+        source_name: &str,
+        destination_name: &str,
+        technology: Option<&str>,
+        span: TextSpan,
+    ) -> Self {
+        let message = technology.map_or_else(
+            || {
+                format!(
+                    "A relationship between {source_name} and {destination_name} does not exist in model."
+                )
+            },
+            |technology| {
+                format!(
+                    "A relationship between {source_name} and {destination_name} with technology {technology} does not exist in model."
+                )
+            },
+        );
+
+        Self::new(
+            rules::SEMANTIC_DYNAMIC_VIEW_RELATIONSHIP_MISMATCH.id(),
+            Diagnostic::new(message, span).in_document(document),
+        )
+    }
+
+    pub(crate) fn dynamic_view_scope_redundancy(
+        document: &DocumentId,
+        scope_name: &str,
+        span: TextSpan,
+    ) -> Self {
+        Self::new(
+            rules::SEMANTIC_DYNAMIC_VIEW_SCOPE_REDUNDANCY.id(),
+            Diagnostic::new(
+                format!("{scope_name} is already the scope of this view and cannot be added to it"),
+                span,
+            )
+            .in_document(document)
+            .with_target_text(scope_name),
+        )
+    }
+
+    pub(crate) fn invalid_view_element(
+        document: &DocumentId,
+        raw_text: &str,
+        span: TextSpan,
+    ) -> Self {
+        Self::new(
+            rules::SEMANTIC_INVALID_VIEW_ELEMENT.id(),
+            Diagnostic::new(
+                format!("The element \"{raw_text}\" can not be added to this type of view"),
+                span,
+            )
+            .in_document(document)
+            .with_target_text(raw_text),
+        )
+    }
+
     pub(crate) fn ambiguous_reference(
         document: &DocumentId,
         raw_text: &str,
