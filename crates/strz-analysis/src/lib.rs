@@ -11,6 +11,7 @@ pub(crate) mod includes;
 mod parse;
 mod rule;
 mod rules;
+mod semantic;
 mod snapshot;
 mod span;
 mod symbols;
@@ -21,6 +22,13 @@ pub use diagnostics::{Annotation, Diagnostic, RuledDiagnostic, diagnostic_rule_r
 pub use includes::{DirectiveContainer, DirectiveValueKind, IncludeDirective};
 pub use parse::DocumentAnalyzer;
 pub use rule::{DiagnosticSeverity, RuleId, RuleMetadata, RuleRegistry, RuleRegistryBuilder};
+pub use semantic::{
+    AutoLayoutFact, ConfigurationScopeFact, DynamicRelationshipFact,
+    DynamicRelationshipReferenceFact, DynamicViewStepFact, ElementDirectiveFact, ImageSourceFact,
+    ImageSourceKind, ImageSourceMode, PropertyFact, RelationshipFact, ResourceDirectiveFact,
+    ResourceDirectiveKind, ValueFact, ViewFact, ViewKind, WorkspaceScope, WorkspaceSectionFact,
+    WorkspaceSectionKind,
+};
 pub use snapshot::{
     DocumentId, DocumentInput, DocumentLocation, DocumentSnapshot, DocumentSyntaxFacts,
 };

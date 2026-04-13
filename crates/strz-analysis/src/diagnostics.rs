@@ -379,6 +379,37 @@ impl RuledDiagnostic {
         )
     }
 
+    pub(crate) fn repeated_workspace_section(
+        document: &DocumentId,
+        section_name: &str,
+        span: TextSpan,
+    ) -> Self {
+        Self::new(
+            rules::SEMANTIC_REPEATED_WORKSPACE_SECTION.id(),
+            Diagnostic::new(
+                format!("multiple {section_name} sections are not permitted in a DSL definition"),
+                span,
+            )
+            .in_document(document),
+        )
+    }
+
+    pub(crate) fn unresolved_element_selector(
+        document: &DocumentId,
+        raw_text: &str,
+        span: TextSpan,
+    ) -> Self {
+        Self::new(
+            rules::SEMANTIC_UNRESOLVED_ELEMENT_SELECTOR.id(),
+            Diagnostic::new(
+                format!("unresolved !element selector target: {raw_text}"),
+                span,
+            )
+            .in_document(document)
+            .with_target_text(raw_text),
+        )
+    }
+
     pub(crate) fn unresolved_reference(
         document: &DocumentId,
         raw_text: &str,
@@ -389,6 +420,17 @@ impl RuledDiagnostic {
             Diagnostic::new(format!("unresolved identifier reference: {raw_text}"), span)
                 .in_document(document)
                 .with_target_text(raw_text),
+        )
+    }
+
+    pub(crate) fn workspace_scope_mismatch(
+        document: &DocumentId,
+        message: impl Into<String>,
+        span: TextSpan,
+    ) -> Self {
+        Self::new(
+            rules::SEMANTIC_WORKSPACE_SCOPE_MISMATCH.id(),
+            Diagnostic::new(message, span).in_document(document),
         )
     }
 

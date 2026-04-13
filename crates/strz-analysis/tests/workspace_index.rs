@@ -1,10 +1,16 @@
-use std::path::{Path, PathBuf};
+use std::{
+    fs,
+    io,
+    path::{Path, PathBuf},
+};
 
+use indoc::indoc;
 use rstest::rstest;
 use strz_analysis::{
     ReferenceHandle, ReferenceResolutionStatus, RuledDiagnostic, SymbolHandle, TextSpan,
     WorkspaceFacts, WorkspaceLoader,
 };
+use tempfile::TempDir;
 
 macro_rules! set_snapshot_suffix {
     ($($expr:expr),* $(,)?) => {
@@ -218,11 +224,424 @@ fn workspace_fixtures_produce_stable_workspace_indexes(#[case] fixture_name: &st
     );
 }
 
+#[test]
+fn repeated_model_sections_report_related_context() {
+    let (workspace, facts) = load_temp_workspace(
+        &[
+            (
+                "workspace.dsl",
+                indoc! {r#"
+                    workspace {
+                        !include "model-a.dsl"
+                        !include "model-b.dsl"
+                    }
+                "#},
+            ),
+            (
+                "model-a.dsl",
+                indoc! {r#"
+                    model {
+                        user = person "User"
+                    }
+                "#},
+            ),
+            (
+                "model-b.dsl",
+                indoc! {r#"
+                    model {
+                        admin = person "Admin"
+                    }
+                "#},
+            ),
+        ],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_code(&facts, "semantic.repeated-workspace-section");
+    assert_eq!(diagnostics.len(), 1);
+
+    let diagnostic = diagnostics[0];
+    assert_eq!(
+        display_document_id(
+            diagnostic
+                .document()
+                .expect("workspace-section diagnostics should carry a document")
+                .as_str(),
+            workspace.root(),
+        ),
+        "model-b.dsl"
+    );
+    assert_eq!(
+        diagnostic.message(),
+        "multiple model sections are not permitted in a DSL definition"
+    );
+    assert_eq!(diagnostic.annotations().len(), 1);
+    assert_eq!(
+        diagnostic.annotations()[0]
+            .document
+            .as_ref()
+            .map(|document| display_document_id(document.as_str(), workspace.root())),
+        Some("model-a.dsl".to_owned())
+    );
+    assert_eq!(
+        diagnostic.annotations()[0].message.as_deref(),
+        Some("first model section here")
+    );
+}
+
+#[test]
+fn workspace_scope_mismatch_reports_offending_owner() {
+    let (workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        system = softwareSystem "System" {
+                            app = container "App"
+                        }
+                    }
+
+                    configuration {
+                        scope landscape
+                    }
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_code(&facts, "semantic.workspace-scope-mismatch");
+    assert_eq!(diagnostics.len(), 1);
+
+    let diagnostic = diagnostics[0];
+    assert_eq!(
+        display_document_id(
+            diagnostic
+                .document()
+                .expect("workspace-scope diagnostics should carry a document")
+                .as_str(),
+            workspace.root(),
+        ),
+        "workspace.dsl"
+    );
+    assert_eq!(
+        diagnostic.message(),
+        "workspace is landscape scoped, but the software system named System has containers"
+    );
+    assert_eq!(diagnostic.annotations().len(), 1);
+    assert!(diagnostic.annotations()[0].document.is_none());
+    assert_eq!(
+        diagnostic.annotations()[0].message.as_deref(),
+        Some("software system named System has containers")
+    );
+}
+
+#[test]
+fn root_workspace_scope_wins_over_included_fragment_scope() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[
+            (
+                "workspace.dsl",
+                indoc! {r#"
+                    workspace {
+                        !include "scope.dsl"
+
+                        model {
+                            system = softwareSystem "System" {
+                                app = container "App"
+                            }
+                        }
+
+                        configuration {
+                            scope softwareSystem
+                        }
+                    }
+                "#},
+            ),
+            (
+                "scope.dsl",
+                indoc! {r"
+                    configuration {
+                        scope landscape
+                    }
+                "},
+            ),
+        ],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_code(&facts, "semantic.workspace-scope-mismatch");
+    assert!(diagnostics.is_empty(), "{diagnostics:#?}");
+}
+
+#[test]
+fn workspace_scope_mismatch_reports_each_violating_owner_once() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        payments = softwareSystem "Payments" {
+                            api = container "API"
+                        }
+
+                        accounts = softwareSystem "Accounts" {
+                            ui = container "UI"
+                        }
+                    }
+
+                    configuration {
+                        scope landscape
+                    }
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_code(&facts, "semantic.workspace-scope-mismatch");
+    assert_eq!(diagnostics.len(), 2);
+    let mut messages = diagnostics
+        .iter()
+        .map(|diagnostic| diagnostic.message())
+        .collect::<Vec<_>>();
+    messages.sort_unstable();
+    assert_eq!(
+        messages,
+        vec![
+            "workspace is landscape scoped, but the software system named Accounts has containers",
+            "workspace is landscape scoped, but the software system named Payments has containers",
+        ]
+    );
+}
+
+#[test]
+fn extended_workspaces_inherit_base_bindings_without_foundation_diagnostics() {
+    let (workspace, facts) = load_temp_workspace(
+        &[
+            (
+                "base.dsl",
+                indoc! {r#"
+                    workspace {
+                        !identifiers hierarchical
+                        !include "deployment.dsl"
+                    }
+                "#},
+            ),
+            (
+                "deployment.dsl",
+                indoc! {r#"
+                    model {
+                        live = deploymentEnvironment "Live" {
+                            aws = deploymentNode "AWS" {
+                                region = deploymentNode "Region" {
+                                    route53 = infrastructureNode "Route 53"
+                                }
+                            }
+                        }
+                    }
+                "#},
+            ),
+            (
+                "workspace.dsl",
+                indoc! {r#"
+                    workspace extends "base.dsl" {
+                        model {
+                            !element live.aws.region {
+                                extra = infrastructureNode "Extra" {
+                                    -> route53
+                                }
+                            }
+                        }
+                    }
+                "#},
+            ),
+        ],
+        "workspace.dsl",
+    );
+
+    let diagnostics = facts
+        .semantic_diagnostics()
+        .iter()
+        .filter(|diagnostic| {
+            matches!(
+                diagnostic.code(),
+                "semantic.repeated-workspace-section"
+                    | "semantic.unresolved-element-selector"
+                    | "semantic.unresolved-reference"
+                    | "semantic.ambiguous-reference"
+            )
+        })
+        .collect::<Vec<_>>();
+    assert!(diagnostics.is_empty(), "{diagnostics:#?}");
+
+    let root_document = workspace.root().join("workspace.dsl");
+    let index = facts
+        .workspace_indexes()
+        .iter()
+        .find(|index| index.root_document().as_str() == root_document.to_string_lossy())
+        .expect("explicit workspace root should produce one workspace index");
+    assert!(index.unique_deployment_bindings().contains_key("live"));
+    assert!(
+        index
+            .unique_deployment_bindings()
+            .contains_key("live.aws.region.route53")
+    );
+}
+
+#[test]
+fn unresolved_element_selector_targets_surface_semantic_diagnostics() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    !identifiers hierarchical
+
+                    model {
+                        system = softwareSystem "System"
+
+                        !element system.api {
+                            properties {
+                                "team" "Core"
+                            }
+                        }
+                    }
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_code(&facts, "semantic.unresolved-element-selector");
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].message(),
+        "unresolved !element selector target: system.api"
+    );
+}
+
+#[test]
+fn workspace_extends_rejects_escape_paths() {
+    let (workspace, error) = load_temp_workspace_error(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace extends "../outside/base.dsl" {
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    assert!(
+        error
+            .to_string()
+            .contains("workspace base path escapes the allowed subtree"),
+        "unexpected error for {}: {error}",
+        workspace.root().display()
+    );
+}
+
+#[test]
+fn workspace_extends_cycles_surface_explicit_errors() {
+    let (_workspace, error) = load_temp_workspace_error(
+        &[
+            (
+                "workspace.dsl",
+                indoc! {r#"
+                    workspace extends "base.dsl" {
+                    }
+                "#},
+            ),
+            (
+                "base.dsl",
+                indoc! {r#"
+                    workspace extends "workspace.dsl" {
+                    }
+                "#},
+            ),
+        ],
+        "workspace.dsl",
+    );
+
+    assert!(
+        error
+            .to_string()
+            .contains("workspace extends cycle detected while following"),
+        "unexpected error: {error}"
+    );
+}
+
 fn workspace_fixture_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../tests/lsp/workspaces")
         .canonicalize()
         .expect("workspace fixture root should exist")
+}
+
+struct TempWorkspace {
+    _root_dir: TempDir,
+    root: PathBuf,
+}
+
+impl TempWorkspace {
+    fn root(&self) -> &Path {
+        &self.root
+    }
+}
+
+fn load_temp_workspace(files: &[(&str, &str)], root_file: &str) -> (TempWorkspace, WorkspaceFacts) {
+    let workspace = write_temp_workspace(files);
+    let root_file = workspace.root.join(root_file);
+    let mut loader = WorkspaceLoader::new();
+    let facts = loader
+        .load_paths([root_file.as_path()])
+        .expect("temp workspace should load successfully");
+
+    (workspace, facts)
+}
+
+fn load_temp_workspace_error(files: &[(&str, &str)], root_file: &str) -> (TempWorkspace, io::Error) {
+    let workspace = write_temp_workspace(files);
+    let root_file = workspace.root.join(root_file);
+    let mut loader = WorkspaceLoader::new();
+    let error = loader
+        .load_paths([root_file.as_path()])
+        .expect_err("temp workspace should fail to load");
+
+    (workspace, error)
+}
+
+fn write_temp_workspace(files: &[(&str, &str)]) -> TempWorkspace {
+    let root_dir = tempfile::tempdir().expect("tempdir should create");
+    let root = root_dir
+        .path()
+        .canonicalize()
+        .expect("tempdir path should canonicalize");
+
+    for (relative_path, source) in files {
+        let path = root.join(relative_path);
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).expect("parent directories should create");
+        }
+        fs::write(path, source).expect("workspace fixture file should write");
+    }
+
+    TempWorkspace {
+        _root_dir: root_dir,
+        root,
+    }
+}
+
+fn diagnostics_of_code<'a>(facts: &'a WorkspaceFacts, code: &str) -> Vec<&'a RuledDiagnostic> {
+    facts
+        .semantic_diagnostics()
+        .iter()
+        .filter(|diagnostic| diagnostic.code() == code)
+        .collect()
 }
 
 fn display_symbol_handle(facts: &WorkspaceFacts, handle: &SymbolHandle, root: &Path) -> String {

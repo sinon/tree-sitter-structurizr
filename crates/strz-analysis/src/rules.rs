@@ -112,6 +112,52 @@ declare_rule! {
 
 declare_rule! {
     /// ## What it does
+    /// Reports repeated top-level `model` or `views` sections in one DSL definition.
+    ///
+    /// ## Why is this bad?
+    /// Structurizr accepts standalone fragments for editor workflows, but one
+    /// assembled DSL definition still needs at most one `model` section and one
+    /// `views` section.
+    pub static SEMANTIC_REPEATED_WORKSPACE_SECTION = {
+        name: "repeated-workspace-section",
+        source: "semantic",
+        summary: "reports repeated top-level model or views sections",
+        default_severity: DiagnosticSeverity::Error,
+    };
+}
+
+declare_rule! {
+    /// ## What it does
+    /// Reports unresolved `!element` selector targets that should name one model or deployment element.
+    ///
+    /// ## Why is this bad?
+    /// When a selector target does not resolve, the bounded analysis layer
+    /// cannot anchor the nested block to the intended element.
+    pub static SEMANTIC_UNRESOLVED_ELEMENT_SELECTOR = {
+        name: "unresolved-element-selector",
+        source: "semantic",
+        summary: "reports unresolved !element selector targets",
+        default_severity: DiagnosticSeverity::Error,
+    };
+}
+
+declare_rule! {
+    /// ## What it does
+    /// Reports configuration scopes that conflict with the model depth in the assembled workspace.
+    ///
+    /// ## Why is this bad?
+    /// Scope mismatches mean the workspace declares one modeling boundary while
+    /// still containing deeper elements that upstream validation rejects.
+    pub static SEMANTIC_WORKSPACE_SCOPE_MISMATCH = {
+        name: "workspace-scope-mismatch",
+        source: "semantic",
+        summary: "reports configuration scopes that conflict with model depth",
+        default_severity: DiagnosticSeverity::Error,
+    };
+}
+
+declare_rule! {
+    /// ## What it does
     /// Reports when a supported identifier reference resolves to no known target.
     ///
     /// ## Why is this bad?
@@ -148,7 +194,10 @@ pub fn register_rules(registry: &mut RuleRegistryBuilder) {
     registry.register(&INCLUDE_CYCLE);
     registry.register(&INCLUDE_UNSUPPORTED_REMOTE_TARGET);
     registry.register(&SEMANTIC_DUPLICATE_BINDING);
+    registry.register(&SEMANTIC_REPEATED_WORKSPACE_SECTION);
+    registry.register(&SEMANTIC_UNRESOLVED_ELEMENT_SELECTOR);
     registry.register(&SEMANTIC_UNRESOLVED_REFERENCE);
+    registry.register(&SEMANTIC_WORKSPACE_SCOPE_MISMATCH);
     registry.register(&SEMANTIC_AMBIGUOUS_REFERENCE);
 }
 
@@ -184,7 +233,10 @@ mod tests {
                 "include.unsupported-remote-target",
                 "semantic.ambiguous-reference",
                 "semantic.duplicate-binding",
+                "semantic.repeated-workspace-section",
+                "semantic.unresolved-element-selector",
                 "semantic.unresolved-reference",
+                "semantic.workspace-scope-mismatch",
                 "syntax.error-node",
                 "syntax.missing-node",
             ]
@@ -196,7 +248,18 @@ mod tests {
         assert!(registry.get("include.missing-local-target").is_some());
         assert!(registry.get("include.unsupported-remote-target").is_some());
         assert!(registry.get("semantic.duplicate-binding").is_some());
+        assert!(
+            registry
+                .get("semantic.repeated-workspace-section")
+                .is_some()
+        );
+        assert!(
+            registry
+                .get("semantic.unresolved-element-selector")
+                .is_some()
+        );
         assert!(registry.get("semantic.unresolved-reference").is_some());
+        assert!(registry.get("semantic.workspace-scope-mismatch").is_some());
         assert!(registry.get("semantic.ambiguous-reference").is_some());
     }
 }
