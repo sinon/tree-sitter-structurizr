@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use tree_sitter::Tree;
 
 use crate::constants::ConstantDefinition;
-use crate::diagnostics::SyntaxDiagnostic;
+use crate::diagnostics::RuledDiagnostic;
 use crate::extract;
 use crate::includes::IncludeDirective;
 use crate::symbols::{IdentifierModeFact, Reference, Symbol};
@@ -130,7 +130,7 @@ impl DocumentInput {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DocumentSyntaxFacts {
     is_workspace_entry: bool,
-    syntax_diagnostics: Vec<SyntaxDiagnostic>,
+    syntax_diagnostics: Vec<RuledDiagnostic>,
     include_directives: Vec<IncludeDirective>,
     constant_definitions: Vec<ConstantDefinition>,
     identifier_modes: Vec<IdentifierModeFact>,
@@ -172,7 +172,7 @@ impl DocumentSyntaxFacts {
 
     /// Returns all syntax diagnostics found while traversing the parse tree.
     #[must_use]
-    pub fn syntax_diagnostics(&self) -> &[SyntaxDiagnostic] {
+    pub fn syntax_diagnostics(&self) -> &[RuledDiagnostic] {
         &self.syntax_diagnostics
     }
 
@@ -293,7 +293,7 @@ impl DocumentSnapshot {
 
     #[must_use]
     /// Returns all syntax diagnostics found while traversing the parse tree.
-    pub fn syntax_diagnostics(&self) -> &[SyntaxDiagnostic] {
+    pub fn syntax_diagnostics(&self) -> &[RuledDiagnostic] {
         self.syntax_facts.syntax_diagnostics()
     }
 

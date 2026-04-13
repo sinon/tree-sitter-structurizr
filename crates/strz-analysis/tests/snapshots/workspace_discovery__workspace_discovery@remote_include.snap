@@ -1,5 +1,6 @@
 ---
 source: crates/strz-analysis/tests/workspace_discovery.rs
+assertion_line: 184
 expression: "WorkspaceView::from_facts(&facts, &fixture_root)"
 ---
 WorkspaceView {
@@ -28,7 +29,7 @@ WorkspaceView {
     diagnostics: [
         WorkspaceDiagnosticView {
             document: "workspace.dsl",
-            kind: UnsupportedRemoteTarget,
+            code: "include.unsupported-remote-target",
             message: "remote includes are not resolved in the MVP: https://example.com/base.dsl",
             target_text: "https://example.com/base.dsl",
             span: TextSpan {
@@ -43,18 +44,20 @@ WorkspaceView {
                     column: 43,
                 },
             },
-            value_span: TextSpan {
-                start_byte: 25,
-                end_byte: 55,
-                start_point: TextPoint {
-                    row: 1,
-                    column: 13,
+            value_span: Some(
+                TextSpan {
+                    start_byte: 25,
+                    end_byte: 55,
+                    start_point: TextPoint {
+                        row: 1,
+                        column: 13,
+                    },
+                    end_point: TextPoint {
+                        row: 1,
+                        column: 43,
+                    },
                 },
-                end_point: TextPoint {
-                    row: 1,
-                    column: 43,
-                },
-            },
+            ),
         },
     ],
 }

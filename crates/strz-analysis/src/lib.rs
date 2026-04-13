@@ -9,18 +9,18 @@ mod diagnostics;
 mod extract;
 pub(crate) mod includes;
 mod parse;
+mod rule;
+mod rules;
 mod snapshot;
 mod span;
 mod symbols;
 mod workspace;
 
 pub use constants::ConstantDefinition;
-pub use diagnostics::{
-    IncludeDiagnostic, IncludeDiagnosticKind, SemanticDiagnostic, SemanticDiagnosticKind,
-    SyntaxDiagnostic, SyntaxDiagnosticKind,
-};
+pub use diagnostics::{Annotation, Diagnostic, RuledDiagnostic, diagnostic_rule_registry};
 pub use includes::{DirectiveContainer, DirectiveValueKind, IncludeDirective};
 pub use parse::DocumentAnalyzer;
+pub use rule::{DiagnosticSeverity, RuleId, RuleMetadata, RuleRegistry, RuleRegistryBuilder};
 pub use snapshot::{
     DocumentId, DocumentInput, DocumentLocation, DocumentSnapshot, DocumentSyntaxFacts,
 };

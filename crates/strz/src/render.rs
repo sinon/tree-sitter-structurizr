@@ -3,10 +3,11 @@ use std::{fmt::Write as _, io::Write};
 use anstream::{AutoStream, ColorChoice};
 use anstyle::{AnsiColor, Color, Style};
 use anyhow::{Context, Error, Result};
+use strz_analysis::DiagnosticSeverity;
 
 use crate::{
     cli::{GlobalOptions, OutputFormat},
-    report::{CheckReport, DiagnosticView, DocumentDump, DumpOutput, Severity, WorkspaceDump},
+    report::{CheckReport, DiagnosticView, DocumentDump, DumpOutput, WorkspaceDump},
 };
 
 /// Writes `check` output in the requested format.
@@ -344,10 +345,10 @@ fn write_heading(output: &mut String, title: &str, colors: bool) {
         .expect("writing to String should not fail");
 }
 
-const fn severity_style(severity: Severity) -> Style {
+const fn severity_style(severity: DiagnosticSeverity) -> Style {
     let color = match severity {
-        Severity::Error => AnsiColor::Red,
-        Severity::Warning => AnsiColor::Yellow,
+        DiagnosticSeverity::Error => AnsiColor::Red,
+        DiagnosticSeverity::Warning => AnsiColor::Yellow,
     };
 
     Style::new().fg_color(Some(Color::Ansi(color))).bold()

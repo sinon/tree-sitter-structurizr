@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use rstest::rstest;
 use strz_analysis::{
-    ReferenceHandle, ReferenceResolutionStatus, SemanticDiagnostic, SymbolHandle, TextSpan,
+    ReferenceHandle, ReferenceResolutionStatus, RuledDiagnostic, SymbolHandle, TextSpan,
     WorkspaceFacts, WorkspaceLoader,
 };
 
@@ -54,7 +54,7 @@ struct ReferenceResolutionView {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct DiagnosticView {
     document: String,
-    kind: strz_analysis::SemanticDiagnosticKind,
+    code: String,
     message: String,
     span: TextSpan,
 }
@@ -179,12 +179,18 @@ impl WorkspaceIndexView {
 }
 
 impl DiagnosticView {
-    fn from_diagnostic(diagnostic: &SemanticDiagnostic, root: &Path) -> Self {
+    fn from_diagnostic(diagnostic: &RuledDiagnostic, root: &Path) -> Self {
         Self {
-            document: display_document_id(diagnostic.document.as_str(), root),
-            kind: diagnostic.kind,
-            message: diagnostic.message.clone(),
-            span: diagnostic.span,
+            document: display_document_id(
+                diagnostic
+                    .document()
+                    .expect("semantic diagnostics should carry documents")
+                    .as_str(),
+                root,
+            ),
+            code: diagnostic.code().to_owned(),
+            message: diagnostic.message().to_owned(),
+            span: diagnostic.span(),
         }
     }
 }
