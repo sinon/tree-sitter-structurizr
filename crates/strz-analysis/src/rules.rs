@@ -188,6 +188,21 @@ declare_rule! {
 
 declare_rule! {
     /// ## What it does
+    /// Reports deployment relationships whose endpoints sit in the same containment chain.
+    ///
+    /// ## Why is this bad?
+    /// Structurizr rejects relationships between deployment parents and their
+    /// children because containment already describes that topology.
+    pub static SEMANTIC_DEPLOYMENT_PARENT_CHILD_RELATIONSHIP = {
+        name: "deployment-parent-child-relationship",
+        source: "semantic",
+        summary: "reports deployment relationships between parents and children",
+        default_severity: DiagnosticSeverity::Error,
+    };
+}
+
+declare_rule! {
+    /// ## What it does
     /// Reports filtered views whose base view already enables automatic layout.
     ///
     /// ## Why is this bad?
@@ -262,6 +277,7 @@ pub fn register_rules(registry: &mut RuleRegistryBuilder) {
     registry.register(&SEMANTIC_UNRESOLVED_REFERENCE);
     registry.register(&SEMANTIC_WORKSPACE_SCOPE_MISMATCH);
     registry.register(&SEMANTIC_AMBIGUOUS_REFERENCE);
+    registry.register(&SEMANTIC_DEPLOYMENT_PARENT_CHILD_RELATIONSHIP);
     registry.register(&SEMANTIC_FILTERED_VIEW_AUTOLAYOUT_MISMATCH);
     registry.register(&SEMANTIC_DYNAMIC_VIEW_RELATIONSHIP_MISMATCH);
     registry.register(&SEMANTIC_DYNAMIC_VIEW_SCOPE_REDUNDANCY);
@@ -299,6 +315,7 @@ mod tests {
                 "include.missing-local-target",
                 "include.unsupported-remote-target",
                 "semantic.ambiguous-reference",
+                "semantic.deployment-parent-child-relationship",
                 "semantic.duplicate-binding",
                 "semantic.dynamic-view-relationship-mismatch",
                 "semantic.dynamic-view-scope-redundancy",

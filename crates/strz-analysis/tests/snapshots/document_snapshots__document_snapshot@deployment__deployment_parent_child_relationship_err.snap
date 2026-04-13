@@ -1,0 +1,327 @@
+---
+source: crates/strz-analysis/tests/document_snapshots.rs
+expression: "SnapshotView::from(&snapshot)"
+---
+SnapshotView {
+    has_syntax_errors: false,
+    diagnostics: [],
+    include_directives: [],
+    identifier_modes: [],
+    symbols: [
+        Symbol {
+            id: SymbolId(
+                0,
+            ),
+            kind: SoftwareSystem,
+            display_name: "System",
+            binding_name: Some(
+                "system",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 32,
+                    end_byte: 38,
+                    start_point: TextPoint {
+                        row: 2,
+                        column: 8,
+                    },
+                    end_point: TextPoint {
+                        row: 2,
+                        column: 14,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 32,
+                end_byte: 110,
+                start_point: TextPoint {
+                    row: 2,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 4,
+                    column: 9,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "software_system",
+        },
+        Symbol {
+            id: SymbolId(
+                1,
+            ),
+            kind: Container,
+            display_name: "API",
+            binding_name: Some(
+                "api",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 79,
+                    end_byte: 82,
+                    start_point: TextPoint {
+                        row: 3,
+                        column: 12,
+                    },
+                    end_point: TextPoint {
+                        row: 3,
+                        column: 15,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 79,
+                end_byte: 100,
+                start_point: TextPoint {
+                    row: 3,
+                    column: 12,
+                },
+                end_point: TextPoint {
+                    row: 3,
+                    column: 33,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    0,
+                ),
+            ),
+            syntax_node_kind: "container",
+        },
+        Symbol {
+            id: SymbolId(
+                2,
+            ),
+            kind: DeploymentEnvironment,
+            display_name: "Live",
+            binding_name: Some(
+                "live",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 120,
+                    end_byte: 124,
+                    start_point: TextPoint {
+                        row: 6,
+                        column: 8,
+                    },
+                    end_point: TextPoint {
+                        row: 6,
+                        column: 12,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 120,
+                end_byte: 385,
+                start_point: TextPoint {
+                    row: 6,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 13,
+                    column: 9,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "deployment_environment",
+        },
+        Symbol {
+            id: SymbolId(
+                3,
+            ),
+            kind: DeploymentNode,
+            display_name: "Primary",
+            binding_name: Some(
+                "primary",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 170,
+                    end_byte: 177,
+                    start_point: TextPoint {
+                        row: 7,
+                        column: 12,
+                    },
+                    end_point: TextPoint {
+                        row: 7,
+                        column: 19,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 170,
+                end_byte: 327,
+                start_point: TextPoint {
+                    row: 7,
+                    column: 12,
+                },
+                end_point: TextPoint {
+                    row: 10,
+                    column: 13,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    2,
+                ),
+            ),
+            syntax_node_kind: "deployment_node",
+        },
+        Symbol {
+            id: SymbolId(
+                4,
+            ),
+            kind: InfrastructureNode,
+            display_name: "Gateway",
+            binding_name: Some(
+                "gateway",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 223,
+                    end_byte: 230,
+                    start_point: TextPoint {
+                        row: 8,
+                        column: 16,
+                    },
+                    end_point: TextPoint {
+                        row: 8,
+                        column: 23,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 223,
+                end_byte: 261,
+                start_point: TextPoint {
+                    row: 8,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 8,
+                    column: 54,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    3,
+                ),
+            ),
+            syntax_node_kind: "infrastructure_node",
+        },
+        Symbol {
+            id: SymbolId(
+                5,
+            ),
+            kind: ContainerInstance,
+            display_name: "apiInstance",
+            binding_name: Some(
+                "apiInstance",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 278,
+                    end_byte: 289,
+                    start_point: TextPoint {
+                        row: 9,
+                        column: 16,
+                    },
+                    end_point: TextPoint {
+                        row: 9,
+                        column: 27,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 278,
+                end_byte: 313,
+                start_point: TextPoint {
+                    row: 9,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 9,
+                    column: 51,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    3,
+                ),
+            ),
+            syntax_node_kind: "container_instance",
+        },
+    ],
+    references: [
+        Reference {
+            kind: InstanceTarget,
+            raw_text: "api",
+            span: TextSpan {
+                start_byte: 310,
+                end_byte: 313,
+                start_point: TextPoint {
+                    row: 9,
+                    column: 48,
+                },
+                end_point: TextPoint {
+                    row: 9,
+                    column: 51,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "container_instance",
+            containing_symbol: Some(
+                SymbolId(
+                    5,
+                ),
+            ),
+        },
+        Reference {
+            kind: DeploymentRelationshipSource,
+            raw_text: "primary",
+            span: TextSpan {
+                start_byte: 341,
+                end_byte: 348,
+                start_point: TextPoint {
+                    row: 12,
+                    column: 12,
+                },
+                end_point: TextPoint {
+                    row: 12,
+                    column: 19,
+                },
+            },
+            target_hint: Deployment,
+            container_node_kind: "relationship",
+            containing_symbol: Some(
+                SymbolId(
+                    2,
+                ),
+            ),
+        },
+        Reference {
+            kind: DeploymentRelationshipDestination,
+            raw_text: "gateway",
+            span: TextSpan {
+                start_byte: 352,
+                end_byte: 359,
+                start_point: TextPoint {
+                    row: 12,
+                    column: 23,
+                },
+                end_point: TextPoint {
+                    row: 12,
+                    column: 30,
+                },
+            },
+            target_hint: Deployment,
+            container_node_kind: "relationship",
+            containing_symbol: Some(
+                SymbolId(
+                    2,
+                ),
+            ),
+        },
+    ],
+}
