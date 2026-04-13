@@ -186,6 +186,69 @@ declare_rule! {
     };
 }
 
+declare_rule! {
+    /// ## What it does
+    /// Reports filtered views whose base view already enables automatic layout.
+    ///
+    /// ## Why is this bad?
+    /// Structurizr rejects filtered views derived from auto-layout bases because
+    /// the filtered variant cannot safely inherit or override that layout state.
+    pub static SEMANTIC_FILTERED_VIEW_AUTOLAYOUT_MISMATCH = {
+        name: "filtered-view-autolayout-mismatch",
+        source: "semantic",
+        summary: "reports filtered views built from auto-layout base views",
+        default_severity: DiagnosticSeverity::Error,
+    };
+}
+
+declare_rule! {
+    /// ## What it does
+    /// Reports dynamic-view steps whose endpoints do not match any compatible declared relationship.
+    ///
+    /// ## Why is this bad?
+    /// Dynamic views describe runtime behavior in terms of relationships that
+    /// already exist in the model, so mismatched steps point at behavior the
+    /// assembled workspace never declared.
+    pub static SEMANTIC_DYNAMIC_VIEW_RELATIONSHIP_MISMATCH = {
+        name: "dynamic-view-relationship-mismatch",
+        source: "semantic",
+        summary: "reports dynamic-view steps without a matching declared relationship",
+        default_severity: DiagnosticSeverity::Error,
+    };
+}
+
+declare_rule! {
+    /// ## What it does
+    /// Reports dynamic-view steps that redundantly re-add the view's scoped element.
+    ///
+    /// ## Why is this bad?
+    /// Scoped dynamic views already imply the chosen element, so adding it again
+    /// in a step or a referenced relationship is rejected by upstream validation
+    /// and usually means the view should be widened to `*` instead.
+    pub static SEMANTIC_DYNAMIC_VIEW_SCOPE_REDUNDANCY = {
+        name: "dynamic-view-scope-redundancy",
+        source: "semantic",
+        summary: "reports dynamic-view steps that re-add the scoped element",
+        default_severity: DiagnosticSeverity::Error,
+    };
+}
+
+declare_rule! {
+    /// ## What it does
+    /// Reports view elements whose kind is incompatible with the current view type.
+    ///
+    /// ## Why is this bad?
+    /// View declarations can only show certain categories of model elements, so
+    /// incompatible references are accepted by navigation but rejected by
+    /// Structurizr validation.
+    pub static SEMANTIC_INVALID_VIEW_ELEMENT = {
+        name: "invalid-view-element",
+        source: "semantic",
+        summary: "reports include or animation elements that the current view type cannot show",
+        default_severity: DiagnosticSeverity::Error,
+    };
+}
+
 pub fn register_rules(registry: &mut RuleRegistryBuilder) {
     registry.register(&SYNTAX_ERROR_NODE);
     registry.register(&SYNTAX_MISSING_NODE);
@@ -199,6 +262,10 @@ pub fn register_rules(registry: &mut RuleRegistryBuilder) {
     registry.register(&SEMANTIC_UNRESOLVED_REFERENCE);
     registry.register(&SEMANTIC_WORKSPACE_SCOPE_MISMATCH);
     registry.register(&SEMANTIC_AMBIGUOUS_REFERENCE);
+    registry.register(&SEMANTIC_FILTERED_VIEW_AUTOLAYOUT_MISMATCH);
+    registry.register(&SEMANTIC_DYNAMIC_VIEW_RELATIONSHIP_MISMATCH);
+    registry.register(&SEMANTIC_DYNAMIC_VIEW_SCOPE_REDUNDANCY);
+    registry.register(&SEMANTIC_INVALID_VIEW_ELEMENT);
 }
 
 pub fn diagnostic_rule_registry() -> &'static RuleRegistry {
@@ -233,6 +300,10 @@ mod tests {
                 "include.unsupported-remote-target",
                 "semantic.ambiguous-reference",
                 "semantic.duplicate-binding",
+                "semantic.dynamic-view-relationship-mismatch",
+                "semantic.dynamic-view-scope-redundancy",
+                "semantic.filtered-view-autolayout-mismatch",
+                "semantic.invalid-view-element",
                 "semantic.repeated-workspace-section",
                 "semantic.unresolved-element-selector",
                 "semantic.unresolved-reference",
@@ -248,6 +319,22 @@ mod tests {
         assert!(registry.get("include.missing-local-target").is_some());
         assert!(registry.get("include.unsupported-remote-target").is_some());
         assert!(registry.get("semantic.duplicate-binding").is_some());
+        assert!(
+            registry
+                .get("semantic.dynamic-view-relationship-mismatch")
+                .is_some()
+        );
+        assert!(
+            registry
+                .get("semantic.dynamic-view-scope-redundancy")
+                .is_some()
+        );
+        assert!(
+            registry
+                .get("semantic.filtered-view-autolayout-mismatch")
+                .is_some()
+        );
+        assert!(registry.get("semantic.invalid-view-element").is_some());
         assert!(
             registry
                 .get("semantic.repeated-workspace-section")
