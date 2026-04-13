@@ -1,5 +1,6 @@
 ---
 source: crates/strz-analysis/tests/workspace_index.rs
+assertion_line: 215
 expression: "WorkspaceIndexSetView::from_facts(&facts, &fixture_root)"
 ---
 WorkspaceIndexSetView {
@@ -26,7 +27,7 @@ WorkspaceIndexSetView {
     merged_semantic_diagnostics: [
         DiagnosticView {
             document: "alpha.dsl",
-            kind: DuplicateBinding,
+            code: "semantic.duplicate-binding",
             message: "duplicate element binding: api",
             span: TextSpan {
                 start_byte: 12,
@@ -43,7 +44,7 @@ WorkspaceIndexSetView {
         },
         DiagnosticView {
             document: "beta.dsl",
-            kind: DuplicateBinding,
+            code: "semantic.duplicate-binding",
             message: "duplicate element binding: api",
             span: TextSpan {
                 start_byte: 12,
@@ -60,7 +61,7 @@ WorkspaceIndexSetView {
         },
         DiagnosticView {
             document: "workspace.dsl",
-            kind: AmbiguousReference,
+            code: "semantic.ambiguous-reference",
             message: "ambiguous identifier reference: api",
             span: TextSpan {
                 start_byte: 119,
@@ -115,7 +116,7 @@ WorkspaceIndexSetView {
             semantic_diagnostics: [
                 DiagnosticView {
                     document: "alpha.dsl",
-                    kind: DuplicateBinding,
+                    code: "semantic.duplicate-binding",
                     message: "duplicate element binding: api",
                     span: TextSpan {
                         start_byte: 12,
@@ -132,7 +133,7 @@ WorkspaceIndexSetView {
                 },
                 DiagnosticView {
                     document: "beta.dsl",
-                    kind: DuplicateBinding,
+                    code: "semantic.duplicate-binding",
                     message: "duplicate element binding: api",
                     span: TextSpan {
                         start_byte: 12,
@@ -149,7 +150,7 @@ WorkspaceIndexSetView {
                 },
                 DiagnosticView {
                     document: "workspace.dsl",
-                    kind: AmbiguousReference,
+                    code: "semantic.ambiguous-reference",
                     message: "ambiguous identifier reference: api",
                     span: TextSpan {
                         start_byte: 119,

@@ -1,24 +1,24 @@
-//! Extraction of syntax diagnostics from `ERROR` and `MISSING` nodes.
+//! Extraction of syntax diagnostics from `ERROR` and `MISSING` tree-sitter nodes.
 
 use tree_sitter::{Node, Tree};
 
-use crate::diagnostics::SyntaxDiagnostic;
+use crate::diagnostics::RuledDiagnostic;
 use crate::span::TextSpan;
 
-pub fn collect(tree: &Tree) -> Vec<SyntaxDiagnostic> {
+pub fn collect(tree: &Tree) -> Vec<RuledDiagnostic> {
     let mut diagnostics = Vec::new();
     collect_from_node(tree.root_node(), &mut diagnostics);
     diagnostics
 }
 
-fn collect_from_node(node: Node<'_>, diagnostics: &mut Vec<SyntaxDiagnostic>) {
+fn collect_from_node(node: Node<'_>, diagnostics: &mut Vec<RuledDiagnostic>) {
     if node.is_missing() {
-        diagnostics.push(SyntaxDiagnostic::missing_node(
+        diagnostics.push(RuledDiagnostic::missing_node(
             node.kind(),
             TextSpan::from_node(node),
         ));
     } else if node.is_error() {
-        diagnostics.push(SyntaxDiagnostic::unexpected_syntax(TextSpan::from_node(
+        diagnostics.push(RuledDiagnostic::unexpected_syntax(TextSpan::from_node(
             node,
         )));
     }

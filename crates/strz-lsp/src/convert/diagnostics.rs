@@ -3,7 +3,7 @@
 use line_index::LineIndex;
 use strz_analysis::{
     Annotation, DiagnosticSeverity as AnalysisSeverity, DocumentId, DocumentSnapshot,
-    IncludeDiagnostic, SemanticDiagnostic, SyntaxDiagnostic, SyntaxDiagnosticKind, WorkspaceFacts,
+    RuledDiagnostic, WorkspaceFacts,
 };
 use tower_lsp_server::ls_types::{
     Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, Location, NumberOrString, Uri,
@@ -21,7 +21,7 @@ pub fn document_diagnostics(
     let mut diagnostics = snapshot
         .syntax_diagnostics()
         .iter()
-        .filter_map(|diagnostic| syntax_diagnostic(document, diagnostic, workspace_facts))
+        .filter_map(|diagnostic| analysis_diagnostic(document, diagnostic, workspace_facts, true))
         .collect::<Vec<_>>();
 
     if let Some(workspace_facts) = workspace_facts {
@@ -32,29 +32,31 @@ pub fn document_diagnostics(
     diagnostics
 }
 
-/// Convert one syntax diagnostic into an LSP diagnostic.
+/// Convert one analysis diagnostic into an LSP diagnostic.
 ///
-/// Every syntax diagnostic passes through a narrow suppression step first because one
+/// Syntax diagnostics pass through a narrow suppression step first because one
 /// specific partial-edit state still recovers poorly in the grammar: a lone
 /// relationship source identifier immediately before an assigned
 /// `deploymentEnvironment` statement. Without that guard, the editor can show a
 /// cascaded syntax error for the stray recovery `=` token while the user is still
 /// typing the relationship and relying on completion to finish it.
-fn syntax_diagnostic(
+fn analysis_diagnostic(
     document: &DocumentState,
-    diagnostic: &SyntaxDiagnostic,
+    diagnostic: &RuledDiagnostic,
     workspace_facts: Option<&WorkspaceFacts>,
+    allow_suppression: bool,
 ) -> Option<Diagnostic> {
-    if suppress_partial_relationship_recovery_diagnostic(document, diagnostic) {
+    if allow_suppression && suppress_partial_relationship_recovery_diagnostic(document, diagnostic)
+    {
         return None;
     }
 
     Some(Diagnostic {
-        range: span_to_range(document.line_index(), diagnostic.span)?,
+        range: span_to_range(document.line_index(), diagnostic.span())?,
         severity: Some(to_lsp_severity(diagnostic.severity())),
         code: Some(NumberOrString::String(diagnostic.code().to_owned())),
         source: Some("strz".to_owned()),
-        message: diagnostic.message.clone(),
+        message: diagnostic.message().to_owned(),
         related_information: related_information(
             document,
             workspace_facts,
@@ -74,7 +76,9 @@ fn include_diagnostics(
 
     workspace_facts
         .include_diagnostics_for(&document_id)
-        .filter_map(|diagnostic| include_diagnostic(document, diagnostic, workspace_facts))
+        .filter_map(|diagnostic| {
+            analysis_diagnostic(document, diagnostic, Some(workspace_facts), false)
+        })
         .collect()
 }
 
@@ -88,48 +92,10 @@ fn semantic_diagnostics(
 
     workspace_facts
         .semantic_diagnostics_for(&document_id)
-        .filter_map(|diagnostic| semantic_diagnostic(document, diagnostic, workspace_facts))
+        .filter_map(|diagnostic| {
+            analysis_diagnostic(document, diagnostic, Some(workspace_facts), false)
+        })
         .collect()
-}
-
-fn include_diagnostic(
-    document: &DocumentState,
-    diagnostic: &IncludeDiagnostic,
-    workspace_facts: &WorkspaceFacts,
-) -> Option<Diagnostic> {
-    Some(Diagnostic {
-        range: span_to_range(document.line_index(), diagnostic.span)?,
-        severity: Some(to_lsp_severity(diagnostic.severity())),
-        code: Some(NumberOrString::String(diagnostic.code().to_owned())),
-        source: Some("strz".to_owned()),
-        message: diagnostic.message.clone(),
-        related_information: related_information(
-            document,
-            Some(workspace_facts),
-            diagnostic.annotations(),
-        ),
-        ..Diagnostic::default()
-    })
-}
-
-fn semantic_diagnostic(
-    document: &DocumentState,
-    diagnostic: &SemanticDiagnostic,
-    workspace_facts: &WorkspaceFacts,
-) -> Option<Diagnostic> {
-    Some(Diagnostic {
-        range: span_to_range(document.line_index(), diagnostic.span)?,
-        severity: Some(to_lsp_severity(diagnostic.severity())),
-        code: Some(NumberOrString::String(diagnostic.code().to_owned())),
-        source: Some("strz".to_owned()),
-        message: diagnostic.message.clone(),
-        related_information: related_information(
-            document,
-            Some(workspace_facts),
-            diagnostic.annotations(),
-        ),
-        ..Diagnostic::default()
-    })
 }
 
 fn workspace_document_id(document: &DocumentState) -> Option<DocumentId> {
@@ -215,19 +181,19 @@ fn annotation_location(
 /// `=` artifact so genuine deployment-environment syntax errors still surface.
 fn suppress_partial_relationship_recovery_diagnostic(
     document: &DocumentState,
-    diagnostic: &SyntaxDiagnostic,
+    diagnostic: &RuledDiagnostic,
 ) -> bool {
-    if diagnostic.kind != SyntaxDiagnosticKind::ErrorNode {
+    if diagnostic.code() != "syntax.error-node" {
         return false;
     }
 
-    if diagnostic.span.start_point.row != diagnostic.span.end_point.row {
+    if diagnostic.span().start_point.row != diagnostic.span().end_point.row {
         return false;
     }
 
     let Some(diagnostic_text) = document
         .text()
-        .get(diagnostic.span.start_byte..diagnostic.span.end_byte)
+        .get(diagnostic.span().start_byte..diagnostic.span().end_byte)
         .map(str::trim)
     else {
         return false;
@@ -238,11 +204,11 @@ fn suppress_partial_relationship_recovery_diagnostic(
 
     let lines = document.text().split('\n').collect::<Vec<_>>();
     let current_line = lines
-        .get(diagnostic.span.start_point.row)
+        .get(diagnostic.span().start_point.row)
         .map(|line| line.trim_end_matches('\r'));
     let previous_nonempty_line = lines
         .iter()
-        .take(diagnostic.span.start_point.row)
+        .take(diagnostic.span().start_point.row)
         .rev()
         .map(|line| line.trim_end_matches('\r'))
         .find(|line| !line.trim().is_empty());

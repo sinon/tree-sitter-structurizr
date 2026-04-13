@@ -7,8 +7,7 @@ use proptest::strategy::{Just, Strategy};
 use proptest::string::string_regex;
 use proptest::test_runner::{Config, TestCaseError};
 use strz_analysis::{
-    IncludeDiagnosticKind, WorkspaceDocumentKind, WorkspaceFacts, WorkspaceIncludeTarget,
-    WorkspaceLoader,
+    WorkspaceDocumentKind, WorkspaceFacts, WorkspaceIncludeTarget, WorkspaceLoader,
 };
 use tempfile::TempDir;
 
@@ -55,7 +54,7 @@ struct WorkspaceIncludeView {
 #[derive(Debug, PartialEq, Eq)]
 struct WorkspaceDiagnosticView {
     document: String,
-    kind: IncludeDiagnosticKind,
+    code: String,
     target_text: String,
 }
 
@@ -122,9 +121,20 @@ impl WorkspaceView {
             .include_diagnostics()
             .iter()
             .map(|diagnostic| WorkspaceDiagnosticView {
-                document: display_path(Path::new(diagnostic.document.as_str()), root),
-                kind: diagnostic.kind,
-                target_text: diagnostic.target_text.clone(),
+                document: display_path(
+                    Path::new(
+                        diagnostic
+                            .document()
+                            .expect("include diagnostics should carry documents")
+                            .as_str(),
+                    ),
+                    root,
+                ),
+                code: diagnostic.code().to_owned(),
+                target_text: diagnostic
+                    .target_text()
+                    .expect("include diagnostics should carry target text")
+                    .to_owned(),
             })
             .collect();
 
@@ -407,51 +417,36 @@ fn assert_expected_diagnostics(
     model: &GeneratedWorkspaceGraph,
     facts: &WorkspaceFacts,
 ) -> Result<(), TestCaseError> {
-    let diagnostic_kinds = facts
+    let diagnostic_codes = facts
         .include_diagnostics()
         .iter()
-        .map(|diagnostic| diagnostic.kind)
+        .map(strz_analysis::RuledDiagnostic::code)
         .collect::<Vec<_>>();
 
     match model.scenario {
         IncludeScenario::LocalModel => {
             proptest::prop_assert!(
-                diagnostic_kinds.is_empty(),
-                "local include scenario should not report diagnostics: {diagnostic_kinds:?}",
+                diagnostic_codes.is_empty(),
+                "local include scenario should not report diagnostics: {diagnostic_codes:?}",
             );
         }
         IncludeScenario::MissingLocal => {
-            proptest::prop_assert_eq!(
-                diagnostic_kinds,
-                vec![IncludeDiagnosticKind::MissingLocalTarget],
-            );
+            proptest::prop_assert_eq!(diagnostic_codes, vec!["include.missing-local-target"],);
         }
         IncludeScenario::Remote => {
-            proptest::prop_assert_eq!(
-                diagnostic_kinds,
-                vec![IncludeDiagnosticKind::UnsupportedRemoteTarget],
-            );
+            proptest::prop_assert_eq!(diagnostic_codes, vec!["include.unsupported-remote-target"],);
         }
         IncludeScenario::Cycle => {
-            proptest::prop_assert_eq!(
-                diagnostic_kinds,
-                vec![
-                    IncludeDiagnosticKind::IncludeCycle,
-                    IncludeDiagnosticKind::IncludeCycle,
-                ],
-            );
+            proptest::prop_assert_eq!(diagnostic_codes, vec!["include.cycle", "include.cycle"],);
         }
         IncludeScenario::InheritedConstant => {
             proptest::prop_assert!(
-                diagnostic_kinds.is_empty(),
-                "inherited constants should resolve includes cleanly: {diagnostic_kinds:?}",
+                diagnostic_codes.is_empty(),
+                "inherited constants should resolve includes cleanly: {diagnostic_codes:?}",
             );
         }
         IncludeScenario::LateConstant => {
-            proptest::prop_assert_eq!(
-                diagnostic_kinds,
-                vec![IncludeDiagnosticKind::MissingLocalTarget],
-            );
+            proptest::prop_assert_eq!(diagnostic_codes, vec!["include.missing-local-target"],);
         }
     }
 

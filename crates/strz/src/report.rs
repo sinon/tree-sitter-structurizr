@@ -1,43 +1,34 @@
+//! CLI-facing projections of the shared analysis model.
+//!
+//! The analysis crate owns the canonical diagnostics vocabulary: rule codes,
+//! warning/error severity, messages, and source spans. The CLI does not redefine
+//! those concepts. Instead, it reshapes them into stable JSON/text views with
+//! path-oriented presentation and one-based coordinates.
+
 use std::{
     fs,
     path::{Path, PathBuf},
 };
 
 use anyhow::{Context, Result};
-use serde::Serialize;
+use serde::{Serialize, Serializer};
 use strz_analysis::{
-    DiagnosticSeverity as AnalysisSeverity, DocumentId, DocumentSnapshot, IncludeDiagnostic,
-    SemanticDiagnostic, SyntaxDiagnostic, TextPoint, TextSpan,
+    DiagnosticSeverity, DocumentId, DocumentSnapshot, RuledDiagnostic, TextPoint, TextSpan,
 };
 
-/// Severity used by the CLI's normalized diagnostic model.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Severity {
-    /// A diagnostic that should fail the command by default.
-    Error,
-    /// A diagnostic that is shown but does not fail the command by default.
-    Warning,
-}
-
-impl Severity {
-    /// Returns the label used by human-oriented text rendering.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Error => "error",
-            Self::Warning => "warning",
-        }
-    }
-}
-
-impl From<AnalysisSeverity> for Severity {
-    fn from(severity: AnalysisSeverity) -> Self {
-        match severity {
-            AnalysisSeverity::Error => Self::Error,
-            AnalysisSeverity::Warning => Self::Warning,
-        }
-    }
+/// Serialize the analysis-owned severity in the CLI's stable `snake_case` form.
+#[expect(
+    clippy::trivially_copy_pass_by_ref,
+    reason = "serde serialize_with helpers receive field references"
+)]
+fn serialize_diagnostic_severity<S>(
+    severity: &DiagnosticSeverity,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_str(severity.as_str())
 }
 
 /// One-based line and column coordinates for CLI output.
@@ -80,7 +71,10 @@ impl From<TextSpan> for SpanView {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct DiagnosticView {
     pub path: String,
-    pub severity: Severity,
+    /// Reuse the analysis-owned severity model instead of redefining a parallel
+    /// CLI-only enum for the same warning/error distinction.
+    #[serde(serialize_with = "serialize_diagnostic_severity")]
+    pub severity: DiagnosticSeverity,
     pub code: String,
     pub source: String,
     pub message: String,
@@ -88,42 +82,16 @@ pub struct DiagnosticView {
 }
 
 impl DiagnosticView {
-    /// Builds a normalized syntax diagnostic view.
+    /// Builds a normalized diagnostic view from the shared analysis model.
     #[must_use]
-    pub fn syntax(path: String, diagnostic: &SyntaxDiagnostic) -> Self {
+    pub fn from_analysis(path: String, diagnostic: &RuledDiagnostic) -> Self {
         Self {
             path,
-            severity: diagnostic.severity().into(),
+            severity: diagnostic.severity(),
             code: diagnostic.code().to_owned(),
-            source: "syntax".to_owned(),
-            message: diagnostic.message.clone(),
-            span: diagnostic.span.into(),
-        }
-    }
-
-    /// Builds a normalized include diagnostic view.
-    #[must_use]
-    pub fn include(path: String, diagnostic: &IncludeDiagnostic) -> Self {
-        Self {
-            path,
-            severity: diagnostic.severity().into(),
-            code: diagnostic.code().to_owned(),
-            source: "include".to_owned(),
-            message: diagnostic.message.clone(),
-            span: diagnostic.span.into(),
-        }
-    }
-
-    /// Builds a normalized semantic diagnostic view.
-    #[must_use]
-    pub fn semantic(path: String, diagnostic: &SemanticDiagnostic) -> Self {
-        Self {
-            path,
-            severity: diagnostic.severity().into(),
-            code: diagnostic.code().to_owned(),
-            source: "semantic".to_owned(),
-            message: diagnostic.message.clone(),
-            span: diagnostic.span.into(),
+            source: diagnostic.source().to_owned(),
+            message: diagnostic.message().to_owned(),
+            span: diagnostic.span().into(),
         }
     }
 }
@@ -142,11 +110,11 @@ impl SummaryView {
     pub fn from_diagnostics(documents_checked: usize, diagnostics: &[DiagnosticView]) -> Self {
         let errors = diagnostics
             .iter()
-            .filter(|diagnostic| diagnostic.severity == Severity::Error)
+            .filter(|diagnostic| diagnostic.severity == DiagnosticSeverity::Error)
             .count();
         let warnings = diagnostics
             .iter()
-            .filter(|diagnostic| diagnostic.severity == Severity::Warning)
+            .filter(|diagnostic| diagnostic.severity == DiagnosticSeverity::Warning)
             .count();
 
         Self {

@@ -18,6 +18,13 @@ pub struct CheckExecution {
     pub exit_code: ExitCode,
 }
 
+#[derive(Debug, Clone, Copy)]
+enum DiagnosticSelection {
+    All,
+    SyntaxOnly,
+    IncludeOnly,
+}
+
 /// Runs the `check` command against one or more files or directories.
 pub fn run(arguments: &CheckArgs) -> Result<CheckExecution> {
     let cwd = current_working_directory()
@@ -32,32 +39,72 @@ pub fn run(arguments: &CheckArgs) -> Result<CheckExecution> {
         )
     })?;
 
+    let selection = match (arguments.syntax_only, arguments.include_only) {
+        (true, false) => DiagnosticSelection::SyntaxOnly,
+        (false, true) => DiagnosticSelection::IncludeOnly,
+        (false, false) => DiagnosticSelection::All,
+        (true, true) => unreachable!("clap rejects conflicting check selection flags"),
+    };
+
     let mut diagnostics = Vec::new();
-
-    if !arguments.include_only {
-        for document in workspace.documents() {
-            let path = snapshot_display_path(document.snapshot(), &cwd);
-            diagnostics.extend(
-                document
-                    .snapshot()
-                    .syntax_diagnostics()
-                    .iter()
-                    .map(|diagnostic| DiagnosticView::syntax(path.clone(), diagnostic)),
-            );
+    match selection {
+        DiagnosticSelection::SyntaxOnly => {
+            for document in workspace.documents() {
+                let path = snapshot_display_path(document.snapshot(), &cwd);
+                diagnostics.extend(
+                    document
+                        .snapshot()
+                        .syntax_diagnostics()
+                        .iter()
+                        .map(|diagnostic| DiagnosticView::from_analysis(path.clone(), diagnostic)),
+                );
+            }
         }
-    }
-
-    if !arguments.syntax_only {
-        for diagnostic in workspace.include_diagnostics() {
-            let path = workspace_diagnostic_path(&workspace, &diagnostic.document, &cwd);
-            diagnostics.push(DiagnosticView::include(path, diagnostic));
+        DiagnosticSelection::IncludeOnly => {
+            for diagnostic in workspace.include_diagnostics() {
+                let path = workspace_diagnostic_path(
+                    &workspace,
+                    diagnostic
+                        .document()
+                        .expect("workspace include diagnostics should carry documents"),
+                    &cwd,
+                );
+                diagnostics.push(DiagnosticView::from_analysis(path, diagnostic));
+            }
         }
-    }
+        DiagnosticSelection::All => {
+            for document in workspace.documents() {
+                let path = snapshot_display_path(document.snapshot(), &cwd);
+                diagnostics.extend(
+                    document
+                        .snapshot()
+                        .syntax_diagnostics()
+                        .iter()
+                        .map(|diagnostic| DiagnosticView::from_analysis(path.clone(), diagnostic)),
+                );
+            }
 
-    if !arguments.syntax_only && !arguments.include_only {
-        for diagnostic in workspace.semantic_diagnostics() {
-            let path = workspace_diagnostic_path(&workspace, &diagnostic.document, &cwd);
-            diagnostics.push(DiagnosticView::semantic(path, diagnostic));
+            for diagnostic in workspace.include_diagnostics() {
+                let path = workspace_diagnostic_path(
+                    &workspace,
+                    diagnostic
+                        .document()
+                        .expect("workspace include diagnostics should carry documents"),
+                    &cwd,
+                );
+                diagnostics.push(DiagnosticView::from_analysis(path, diagnostic));
+            }
+
+            for diagnostic in workspace.semantic_diagnostics() {
+                let path = workspace_diagnostic_path(
+                    &workspace,
+                    diagnostic
+                        .document()
+                        .expect("workspace semantic diagnostics should carry documents"),
+                    &cwd,
+                );
+                diagnostics.push(DiagnosticView::from_analysis(path, diagnostic));
+            }
         }
     }
 

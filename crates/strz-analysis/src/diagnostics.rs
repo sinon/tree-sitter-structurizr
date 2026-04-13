@@ -1,33 +1,30 @@
 //! Transport-agnostic diagnostics derived from parsing and workspace discovery.
+//!
+//! The important architectural split is:
+//!
+//! 1. [`crate::rule`] owns rule identity and metadata.
+//! 2. [`Diagnostic`] owns emitted problem data and nothing else.
+//! 3. [`RuledDiagnostic`] pairs one emitted payload with one declared rule so CLI
+//!    and LSP consumers can still render codes and severity without teaching the
+//!    payload about the registry.
+//!
+//! That keeps the emitted diagnostic record intentionally boring. It knows the
+//! user-facing message, the relevant spans, and some optional context fields, but
+//! it does not decide what class of problem it is. That decision belongs to the
+//! rule layer.
 
 use std::fmt;
 
 use crate::{
-    rule::{Level, RuleMetadata, RuleRegistry},
+    rule::{RuleId, RuleMetadata, RuleRegistry},
     rules,
     snapshot::DocumentId,
     span::TextSpan,
 };
 
-/// Severity carried by transport-agnostic diagnostics.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum DiagnosticSeverity {
-    /// A diagnostic that should fail normal validation flows.
-    Error,
-    /// A diagnostic that should be shown without failing by default.
-    Warning,
-}
-
-impl DiagnosticSeverity {
-    /// Maps one declared rule level to the corresponding transport severity.
-    #[must_use]
-    pub const fn from_level(level: Level) -> Self {
-        match level {
-            Level::Warn => Self::Warning,
-            Level::Error => Self::Error,
-        }
-    }
-}
+// =============================================================================
+// Shared emitted-diagnostic building blocks
+// =============================================================================
 
 /// Secondary source context attached to a diagnostic.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -67,58 +64,46 @@ impl Annotation {
     }
 }
 
-/// Categorizes the syntax problem Tree-sitter reported for a source range.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SyntaxDiagnosticKind {
-    /// Tree-sitter produced an `ERROR` node for unexpected syntax.
-    ErrorNode,
-    /// Tree-sitter synthesized a `MISSING` node to recover from absent syntax.
-    MissingNode,
-}
+// =============================================================================
+// Pure emitted diagnostic payload
+// =============================================================================
 
-impl SyntaxDiagnosticKind {
-    /// Returns the declared rule metadata for this syntax problem.
-    #[must_use]
-    pub const fn rule(self) -> &'static RuleMetadata {
-        match self {
-            Self::ErrorNode => &rules::SYNTAX_ERROR_NODE,
-            Self::MissingNode => &rules::SYNTAX_MISSING_NODE,
-        }
-    }
-
-    /// Returns the stable diagnostic code for this syntax problem.
-    #[must_use]
-    pub const fn code(self) -> &'static str {
-        self.rule().code()
-    }
-
-    /// Returns the severity for this syntax problem.
-    #[must_use]
-    pub const fn severity(self) -> DiagnosticSeverity {
-        DiagnosticSeverity::from_level(self.rule().default_level())
-    }
-}
-
-/// Describes a syntax problem extracted from the parse tree.
-#[derive(Clone, PartialEq, Eq)]
-pub struct SyntaxDiagnostic {
-    /// The parser-reported category of syntax problem.
-    pub kind: SyntaxDiagnosticKind,
-    /// Human-readable summary of the syntax problem.
+/// One emitted problem plus the data needed to explain it to a user.
+///
+/// This type intentionally does not know which rule produced it. That keeps the
+/// payload reusable across syntax recovery, include resolution, and semantic
+/// analysis without requiring a growing enum or registry lookup table here.
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Diagnostic {
+    /// Human-readable explanation of the concrete problem at this site.
     pub message: String,
-    /// Byte and point range covered by the diagnostic.
+    /// Primary span that transport consumers should highlight.
     pub span: TextSpan,
-    /// Secondary source spans that provide extra context.
+    /// Additional related spans that explain the problem more fully.
     pub annotations: Vec<Annotation>,
+    /// Optional owning document for workspace-scoped diagnostics.
+    pub document: Option<DocumentId>,
+    /// Optional user-facing target text associated with this problem.
+    pub target_text: Option<String>,
+    /// Optional value-specific span when the whole statement span is too broad.
+    pub value_span: Option<TextSpan>,
 }
 
-impl fmt::Debug for SyntaxDiagnostic {
+impl fmt::Debug for Diagnostic {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut debug = formatter.debug_struct("SyntaxDiagnostic");
+        let mut debug = formatter.debug_struct("Diagnostic");
         debug
-            .field("kind", &self.kind)
             .field("message", &self.message)
             .field("span", &self.span);
+        if let Some(document) = &self.document {
+            debug.field("document", document);
+        }
+        if let Some(target_text) = &self.target_text {
+            debug.field("target_text", target_text);
+        }
+        if let Some(value_span) = self.value_span {
+            debug.field("value_span", &value_span);
+        }
         if !self.annotations.is_empty() {
             debug.field("annotations", &self.annotations);
         }
@@ -126,23 +111,31 @@ impl fmt::Debug for SyntaxDiagnostic {
     }
 }
 
-impl SyntaxDiagnostic {
-    /// Returns the declared rule metadata for this syntax problem.
-    #[must_use]
-    pub const fn rule(&self) -> &'static RuleMetadata {
-        self.kind.rule()
+impl Diagnostic {
+    fn new(message: impl Into<String>, span: TextSpan) -> Self {
+        Self {
+            message: message.into(),
+            span,
+            annotations: Vec::new(),
+            document: None,
+            target_text: None,
+            value_span: None,
+        }
     }
 
-    /// Returns the stable diagnostic code for this syntax problem.
-    #[must_use]
-    pub const fn code(&self) -> &'static str {
-        self.rule().code()
+    fn in_document(mut self, document: &DocumentId) -> Self {
+        self.document = Some(document.clone());
+        self
     }
 
-    /// Returns the severity for this syntax problem.
-    #[must_use]
-    pub const fn severity(&self) -> DiagnosticSeverity {
-        DiagnosticSeverity::from_level(self.rule().default_level())
+    fn with_target_text(mut self, target_text: impl Into<String>) -> Self {
+        self.target_text = Some(target_text.into());
+        self
+    }
+
+    const fn with_value_span(mut self, value_span: TextSpan) -> Self {
+        self.value_span = Some(value_span);
+        self
     }
 
     /// Returns any secondary source context attached to this diagnostic.
@@ -156,128 +149,148 @@ impl SyntaxDiagnostic {
         self.annotations.push(annotation);
     }
 
+    /// Returns the owning document when this diagnostic is workspace-scoped.
+    #[must_use]
+    pub const fn document(&self) -> Option<&DocumentId> {
+        self.document.as_ref()
+    }
+
+    /// Returns the user-facing target text attached to this diagnostic, if any.
+    #[must_use]
+    pub fn target_text(&self) -> Option<&str> {
+        self.target_text.as_deref()
+    }
+
+    /// Returns the narrower value span attached to this diagnostic, if any.
+    #[must_use]
+    pub const fn value_span(&self) -> Option<TextSpan> {
+        self.value_span
+    }
+}
+
+// =============================================================================
+// Rule-tagged emitted diagnostics
+// =============================================================================
+
+/// One emitted diagnostic payload paired with the rule that produced it.
+///
+/// This is the type that analysis produces and transport consumers render. The
+/// payload remains generic, while the envelope carries the stable rule identity
+/// needed for code, severity, and documentation lookup.
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct RuledDiagnostic {
+    /// Declared rule that classified the emitted problem.
+    pub rule: RuleId,
+    /// Concrete payload observed in the analyzed source.
+    pub diagnostic: Diagnostic,
+}
+
+impl fmt::Debug for RuledDiagnostic {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("RuledDiagnostic")
+            .field("rule", &self.rule)
+            .field("diagnostic", &self.diagnostic)
+            .finish()
+    }
+}
+impl RuledDiagnostic {
+    const fn new(rule: RuleId, diagnostic: Diagnostic) -> Self {
+        Self { rule, diagnostic }
+    }
+
+    /// Returns the declared rule metadata for this emitted diagnostic.
+    #[must_use]
+    pub const fn rule(&self) -> &'static RuleMetadata {
+        self.rule.metadata()
+    }
+
+    /// Returns the stable diagnostic code for this emitted diagnostic.
+    #[must_use]
+    pub const fn code(&self) -> &'static str {
+        self.rule.code()
+    }
+
+    /// Returns the normalized severity for this emitted diagnostic.
+    #[must_use]
+    pub const fn severity(&self) -> crate::rule::DiagnosticSeverity {
+        self.rule.severity()
+    }
+
+    /// Returns the broad analysis stage that produced this diagnostic.
+    #[must_use]
+    pub const fn source(&self) -> &'static str {
+        self.rule.source()
+    }
+
+    /// Returns the human-readable message for this diagnostic.
+    #[must_use]
+    pub fn message(&self) -> &str {
+        &self.diagnostic.message
+    }
+
+    /// Returns the primary highlight span.
+    #[must_use]
+    pub const fn span(&self) -> TextSpan {
+        self.diagnostic.span
+    }
+
+    /// Returns any secondary source context attached to this diagnostic.
+    #[must_use]
+    pub fn annotations(&self) -> &[Annotation] {
+        self.diagnostic.annotations()
+    }
+
+    /// Attaches one secondary annotation to this diagnostic.
+    pub fn annotate(&mut self, annotation: Annotation) {
+        self.diagnostic.annotate(annotation);
+    }
+
+    /// Returns the owning document when this diagnostic is workspace-scoped.
+    #[must_use]
+    pub const fn document(&self) -> Option<&DocumentId> {
+        self.diagnostic.document()
+    }
+
+    /// Returns the user-facing target text attached to this diagnostic, if any.
+    #[must_use]
+    pub fn target_text(&self) -> Option<&str> {
+        self.diagnostic.target_text()
+    }
+
+    /// Returns the narrower value span attached to this diagnostic, if any.
+    #[must_use]
+    pub const fn value_span(&self) -> Option<TextSpan> {
+        self.diagnostic.value_span()
+    }
+
+    /// Returns whether this diagnostic was emitted for the given rule.
+    #[must_use]
+    pub fn is_rule(&self, rule: RuleId) -> bool {
+        self.rule == rule
+    }
+
+    // -------------------------------------------------------------------------
+    // Syntax constructors
+    // -------------------------------------------------------------------------
+
     pub(crate) fn unexpected_syntax(span: TextSpan) -> Self {
-        Self {
-            kind: SyntaxDiagnosticKind::ErrorNode,
-            message: "unexpected syntax".to_owned(),
-            span,
-            annotations: Vec::new(),
-        }
+        Self::new(
+            rules::SYNTAX_ERROR_NODE.id(),
+            Diagnostic::new("unexpected syntax", span),
+        )
     }
 
     pub(crate) fn missing_node(kind: &str, span: TextSpan) -> Self {
-        Self {
-            kind: SyntaxDiagnosticKind::MissingNode,
-            message: format!("missing {kind}"),
-            span,
-            annotations: Vec::new(),
-        }
-    }
-}
-
-/// Categorizes include-resolution problems discovered while loading a workspace.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum IncludeDiagnosticKind {
-    /// The include target did not exist on disk.
-    MissingLocalTarget,
-    /// The include target escaped or otherwise violated local path policy.
-    EscapesAllowedSubtree,
-    /// The include target participates in an explicit include cycle.
-    IncludeCycle,
-    /// The include target is remote and therefore left unresolved in the MVP.
-    UnsupportedRemoteTarget,
-}
-
-impl IncludeDiagnosticKind {
-    /// Returns the declared rule metadata for this include problem.
-    #[must_use]
-    pub const fn rule(self) -> &'static RuleMetadata {
-        match self {
-            Self::MissingLocalTarget => &rules::INCLUDE_MISSING_LOCAL_TARGET,
-            Self::EscapesAllowedSubtree => &rules::INCLUDE_ESCAPES_ALLOWED_SUBTREE,
-            Self::IncludeCycle => &rules::INCLUDE_CYCLE,
-            Self::UnsupportedRemoteTarget => &rules::INCLUDE_UNSUPPORTED_REMOTE_TARGET,
-        }
+        Self::new(
+            rules::SYNTAX_MISSING_NODE.id(),
+            Diagnostic::new(format!("missing {kind}"), span),
+        )
     }
 
-    /// Returns the stable diagnostic code for this include problem.
-    #[must_use]
-    pub const fn code(self) -> &'static str {
-        self.rule().code()
-    }
-
-    /// Returns the severity for this include problem.
-    #[must_use]
-    pub const fn severity(self) -> DiagnosticSeverity {
-        DiagnosticSeverity::from_level(self.rule().default_level())
-    }
-}
-
-/// Describes one include-resolution problem attached to a directive site.
-#[derive(Clone, PartialEq, Eq)]
-pub struct IncludeDiagnostic {
-    /// The including document that should surface this diagnostic.
-    pub document: DocumentId,
-    /// The include-resolution category.
-    pub kind: IncludeDiagnosticKind,
-    /// Human-readable summary of the include problem.
-    pub message: String,
-    /// Normalized include target text with surrounding quotes stripped.
-    pub target_text: String,
-    /// Span of the full include directive in the including document.
-    pub span: TextSpan,
-    /// Span of the directive value node in the including document.
-    pub value_span: TextSpan,
-    /// Secondary source spans that provide extra context.
-    pub annotations: Vec<Annotation>,
-}
-
-impl fmt::Debug for IncludeDiagnostic {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut debug = formatter.debug_struct("IncludeDiagnostic");
-        debug
-            .field("document", &self.document)
-            .field("kind", &self.kind)
-            .field("message", &self.message)
-            .field("target_text", &self.target_text)
-            .field("span", &self.span)
-            .field("value_span", &self.value_span);
-        if !self.annotations.is_empty() {
-            debug.field("annotations", &self.annotations);
-        }
-        debug.finish()
-    }
-}
-
-impl IncludeDiagnostic {
-    /// Returns the declared rule metadata for this include problem.
-    #[must_use]
-    pub const fn rule(&self) -> &'static RuleMetadata {
-        self.kind.rule()
-    }
-
-    /// Returns the stable diagnostic code for this include problem.
-    #[must_use]
-    pub const fn code(&self) -> &'static str {
-        self.rule().code()
-    }
-
-    /// Returns the severity for this include problem.
-    #[must_use]
-    pub const fn severity(&self) -> DiagnosticSeverity {
-        DiagnosticSeverity::from_level(self.rule().default_level())
-    }
-
-    /// Returns any secondary source context attached to this diagnostic.
-    #[must_use]
-    pub fn annotations(&self) -> &[Annotation] {
-        &self.annotations
-    }
-
-    /// Attaches one secondary annotation to this diagnostic.
-    pub fn annotate(&mut self, annotation: Annotation) {
-        self.annotations.push(annotation);
-    }
+    // -------------------------------------------------------------------------
+    // Include constructors
+    // -------------------------------------------------------------------------
 
     pub(crate) fn missing_local_target(
         document: &DocumentId,
@@ -285,15 +298,13 @@ impl IncludeDiagnostic {
         span: TextSpan,
         value_span: TextSpan,
     ) -> Self {
-        Self {
-            document: document.clone(),
-            kind: IncludeDiagnosticKind::MissingLocalTarget,
-            message: format!("included path does not exist: {target_text}"),
-            target_text: target_text.to_owned(),
-            span,
-            value_span,
-            annotations: Vec::new(),
-        }
+        Self::new(
+            rules::INCLUDE_MISSING_LOCAL_TARGET.id(),
+            Diagnostic::new(format!("included path does not exist: {target_text}"), span)
+                .in_document(document)
+                .with_target_text(target_text)
+                .with_value_span(value_span),
+        )
     }
 
     pub(crate) fn escapes_allowed_subtree(
@@ -302,15 +313,16 @@ impl IncludeDiagnostic {
         span: TextSpan,
         value_span: TextSpan,
     ) -> Self {
-        Self {
-            document: document.clone(),
-            kind: IncludeDiagnosticKind::EscapesAllowedSubtree,
-            message: format!("included path escapes the allowed subtree: {target_text}"),
-            target_text: target_text.to_owned(),
-            span,
-            value_span,
-            annotations: Vec::new(),
-        }
+        Self::new(
+            rules::INCLUDE_ESCAPES_ALLOWED_SUBTREE.id(),
+            Diagnostic::new(
+                format!("included path escapes the allowed subtree: {target_text}"),
+                span,
+            )
+            .in_document(document)
+            .with_target_text(target_text)
+            .with_value_span(value_span),
+        )
     }
 
     pub(crate) fn include_cycle(
@@ -319,15 +331,16 @@ impl IncludeDiagnostic {
         span: TextSpan,
         value_span: TextSpan,
     ) -> Self {
-        Self {
-            document: document.clone(),
-            kind: IncludeDiagnosticKind::IncludeCycle,
-            message: format!("include cycle detected while following: {target_text}"),
-            target_text: target_text.to_owned(),
-            span,
-            value_span,
-            annotations: Vec::new(),
-        }
+        Self::new(
+            rules::INCLUDE_CYCLE.id(),
+            Diagnostic::new(
+                format!("include cycle detected while following: {target_text}"),
+                span,
+            )
+            .in_document(document)
+            .with_target_text(target_text)
+            .with_value_span(value_span),
+        )
     }
 
     pub(crate) fn unsupported_remote_target(
@@ -336,118 +349,21 @@ impl IncludeDiagnostic {
         span: TextSpan,
         value_span: TextSpan,
     ) -> Self {
-        Self {
-            document: document.clone(),
-            kind: IncludeDiagnosticKind::UnsupportedRemoteTarget,
-            message: format!("remote includes are not resolved in the MVP: {target_text}"),
-            target_text: target_text.to_owned(),
-            span,
-            value_span,
-            annotations: Vec::new(),
-        }
-    }
-}
-
-/// Categorizes bounded semantic diagnostics derived from workspace indexing.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum SemanticDiagnosticKind {
-    /// More than one definition claimed the same canonical binding key.
-    DuplicateBinding,
-    /// A supported identifier reference resolved to no known target.
-    UnresolvedReference,
-    /// A supported identifier reference could not be resolved confidently.
-    AmbiguousReference,
-}
-
-impl SemanticDiagnosticKind {
-    /// Returns the declared rule metadata for this semantic problem.
-    #[must_use]
-    pub const fn rule(self) -> &'static RuleMetadata {
-        match self {
-            Self::DuplicateBinding => &rules::SEMANTIC_DUPLICATE_BINDING,
-            Self::UnresolvedReference => &rules::SEMANTIC_UNRESOLVED_REFERENCE,
-            Self::AmbiguousReference => &rules::SEMANTIC_AMBIGUOUS_REFERENCE,
-        }
+        Self::new(
+            rules::INCLUDE_UNSUPPORTED_REMOTE_TARGET.id(),
+            Diagnostic::new(
+                format!("remote includes are not resolved in the MVP: {target_text}"),
+                span,
+            )
+            .in_document(document)
+            .with_target_text(target_text)
+            .with_value_span(value_span),
+        )
     }
 
-    /// Returns the stable diagnostic code for this semantic rule.
-    #[must_use]
-    pub const fn code(self) -> &'static str {
-        self.rule().code()
-    }
-
-    /// Returns the default severity for this semantic rule.
-    #[must_use]
-    pub const fn severity(self) -> DiagnosticSeverity {
-        DiagnosticSeverity::from_level(self.rule().default_level())
-    }
-}
-
-/// Returns the registry of currently declared diagnostic rules.
-#[must_use]
-pub fn diagnostic_rule_registry() -> &'static RuleRegistry {
-    rules::diagnostic_rule_registry()
-}
-
-/// Describes one semantic problem attached to a definition or reference site.
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct SemanticDiagnostic {
-    /// The document that should surface this diagnostic.
-    pub document: DocumentId,
-    /// The semantic-diagnostic category.
-    pub kind: SemanticDiagnosticKind,
-    /// Human-readable summary of the semantic problem.
-    pub message: String,
-    /// Span of the affected symbol or reference.
-    pub span: TextSpan,
-    /// Secondary source spans that provide extra context.
-    pub annotations: Vec<Annotation>,
-}
-
-impl fmt::Debug for SemanticDiagnostic {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut debug = formatter.debug_struct("SemanticDiagnostic");
-        debug
-            .field("document", &self.document)
-            .field("kind", &self.kind)
-            .field("message", &self.message)
-            .field("span", &self.span);
-        if !self.annotations.is_empty() {
-            debug.field("annotations", &self.annotations);
-        }
-        debug.finish()
-    }
-}
-
-impl SemanticDiagnostic {
-    /// Returns the declared rule metadata for this semantic problem.
-    #[must_use]
-    pub const fn rule(&self) -> &'static RuleMetadata {
-        self.kind.rule()
-    }
-
-    /// Returns the stable diagnostic code for this semantic rule.
-    #[must_use]
-    pub const fn code(&self) -> &'static str {
-        self.rule().code()
-    }
-
-    /// Returns the severity for this semantic rule.
-    #[must_use]
-    pub const fn severity(&self) -> DiagnosticSeverity {
-        DiagnosticSeverity::from_level(self.rule().default_level())
-    }
-
-    /// Returns any secondary source context attached to this diagnostic.
-    #[must_use]
-    pub fn annotations(&self) -> &[Annotation] {
-        &self.annotations
-    }
-
-    /// Attaches one secondary annotation to this diagnostic.
-    pub fn annotate(&mut self, annotation: Annotation) {
-        self.annotations.push(annotation);
-    }
+    // -------------------------------------------------------------------------
+    // Semantic constructors
+    // -------------------------------------------------------------------------
 
     pub(crate) fn duplicate_binding(
         document: &DocumentId,
@@ -455,13 +371,12 @@ impl SemanticDiagnostic {
         key: &str,
         span: TextSpan,
     ) -> Self {
-        Self {
-            document: document.clone(),
-            kind: SemanticDiagnosticKind::DuplicateBinding,
-            message: format!("duplicate {binding_kind} binding: {key}"),
-            span,
-            annotations: Vec::new(),
-        }
+        Self::new(
+            rules::SEMANTIC_DUPLICATE_BINDING.id(),
+            Diagnostic::new(format!("duplicate {binding_kind} binding: {key}"), span)
+                .in_document(document)
+                .with_target_text(key),
+        )
     }
 
     pub(crate) fn unresolved_reference(
@@ -469,13 +384,12 @@ impl SemanticDiagnostic {
         raw_text: &str,
         span: TextSpan,
     ) -> Self {
-        Self {
-            document: document.clone(),
-            kind: SemanticDiagnosticKind::UnresolvedReference,
-            message: format!("unresolved identifier reference: {raw_text}"),
-            span,
-            annotations: Vec::new(),
-        }
+        Self::new(
+            rules::SEMANTIC_UNRESOLVED_REFERENCE.id(),
+            Diagnostic::new(format!("unresolved identifier reference: {raw_text}"), span)
+                .in_document(document)
+                .with_target_text(raw_text),
+        )
     }
 
     pub(crate) fn ambiguous_reference(
@@ -483,12 +397,17 @@ impl SemanticDiagnostic {
         raw_text: &str,
         span: TextSpan,
     ) -> Self {
-        Self {
-            document: document.clone(),
-            kind: SemanticDiagnosticKind::AmbiguousReference,
-            message: format!("ambiguous identifier reference: {raw_text}"),
-            span,
-            annotations: Vec::new(),
-        }
+        Self::new(
+            rules::SEMANTIC_AMBIGUOUS_REFERENCE.id(),
+            Diagnostic::new(format!("ambiguous identifier reference: {raw_text}"), span)
+                .in_document(document)
+                .with_target_text(raw_text),
+        )
     }
+}
+
+/// Returns the registry of currently declared diagnostic rules.
+#[must_use]
+pub fn diagnostic_rule_registry() -> &'static RuleRegistry {
+    rules::diagnostic_rule_registry()
 }

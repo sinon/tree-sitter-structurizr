@@ -17,13 +17,10 @@ mod symbols;
 mod workspace;
 
 pub use constants::ConstantDefinition;
-pub use diagnostics::{
-    Annotation, DiagnosticSeverity, IncludeDiagnostic, IncludeDiagnosticKind, SemanticDiagnostic,
-    SemanticDiagnosticKind, SyntaxDiagnostic, SyntaxDiagnosticKind, diagnostic_rule_registry,
-};
+pub use diagnostics::{Annotation, Diagnostic, RuledDiagnostic, diagnostic_rule_registry};
 pub use includes::{DirectiveContainer, DirectiveValueKind, IncludeDirective};
 pub use parse::DocumentAnalyzer;
-pub use rule::{Level, RuleMetadata, RuleRegistry, RuleRegistryBuilder};
+pub use rule::{DiagnosticSeverity, RuleId, RuleMetadata, RuleRegistry, RuleRegistryBuilder};
 pub use snapshot::{
     DocumentId, DocumentInput, DocumentLocation, DocumentSnapshot, DocumentSyntaxFacts,
 };

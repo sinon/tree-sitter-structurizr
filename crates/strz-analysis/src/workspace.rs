@@ -11,8 +11,8 @@ use ignore::WalkBuilder;
 
 use crate::{
     ConstantDefinition, DocumentAnalyzer, DocumentId, DocumentInput, IdentifierMode,
-    IdentifierModeFact, IncludeDiagnostic, IncludeDirective, Reference, ReferenceKind,
-    ReferenceTargetHint, SemanticDiagnostic, Symbol, SymbolId, SymbolKind, TextSpan,
+    IdentifierModeFact, IncludeDirective, Reference, ReferenceKind, ReferenceTargetHint,
+    RuledDiagnostic, Symbol, SymbolId, SymbolKind, TextSpan,
     includes::{DirectiveContainer, normalized_directive_value},
 };
 
@@ -283,7 +283,7 @@ struct DerivedWorkspaceInstance {
     duplicate_relationship_bindings: BTreeMap<String, Vec<SymbolHandle>>,
     reference_resolutions: BTreeMap<ReferenceHandle, ReferenceResolutionStatus>,
     references_by_target: BTreeMap<SymbolHandle, Vec<ReferenceHandle>>,
-    semantic_diagnostics: Vec<SemanticDiagnostic>,
+    semantic_diagnostics: Vec<RuledDiagnostic>,
 }
 
 // Keep the expensive per-instance binding/reference pass anchored to a stable
@@ -409,7 +409,7 @@ impl WorkspaceIndex {
 
     /// Returns the semantic diagnostics derived for this workspace instance.
     #[must_use]
-    pub fn semantic_diagnostics(&self) -> &[SemanticDiagnostic] {
+    pub fn semantic_diagnostics(&self) -> &[RuledDiagnostic] {
         &self.derived.semantic_diagnostics
     }
 
@@ -423,9 +423,9 @@ impl WorkspaceIndex {
 #[derive(Debug, Clone, Default)]
 struct DerivedWorkspaceFactsAssembly {
     resolved_includes: Vec<ResolvedInclude>,
-    include_diagnostics: Vec<IncludeDiagnostic>,
+    include_diagnostics: Vec<RuledDiagnostic>,
     document_instances: BTreeMap<DocumentId, Vec<WorkspaceInstanceId>>,
-    semantic_diagnostics: Vec<SemanticDiagnostic>,
+    semantic_diagnostics: Vec<RuledDiagnostic>,
 }
 
 /// Multi-file discovery facts gathered from one or more workspace roots.
@@ -456,7 +456,7 @@ impl WorkspaceFacts {
 
     /// Returns include-resolution diagnostics in deterministic order.
     #[must_use]
-    pub fn include_diagnostics(&self) -> &[IncludeDiagnostic] {
+    pub fn include_diagnostics(&self) -> &[RuledDiagnostic] {
         &self.assembly.include_diagnostics
     }
 
@@ -464,12 +464,12 @@ impl WorkspaceFacts {
     pub fn include_diagnostics_for(
         &self,
         id: &DocumentId,
-    ) -> impl Iterator<Item = &IncludeDiagnostic> + '_ {
+    ) -> impl Iterator<Item = &RuledDiagnostic> + '_ {
         let id = id.clone();
         self.assembly
             .include_diagnostics
             .iter()
-            .filter(move |diagnostic| diagnostic.document == id)
+            .filter(move |diagnostic| diagnostic.document() == Some(&id))
     }
 
     /// Returns the subset of discovered documents that can act as entry roots.
@@ -511,7 +511,7 @@ impl WorkspaceFacts {
 
     /// Returns every merged semantic diagnostic in deterministic order.
     #[must_use]
-    pub fn semantic_diagnostics(&self) -> &[SemanticDiagnostic] {
+    pub fn semantic_diagnostics(&self) -> &[RuledDiagnostic] {
         &self.assembly.semantic_diagnostics
     }
 
@@ -519,12 +519,12 @@ impl WorkspaceFacts {
     pub fn semantic_diagnostics_for(
         &self,
         id: &DocumentId,
-    ) -> impl Iterator<Item = &SemanticDiagnostic> + '_ {
+    ) -> impl Iterator<Item = &RuledDiagnostic> + '_ {
         let id = id.clone();
         self.assembly
             .semantic_diagnostics
             .iter()
-            .filter(move |diagnostic| diagnostic.document == id)
+            .filter(move |diagnostic| diagnostic.document() == Some(&id))
     }
 }
 
@@ -1672,14 +1672,14 @@ fn collect_directory_include_paths(
     Ok(paths)
 }
 
-fn include_diagnostics(resolved_includes: &[ResolvedInclude]) -> Vec<IncludeDiagnostic> {
+fn include_diagnostics(resolved_includes: &[ResolvedInclude]) -> Vec<RuledDiagnostic> {
     let cycle_include_indices = cycle_include_indices(resolved_includes);
     let mut diagnostics = Vec::new();
 
     for (index, include) in resolved_includes.iter().enumerate() {
         match include.target() {
             WorkspaceIncludeTarget::MissingLocalPath { .. } => {
-                diagnostics.push(IncludeDiagnostic::missing_local_target(
+                diagnostics.push(RuledDiagnostic::missing_local_target(
                     include.including_document(),
                     include.target_text(),
                     include.span(),
@@ -1687,7 +1687,7 @@ fn include_diagnostics(resolved_includes: &[ResolvedInclude]) -> Vec<IncludeDiag
                 ));
             }
             WorkspaceIncludeTarget::UnsupportedLocalPath { .. } => {
-                diagnostics.push(IncludeDiagnostic::escapes_allowed_subtree(
+                diagnostics.push(RuledDiagnostic::escapes_allowed_subtree(
                     include.including_document(),
                     include.target_text(),
                     include.span(),
@@ -1695,7 +1695,7 @@ fn include_diagnostics(resolved_includes: &[ResolvedInclude]) -> Vec<IncludeDiag
                 ));
             }
             WorkspaceIncludeTarget::RemoteUrl { .. } => {
-                diagnostics.push(IncludeDiagnostic::unsupported_remote_target(
+                diagnostics.push(RuledDiagnostic::unsupported_remote_target(
                     include.including_document(),
                     include.target_text(),
                     include.span(),
@@ -1707,7 +1707,7 @@ fn include_diagnostics(resolved_includes: &[ResolvedInclude]) -> Vec<IncludeDiag
         }
 
         if cycle_include_indices.contains(&index) {
-            diagnostics.push(IncludeDiagnostic::include_cycle(
+            diagnostics.push(RuledDiagnostic::include_cycle(
                 include.including_document(),
                 include.target_text(),
                 include.span(),
@@ -1717,11 +1717,11 @@ fn include_diagnostics(resolved_includes: &[ResolvedInclude]) -> Vec<IncludeDiag
     }
 
     diagnostics.sort_by(|left, right| {
-        left.document
-            .cmp(&right.document)
-            .then_with(|| left.span.start_byte.cmp(&right.span.start_byte))
-            .then_with(|| left.kind.cmp(&right.kind))
-            .then_with(|| left.target_text.cmp(&right.target_text))
+        left.document()
+            .cmp(&right.document())
+            .then_with(|| left.span().start_byte.cmp(&right.span().start_byte))
+            .then_with(|| left.rule.cmp(&right.rule))
+            .then_with(|| left.target_text().cmp(&right.target_text()))
     });
     diagnostics
 }
@@ -2081,7 +2081,7 @@ struct WorkspaceBindingTables {
     duplicate_deployments: BTreeMap<String, Vec<SymbolHandle>>,
     unique_relationships: BTreeMap<String, SymbolHandle>,
     duplicate_relationships: BTreeMap<String, Vec<SymbolHandle>>,
-    semantic_diagnostics: Vec<SemanticDiagnostic>,
+    semantic_diagnostics: Vec<RuledDiagnostic>,
 }
 
 fn build_binding_tables(
@@ -2184,7 +2184,7 @@ fn build_binding_tables(
 struct WorkspaceReferenceTables {
     resolutions: BTreeMap<ReferenceHandle, ReferenceResolutionStatus>,
     references_by_target: BTreeMap<SymbolHandle, Vec<ReferenceHandle>>,
-    semantic_diagnostics: Vec<SemanticDiagnostic>,
+    semantic_diagnostics: Vec<RuledDiagnostic>,
 }
 
 fn build_reference_resolution_tables(
@@ -2206,7 +2206,7 @@ fn build_reference_resolution_tables(
             if !document.has_syntax_errors {
                 match status {
                     ReferenceResolutionStatus::UnresolvedNoMatch => {
-                        semantic_diagnostics.push(SemanticDiagnostic::unresolved_reference(
+                        semantic_diagnostics.push(RuledDiagnostic::unresolved_reference(
                             &document.document_id,
                             &reference.raw_text,
                             reference.span,
@@ -2214,7 +2214,7 @@ fn build_reference_resolution_tables(
                     }
                     ReferenceResolutionStatus::AmbiguousDuplicateBinding
                     | ReferenceResolutionStatus::AmbiguousElementVsRelationship => {
-                        semantic_diagnostics.push(SemanticDiagnostic::ambiguous_reference(
+                        semantic_diagnostics.push(RuledDiagnostic::ambiguous_reference(
                             &document.document_id,
                             &reference.raw_text,
                             reference.span,
@@ -2270,7 +2270,7 @@ fn push_duplicate_binding_diagnostics(
     binding_kind: &str,
     duplicate_bindings: &BTreeMap<String, Vec<SymbolHandle>>,
     documents: &[&WorkspaceSemanticDocumentFacts],
-    diagnostics: &mut Vec<SemanticDiagnostic>,
+    diagnostics: &mut Vec<RuledDiagnostic>,
 ) {
     let documents_by_id = documents
         .iter()
@@ -2290,7 +2290,7 @@ fn push_duplicate_binding_diagnostics(
                 .symbols
                 .get(handle.symbol_id().0)
                 .expect("BUG: duplicate-binding symbol should exist");
-            diagnostics.push(SemanticDiagnostic::duplicate_binding(
+            diagnostics.push(RuledDiagnostic::duplicate_binding(
                 handle.document(),
                 binding_kind,
                 key,
@@ -2497,15 +2497,20 @@ fn canonical_element_binding_key(
 fn merge_semantic_diagnostics(
     workspace_indexes: &[WorkspaceIndex],
     document_instances: &BTreeMap<DocumentId, Vec<WorkspaceInstanceId>>,
-) -> Vec<SemanticDiagnostic> {
-    let mut diagnostic_counts = BTreeMap::<DocumentId, BTreeMap<SemanticDiagnostic, usize>>::new();
+) -> Vec<RuledDiagnostic> {
+    let mut diagnostic_counts = BTreeMap::<DocumentId, BTreeMap<RuledDiagnostic, usize>>::new();
 
     for workspace_index in workspace_indexes {
-        let mut per_document = BTreeMap::<DocumentId, BTreeSet<SemanticDiagnostic>>::new();
+        let mut per_document = BTreeMap::<DocumentId, BTreeSet<RuledDiagnostic>>::new();
 
         for diagnostic in workspace_index.semantic_diagnostics() {
             per_document
-                .entry(diagnostic.document.clone())
+                .entry(
+                    diagnostic
+                        .document()
+                        .expect("semantic diagnostics should carry documents")
+                        .clone(),
+                )
                 .or_default()
                 .insert(diagnostic.clone());
         }
@@ -2535,13 +2540,13 @@ fn merge_semantic_diagnostics(
     merged
 }
 
-fn sort_semantic_diagnostics(diagnostics: &mut [SemanticDiagnostic]) {
+fn sort_semantic_diagnostics(diagnostics: &mut [RuledDiagnostic]) {
     diagnostics.sort_by(|left, right| {
-        left.document
-            .cmp(&right.document)
-            .then_with(|| left.span.start_byte.cmp(&right.span.start_byte))
-            .then_with(|| left.kind.cmp(&right.kind))
-            .then_with(|| left.message.cmp(&right.message))
+        left.document()
+            .cmp(&right.document())
+            .then_with(|| left.span().start_byte.cmp(&right.span().start_byte))
+            .then_with(|| left.rule.cmp(&right.rule))
+            .then_with(|| left.message().cmp(right.message()))
     });
 }
 

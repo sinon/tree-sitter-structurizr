@@ -2,8 +2,7 @@ use std::path::{Path, PathBuf};
 
 use rstest::rstest;
 use strz_analysis::{
-    IncludeDiagnosticKind, TextSpan, WorkspaceDocumentKind, WorkspaceFacts, WorkspaceIncludeTarget,
-    WorkspaceLoader,
+    TextSpan, WorkspaceDocumentKind, WorkspaceFacts, WorkspaceIncludeTarget, WorkspaceLoader,
 };
 
 macro_rules! set_snapshot_suffix {
@@ -46,11 +45,11 @@ struct WorkspaceIncludeView {
 #[derive(Debug)]
 struct WorkspaceDiagnosticView {
     document: String,
-    kind: IncludeDiagnosticKind,
+    code: String,
     message: String,
     target_text: String,
     span: TextSpan,
-    value_span: TextSpan,
+    value_span: Option<TextSpan>,
 }
 
 #[allow(dead_code)]
@@ -117,12 +116,21 @@ impl WorkspaceView {
             .include_diagnostics()
             .iter()
             .map(|diagnostic| WorkspaceDiagnosticView {
-                document: display_document_id(diagnostic.document.as_str(), root),
-                kind: diagnostic.kind,
-                message: diagnostic.message.clone(),
-                target_text: diagnostic.target_text.clone(),
-                span: diagnostic.span,
-                value_span: diagnostic.value_span,
+                document: display_document_id(
+                    diagnostic
+                        .document()
+                        .expect("include diagnostics should carry documents")
+                        .as_str(),
+                    root,
+                ),
+                code: diagnostic.code().to_owned(),
+                message: diagnostic.message().to_owned(),
+                target_text: diagnostic
+                    .target_text()
+                    .expect("include diagnostics should carry target text")
+                    .to_owned(),
+                span: diagnostic.span(),
+                value_span: diagnostic.value_span(),
             })
             .collect();
 
@@ -214,13 +222,21 @@ fn constants_must_be_defined_before_they_can_drive_include_resolution() {
 
     let diagnostics = facts.include_diagnostics().iter().collect::<Vec<_>>();
     assert_eq!(diagnostics.len(), 1);
+    assert_eq!(diagnostics[0].code(), "include.missing-local-target");
     assert_eq!(
-        diagnostics[0].kind,
-        IncludeDiagnosticKind::MissingLocalTarget
+        diagnostics[0]
+            .target_text()
+            .expect("include diagnostics should carry target text"),
+        "details/${DETAIL_FILE}"
     );
-    assert_eq!(diagnostics[0].target_text, "details/${DETAIL_FILE}");
     assert_eq!(
-        display_document_id(diagnostics[0].document.as_str(), &fixture_root),
+        display_document_id(
+            diagnostics[0]
+                .document()
+                .expect("include diagnostics should carry documents")
+                .as_str(),
+            &fixture_root,
+        ),
         "shared/system.dsl"
     );
 }

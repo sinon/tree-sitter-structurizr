@@ -16,7 +16,7 @@ macro_rules! set_snapshot_suffix {
 #[derive(Debug)]
 struct SnapshotView {
     has_syntax_errors: bool,
-    diagnostics: Vec<strz_analysis::SyntaxDiagnostic>,
+    diagnostics: Vec<strz_analysis::RuledDiagnostic>,
     include_directives: Vec<strz_analysis::IncludeDirective>,
     identifier_modes: Vec<strz_analysis::IdentifierModeFact>,
     symbols: Vec<strz_analysis::Symbol>,

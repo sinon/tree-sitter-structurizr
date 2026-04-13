@@ -1,23 +1,26 @@
 ---
 source: crates/strz-analysis/tests/document_snapshots.rs
+assertion_line: 46
 expression: "SnapshotView::from(&snapshot)"
 ---
 SnapshotView {
     has_syntax_errors: true,
     diagnostics: [
-        SyntaxDiagnostic {
-            kind: MissingNode,
-            message: "missing ->",
-            span: TextSpan {
-                start_byte: 94,
-                end_byte: 94,
-                start_point: TextPoint {
-                    row: 5,
-                    column: 5,
-                },
-                end_point: TextPoint {
-                    row: 5,
-                    column: 5,
+        RuledDiagnostic {
+            rule: syntax.missing-node,
+            diagnostic: Diagnostic {
+                message: "missing ->",
+                span: TextSpan {
+                    start_byte: 94,
+                    end_byte: 94,
+                    start_point: TextPoint {
+                        row: 5,
+                        column: 5,
+                    },
+                    end_point: TextPoint {
+                        row: 5,
+                        column: 5,
+                    },
                 },
             },
         },

@@ -1,5 +1,6 @@
 ---
 source: crates/strz-analysis/tests/workspace_index.rs
+assertion_line: 215
 expression: "WorkspaceIndexSetView::from_facts(&facts, &fixture_root)"
 ---
 WorkspaceIndexSetView {
@@ -20,7 +21,7 @@ WorkspaceIndexSetView {
     merged_semantic_diagnostics: [
         DiagnosticView {
             document: "workspace.dsl",
-            kind: UnresolvedReference,
+            code: "semantic.unresolved-reference",
             message: "unresolved identifier reference: api",
             span: TextSpan {
                 start_byte: 160,
@@ -82,7 +83,7 @@ WorkspaceIndexSetView {
             semantic_diagnostics: [
                 DiagnosticView {
                     document: "workspace.dsl",
-                    kind: UnresolvedReference,
+                    code: "semantic.unresolved-reference",
                     message: "unresolved identifier reference: api",
                     span: TextSpan {
                         start_byte: 160,

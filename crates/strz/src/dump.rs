@@ -3,7 +3,8 @@ use std::fs;
 use anyhow::{Context, Result};
 use strz_analysis::{
     DirectiveContainer, DirectiveValueKind, DocumentAnalyzer, DocumentInput, IdentifierMode,
-    ReferenceKind, ReferenceTargetHint, SymbolKind, WorkspaceDocumentKind, WorkspaceIncludeTarget,
+    ReferenceKind, ReferenceTargetHint, ResolvedInclude, RuledDiagnostic, SymbolKind,
+    WorkspaceDocument, WorkspaceDocumentKind, WorkspaceFacts, WorkspaceIncludeTarget,
     WorkspaceLoader,
 };
 
@@ -42,7 +43,7 @@ fn dump_document(path: &std::path::Path) -> Result<DumpOutput> {
     let syntax_diagnostics = snapshot
         .syntax_diagnostics()
         .iter()
-        .map(|diagnostic| DiagnosticView::syntax(display_path.clone(), diagnostic))
+        .map(|diagnostic| DiagnosticView::from_analysis(display_path.clone(), diagnostic))
         .collect();
     let include_directives = snapshot
         .include_directives()
@@ -135,68 +136,9 @@ fn dump_workspace(roots: &[std::path::PathBuf]) -> Result<DumpOutput> {
         })
         .collect::<std::collections::BTreeMap<_, _>>();
 
-    let documents = workspace
-        .documents()
-        .iter()
-        .map(|document| WorkspaceDocumentView {
-            path: snapshot_display_path(document.snapshot(), &cwd),
-            kind: workspace_document_kind_name(document.kind()),
-            discovered_by_scan: document.discovered_by_scan(),
-            syntax_diagnostics: document
-                .snapshot()
-                .syntax_diagnostics()
-                .iter()
-                .map(|diagnostic| {
-                    DiagnosticView::syntax(
-                        snapshot_display_path(document.snapshot(), &cwd),
-                        diagnostic,
-                    )
-                })
-                .collect(),
-            include_directive_count: document.snapshot().include_directives().len(),
-            symbol_count: document.snapshot().symbols().len(),
-            reference_count: document.snapshot().references().len(),
-        })
-        .collect();
-
-    let includes = workspace
-        .includes()
-        .iter()
-        .map(|include| ResolvedIncludeView {
-            document: document_paths
-                .get(include.including_document().as_str())
-                .cloned()
-                .unwrap_or_else(|| document_id_display_path(include.including_document(), &cwd)),
-            target_kind: workspace_include_target_kind_name(include.target()),
-            target_text: include.target_text().to_owned(),
-            raw_value: include.raw_value().to_owned(),
-            span: include.span().into(),
-            value_span: include.value_span().into(),
-            target_location: workspace_include_target_location(include.target(), &cwd),
-            discovered_documents: include
-                .discovered_documents()
-                .iter()
-                .map(|document_id| {
-                    document_paths
-                        .get(document_id.as_str())
-                        .cloned()
-                        .unwrap_or_else(|| document_id_display_path(document_id, &cwd))
-                })
-                .collect(),
-        })
-        .collect();
-
-    let include_diagnostics = workspace
-        .include_diagnostics()
-        .iter()
-        .map(|diagnostic| {
-            let path = document_paths
-                .get(diagnostic.document.as_str())
-                .cloned()
-                .unwrap_or_else(|| document_id_display_path(&diagnostic.document, &cwd));
-            DiagnosticView::include(path, diagnostic)
-        })
-        .collect();
+    let documents = workspace_document_views(&workspace, &cwd);
+    let includes = resolved_include_views(&workspace, &document_paths, &cwd);
+    let include_diagnostics = include_diagnostic_views(&workspace, &document_paths, &cwd);
 
     let entry_documents = workspace
         .entry_documents()
@@ -210,6 +152,107 @@ fn dump_workspace(roots: &[std::path::PathBuf]) -> Result<DumpOutput> {
         includes,
         include_diagnostics,
     }))
+}
+fn workspace_document_views(
+    workspace: &WorkspaceFacts,
+    cwd: &std::path::Path,
+) -> Vec<WorkspaceDocumentView> {
+    workspace
+        .documents()
+        .iter()
+        .map(|document| workspace_document_view(document, cwd))
+        .collect()
+}
+
+fn workspace_document_view(
+    document: &WorkspaceDocument,
+    cwd: &std::path::Path,
+) -> WorkspaceDocumentView {
+    let path = snapshot_display_path(document.snapshot(), cwd);
+
+    WorkspaceDocumentView {
+        path: path.clone(),
+        kind: workspace_document_kind_name(document.kind()),
+        discovered_by_scan: document.discovered_by_scan(),
+        syntax_diagnostics: document
+            .snapshot()
+            .syntax_diagnostics()
+            .iter()
+            .map(|diagnostic| DiagnosticView::from_analysis(path.clone(), diagnostic))
+            .collect(),
+        include_directive_count: document.snapshot().include_directives().len(),
+        symbol_count: document.snapshot().symbols().len(),
+        reference_count: document.snapshot().references().len(),
+    }
+}
+
+fn resolved_include_views(
+    workspace: &WorkspaceFacts,
+    document_paths: &std::collections::BTreeMap<String, String>,
+    cwd: &std::path::Path,
+) -> Vec<ResolvedIncludeView> {
+    workspace
+        .includes()
+        .iter()
+        .map(|include| resolved_include_view(include, document_paths, cwd))
+        .collect()
+}
+
+fn resolved_include_view(
+    include: &ResolvedInclude,
+    document_paths: &std::collections::BTreeMap<String, String>,
+    cwd: &std::path::Path,
+) -> ResolvedIncludeView {
+    ResolvedIncludeView {
+        document: document_paths
+            .get(include.including_document().as_str())
+            .cloned()
+            .unwrap_or_else(|| document_id_display_path(include.including_document(), cwd)),
+        target_kind: workspace_include_target_kind_name(include.target()),
+        target_text: include.target_text().to_owned(),
+        raw_value: include.raw_value().to_owned(),
+        span: include.span().into(),
+        value_span: include.value_span().into(),
+        target_location: workspace_include_target_location(include.target(), cwd),
+        discovered_documents: include
+            .discovered_documents()
+            .iter()
+            .map(|document_id| {
+                document_paths
+                    .get(document_id.as_str())
+                    .cloned()
+                    .unwrap_or_else(|| document_id_display_path(document_id, cwd))
+            })
+            .collect(),
+    }
+}
+
+fn include_diagnostic_views(
+    workspace: &WorkspaceFacts,
+    document_paths: &std::collections::BTreeMap<String, String>,
+    cwd: &std::path::Path,
+) -> Vec<DiagnosticView> {
+    workspace
+        .include_diagnostics()
+        .iter()
+        .map(|diagnostic| include_diagnostic_view(diagnostic, document_paths, cwd))
+        .collect()
+}
+
+fn include_diagnostic_view(
+    diagnostic: &RuledDiagnostic,
+    document_paths: &std::collections::BTreeMap<String, String>,
+    cwd: &std::path::Path,
+) -> DiagnosticView {
+    let document = diagnostic
+        .document()
+        .expect("workspace include diagnostics should carry documents");
+    let path = document_paths
+        .get(document.as_str())
+        .cloned()
+        .unwrap_or_else(|| document_id_display_path(document, cwd));
+
+    DiagnosticView::from_analysis(path, diagnostic)
 }
 
 fn directive_value_kind_name(kind: &DirectiveValueKind) -> String {

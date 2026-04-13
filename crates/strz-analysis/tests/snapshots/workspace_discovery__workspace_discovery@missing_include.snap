@@ -1,5 +1,6 @@
 ---
 source: crates/strz-analysis/tests/workspace_discovery.rs
+assertion_line: 184
 expression: "WorkspaceView::from_facts(&facts, &fixture_root)"
 ---
 WorkspaceView {
@@ -28,7 +29,7 @@ WorkspaceView {
     diagnostics: [
         WorkspaceDiagnosticView {
             document: "workspace.dsl",
-            kind: MissingLocalTarget,
+            code: "include.missing-local-target",
             message: "included path does not exist: missing/model.dsl",
             target_text: "missing/model.dsl",
             span: TextSpan {
@@ -43,18 +44,20 @@ WorkspaceView {
                     column: 32,
                 },
             },
-            value_span: TextSpan {
-                start_byte: 25,
-                end_byte: 44,
-                start_point: TextPoint {
-                    row: 1,
-                    column: 13,
+            value_span: Some(
+                TextSpan {
+                    start_byte: 25,
+                    end_byte: 44,
+                    start_point: TextPoint {
+                        row: 1,
+                        column: 13,
+                    },
+                    end_point: TextPoint {
+                        row: 1,
+                        column: 32,
+                    },
                 },
-                end_point: TextPoint {
-                    row: 1,
-                    column: 32,
-                },
-            },
+            ),
         },
     ],
 }

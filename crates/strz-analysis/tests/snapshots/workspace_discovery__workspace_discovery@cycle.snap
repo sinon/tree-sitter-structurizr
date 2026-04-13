@@ -1,5 +1,6 @@
 ---
 source: crates/strz-analysis/tests/workspace_discovery.rs
+assertion_line: 184
 expression: "WorkspaceView::from_facts(&facts, &fixture_root)"
 ---
 WorkspaceView {
@@ -74,7 +75,7 @@ WorkspaceView {
     diagnostics: [
         WorkspaceDiagnosticView {
             document: "loop-a.dsl",
-            kind: IncludeCycle,
+            code: "include.cycle",
             message: "include cycle detected while following: loop-b.dsl",
             target_text: "loop-b.dsl",
             span: TextSpan {
@@ -89,22 +90,24 @@ WorkspaceView {
                     column: 25,
                 },
             },
-            value_span: TextSpan {
-                start_byte: 21,
-                end_byte: 33,
-                start_point: TextPoint {
-                    row: 1,
-                    column: 13,
+            value_span: Some(
+                TextSpan {
+                    start_byte: 21,
+                    end_byte: 33,
+                    start_point: TextPoint {
+                        row: 1,
+                        column: 13,
+                    },
+                    end_point: TextPoint {
+                        row: 1,
+                        column: 25,
+                    },
                 },
-                end_point: TextPoint {
-                    row: 1,
-                    column: 25,
-                },
-            },
+            ),
         },
         WorkspaceDiagnosticView {
             document: "loop-b.dsl",
-            kind: IncludeCycle,
+            code: "include.cycle",
             message: "include cycle detected while following: loop-a.dsl",
             target_text: "loop-a.dsl",
             span: TextSpan {
@@ -119,18 +122,20 @@ WorkspaceView {
                     column: 25,
                 },
             },
-            value_span: TextSpan {
-                start_byte: 21,
-                end_byte: 33,
-                start_point: TextPoint {
-                    row: 1,
-                    column: 13,
+            value_span: Some(
+                TextSpan {
+                    start_byte: 21,
+                    end_byte: 33,
+                    start_point: TextPoint {
+                        row: 1,
+                        column: 13,
+                    },
+                    end_point: TextPoint {
+                        row: 1,
+                        column: 25,
+                    },
                 },
-                end_point: TextPoint {
-                    row: 1,
-                    column: 25,
-                },
-            },
+            ),
         },
     ],
 }

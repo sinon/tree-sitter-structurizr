@@ -210,7 +210,7 @@ fn assert_snapshot_spans_within_source(snapshot: &DocumentSnapshot) -> Result<()
 
     for (index, diagnostic) in snapshot.syntax_diagnostics().iter().enumerate() {
         assert_span_within_source(
-            diagnostic.span,
+            diagnostic.span(),
             source,
             &format!("syntax diagnostic #{index}"),
         )?;

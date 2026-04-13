@@ -2,7 +2,7 @@
 
 use std::sync::OnceLock;
 
-use crate::rule::{Level, RuleRegistry, RuleRegistryBuilder, declare_rule};
+use crate::rule::{DiagnosticSeverity, RuleRegistry, RuleRegistryBuilder, declare_rule};
 
 declare_rule! {
     /// ## What it does
@@ -12,9 +12,10 @@ declare_rule! {
     /// An `ERROR` node means the parser could not reconcile the current token
     /// stream with the grammar and had to recover around unexpected syntax.
     pub static SYNTAX_ERROR_NODE = {
-        code: "syntax.error-node",
+        name: "error-node",
+        source: "syntax",
         summary: "reports unexpected syntax recovered as tree-sitter error nodes",
-        default_level: Level::Error,
+        default_severity: DiagnosticSeverity::Error,
     };
 }
 
@@ -27,9 +28,10 @@ declare_rule! {
     /// which usually indicates an incomplete or malformed construct in the
     /// source text.
     pub static SYNTAX_MISSING_NODE = {
-        code: "syntax.missing-node",
+        name: "missing-node",
+        source: "syntax",
         summary: "reports missing syntax recovered by tree-sitter",
-        default_level: Level::Error,
+        default_severity: DiagnosticSeverity::Error,
     };
 }
 
@@ -41,9 +43,10 @@ declare_rule! {
     /// Missing include targets prevent the assembled workspace from loading the
     /// contributor-owned files the document references.
     pub static INCLUDE_MISSING_LOCAL_TARGET = {
-        code: "include.missing-local-target",
+        name: "missing-local-target",
+        source: "include",
         summary: "reports include directives whose local path does not exist",
-        default_level: Level::Error,
+        default_severity: DiagnosticSeverity::Error,
     };
 }
 
@@ -55,9 +58,10 @@ declare_rule! {
     /// Escaping the allowed subtree breaks the bounded local-loading model and
     /// can pull analysis outside the intended workspace root.
     pub static INCLUDE_ESCAPES_ALLOWED_SUBTREE = {
-        code: "include.escapes-allowed-subtree",
+        name: "escapes-allowed-subtree",
+        source: "include",
         summary: "reports include directives that escape the allowed subtree",
-        default_level: Level::Error,
+        default_severity: DiagnosticSeverity::Error,
     };
 }
 
@@ -69,9 +73,10 @@ declare_rule! {
     /// Include cycles prevent the bounded loader from building one stable
     /// document graph for analysis.
     pub static INCLUDE_CYCLE = {
-        code: "include.cycle",
+        name: "cycle",
+        source: "include",
         summary: "reports explicit include cycles",
-        default_level: Level::Error,
+        default_severity: DiagnosticSeverity::Error,
     };
 }
 
@@ -83,9 +88,10 @@ declare_rule! {
     /// Remote includes remain unresolved in the current local analysis model, so
     /// the user should know the assembled workspace is incomplete.
     pub static INCLUDE_UNSUPPORTED_REMOTE_TARGET = {
-        code: "include.unsupported-remote-target",
+        name: "unsupported-remote-target",
+        source: "include",
         summary: "reports remote include targets that stay unresolved locally",
-        default_level: Level::Warn,
+        default_severity: DiagnosticSeverity::Warning,
     };
 }
 
@@ -97,9 +103,10 @@ declare_rule! {
     /// Duplicate bindings make assembled-workspace resolution ambiguous and can
     /// cause navigation or later validation passes to pick the wrong target.
     pub static SEMANTIC_DUPLICATE_BINDING = {
-        code: "semantic.duplicate-binding",
+        name: "duplicate-binding",
+        source: "semantic",
         summary: "reports duplicate element, deployment, or relationship bindings",
-        default_level: Level::Error,
+        default_severity: DiagnosticSeverity::Error,
     };
 }
 
@@ -111,9 +118,10 @@ declare_rule! {
     /// An unresolved reference means the assembled workspace is missing a
     /// declaration that later features depend on for navigation and validation.
     pub static SEMANTIC_UNRESOLVED_REFERENCE = {
-        code: "semantic.unresolved-reference",
+        name: "unresolved-reference",
+        source: "semantic",
         summary: "reports unresolved identifier references",
-        default_level: Level::Error,
+        default_severity: DiagnosticSeverity::Error,
     };
 }
 
@@ -125,9 +133,10 @@ declare_rule! {
     /// Ambiguous references prevent the bounded analysis layer from determining
     /// one reliable target for navigation or later semantic rules.
     pub static SEMANTIC_AMBIGUOUS_REFERENCE = {
-        code: "semantic.ambiguous-reference",
+        name: "ambiguous-reference",
+        source: "semantic",
         summary: "reports identifier references with multiple plausible targets",
-        default_level: Level::Error,
+        default_severity: DiagnosticSeverity::Error,
     };
 }
 
