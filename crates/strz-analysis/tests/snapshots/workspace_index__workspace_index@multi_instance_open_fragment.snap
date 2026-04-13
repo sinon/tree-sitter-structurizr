@@ -1,6 +1,5 @@
 ---
 source: crates/strz-analysis/tests/workspace_index.rs
-assertion_line: 215
 expression: "WorkspaceIndexSetView::from_facts(&facts, &fixture_root)"
 ---
 WorkspaceIndexSetView {
@@ -69,7 +68,25 @@ WorkspaceIndexSetView {
                     status: "resolved shared/model.dsl::api",
                 },
             ],
-            semantic_diagnostics: [],
+            semantic_diagnostics: [
+                DiagnosticView {
+                    document: "shared/model.dsl",
+                    code: "semantic.repeated-workspace-section",
+                    message: "multiple model sections are not permitted in a DSL definition",
+                    span: TextSpan {
+                        start_byte: 0,
+                        end_byte: 84,
+                        start_point: TextPoint {
+                            row: 0,
+                            column: 0,
+                        },
+                        end_point: TextPoint {
+                            row: 4,
+                            column: 1,
+                        },
+                    },
+                },
+            ],
         },
         WorkspaceIndexView {
             id: 1,
@@ -107,6 +124,23 @@ WorkspaceIndexSetView {
                 },
             ],
             semantic_diagnostics: [
+                DiagnosticView {
+                    document: "shared/model.dsl",
+                    code: "semantic.repeated-workspace-section",
+                    message: "multiple model sections are not permitted in a DSL definition",
+                    span: TextSpan {
+                        start_byte: 0,
+                        end_byte: 84,
+                        start_point: TextPoint {
+                            row: 0,
+                            column: 0,
+                        },
+                        end_point: TextPoint {
+                            row: 4,
+                            column: 1,
+                        },
+                    },
+                },
                 DiagnosticView {
                     document: "shared/view.dsl",
                     code: "semantic.unresolved-reference",

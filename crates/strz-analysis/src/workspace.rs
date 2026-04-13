@@ -10,10 +10,15 @@ use std::{
 use ignore::WalkBuilder;
 
 use crate::{
-    ConstantDefinition, DocumentAnalyzer, DocumentId, DocumentInput, IdentifierMode,
+    Annotation, ConstantDefinition, DocumentAnalyzer, DocumentId, DocumentInput, IdentifierMode,
     IdentifierModeFact, IncludeDirective, Reference, ReferenceKind, ReferenceTargetHint,
     RuledDiagnostic, Symbol, SymbolId, SymbolKind, TextSpan,
-    includes::{DirectiveContainer, normalized_directive_value},
+    includes::{DirectiveContainer, DirectiveValueKind, normalized_directive_value},
+    semantic::{
+        ConfigurationScopeFact, ElementDirectiveFact, PropertyFact, RelationshipFact,
+        ResourceDirectiveFact, ViewFact, WorkspaceScope, WorkspaceSectionFact,
+        WorkspaceSectionKind,
+    },
 };
 
 /// Classifies whether a discovered document can act as a workspace entry point.
@@ -290,6 +295,11 @@ struct DerivedWorkspaceInstance {
 // semantic packet derived from `DocumentSyntaxFacts`. When a document source edit
 // produces the same semantic packet, the host-side workspace caches can now
 // reuse the derived instance payload without paying the full rebuild cost again.
+//
+// This stays separate from the public `DocumentSyntaxFacts` surface on purpose.
+// `DocumentSyntaxFacts` is the reusable document-analysis boundary, while this
+// packet is the workspace session's private cache payload for comparing and
+// cloning the semantic subset that drives binding/reference assembly.
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct WorkspaceSemanticDocumentFacts {
     document_id: DocumentId,
@@ -297,6 +307,13 @@ struct WorkspaceSemanticDocumentFacts {
     identifier_modes: Vec<IdentifierModeFact>,
     symbols: Vec<Symbol>,
     references: Vec<Reference>,
+    workspace_sections: Vec<WorkspaceSectionFact>,
+    configuration_scopes: Vec<ConfigurationScopeFact>,
+    property_facts: Vec<PropertyFact>,
+    resource_directives: Vec<ResourceDirectiveFact>,
+    element_directives: Vec<ElementDirectiveFact>,
+    relationship_facts: Vec<RelationshipFact>,
+    view_facts: Vec<ViewFact>,
 }
 
 impl WorkspaceSemanticDocumentFacts {
@@ -307,6 +324,13 @@ impl WorkspaceSemanticDocumentFacts {
             identifier_modes: snapshot.identifier_modes().to_vec(),
             symbols: snapshot.symbols().to_vec(),
             references: snapshot.references().to_vec(),
+            workspace_sections: snapshot.workspace_sections().to_vec(),
+            configuration_scopes: snapshot.configuration_scopes().to_vec(),
+            property_facts: snapshot.property_facts().to_vec(),
+            resource_directives: snapshot.resource_directives().to_vec(),
+            element_directives: snapshot.element_directives().to_vec(),
+            relationship_facts: snapshot.relationship_facts().to_vec(),
+            view_facts: snapshot.view_facts().to_vec(),
         }
     }
 }
@@ -807,9 +831,7 @@ impl WorkspaceAnalysisSession {
         context: &DocumentContext,
         processed: ProcessedDocumentContext,
     ) {
-        let child_context_revisions = processed
-            .included_contexts
-            .iter()
+        let child_context_revisions = processed_context_dependency_keys(&processed)
             .map(|child_context| {
                 self.processed_context_revision(child_context)
                     .expect("BUG: child context should be cached before its parent")
@@ -1046,7 +1068,7 @@ impl<'loader> WorkspaceBuildSession<'loader> {
                 .clone());
         }
 
-        let (document_id, constant_definitions, include_directives) = {
+        let (document_id, workspace_base, constant_definitions, include_directives) = {
             let document = self
                 .loaded_documents
                 .get(&context.path)
@@ -1054,6 +1076,7 @@ impl<'loader> WorkspaceBuildSession<'loader> {
 
             (
                 document.id().clone(),
+                workspace_base_directive(document.snapshot()),
                 document.snapshot().constant_definitions().to_vec(),
                 document.snapshot().include_directives().to_vec(),
             )
@@ -1062,8 +1085,32 @@ impl<'loader> WorkspaceBuildSession<'loader> {
         self.active_stack.push(context.path.clone());
         let processed = (|| -> io::Result<ProcessedDocumentContext> {
             let mut current_constants = context.inherited_constants.clone();
+            let mut workspace_base_context = None;
             let mut direct_includes = Vec::new();
             let mut included_contexts = Vec::new();
+
+            // Load an extended base workspace before the current document's own
+            // directives so inherited constants and bindings mirror the DSL's
+            // top-down `workspace extends ...` semantics.
+            if let Some(workspace_base) = &workspace_base {
+                let base_path =
+                    resolve_workspace_base(&context.path, workspace_base, &current_constants)?;
+                self.load_document(base_path.clone(), false)?;
+
+                if self.active_stack.contains(&base_path) {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidInput,
+                        format!(
+                            "workspace extends cycle detected while following: {}",
+                            base_path.display()
+                        ),
+                    ));
+                }
+
+                let child_context = DocumentContext::new(base_path, current_constants.clone());
+                workspace_base_context = Some(child_context.key.clone());
+                current_constants = self.process_document_context(child_context)?;
+            }
 
             // Process constants and includes in source order so inherited values,
             // local definitions, and included fragments all obey the DSL's
@@ -1105,6 +1152,7 @@ impl<'loader> WorkspaceBuildSession<'loader> {
 
             Ok(ProcessedDocumentContext {
                 exported_constants: current_constants,
+                workspace_base_context,
                 direct_includes,
                 included_contexts,
             })
@@ -1144,11 +1192,9 @@ impl<'loader> WorkspaceBuildSession<'loader> {
                 return Ok(false);
             }
 
-            for (child_context, expected_revision) in cached
-                .processed
-                .included_contexts
-                .iter()
-                .zip(&cached.child_context_revisions)
+            for (child_context, expected_revision) in
+                processed_context_dependency_keys(&cached.processed)
+                    .zip(&cached.child_context_revisions)
             {
                 let Some(current_revision) = self.session.processed_context_revision(child_context)
                 else {
@@ -1194,7 +1240,7 @@ impl<'loader> WorkspaceBuildSession<'loader> {
                 .cached_processed_context(context_key)
                 .expect("BUG: fresh cached context should still exist while materializing");
 
-            for child_context in &cached.processed.included_contexts {
+            for child_context in processed_context_dependency_keys(&cached.processed) {
                 self.materialize_cached_context_tree(child_context, visiting)?;
             }
 
@@ -1261,6 +1307,12 @@ struct ResolvedIncludeWork {
     discovered_paths: Vec<PathBuf>,
 }
 
+#[derive(Debug, Clone)]
+struct WorkspaceBaseDirective {
+    raw_value: String,
+    value_kind: DirectiveValueKind,
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 struct ConstantEnvironment {
     bindings: BTreeMap<String, String>,
@@ -1314,6 +1366,7 @@ struct DocumentContextKey {
 #[derive(Debug, Clone)]
 struct ProcessedDocumentContext {
     exported_constants: ConstantEnvironment,
+    workspace_base_context: Option<DocumentContextKey>,
     direct_includes: Vec<ResolvedInclude>,
     included_contexts: Vec<DocumentContextKey>,
 }
@@ -1337,6 +1390,15 @@ impl DocumentDirectiveEvent<'_> {
             Self::Include(include) => include.span.start_byte,
         }
     }
+}
+
+fn processed_context_dependency_keys(
+    processed: &ProcessedDocumentContext,
+) -> impl Iterator<Item = &DocumentContextKey> {
+    processed
+        .workspace_base_context
+        .iter()
+        .chain(processed.included_contexts.iter())
 }
 
 fn start_contexts(
@@ -1582,6 +1644,92 @@ fn resolve_include(
 
 fn normalized_include_value(directive: &IncludeDirective) -> String {
     normalized_directive_value(&directive.raw_value, &directive.value_kind)
+}
+
+fn workspace_base_directive(snapshot: &crate::DocumentSnapshot) -> Option<WorkspaceBaseDirective> {
+    let root = snapshot.tree().root_node();
+    let mut cursor = root.walk();
+    let workspace = root
+        .named_children(&mut cursor)
+        .find(|child| child.kind() == "workspace")?;
+    let base = workspace.child_by_field_name("base")?;
+
+    Some(WorkspaceBaseDirective {
+        raw_value: snapshot.source()[base.byte_range()].to_owned(),
+        value_kind: DirectiveValueKind::from_node_kind(base.kind()),
+    })
+}
+
+fn resolve_workspace_base(
+    workspace_path: &Path,
+    workspace_base: &WorkspaceBaseDirective,
+    constants: &ConstantEnvironment,
+) -> io::Result<PathBuf> {
+    let base_text = expand_string_substitutions(
+        &normalized_directive_value(&workspace_base.raw_value, &workspace_base.value_kind),
+        constants,
+    );
+    if is_remote_include(&base_text) {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("remote workspace bases are not supported: {base_text}"),
+        ));
+    }
+
+    let parent = workspace_path.parent().ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!(
+                "workspace entry has no parent directory for base resolution: {}",
+                workspace_path.display()
+            ),
+        )
+    })?;
+    let canonical_parent_directory = normalize_existing_path(parent)?;
+    let relative_target = PathBuf::from(&base_text);
+    let base_path = parent.join(&relative_target);
+    if !is_supported_local_include_path(&relative_target) {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!(
+                "workspace base path escapes the allowed subtree: {}",
+                base_path.display()
+            ),
+        ));
+    }
+    let metadata = fs::metadata(&base_path).map_err(|error| {
+        if error.kind() == io::ErrorKind::NotFound {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("workspace base does not exist: {}", base_path.display()),
+            )
+        } else {
+            error
+        }
+    })?;
+
+    if !metadata.is_file() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!(
+                "workspace base must resolve to a file: {}",
+                base_path.display()
+            ),
+        ));
+    }
+
+    let canonical_base = normalize_existing_path(&base_path)?;
+    if !canonical_base.starts_with(&canonical_parent_directory) {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!(
+                "workspace base path escapes the allowed subtree: {}",
+                canonical_base.display()
+            ),
+        ));
+    }
+
+    Ok(canonical_base)
 }
 
 fn expand_string_substitutions(value: &str, constants: &ConstantEnvironment) -> String {
@@ -1887,15 +2035,27 @@ fn build_workspace_index(
         .processed_context_revision(&start_context.key)
         .expect("BUG: start context should be processed before building indexes");
 
-    let mut visited_contexts = BTreeSet::new();
-    let mut seen_documents = BTreeSet::new();
-    let mut instance_documents = Vec::new();
-    collect_instance_documents(
+    // Build two slices from the same processed-context tree:
+    //
+    // 1. the full assembled instance, which includes extended bases because
+    //    binding/reference resolution needs the final inherited symbol table;
+    // 2. the narrower DSL definition, which intentionally excludes bases so
+    //    structural rules like repeated `model` / `views` sections talk about
+    //    one definition rather than one definition plus its parent workspace.
+    let instance_documents = collect_documents_for_context(
         &start_context.key,
         processed_contexts,
-        &mut visited_contexts,
-        &mut seen_documents,
-        &mut instance_documents,
+        ContextDocumentCollection::Instance,
+    );
+    let definition_documents = collect_documents_for_context(
+        &start_context.key,
+        processed_contexts,
+        ContextDocumentCollection::Definition,
+    );
+    let inherited_workspace_modes = inherited_workspace_modes_for_context(
+        &start_context.key,
+        processed_contexts,
+        documents_by_id,
     );
     let document_semantic_generations = instance_documents
         .iter()
@@ -1926,9 +2086,20 @@ fn build_workspace_index(
                 .semantic_facts()
         })
         .collect::<Vec<_>>();
+    let definition_semantic_documents = definition_documents
+        .iter()
+        .map(|document_id| {
+            documents_by_id
+                .get(document_id)
+                .expect("BUG: workspace-index definition document should exist")
+                .semantic_facts()
+        })
+        .collect::<Vec<_>>();
     let derived = Arc::new(build_derived_workspace_instance(
         root_document.semantic_facts(),
         &instance_semantic_documents,
+        &definition_semantic_documents,
+        &inherited_workspace_modes,
     ));
     session.store_workspace_instance(
         &start_context.key,
@@ -2008,11 +2179,20 @@ fn build_workspace_facts_assembly(
 fn build_derived_workspace_instance(
     root_document: &WorkspaceSemanticDocumentFacts,
     documents: &[&WorkspaceSemanticDocumentFacts],
+    definition_documents: &[&WorkspaceSemanticDocumentFacts],
+    inherited_workspace_modes: &BTreeMap<DocumentId, Option<IdentifierMode>>,
 ) -> DerivedWorkspaceInstance {
-    let inherited_workspace_mode =
-        document_workspace_identifier_mode(&root_document.identifier_modes);
-    let bindings = build_binding_tables(documents, inherited_workspace_mode.as_ref());
+    // `definition_documents` exists purely to scope structural workspace rules to
+    // one assembled definition. We intentionally keep only the full instance
+    // document list on the derived payload because downstream callers reason
+    // about the assembled semantic surface, not the narrower structural slice.
+    let _ = root_document;
+    let bindings = build_binding_tables(documents, inherited_workspace_modes);
     let mut semantic_diagnostics = bindings.semantic_diagnostics.clone();
+    semantic_diagnostics.extend(workspace_structure_diagnostics(definition_documents));
+    semantic_diagnostics.extend(workspace_scope_diagnostics(definition_documents, documents));
+    semantic_diagnostics.extend(element_selector_diagnostics(documents, &bindings));
+
     let reference_tables = build_reference_resolution_tables(documents, &bindings);
     semantic_diagnostics.extend(reference_tables.semantic_diagnostics);
 
@@ -2042,12 +2222,44 @@ fn build_derived_workspace_instance(
     }
 }
 
-fn collect_instance_documents(
+/// The same processed-context tree feeds two different semantic projections.
+///
+/// `Instance` walks the complete assembled workspace, including extended bases,
+/// because binding/reference resolution needs the final inherited symbol table.
+/// `Definition` stops at ordinary includes so structural rules can talk about
+/// one DSL definition without treating its extended base as a repeated sibling.
+#[derive(Clone, Copy)]
+enum ContextDocumentCollection {
+    Instance,
+    Definition,
+}
+
+fn collect_documents_for_context(
     context_key: &DocumentContextKey,
     processed_contexts: &BTreeMap<DocumentContextKey, ProcessedDocumentContext>,
+    collection: ContextDocumentCollection,
+) -> Vec<DocumentId> {
+    let mut visited_contexts = BTreeSet::new();
+    let mut seen_documents = BTreeSet::new();
+    let mut collected_documents = Vec::new();
+    collect_context_documents(
+        context_key,
+        processed_contexts,
+        collection,
+        &mut visited_contexts,
+        &mut seen_documents,
+        &mut collected_documents,
+    );
+    collected_documents
+}
+
+fn collect_context_documents(
+    context_key: &DocumentContextKey,
+    processed_contexts: &BTreeMap<DocumentContextKey, ProcessedDocumentContext>,
+    collection: ContextDocumentCollection,
     visited_contexts: &mut BTreeSet<DocumentContextKey>,
     seen_documents: &mut BTreeSet<DocumentId>,
-    instance_documents: &mut Vec<DocumentId>,
+    collected_documents: &mut Vec<DocumentId>,
 ) {
     if !visited_contexts.insert(context_key.clone()) {
         return;
@@ -2055,20 +2267,96 @@ fn collect_instance_documents(
 
     let document_id = document_id_from_path(&context_key.path);
     if seen_documents.insert(document_id.clone()) {
-        instance_documents.push(document_id);
+        collected_documents.push(document_id);
     }
 
     let Some(processed_context) = processed_contexts.get(context_key) else {
         return;
     };
 
-    for child_context in &processed_context.included_contexts {
-        collect_instance_documents(
+    match collection {
+        ContextDocumentCollection::Instance => {
+            for child_context in processed_context_dependency_keys(processed_context) {
+                collect_context_documents(
+                    child_context,
+                    processed_contexts,
+                    collection,
+                    visited_contexts,
+                    seen_documents,
+                    collected_documents,
+                );
+            }
+        }
+        ContextDocumentCollection::Definition => {
+            for child_context in &processed_context.included_contexts {
+                collect_context_documents(
+                    child_context,
+                    processed_contexts,
+                    collection,
+                    visited_contexts,
+                    seen_documents,
+                    collected_documents,
+                );
+            }
+        }
+    }
+}
+
+fn inherited_workspace_modes_for_context(
+    context_key: &DocumentContextKey,
+    processed_contexts: &BTreeMap<DocumentContextKey, ProcessedDocumentContext>,
+    documents_by_id: &BTreeMap<DocumentId, &WorkspaceDocument>,
+) -> BTreeMap<DocumentId, Option<IdentifierMode>> {
+    let mut visited_contexts = BTreeSet::new();
+    let mut inherited_modes = BTreeMap::new();
+    collect_inherited_workspace_modes(
+        context_key,
+        None,
+        processed_contexts,
+        documents_by_id,
+        &mut visited_contexts,
+        &mut inherited_modes,
+    );
+    inherited_modes
+}
+
+fn collect_inherited_workspace_modes(
+    context_key: &DocumentContextKey,
+    inherited_workspace_mode: Option<IdentifierMode>,
+    processed_contexts: &BTreeMap<DocumentContextKey, ProcessedDocumentContext>,
+    documents_by_id: &BTreeMap<DocumentId, &WorkspaceDocument>,
+    visited_contexts: &mut BTreeSet<DocumentContextKey>,
+    inherited_modes: &mut BTreeMap<DocumentId, Option<IdentifierMode>>,
+) {
+    if !visited_contexts.insert(context_key.clone()) {
+        return;
+    }
+
+    let document_id = document_id_from_path(&context_key.path);
+    if let Some(existing_mode) = inherited_modes.get(&document_id) {
+        debug_assert_eq!(existing_mode, &inherited_workspace_mode);
+    } else {
+        inherited_modes.insert(document_id.clone(), inherited_workspace_mode.clone());
+    }
+
+    let Some(document) = documents_by_id.get(&document_id) else {
+        return;
+    };
+    let next_workspace_mode =
+        document_workspace_identifier_mode(&document.semantic_facts().identifier_modes)
+            .or(inherited_workspace_mode);
+    let Some(processed_context) = processed_contexts.get(context_key) else {
+        return;
+    };
+
+    for child_context in processed_context_dependency_keys(processed_context) {
+        collect_inherited_workspace_modes(
             child_context,
+            next_workspace_mode.clone(),
             processed_contexts,
+            documents_by_id,
             visited_contexts,
-            seen_documents,
-            instance_documents,
+            inherited_modes,
         );
     }
 }
@@ -2086,7 +2374,7 @@ struct WorkspaceBindingTables {
 
 fn build_binding_tables(
     documents: &[&WorkspaceSemanticDocumentFacts],
-    inherited_workspace_mode: Option<&IdentifierMode>,
+    inherited_workspace_modes: &BTreeMap<DocumentId, Option<IdentifierMode>>,
 ) -> WorkspaceBindingTables {
     let mut element_modes = BTreeMap::<DocumentId, ElementIdentifierMode>::new();
     let mut element_bindings = BTreeMap::<String, Vec<SymbolHandle>>::new();
@@ -2094,6 +2382,9 @@ fn build_binding_tables(
     let mut relationship_bindings = BTreeMap::<String, Vec<SymbolHandle>>::new();
 
     for document in documents {
+        let inherited_workspace_mode = inherited_workspace_modes
+            .get(&document.document_id)
+            .and_then(|mode| mode.as_ref());
         let element_mode = effective_element_identifier_mode(document, inherited_workspace_mode);
         element_modes.insert(document.document_id.clone(), element_mode);
 
@@ -2118,9 +2409,12 @@ fn build_binding_tables(
                 | SymbolKind::SoftwareSystem
                 | SymbolKind::Container
                 | SymbolKind::Component => {
-                    let Some(binding_key) =
-                        canonical_element_binding_key(&document.symbols, symbol.id, element_mode)
-                    else {
+                    let Some(binding_key) = canonical_binding_key(
+                        &document.symbols,
+                        symbol.id,
+                        element_mode,
+                        CanonicalBindingKind::Element,
+                    ) else {
                         continue;
                     };
 
@@ -2129,12 +2423,22 @@ fn build_binding_tables(
                         .or_default()
                         .push(handle);
                 }
-                SymbolKind::DeploymentNode
+                SymbolKind::DeploymentEnvironment
+                | SymbolKind::DeploymentNode
                 | SymbolKind::InfrastructureNode
                 | SymbolKind::ContainerInstance
                 | SymbolKind::SoftwareSystemInstance => {
+                    let Some(binding_key) = canonical_binding_key(
+                        &document.symbols,
+                        symbol.id,
+                        element_mode,
+                        CanonicalBindingKind::Deployment,
+                    ) else {
+                        continue;
+                    };
+
                     deployment_bindings
-                        .entry(binding_name.to_owned())
+                        .entry(binding_key)
                         .or_default()
                         .push(handle);
                 }
@@ -2201,7 +2505,7 @@ fn build_reference_resolution_tables(
                 document: document.document_id.clone(),
                 reference_index,
             };
-            let status = resolve_reference_status(reference, bindings);
+            let status = resolve_reference_status(document, reference, bindings);
 
             if !document.has_syntax_errors {
                 match status {
@@ -2300,14 +2604,326 @@ fn push_duplicate_binding_diagnostics(
     }
 }
 
+fn workspace_structure_diagnostics(
+    definition_documents: &[&WorkspaceSemanticDocumentFacts],
+) -> Vec<RuledDiagnostic> {
+    let mut diagnostics = Vec::new();
+    push_repeated_workspace_section_diagnostics(
+        WorkspaceSectionKind::Model,
+        "model",
+        definition_documents,
+        &mut diagnostics,
+    );
+    push_repeated_workspace_section_diagnostics(
+        WorkspaceSectionKind::Views,
+        "views",
+        definition_documents,
+        &mut diagnostics,
+    );
+    diagnostics
+}
+
+fn push_repeated_workspace_section_diagnostics(
+    section_kind: WorkspaceSectionKind,
+    section_name: &str,
+    documents: &[&WorkspaceSemanticDocumentFacts],
+    diagnostics: &mut Vec<RuledDiagnostic>,
+) {
+    let occurrences = documents
+        .iter()
+        .filter(|document| !document.has_syntax_errors)
+        .flat_map(|document| {
+            document
+                .workspace_sections
+                .iter()
+                .filter(move |fact| fact.kind == section_kind)
+                .map(move |fact| (document.document_id.clone(), fact.span))
+        })
+        .collect::<Vec<_>>();
+    let Some((first_document, first_span)) = occurrences.first().cloned() else {
+        return;
+    };
+
+    for (document, span) in occurrences.into_iter().skip(1) {
+        let mut diagnostic =
+            RuledDiagnostic::repeated_workspace_section(&document, section_name, span);
+        let annotation = if document == first_document {
+            Annotation::secondary(first_span)
+        } else {
+            Annotation::secondary(first_span).in_document(&first_document)
+        }
+        .message(format!("first {section_name} section here"));
+        diagnostic.annotate(annotation);
+        diagnostics.push(diagnostic);
+    }
+}
+
+fn workspace_scope_diagnostics(
+    definition_documents: &[&WorkspaceSemanticDocumentFacts],
+    instance_documents: &[&WorkspaceSemanticDocumentFacts],
+) -> Vec<RuledDiagnostic> {
+    let Some((scope_document, scope_fact)) = effective_workspace_scope(definition_documents)
+        .or_else(|| effective_workspace_scope(instance_documents))
+    else {
+        return Vec::new();
+    };
+    let violations = workspace_scope_violations(&scope_fact.scope, instance_documents);
+    if violations.is_empty() {
+        return Vec::new();
+    }
+
+    violations
+        .into_iter()
+        .map(|violation| {
+            let message = format!(
+                "workspace is {} scoped, but the {} named {} has {}",
+                workspace_scope_label(&scope_fact.scope),
+                scope_violation_owner_label(&violation.owner),
+                violation.owner.display_name,
+                violation.child_plural,
+            );
+            let mut diagnostic =
+                RuledDiagnostic::workspace_scope_mismatch(&scope_document, message, scope_fact.span);
+            let annotation = if scope_document == violation.document {
+                Annotation::secondary(violation.owner.span)
+            } else {
+                Annotation::secondary(violation.owner.span).in_document(&violation.document)
+            }
+            .message(format!(
+                "{} named {} has {}",
+                scope_violation_owner_label(&violation.owner),
+                violation.owner.display_name,
+                violation.child_plural,
+            ));
+            diagnostic.annotate(annotation);
+            diagnostic
+        })
+        .collect()
+}
+
+fn effective_workspace_scope(
+    documents: &[&WorkspaceSemanticDocumentFacts],
+) -> Option<(DocumentId, ConfigurationScopeFact)> {
+    // Definition documents arrive in root-first include order. Prefer the first
+    // scope we encounter so an included fragment cannot silently override the
+    // root workspace entry's explicit scope declaration.
+    documents.iter().find_map(|document| {
+        document
+            .configuration_scopes
+            .last()
+            .cloned()
+            .map(|fact| (document.document_id.clone(), fact))
+    })
+}
+
+#[derive(Debug)]
+struct WorkspaceScopeViolation {
+    document: DocumentId,
+    owner: Symbol,
+    child_plural: &'static str,
+}
+
+fn workspace_scope_violations(
+    scope: &WorkspaceScope,
+    documents: &[&WorkspaceSemanticDocumentFacts],
+) -> Vec<WorkspaceScopeViolation> {
+    match scope {
+        WorkspaceScope::Landscape => {
+            scope_violations_for_child_kind(documents, SymbolKind::Container, "containers")
+        }
+        WorkspaceScope::SoftwareSystem => {
+            scope_violations_for_child_kind(documents, SymbolKind::Component, "components")
+        }
+        WorkspaceScope::Container | WorkspaceScope::Component | WorkspaceScope::Other(_) => Vec::new(),
+    }
+}
+
+fn scope_violations_for_child_kind(
+    documents: &[&WorkspaceSemanticDocumentFacts],
+    child_kind: SymbolKind,
+    child_plural: &'static str,
+) -> Vec<WorkspaceScopeViolation> {
+    let mut seen_owners = BTreeSet::new();
+    let mut violations = Vec::new();
+
+    for document in documents {
+        if document.has_syntax_errors {
+            continue;
+        }
+
+        for symbol in &document.symbols {
+            if symbol.kind != child_kind {
+                continue;
+            }
+
+            let Some(owner) = scope_violation_owner(&document.symbols, symbol.parent).cloned()
+            else {
+                continue;
+            };
+            if seen_owners.insert((document.document_id.clone(), owner.id)) {
+                violations.push(WorkspaceScopeViolation {
+                    document: document.document_id.clone(),
+                    owner,
+                    child_plural,
+                });
+            }
+        }
+    }
+
+    violations
+}
+
+fn scope_violation_owner(symbols: &[Symbol], mut parent: Option<SymbolId>) -> Option<&Symbol> {
+    while let Some(parent_id) = parent {
+        let owner = symbols.get(parent_id.0)?;
+        match owner.kind {
+            SymbolKind::SoftwareSystem | SymbolKind::Container => return Some(owner),
+            _ => parent = owner.parent,
+        }
+    }
+
+    None
+}
+
+const fn scope_violation_owner_label(symbol: &Symbol) -> &'static str {
+    match symbol.kind {
+        SymbolKind::SoftwareSystem => "software system",
+        SymbolKind::Container => "container",
+        _ => "element",
+    }
+}
+
+const fn workspace_scope_label(scope: &WorkspaceScope) -> &str {
+    match scope {
+        WorkspaceScope::Landscape => "landscape",
+        WorkspaceScope::SoftwareSystem => "software system",
+        WorkspaceScope::Container => "container",
+        WorkspaceScope::Component => "component",
+        WorkspaceScope::Other(raw) => raw.as_str(),
+    }
+}
+
+fn element_selector_diagnostics(
+    documents: &[&WorkspaceSemanticDocumentFacts],
+    bindings: &WorkspaceBindingTables,
+) -> Vec<RuledDiagnostic> {
+    let mut diagnostics = Vec::new();
+
+    for document in documents {
+        if document.has_syntax_errors {
+            continue;
+        }
+
+        for directive in &document.element_directives {
+            // TODO: Path-style selectors such as `DeploymentNode://...` need a
+            // richer resolver than the current binding tables.
+            if !matches!(
+                directive.target.value_kind,
+                DirectiveValueKind::BareValue | DirectiveValueKind::Identifier
+            ) {
+                continue;
+            }
+
+            match resolve_element_selector_target(document, directive, bindings) {
+                SelectorResolutionStatus::Resolved => {}
+                SelectorResolutionStatus::UnresolvedNoMatch => {
+                    diagnostics.push(RuledDiagnostic::unresolved_element_selector(
+                        &document.document_id,
+                        &directive.target.normalized_text,
+                        directive.target.span,
+                    ));
+                }
+                SelectorResolutionStatus::Ambiguous => {
+                    diagnostics.push(RuledDiagnostic::ambiguous_reference(
+                        &document.document_id,
+                        &directive.target.normalized_text,
+                        directive.target.span,
+                    ));
+                }
+            }
+        }
+    }
+
+    diagnostics
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SelectorResolutionStatus {
+    Resolved,
+    UnresolvedNoMatch,
+    Ambiguous,
+}
+
+fn resolve_element_selector_target(
+    document: &WorkspaceSemanticDocumentFacts,
+    directive: &ElementDirectiveFact,
+    bindings: &WorkspaceBindingTables,
+) -> SelectorResolutionStatus {
+    let raw_text = directive.target.normalized_text.as_str();
+    let status = resolve_selector_target_raw_text(raw_text, bindings);
+    if status != SelectorResolutionStatus::UnresolvedNoMatch {
+        return status;
+    }
+
+    let Some(mode) = bindings.element_modes.get(&document.document_id).copied() else {
+        return SelectorResolutionStatus::UnresolvedNoMatch;
+    };
+    let Some(containing_symbol) = enclosing_symbol_for_span(document, directive.span) else {
+        return SelectorResolutionStatus::UnresolvedNoMatch;
+    };
+
+    for prefix in contextual_selector_prefixes(&document.symbols, containing_symbol, mode) {
+        let candidate = format!("{prefix}.{raw_text}");
+        let contextual_status = resolve_selector_target_raw_text(&candidate, bindings);
+        if contextual_status != SelectorResolutionStatus::UnresolvedNoMatch {
+            return contextual_status;
+        }
+    }
+
+    SelectorResolutionStatus::UnresolvedNoMatch
+}
+
+fn resolve_selector_target_raw_text(
+    raw_text: &str,
+    bindings: &WorkspaceBindingTables,
+) -> SelectorResolutionStatus {
+    if bindings.duplicate_elements.contains_key(raw_text)
+        || bindings.duplicate_deployments.contains_key(raw_text)
+    {
+        return SelectorResolutionStatus::Ambiguous;
+    }
+
+    match (
+        bindings.unique_elements.get(raw_text),
+        bindings.unique_deployments.get(raw_text),
+    ) {
+        (Some(_), Some(_)) => SelectorResolutionStatus::Ambiguous,
+        (Some(_), None) | (None, Some(_)) => SelectorResolutionStatus::Resolved,
+        (None, None) => SelectorResolutionStatus::UnresolvedNoMatch,
+    }
+}
+
+fn enclosing_symbol_for_span(
+    document: &WorkspaceSemanticDocumentFacts,
+    span: TextSpan,
+) -> Option<SymbolId> {
+    document
+        .symbols
+        .iter()
+        .filter(|symbol| span_within(symbol.span, span))
+        .min_by_key(|symbol| symbol.span.end_byte - symbol.span.start_byte)
+        .map(|symbol| symbol.id)
+}
+
 fn resolve_reference_status(
+    document: &WorkspaceSemanticDocumentFacts,
     reference: &Reference,
     bindings: &WorkspaceBindingTables,
 ) -> ReferenceResolutionStatus {
     // Syntax-role kinds remain useful to the LSP and diagnostics, but bounded
     // workspace resolution really depends on which binding family one reference
     // is allowed to target.
-    match reference.kind {
+    let status = match reference.kind {
         ReferenceKind::RelationshipSource
         | ReferenceKind::RelationshipDestination
         | ReferenceKind::InstanceTarget
@@ -2319,7 +2935,178 @@ fn resolve_reference_status(
         | ReferenceKind::ViewAnimation => {
             resolve_reference_against_target_hint(reference, bindings)
         }
+    };
+
+    if status == ReferenceResolutionStatus::UnresolvedNoMatch {
+        let contextual_status =
+            resolve_reference_with_symbol_context(document, reference, bindings);
+        if contextual_status == ReferenceResolutionStatus::UnresolvedNoMatch {
+            resolve_reference_with_selector_context(document, reference, bindings)
+        } else {
+            contextual_status
+        }
+    } else {
+        status
     }
+}
+
+fn resolve_reference_with_symbol_context(
+    document: &WorkspaceSemanticDocumentFacts,
+    reference: &Reference,
+    bindings: &WorkspaceBindingTables,
+) -> ReferenceResolutionStatus {
+    let Some(containing_symbol) = reference.containing_symbol else {
+        return ReferenceResolutionStatus::UnresolvedNoMatch;
+    };
+    let Some(mode) = bindings.element_modes.get(&document.document_id).copied() else {
+        return ReferenceResolutionStatus::UnresolvedNoMatch;
+    };
+
+    for prefix in contextual_reference_prefixes(
+        &document.symbols,
+        containing_symbol,
+        mode,
+        reference.target_hint,
+    ) {
+        let contextual_raw_text = format!("{prefix}.{}", reference.raw_text);
+        let status = match reference.target_hint {
+            ReferenceTargetHint::Element => resolve_reference_against_element_table(
+                &contextual_raw_text,
+                &bindings.unique_elements,
+                &bindings.duplicate_elements,
+            ),
+            ReferenceTargetHint::Deployment => resolve_reference_against_binding_table(
+                &contextual_raw_text,
+                &bindings.unique_deployments,
+                &bindings.duplicate_deployments,
+            ),
+            ReferenceTargetHint::Relationship | ReferenceTargetHint::ElementOrRelationship => {
+                ReferenceResolutionStatus::UnresolvedNoMatch
+            }
+        };
+        if status != ReferenceResolutionStatus::UnresolvedNoMatch {
+            return status;
+        }
+    }
+
+    ReferenceResolutionStatus::UnresolvedNoMatch
+}
+
+fn contextual_reference_prefixes(
+    symbols: &[Symbol],
+    containing_symbol: SymbolId,
+    mode: ElementIdentifierMode,
+    target_hint: ReferenceTargetHint,
+) -> Vec<String> {
+    match target_hint {
+        ReferenceTargetHint::Element => contextual_prefixes(
+            symbols,
+            containing_symbol,
+            mode,
+            &[CanonicalBindingKind::Element],
+        ),
+        ReferenceTargetHint::Deployment => contextual_prefixes(
+            symbols,
+            containing_symbol,
+            mode,
+            &[CanonicalBindingKind::Deployment],
+        ),
+        ReferenceTargetHint::Relationship | ReferenceTargetHint::ElementOrRelationship => {
+            Vec::new()
+        }
+    }
+}
+
+fn contextual_selector_prefixes(
+    symbols: &[Symbol],
+    containing_symbol: SymbolId,
+    mode: ElementIdentifierMode,
+) -> Vec<String> {
+    contextual_prefixes(
+        symbols,
+        containing_symbol,
+        mode,
+        &[
+            CanonicalBindingKind::Element,
+            CanonicalBindingKind::Deployment,
+        ],
+    )
+}
+
+fn contextual_prefixes(
+    symbols: &[Symbol],
+    containing_symbol: SymbolId,
+    mode: ElementIdentifierMode,
+    binding_kinds: &[CanonicalBindingKind],
+) -> Vec<String> {
+    // Symbol-context references and `!element` selectors both walk outward
+    // through the same ancestor chain. The only difference is whether one pass
+    // should consider element bindings, deployment bindings, or both.
+    let mut prefixes = Vec::new();
+    let mut current = Some(containing_symbol);
+
+    while let Some(symbol_id) = current {
+        let symbol = symbols
+            .get(symbol_id.0)
+            .expect("BUG: contextual prefix symbol should exist");
+        for binding_kind in binding_kinds {
+            if let Some(prefix) = canonical_binding_key(symbols, symbol_id, mode, *binding_kind) {
+                prefixes.push(prefix);
+            }
+        }
+        current = symbol.parent;
+    }
+
+    prefixes
+}
+
+fn resolve_reference_with_selector_context(
+    document: &WorkspaceSemanticDocumentFacts,
+    reference: &Reference,
+    bindings: &WorkspaceBindingTables,
+) -> ReferenceResolutionStatus {
+    let Some(selector_target) = enclosing_element_selector_target(document, reference.span) else {
+        return ReferenceResolutionStatus::UnresolvedNoMatch;
+    };
+    if !matches!(
+        selector_target.value_kind,
+        DirectiveValueKind::BareValue | DirectiveValueKind::Identifier
+    ) {
+        return ReferenceResolutionStatus::UnresolvedNoMatch;
+    }
+
+    let contextual_raw_text = format!("{}.{}", selector_target.normalized_text, reference.raw_text);
+    match reference.target_hint {
+        ReferenceTargetHint::Element => resolve_reference_against_element_table(
+            &contextual_raw_text,
+            &bindings.unique_elements,
+            &bindings.duplicate_elements,
+        ),
+        ReferenceTargetHint::Deployment => resolve_reference_against_binding_table(
+            &contextual_raw_text,
+            &bindings.unique_deployments,
+            &bindings.duplicate_deployments,
+        ),
+        ReferenceTargetHint::Relationship | ReferenceTargetHint::ElementOrRelationship => {
+            ReferenceResolutionStatus::UnresolvedNoMatch
+        }
+    }
+}
+
+fn enclosing_element_selector_target(
+    document: &WorkspaceSemanticDocumentFacts,
+    span: TextSpan,
+) -> Option<&crate::ValueFact> {
+    document
+        .element_directives
+        .iter()
+        .filter(|directive| span_within(directive.span, span))
+        .min_by_key(|directive| directive.span.end_byte - directive.span.start_byte)
+        .map(|directive| &directive.target)
+}
+
+const fn span_within(outer: TextSpan, inner: TextSpan) -> bool {
+    outer.start_byte <= inner.start_byte && inner.end_byte <= outer.end_byte
 }
 
 fn resolve_reference_against_target_hint(
@@ -2357,6 +3144,9 @@ fn resolve_reference_against_element_table(
     unique_element_bindings: &BTreeMap<String, SymbolHandle>,
     duplicate_element_bindings: &BTreeMap<String, Vec<SymbolHandle>>,
 ) -> ReferenceResolutionStatus {
+    // Keep the element-flavoured wrapper even though it currently delegates
+    // directly so the call sites still read in terms of binding families rather
+    // than raw table plumbing.
     resolve_reference_against_binding_table(
         raw_text,
         unique_element_bindings,
@@ -2456,10 +3246,39 @@ fn last_identifier_mode_for_container(
         .map(|fact| fact.mode.clone())
 }
 
-fn canonical_element_binding_key(
+#[derive(Clone, Copy)]
+enum CanonicalBindingKind {
+    Element,
+    Deployment,
+}
+
+impl CanonicalBindingKind {
+    const fn allows_ancestor(self, kind: SymbolKind) -> bool {
+        match self {
+            Self::Element => matches!(
+                kind,
+                SymbolKind::Person
+                    | SymbolKind::SoftwareSystem
+                    | SymbolKind::Container
+                    | SymbolKind::Component
+            ),
+            Self::Deployment => matches!(
+                kind,
+                SymbolKind::DeploymentEnvironment
+                    | SymbolKind::DeploymentNode
+                    | SymbolKind::InfrastructureNode
+                    | SymbolKind::ContainerInstance
+                    | SymbolKind::SoftwareSystemInstance
+            ),
+        }
+    }
+}
+
+fn canonical_binding_key(
     symbols: &[Symbol],
     symbol_id: SymbolId,
     mode: ElementIdentifierMode,
+    binding_kind: CanonicalBindingKind,
 ) -> Option<String> {
     let symbol = symbols.get(symbol_id.0)?;
     let binding_name = symbol.binding_name.as_deref()?;
@@ -2473,13 +3292,11 @@ fn canonical_element_binding_key(
 
             while let Some(parent_id) = parent {
                 let ancestor = symbols.get(parent_id.0)?;
-                if !matches!(
-                    ancestor.kind,
-                    SymbolKind::Person
-                        | SymbolKind::SoftwareSystem
-                        | SymbolKind::Container
-                        | SymbolKind::Component
-                ) {
+                if !binding_kind.allows_ancestor(ancestor.kind) {
+                    // Once the ancestor chain stops describing one canonical
+                    // element/deployment path, drop the whole hierarchical key
+                    // instead of emitting a truncated binding that would collide
+                    // with a different legitimate declaration.
                     return None;
                 }
 
@@ -2498,6 +3315,10 @@ fn merge_semantic_diagnostics(
     workspace_indexes: &[WorkspaceIndex],
     document_instances: &BTreeMap<DocumentId, Vec<WorkspaceInstanceId>>,
 ) -> Vec<RuledDiagnostic> {
+    // A document can participate in multiple candidate workspace instances.
+    // Only publish a merged semantic diagnostic when every instance that contains
+    // the document agrees on that diagnostic; otherwise editor surfaces would
+    // oscillate based on whichever instance happened to be consulted first.
     let mut diagnostic_counts = BTreeMap::<DocumentId, BTreeMap<RuledDiagnostic, usize>>::new();
 
     for workspace_index in workspace_indexes {

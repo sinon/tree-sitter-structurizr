@@ -1238,6 +1238,7 @@ const fn symbol_kind_label(kind: SymbolKind) -> &'static str {
         SymbolKind::SoftwareSystem => "Software system",
         SymbolKind::Container => "Container",
         SymbolKind::Component => "Component",
+        SymbolKind::DeploymentEnvironment => "Deployment environment",
         SymbolKind::DeploymentNode => "Deployment node",
         SymbolKind::InfrastructureNode => "Infrastructure node",
         SymbolKind::ContainerInstance => "Container instance",

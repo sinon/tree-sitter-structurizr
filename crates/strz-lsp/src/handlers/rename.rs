@@ -585,6 +585,7 @@ const fn is_supported_rename_symbol_kind(kind: SymbolKind) -> bool {
             | SymbolKind::SoftwareSystem
             | SymbolKind::Container
             | SymbolKind::Component
+            | SymbolKind::DeploymentEnvironment
             | SymbolKind::DeploymentNode
             | SymbolKind::InfrastructureNode
             | SymbolKind::ContainerInstance

@@ -202,6 +202,16 @@ fn assert_span_within_source(
 fn assert_snapshot_spans_within_source(snapshot: &DocumentSnapshot) -> Result<(), TestCaseError> {
     let source = snapshot.source();
 
+    assert_core_snapshot_spans_within_source(snapshot, source)?;
+    assert_semantic_snapshot_spans_within_source(snapshot, source)?;
+
+    Ok(())
+}
+
+fn assert_core_snapshot_spans_within_source(
+    snapshot: &DocumentSnapshot,
+    source: &str,
+) -> Result<(), TestCaseError> {
     assert_span_within_source(
         TextSpan::from_node(snapshot.tree().root_node()),
         source,
@@ -258,6 +268,269 @@ fn assert_snapshot_spans_within_source(snapshot: &DocumentSnapshot) -> Result<()
 
     for (index, reference) in snapshot.references().iter().enumerate() {
         assert_span_within_source(reference.span, source, &format!("reference #{index} span"))?;
+    }
+
+    Ok(())
+}
+
+fn assert_semantic_snapshot_spans_within_source(
+    snapshot: &DocumentSnapshot,
+    source: &str,
+) -> Result<(), TestCaseError> {
+    for (index, section) in snapshot.workspace_sections().iter().enumerate() {
+        assert_span_within_source(
+            section.span,
+            source,
+            &format!("workspace section #{index} span"),
+        )?;
+    }
+
+    for (index, scope) in snapshot.configuration_scopes().iter().enumerate() {
+        assert_span_within_source(
+            scope.span,
+            source,
+            &format!("configuration scope #{index} span"),
+        )?;
+        assert_span_within_source(
+            scope.value.span,
+            source,
+            &format!("configuration scope #{index} value span"),
+        )?;
+    }
+
+    for (index, property) in snapshot.property_facts().iter().enumerate() {
+        assert_span_within_source(property.span, source, &format!("property #{index} span"))?;
+        assert_span_within_source(
+            property.name.span,
+            source,
+            &format!("property #{index} name span"),
+        )?;
+        assert_span_within_source(
+            property.value.span,
+            source,
+            &format!("property #{index} value span"),
+        )?;
+    }
+
+    for (index, resource) in snapshot.resource_directives().iter().enumerate() {
+        assert_resource_directive_spans_within_source(resource, index, source)?;
+    }
+
+    for (index, directive) in snapshot.element_directives().iter().enumerate() {
+        assert_span_within_source(
+            directive.span,
+            source,
+            &format!("element directive #{index} span"),
+        )?;
+        assert_span_within_source(
+            directive.target.span,
+            source,
+            &format!("element directive #{index} target span"),
+        )?;
+    }
+
+    for (index, relationship) in snapshot.relationship_facts().iter().enumerate() {
+        assert_span_within_source(
+            relationship.span,
+            source,
+            &format!("relationship fact #{index} span"),
+        )?;
+        assert_span_within_source(
+            relationship.source.span,
+            source,
+            &format!("relationship fact #{index} source span"),
+        )?;
+        assert_span_within_source(
+            relationship.destination.span,
+            source,
+            &format!("relationship fact #{index} destination span"),
+        )?;
+        if let Some(description) = &relationship.description {
+            assert_span_within_source(
+                description.span,
+                source,
+                &format!("relationship fact #{index} description span"),
+            )?;
+        }
+        if let Some(technology) = &relationship.technology {
+            assert_span_within_source(
+                technology.span,
+                source,
+                &format!("relationship fact #{index} technology span"),
+            )?;
+        }
+    }
+
+    for (index, view) in snapshot.view_facts().iter().enumerate() {
+        assert_view_spans_within_source(view, index, source)?;
+    }
+
+    Ok(())
+}
+
+fn assert_resource_directive_spans_within_source(
+    resource: &strz_analysis::ResourceDirectiveFact,
+    index: usize,
+    source: &str,
+) -> Result<(), TestCaseError> {
+    assert_span_within_source(
+        resource.span,
+        source,
+        &format!("resource directive #{index} span"),
+    )?;
+    assert_span_within_source(
+        resource.path.span,
+        source,
+        &format!("resource directive #{index} path span"),
+    )?;
+    if let Some(importer) = &resource.importer {
+        assert_span_within_source(
+            importer.span,
+            source,
+            &format!("resource directive #{index} importer span"),
+        )?;
+    }
+
+    Ok(())
+}
+
+fn assert_view_spans_within_source(
+    view: &strz_analysis::ViewFact,
+    index: usize,
+    source: &str,
+) -> Result<(), TestCaseError> {
+    assert_span_within_source(view.span, source, &format!("view #{index} span"))?;
+    if let Some(body_span) = view.body_span {
+        assert_span_within_source(body_span, source, &format!("view #{index} body span"))?;
+    }
+
+    for (label, value) in [
+        ("key", view.key.as_ref()),
+        ("scope", view.scope.as_ref()),
+        ("environment", view.environment.as_ref()),
+        ("base key", view.base_key.as_ref()),
+        ("filter tags", view.filter_tags.as_ref()),
+    ] {
+        if let Some(value) = value {
+            assert_span_within_source(value.span, source, &format!("view #{index} {label} span"))?;
+        }
+    }
+    if let Some(auto_layout) = &view.auto_layout {
+        assert_span_within_source(
+            auto_layout.span,
+            source,
+            &format!("view #{index} auto layout span"),
+        )?;
+    }
+    for (kind, values) in [
+        ("include", &view.include_values),
+        ("exclude", &view.exclude_values),
+        ("animation", &view.animation_values),
+    ] {
+        for (value_index, value) in values.iter().enumerate() {
+            assert_span_within_source(
+                value.span,
+                source,
+                &format!("view #{index} {kind} #{value_index} span"),
+            )?;
+        }
+    }
+    for (step_index, step) in view.dynamic_steps.iter().enumerate() {
+        assert_dynamic_step_spans_within_source(step, index, step_index, source)?;
+    }
+    for (source_index, image_source) in view.image_sources.iter().enumerate() {
+        assert_image_source_spans_within_source(image_source, index, source_index, source)?;
+    }
+
+    Ok(())
+}
+
+fn assert_dynamic_step_spans_within_source(
+    step: &strz_analysis::DynamicViewStepFact,
+    view_index: usize,
+    step_index: usize,
+    source: &str,
+) -> Result<(), TestCaseError> {
+    match step {
+        strz_analysis::DynamicViewStepFact::Relationship(step) => {
+            assert_span_within_source(
+                step.span,
+                source,
+                &format!("view #{view_index} dynamic relationship #{step_index} span"),
+            )?;
+            assert_span_within_source(
+                step.source.span,
+                source,
+                &format!("view #{view_index} dynamic relationship #{step_index} source span"),
+            )?;
+            assert_span_within_source(
+                step.destination.span,
+                source,
+                &format!("view #{view_index} dynamic relationship #{step_index} destination span"),
+            )?;
+            if let Some(description) = &step.description {
+                assert_span_within_source(
+                    description.span,
+                    source,
+                    &format!(
+                        "view #{view_index} dynamic relationship #{step_index} description span"
+                    ),
+                )?;
+            }
+            if let Some(technology) = &step.technology {
+                assert_span_within_source(
+                    technology.span,
+                    source,
+                    &format!(
+                        "view #{view_index} dynamic relationship #{step_index} technology span"
+                    ),
+                )?;
+            }
+        }
+        strz_analysis::DynamicViewStepFact::RelationshipReference(step) => {
+            assert_span_within_source(
+                step.span,
+                source,
+                &format!("view #{view_index} dynamic reference #{step_index} span"),
+            )?;
+            assert_span_within_source(
+                step.relationship.span,
+                source,
+                &format!("view #{view_index} dynamic reference #{step_index} relation span"),
+            )?;
+            assert_span_within_source(
+                step.description.span,
+                source,
+                &format!("view #{view_index} dynamic reference #{step_index} description span"),
+            )?;
+        }
+    }
+
+    Ok(())
+}
+
+fn assert_image_source_spans_within_source(
+    image_source: &strz_analysis::ImageSourceFact,
+    view_index: usize,
+    source_index: usize,
+    source: &str,
+) -> Result<(), TestCaseError> {
+    assert_span_within_source(
+        image_source.span,
+        source,
+        &format!("view #{view_index} image source #{source_index} span"),
+    )?;
+    assert_span_within_source(
+        image_source.value.span,
+        source,
+        &format!("view #{view_index} image source #{source_index} value span"),
+    )?;
+    if let Some(format) = &image_source.format {
+        assert_span_within_source(
+            format.span,
+            source,
+            &format!("view #{view_index} image source #{source_index} format span"),
+        )?;
     }
 
     Ok(())

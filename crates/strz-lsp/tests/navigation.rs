@@ -611,16 +611,16 @@ async fn completion_inside_fresh_relationship_source_before_deployment_environme
  {
     let temp_workspace = TempWorkspace::new(
         "relationship-completion-before-deployment-environment",
-        "workspace {\n  !include model.dsl\n  !include relationships.dsl\n}\n",
+        "workspace {\n  !include relationships.dsl\n}\n",
         &[],
         &[
             (
                 Path::new("model.dsl"),
-                "model {\n  customer = person \"Customer\"\n  webApplication = softwareSystem \"Web Application\"\n}\n",
+                "customer = person \"Customer\"\nwebApplication = softwareSystem \"Web Application\"\n",
             ),
             (
                 Path::new("relationships.dsl"),
-                "model {\n  customer -> webApplication \"Uses\"\n\n  deploymentEnvironment \"Development\" {\n  }\n}\n",
+                "model {\n  !include model.dsl\n  customer -> webApplication \"Uses\"\n\n  deploymentEnvironment \"Development\" {\n  }\n}\n",
             ),
         ],
     );
@@ -1954,7 +1954,13 @@ async fn diagnostics_publish_bounded_semantic_errors() {
                 .expect("diagnostic message should be a string")
         })
         .collect::<Vec<_>>();
-    assert_eq!(alpha_messages, vec!["duplicate element binding: api"]);
+    assert_eq!(
+        alpha_messages,
+        vec![
+            "multiple model sections are not permitted in a DSL definition",
+            "duplicate element binding: api",
+        ]
+    );
 
     close_document(&mut service, &alpha_uri).await;
     let _ = next_publish_diagnostics_for_uri(&mut socket, alpha_uri.as_str()).await;
