@@ -550,3 +550,63 @@ workspace {
                     (deployment_instance_block
                       (url_statement
                         (string)))))))))))))
+
+=========================
+Leading-digit identifiers
+=========================
+
+workspace {
+  model {
+    1user = person "User"
+    system1 = softwareSystem "System" {
+      1api = container "API"
+    }
+
+    1user -> 1api "Uses"
+  }
+}
+
+---
+
+(source_file
+  (workspace
+    (workspace_block
+      (model
+        (model_block
+          (person
+            (identifier)
+            (string))
+          (software_system
+            (identifier)
+            (string)
+            (software_system_block
+              (container
+                (identifier)
+                (string))))
+          (relationship
+            (identifier)
+            (relationship_operator)
+            (identifier)
+            (string)))))))
+
+=====================
+All-digit identifiers
+=====================
+
+workspace {
+  model {
+    111 = person "User"
+  }
+}
+
+---
+
+(source_file
+  (workspace
+    (workspace_block
+      (model
+        (model_block
+          (ERROR
+            (order)
+            (shape_value)
+            (string)))))))

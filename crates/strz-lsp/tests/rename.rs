@@ -117,6 +117,28 @@ async fn rename_rewrites_same_document_flat_element_bindings_and_references() {
 }
 
 #[tokio::test(flavor = "current_thread")]
+async fn rename_accepts_leading_digit_new_names_for_the_flat_slice() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(FLAT_ELEMENT_RENAME_SOURCE);
+    let uri = file_uri("rename-leading-digit-new-name.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let response = request_rename(
+        &mut service,
+        &uri,
+        source.position("api-declaration"),
+        "1paymentsApi",
+    )
+    .await;
+
+    assert_workspace_edit(&response, &[(&uri, &[4, 6, 10, 11])], "1paymentsApi");
+}
+
+#[tokio::test(flavor = "current_thread")]
 async fn rename_rewrites_cross_file_container_instance_bindings_and_references() {
     let temp_workspace = TempWorkspace::new(
         "rename-cross-file-container-instance",
@@ -260,7 +282,33 @@ async fn rename_rejects_dotted_new_names_for_the_flat_slice() {
     assert_eq!(response["error"]["code"], -32602);
     assert_eq!(
         response["error"]["message"],
-        "rename newName must match the supported flat Structurizr identifier shape"
+        "rename newName must match the supported flat identifier shape: ASCII letters, digits, `_`, and `-`, but not all digits"
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn rename_rejects_all_digit_new_names_for_the_flat_slice() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(FLAT_ELEMENT_RENAME_SOURCE);
+    let uri = file_uri("rename-all-digit-new-name.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let response = request_rename(
+        &mut service,
+        &uri,
+        source.position("api-declaration"),
+        "111",
+    )
+    .await;
+
+    assert_eq!(response["error"]["code"], -32602);
+    assert_eq!(
+        response["error"]["message"],
+        "rename newName must match the supported flat identifier shape: ASCII letters, digits, `_`, and `-`, but not all digits"
     );
 }
 

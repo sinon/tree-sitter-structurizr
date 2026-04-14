@@ -23,6 +23,7 @@ use crate::{
         uris::file_uri_from_path,
     },
     documents::DocumentState,
+    identifier::is_valid_bindable_identifier,
     server::Backend,
     state::ServerState,
 };
@@ -128,7 +129,7 @@ pub async fn rename(
     let new_name = params.new_name;
     if !is_valid_flat_identifier(&new_name) {
         return Err(Error::invalid_params(
-            "rename newName must match the supported flat Structurizr identifier shape",
+            "rename newName must match the supported flat identifier shape: ASCII letters, digits, `_`, and `-`, but not all digits",
         ));
     }
 
@@ -280,6 +281,14 @@ fn workspace_instance_rename_sites(
     target_symbol: &Symbol,
     current_name: &str,
 ) -> Option<Vec<RenameEditSite>> {
+    if workspace_has_non_flat_reference_spelling(
+        workspace_facts,
+        workspace_index,
+        target_handle,
+        current_name,
+    ) {
+        return None;
+    }
     if !target_is_renameable_in_workspace(
         workspace_index,
         target_handle,
@@ -352,6 +361,12 @@ fn same_document_rename_plan(
     }
 
     let current_name = target_symbol.binding_name.clone()?;
+    if snapshot.references().iter().any(|reference| {
+        super::navigation::resolve_reference(snapshot, reference) == Some(target_symbol)
+            && reference.raw_text != current_name
+    }) {
+        return None;
+    }
     if !target_is_locally_unique(snapshot, target_symbol) {
         return None;
     }
@@ -462,6 +477,20 @@ fn workspace_instance_has_ambiguous_same_text_references(
     }
 
     false
+}
+
+fn workspace_has_non_flat_reference_spelling(
+    workspace_facts: &WorkspaceFacts,
+    workspace_index: &WorkspaceIndex,
+    target_handle: &SymbolHandle,
+    current_name: &str,
+) -> bool {
+    workspace_index.references_for_symbol(target_handle).any(|handle| {
+        workspace_facts
+            .document(handle.document())
+            .and_then(|document| document.snapshot().references().get(handle.reference_index()))
+            .is_none_or(|reference| reference.raw_text != current_name)
+    })
 }
 
 fn same_document_has_ambiguous_same_text_references(
@@ -601,16 +630,29 @@ const fn symbol_in_same_binding_family(left: SymbolKind, right: SymbolKind) -> b
 }
 
 fn is_valid_flat_identifier(value: &str) -> bool {
-    let mut characters = value.bytes();
-    let Some(first) = characters.next() else {
-        return false;
-    };
-    if !first.is_ascii_alphabetic() && first != b'_' {
-        return false;
-    }
-
     // The grammar accepts `.`, but bounded rename does not: a dotted replacement
     // would synthesize a hierarchical identifier inside a flat-only feature.
-    characters
-        .all(|character| character.is_ascii_alphanumeric() || matches!(character, b'_' | b'-'))
+    !value.contains('.') && is_valid_bindable_identifier(value)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::rstest;
+
+    #[rstest]
+    #[case("abc", true)]
+    #[case("1abc", true)]
+    #[case("ABC", true)]
+    #[case("ABC_DEF", true)]
+    #[case("abc-DEF", true)]
+    #[case("_abc-DEF", true)]
+    #[case("111", false)]
+    #[case("abc.DEF", false)]
+    #[case("-abcDEF", false)]
+    #[case("", false)]
+    #[case("*abcDEF", false)]
+    fn test_is_valid_flat_identifier(#[case] input: &str, #[case] expected: bool) {
+        assert_eq!(is_valid_flat_identifier(input), expected);
+    }
 }

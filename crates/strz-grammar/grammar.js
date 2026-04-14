@@ -191,6 +191,15 @@ const ROUTING_VALUES = ["Direct", "Curved", "Orthogonal"];
 
 const FILTER_MODES = ["include", "exclude"];
 
+// Upstream accepts bindable identifiers that may start with digits or `_`, but
+// a bare all-digit token falls into a later generic parser failure. Model that
+// policy explicitly here so assignment and reference parsing stay aligned with
+// editor-facing validation.
+const BINDABLE_IDENTIFIER_SEGMENT_SOURCE =
+  "(?:[A-Za-z_][A-Za-z0-9_-]*|[0-9][A-Za-z0-9_-]*[A-Za-z_-][A-Za-z0-9_-]*)";
+const IDENTIFIER_SOURCE = `${BINDABLE_IDENTIFIER_SEGMENT_SOURCE}(?:\\.${BINDABLE_IDENTIFIER_SEGMENT_SOURCE})*`;
+const IDENTIFIER = new RegExp(IDENTIFIER_SOURCE);
+
 function escapeRegexChar(char) {
   return char.replace(/[|\\{}()[\]^$+*?.-]/g, "\\$&");
 }
@@ -254,7 +263,12 @@ function deploymentInstanceRule($, keyword) {
     keyword,
     $._inline_gap,
     field("target", $.identifier),
-    optional(choice(deploymentInstanceOptionalBody($), deploymentInstanceGroupedTail($))),
+    optional(
+      choice(
+        deploymentInstanceOptionalBody($),
+        deploymentInstanceGroupedTail($),
+      ),
+    ),
   );
 }
 
@@ -300,9 +314,14 @@ export default grammar({
     // ends with an explicit continuation marker. Reuse a same-line gap for
     // deployment instance headers so optional group/tag slots do not absorb the next
     // deployment item on a following line.
-    _inline_gap: (_) => token.immediate(choice(/[ \t]+/, seq("\\", /\r?\n/, /[ \t]*/))),
+    _inline_gap: (_) =>
+      token.immediate(choice(/[ \t]+/, seq("\\", /\r?\n/, /[ \t]*/))),
 
-    identifier: (_) => /[A-Za-z_][A-Za-z0-9_.-]*/,
+    // Keep bindable assignment identifiers and dotted reference identifiers
+    // aligned with upstream's observed identifier character set while rejecting
+    // the all-digit tokens that currently collapse into a later generic parser
+    // failure.
+    identifier: (_) => IDENTIFIER,
 
     _assignment_identifier: ($) =>
       prec(

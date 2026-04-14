@@ -1,0 +1,13 @@
+---
+source: crates/strz-grammar/tests/fixtures.rs
+expression: tree_sexp(&tree)
+---
+(source_file
+  (workspace body:
+    (workspace_block
+      (model body:
+        (model_block
+          (ERROR
+            (order)
+            (shape_value)
+            (string)))))))
