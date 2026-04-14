@@ -18,7 +18,7 @@ The remaining repeated normalization lives mostly in
 [`crates/strz-analysis/src/workspace.rs`](../crates/strz-analysis/src/workspace.rs):
 
 - `scan_workspace_root(...)`
-- `resolve_local_include(...)`
+- `resolve_include(...)`
 - `collect_directory_include_paths(...)`
 
 On the LSP side,

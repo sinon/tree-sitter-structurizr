@@ -35,6 +35,7 @@ slice after deployment-node-only completion lands.
 Source completion should include deployment bindings valid for an
 `infrastructureNode`, and destination completion should filter to
 `DeploymentNode`, `InfrastructureNode`, `SoftwareSystemInstance`, and
-`ContainerInstance`. Coordinate the tests with
-[`tasks/18-diagnose-deployment-parent-child-relationship-validation.md`](./18-diagnose-deployment-parent-child-relationship-validation.md)
+`ContainerInstance`. Coordinate the tests with the existing
+`semantic.deployment-parent-child-relationship` coverage in
+[`crates/strz-analysis/tests/workspace_index.rs`](../crates/strz-analysis/tests/workspace_index.rs)
 so the deployment hierarchy rules and the completion matrix do not drift apart.

@@ -1,41 +1,42 @@
 ## Issue
 
-The LSP integration tests still hide many request positions behind
-`position_in(..., needle, byte_offset)` calls that force reviewers to count
-bytes mentally.
+The LSP integration tests now have marker-based cursor helpers, but
+[`crates/strz-lsp/tests/navigation.rs`](../crates/strz-lsp/tests/navigation.rs)
+still hides many request positions behind `position_in(..., needle,
+byte_offset)` calls that force reviewers to count bytes mentally.
 
-This is already visible in the new hover tests, but it is broader than hover:
+The remaining work is narrower than this task originally described:
 
 - [`crates/strz-lsp/tests/hover.rs`](../crates/strz-lsp/tests/hover.rs)
-  currently uses the pattern for all hover request sites
+  already uses `<CURSOR>` / `<CURSOR:name>` markers
+- [`crates/strz-lsp/tests/rename.rs`](../crates/strz-lsp/tests/rename.rs)
+  also uses marker-based request sites
 - [`crates/strz-lsp/tests/navigation.rs`](../crates/strz-lsp/tests/navigation.rs)
-  still has many definition/reference/path-navigation cases using magic offsets
+  still has the remaining magic-offset cases
 
 ## Root Cause
 
 [`crates/strz-lsp/tests/support/mod.rs`](../crates/strz-lsp/tests/support/mod.rs)
-currently exposes `position_in(text, needle, byte_offset_within_needle)`, which
-is easy to implement but not easy to review.
+already exposes marker-based helpers via `annotated_source(...)`, but it still
+also exposes `position_in(text, needle, byte_offset_within_needle)`.
 
-That means test authors have to encode cursor intent indirectly, and reviewers
-have to verify offsets by counting characters inside substrings rather than by
-reading the fixture text directly.
+That leaves the navigation suite on the older helper even though the readable
+marker path already exists and is used elsewhere.
 
 ## Options
 
-- Keep the broader LSP suite on `position_in(...)` and only use marker-based
-  positions for the hover cleanup.
-- Add marker-based helpers now and migrate the highest-value navigation and
-  hover tests incrementally.
-- Do one immediate repo-wide migration of all LSP tests away from
-  `position_in(...)`.
+- Keep the mixed helper model and accept the remaining `navigation.rs`
+  readability cost.
+- Migrate the remaining `navigation.rs` call sites incrementally now that the
+  marker helper already exists.
+- Do one immediate repo-wide cleanup and remove `position_in(...)` as soon as
+  the last callers are migrated.
 
 ## Proposed Option
 
-Add reusable marker-based helpers such as `<CURSOR>` and `<CURSOR:name>` in the
-test support layer, migrate hover tests first, and then incrementally migrate
-the existing navigation/reference tests that benefit most from visible cursor
-intent.
+Finish the incremental migration by moving the remaining `navigation.rs`
+definition/reference/document-link cases onto `<CURSOR>` / `<CURSOR:name>`
+markers, then drop `position_in(...)` once it has no production callers left.
 
-That keeps the first cleanup focused while ensuring the broader readability win
-is tracked explicitly instead of being forgotten.
+That matches the current codebase better than planning around the helper work
+or the hover migration, both of which are already done.
