@@ -48,6 +48,9 @@ fn workspace_view_and_resource_snapshot() -> strz_analysis::DocumentSnapshot {
                 }
 
                 image * "image-view" {
+                    properties {
+                        "mermaid.url" "https://example.com/mermaid"
+                    }
                     plantuml "diagram.puml"
                 }
             }
@@ -123,11 +126,18 @@ fn assert_resource_selector_and_property_facts(snapshot: &strz_analysis::Documen
                 property.container_node_kind.as_str(),
             ))
             .collect::<Vec<_>>(),
-        vec![(
-            "plantuml.url",
-            "https://example.com/plantuml",
-            "views_block",
-        ),]
+        vec![
+            (
+                "plantuml.url",
+                "https://example.com/plantuml",
+                "views_block",
+            ),
+            (
+                "mermaid.url",
+                "https://example.com/mermaid",
+                "image_view_block",
+            ),
+        ]
     );
 
     let selector = snapshot
