@@ -2580,7 +2580,10 @@ fn build_reference_resolution_tables(
                 resolved_targets
                     .entry(document.document_id.clone())
                     .or_default()
-                    .insert(reference_lookup_key(reference.kind, reference.span), target.clone());
+                    .insert(
+                        reference_lookup_key(reference.kind, reference.span),
+                        target.clone(),
+                    );
                 references_by_target
                     .entry(target.clone())
                     .or_default()
@@ -2734,8 +2737,11 @@ fn workspace_scope_diagnostics(
                 violation.owner.display_name,
                 violation.child_plural,
             );
-            let mut diagnostic =
-                RuledDiagnostic::workspace_scope_mismatch(&scope_document, message, scope_fact.span);
+            let mut diagnostic = RuledDiagnostic::workspace_scope_mismatch(
+                &scope_document,
+                message,
+                scope_fact.span,
+            );
             let annotation = if scope_document == violation.document {
                 Annotation::secondary(violation.owner.span)
             } else {
@@ -2786,7 +2792,9 @@ fn workspace_scope_violations(
         WorkspaceScope::SoftwareSystem => {
             scope_violations_for_child_kind(documents, SymbolKind::Component, "components")
         }
-        WorkspaceScope::Container | WorkspaceScope::Component | WorkspaceScope::Other(_) => Vec::new(),
+        WorkspaceScope::Container | WorkspaceScope::Component | WorkspaceScope::Other(_) => {
+            Vec::new()
+        }
     }
 }
 
@@ -3245,7 +3253,11 @@ fn image_source_path_message(kind: ImageSourceKind, path: &Path) -> Option<Strin
         {
             Some(format!("The file at {} does not exist", path.display()))
         }
-        Err(error) => Some(format!("Error inspecting image source {}: {}", path.display(), error)),
+        Err(error) => Some(format!(
+            "Error inspecting image source {}: {}",
+            path.display(),
+            error
+        )),
     }
 }
 
@@ -3322,7 +3334,8 @@ fn filtered_view_autolayout_diagnostics(
             if base_document.has_syntax_errors {
                 continue;
             }
-            let Some(base_view) = base_document.view_facts.get(base_view_location.view_index) else {
+            let Some(base_view) = base_document.view_facts.get(base_view_location.view_index)
+            else {
                 continue;
             };
             let Some(auto_layout) = base_view.auto_layout.as_ref() else {
@@ -3468,24 +3481,19 @@ fn dynamic_view_scope_redundancy_diagnostics(
                             continue;
                         }
 
-                        let diagnostic = dynamic_view_scope_diagnostic(
-                            &document.document_id,
-                            scope,
-                            *span,
-                        );
+                        let diagnostic =
+                            dynamic_view_scope_diagnostic(&document.document_id, scope, *span);
                         diagnostics.push(diagnostic);
                     }
                     ResolvedDynamicStep::RelationshipReference { span, relationship } => {
-                        if relationship.source != scope.handle && relationship.destination != scope.handle
+                        if relationship.source != scope.handle
+                            && relationship.destination != scope.handle
                         {
                             continue;
                         }
 
-                        let mut diagnostic = dynamic_view_scope_diagnostic(
-                            &document.document_id,
-                            scope,
-                            *span,
-                        );
+                        let mut diagnostic =
+                            dynamic_view_scope_diagnostic(&document.document_id, scope, *span);
                         diagnostic.annotate(dynamic_view_scope_relationship_annotation(
                             &document.document_id,
                             &scope.display_name,
@@ -3644,8 +3652,12 @@ fn resolved_dynamic_view(
     }
 
     let scope = view.scope.as_ref().and_then(|scope| {
-        let handle =
-            resolved_reference_target(document, ReferenceKind::ViewScope, scope.span, reference_tables)?;
+        let handle = resolved_reference_target(
+            document,
+            ReferenceKind::ViewScope,
+            scope.span,
+            reference_tables,
+        )?;
         let symbol = symbol_for_handle(documents_by_id, &handle)?;
         Some(ResolvedDynamicScope {
             span: scope.span,
@@ -3685,8 +3697,12 @@ fn resolve_dynamic_step(
 ) -> Option<ResolvedDynamicStep> {
     match step {
         DynamicViewStepFact::Relationship(step) => {
-            let source =
-                resolved_reference_target(document, ReferenceKind::RelationshipSource, step.source.span, reference_tables)?;
+            let source = resolved_reference_target(
+                document,
+                ReferenceKind::RelationshipSource,
+                step.source.span,
+                reference_tables,
+            )?;
             let destination = resolved_reference_target(
                 document,
                 ReferenceKind::RelationshipDestination,

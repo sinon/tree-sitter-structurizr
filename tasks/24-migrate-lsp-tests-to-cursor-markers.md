@@ -2,8 +2,7 @@
 
 The LSP integration tests now have marker-based cursor helpers, but
 [`crates/strz-lsp/tests/navigation.rs`](../crates/strz-lsp/tests/navigation.rs)
-still hides many request positions behind `position_in(..., needle,
-byte_offset)` calls that force reviewers to count bytes mentally.
+still hides many request positions behind `position_in(..., needle, byte_offset)` calls that force reviewers to count bytes mentally.
 
 The remaining work is narrower than this task originally described:
 

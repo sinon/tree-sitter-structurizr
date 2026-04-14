@@ -1117,7 +1117,9 @@ fn unanimous_workspace_source_kind(
         // rather than guessing across conflicting deployment bindings.
         let duplicate_bindings = match domain {
             RelationshipBindingDomain::Core => workspace_index.duplicate_element_bindings(),
-            RelationshipBindingDomain::Deployment => workspace_index.duplicate_deployment_bindings(),
+            RelationshipBindingDomain::Deployment => {
+                workspace_index.duplicate_deployment_bindings()
+            }
         };
         if duplicate_bindings.contains_key(source_text) {
             return None;
@@ -1283,9 +1285,7 @@ fn workspace_symbol<'a>(
         .get(handle.symbol_id().0)
 }
 
-const fn relationship_source_kinds(
-    domain: RelationshipBindingDomain,
-) -> &'static [SymbolKind] {
+const fn relationship_source_kinds(domain: RelationshipBindingDomain) -> &'static [SymbolKind] {
     match domain {
         RelationshipBindingDomain::Core => CORE_ELEMENT_KINDS,
         RelationshipBindingDomain::Deployment => DEPLOYMENT_RELATIONSHIP_SOURCE_KINDS,

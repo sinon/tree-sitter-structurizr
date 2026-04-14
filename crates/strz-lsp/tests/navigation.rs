@@ -694,14 +694,11 @@ async fn completion_inside_workspace_backed_deployment_relationship_uses_deploym
     initialized(&mut service).await;
 
     let workspace_path = workspace_root.join("workspace.dsl");
-    let workspace_source = annotated_source(
-        &read_workspace_file(&workspace_path)
-            .replacen(
-                "gateway -> secondaryApiInstance \"Routes traffic\"",
-                "gateway -> sec<CURSOR>",
-                1,
-            ),
-    );
+    let workspace_source = annotated_source(&read_workspace_file(&workspace_path).replacen(
+        "gateway -> secondaryApiInstance \"Routes traffic\"",
+        "gateway -> sec<CURSOR>",
+        1,
+    ));
     let workspace_uri = file_uri_from_path(&workspace_path);
     open_document(&mut service, &workspace_uri, workspace_source.source()).await;
 
@@ -713,7 +710,7 @@ async fn completion_inside_workspace_backed_deployment_relationship_uses_deploym
 
 #[tokio::test(flavor = "current_thread")]
 async fn completion_inside_software_system_instance_relationship_destination_suggests_only_infrastructure_nodes()
-{
+ {
     let (mut service, _socket) = new_service();
 
     initialize(&mut service).await;
@@ -731,7 +728,7 @@ async fn completion_inside_software_system_instance_relationship_destination_sug
 
 #[tokio::test(flavor = "current_thread")]
 async fn completion_inside_container_instance_relationship_destination_suggests_only_infrastructure_nodes()
-{
+ {
     let (mut service, _socket) = new_service();
 
     initialize(&mut service).await;
