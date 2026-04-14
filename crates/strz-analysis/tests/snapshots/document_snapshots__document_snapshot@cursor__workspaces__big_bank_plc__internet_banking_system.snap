@@ -1,0 +1,3139 @@
+---
+source: crates/strz-analysis/tests/document_snapshots.rs
+expression: "SnapshotView::from(&snapshot)"
+---
+SnapshotView {
+    has_syntax_errors: true,
+    diagnostics: [
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 300,
+                    end_byte: 301,
+                    start_point: TextPoint {
+                        row: 8,
+                        column: 8,
+                    },
+                    end_point: TextPoint {
+                        row: 8,
+                        column: 9,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 300,
+                    end_byte: 301,
+                    start_point: TextPoint {
+                        row: 8,
+                        column: 8,
+                    },
+                    end_point: TextPoint {
+                        row: 8,
+                        column: 9,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 307,
+                    end_byte: 308,
+                    start_point: TextPoint {
+                        row: 8,
+                        column: 15,
+                    },
+                    end_point: TextPoint {
+                        row: 8,
+                        column: 16,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 329,
+                    end_byte: 330,
+                    start_point: TextPoint {
+                        row: 8,
+                        column: 37,
+                    },
+                    end_point: TextPoint {
+                        row: 8,
+                        column: 38,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 329,
+                    end_byte: 330,
+                    start_point: TextPoint {
+                        row: 8,
+                        column: 37,
+                    },
+                    end_point: TextPoint {
+                        row: 8,
+                        column: 38,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 342,
+                    end_byte: 343,
+                    start_point: TextPoint {
+                        row: 8,
+                        column: 50,
+                    },
+                    end_point: TextPoint {
+                        row: 8,
+                        column: 51,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 342,
+                    end_byte: 343,
+                    start_point: TextPoint {
+                        row: 8,
+                        column: 50,
+                    },
+                    end_point: TextPoint {
+                        row: 8,
+                        column: 51,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 349,
+                    end_byte: 350,
+                    start_point: TextPoint {
+                        row: 8,
+                        column: 57,
+                    },
+                    end_point: TextPoint {
+                        row: 8,
+                        column: 58,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 378,
+                    end_byte: 379,
+                    start_point: TextPoint {
+                        row: 8,
+                        column: 86,
+                    },
+                    end_point: TextPoint {
+                        row: 8,
+                        column: 87,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 378,
+                    end_byte: 379,
+                    start_point: TextPoint {
+                        row: 8,
+                        column: 86,
+                    },
+                    end_point: TextPoint {
+                        row: 8,
+                        column: 87,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 2259,
+                    end_byte: 2260,
+                    start_point: TextPoint {
+                        row: 35,
+                        column: 76,
+                    },
+                    end_point: TextPoint {
+                        row: 35,
+                        column: 77,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 2259,
+                    end_byte: 2260,
+                    start_point: TextPoint {
+                        row: 35,
+                        column: 76,
+                    },
+                    end_point: TextPoint {
+                        row: 35,
+                        column: 77,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 2266,
+                    end_byte: 2306,
+                    start_point: TextPoint {
+                        row: 35,
+                        column: 83,
+                    },
+                    end_point: TextPoint {
+                        row: 35,
+                        column: 123,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 2291,
+                    end_byte: 2292,
+                    start_point: TextPoint {
+                        row: 35,
+                        column: 108,
+                    },
+                    end_point: TextPoint {
+                        row: 35,
+                        column: 109,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 2903,
+                    end_byte: 2904,
+                    start_point: TextPoint {
+                        row: 47,
+                        column: 43,
+                    },
+                    end_point: TextPoint {
+                        row: 47,
+                        column: 44,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 2903,
+                    end_byte: 2904,
+                    start_point: TextPoint {
+                        row: 47,
+                        column: 43,
+                    },
+                    end_point: TextPoint {
+                        row: 47,
+                        column: 44,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 2910,
+                    end_byte: 2939,
+                    start_point: TextPoint {
+                        row: 47,
+                        column: 50,
+                    },
+                    end_point: TextPoint {
+                        row: 47,
+                        column: 79,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 2929,
+                    end_byte: 2930,
+                    start_point: TextPoint {
+                        row: 47,
+                        column: 69,
+                    },
+                    end_point: TextPoint {
+                        row: 47,
+                        column: 70,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 4312,
+                    end_byte: 4351,
+                    start_point: TextPoint {
+                        row: 76,
+                        column: 24,
+                    },
+                    end_point: TextPoint {
+                        row: 76,
+                        column: 63,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 4312,
+                    end_byte: 4313,
+                    start_point: TextPoint {
+                        row: 76,
+                        column: 24,
+                    },
+                    end_point: TextPoint {
+                        row: 76,
+                        column: 25,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 4350,
+                    end_byte: 4351,
+                    start_point: TextPoint {
+                        row: 76,
+                        column: 62,
+                    },
+                    end_point: TextPoint {
+                        row: 76,
+                        column: 63,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 6228,
+                    end_byte: 6260,
+                    start_point: TextPoint {
+                        row: 126,
+                        column: 12,
+                    },
+                    end_point: TextPoint {
+                        row: 126,
+                        column: 44,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 6228,
+                    end_byte: 6229,
+                    start_point: TextPoint {
+                        row: 126,
+                        column: 12,
+                    },
+                    end_point: TextPoint {
+                        row: 126,
+                        column: 13,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 6259,
+                    end_byte: 6260,
+                    start_point: TextPoint {
+                        row: 126,
+                        column: 43,
+                    },
+                    end_point: TextPoint {
+                        row: 126,
+                        column: 44,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 6285,
+                    end_byte: 6286,
+                    start_point: TextPoint {
+                        row: 126,
+                        column: 69,
+                    },
+                    end_point: TextPoint {
+                        row: 126,
+                        column: 70,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 6285,
+                    end_byte: 6286,
+                    start_point: TextPoint {
+                        row: 126,
+                        column: 69,
+                    },
+                    end_point: TextPoint {
+                        row: 126,
+                        column: 70,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 6292,
+                    end_byte: 6311,
+                    start_point: TextPoint {
+                        row: 126,
+                        column: 76,
+                    },
+                    end_point: TextPoint {
+                        row: 126,
+                        column: 95,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 6310,
+                    end_byte: 6311,
+                    start_point: TextPoint {
+                        row: 126,
+                        column: 94,
+                    },
+                    end_point: TextPoint {
+                        row: 126,
+                        column: 95,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 6385,
+                    end_byte: 6386,
+                    start_point: TextPoint {
+                        row: 127,
+                        column: 32,
+                    },
+                    end_point: TextPoint {
+                        row: 127,
+                        column: 33,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 6385,
+                    end_byte: 6386,
+                    start_point: TextPoint {
+                        row: 127,
+                        column: 32,
+                    },
+                    end_point: TextPoint {
+                        row: 127,
+                        column: 33,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 6392,
+                    end_byte: 6412,
+                    start_point: TextPoint {
+                        row: 127,
+                        column: 39,
+                    },
+                    end_point: TextPoint {
+                        row: 127,
+                        column: 59,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 6411,
+                    end_byte: 6412,
+                    start_point: TextPoint {
+                        row: 127,
+                        column: 58,
+                    },
+                    end_point: TextPoint {
+                        row: 127,
+                        column: 59,
+                    },
+                },
+            },
+        },
+    ],
+    include_directives: [
+        IncludeDirective {
+            raw_value: "model/people-and-software-systems.dsl",
+            value_kind: BareValue,
+            span: TextSpan {
+                start_byte: 201,
+                end_byte: 247,
+                start_point: TextPoint {
+                    row: 5,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 5,
+                    column: 54,
+                },
+            },
+            value_span: TextSpan {
+                start_byte: 210,
+                end_byte: 247,
+                start_point: TextPoint {
+                    row: 5,
+                    column: 17,
+                },
+                end_point: TextPoint {
+                    row: 5,
+                    column: 54,
+                },
+            },
+            container: Model,
+        },
+        IncludeDirective {
+            raw_value: "views/styles-people.dsl",
+            value_kind: BareValue,
+            span: TextSpan {
+                start_byte: 7724,
+                end_byte: 7756,
+                start_point: TextPoint {
+                    row: 155,
+                    column: 12,
+                },
+                end_point: TextPoint {
+                    row: 155,
+                    column: 44,
+                },
+            },
+            value_span: TextSpan {
+                start_byte: 7733,
+                end_byte: 7756,
+                start_point: TextPoint {
+                    row: 155,
+                    column: 21,
+                },
+                end_point: TextPoint {
+                    row: 155,
+                    column: 44,
+                },
+            },
+            container: Workspace,
+        },
+    ],
+    identifier_modes: [],
+    symbols: [
+        Symbol {
+            id: SymbolId(
+                0,
+            ),
+            kind: ContainerInstance,
+            display_name: "developerSinglePageApplicationInstance",
+            binding_name: Some(
+                "developerSinglePageApplicationInstance",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 1931,
+                    end_byte: 1969,
+                    start_point: TextPoint {
+                        row: 31,
+                        column: 20,
+                    },
+                    end_point: TextPoint {
+                        row: 31,
+                        column: 58,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 1931,
+                end_byte: 2011,
+                start_point: TextPoint {
+                    row: 31,
+                    column: 20,
+                },
+                end_point: TextPoint {
+                    row: 31,
+                    column: 100,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "container_instance",
+        },
+        Symbol {
+            id: SymbolId(
+                1,
+            ),
+            kind: ContainerInstance,
+            display_name: "developerWebApplicationInstance",
+            binding_name: Some(
+                "developerWebApplicationInstance",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 2207,
+                    end_byte: 2238,
+                    start_point: TextPoint {
+                        row: 35,
+                        column: 24,
+                    },
+                    end_point: TextPoint {
+                        row: 35,
+                        column: 55,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 2207,
+                end_byte: 2266,
+                start_point: TextPoint {
+                    row: 35,
+                    column: 24,
+                },
+                end_point: TextPoint {
+                    row: 35,
+                    column: 83,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "container_instance",
+        },
+        Symbol {
+            id: SymbolId(
+                2,
+            ),
+            kind: ContainerInstance,
+            display_name: "developerApiApplicationInstance",
+            binding_name: Some(
+                "developerApiApplicationInstance",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 2331,
+                    end_byte: 2362,
+                    start_point: TextPoint {
+                        row: 36,
+                        column: 24,
+                    },
+                    end_point: TextPoint {
+                        row: 36,
+                        column: 55,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 2331,
+                end_byte: 2397,
+                start_point: TextPoint {
+                    row: 36,
+                    column: 24,
+                },
+                end_point: TextPoint {
+                    row: 36,
+                    column: 90,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "container_instance",
+        },
+        Symbol {
+            id: SymbolId(
+                3,
+            ),
+            kind: ContainerInstance,
+            display_name: "developerDatabaseInstance",
+            binding_name: Some(
+                "developerDatabaseInstance",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 2615,
+                    end_byte: 2640,
+                    start_point: TextPoint {
+                        row: 41,
+                        column: 24,
+                    },
+                    end_point: TextPoint {
+                        row: 41,
+                        column: 49,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 2615,
+                end_byte: 2669,
+                start_point: TextPoint {
+                    row: 41,
+                    column: 24,
+                },
+                end_point: TextPoint {
+                    row: 41,
+                    column: 78,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "container_instance",
+        },
+        Symbol {
+            id: SymbolId(
+                4,
+            ),
+            kind: ContainerInstance,
+            display_name: "liveMobileAppInstance",
+            binding_name: Some(
+                "liveMobileAppInstance",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 3120,
+                    end_byte: 3141,
+                    start_point: TextPoint {
+                        row: 54,
+                        column: 16,
+                    },
+                    end_point: TextPoint {
+                        row: 54,
+                        column: 37,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 3120,
+                end_byte: 3171,
+                start_point: TextPoint {
+                    row: 54,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 54,
+                    column: 67,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "container_instance",
+        },
+        Symbol {
+            id: SymbolId(
+                5,
+            ),
+            kind: ContainerInstance,
+            display_name: "liveSinglePageApplicationInstance",
+            binding_name: Some(
+                "liveSinglePageApplicationInstance",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 3380,
+                    end_byte: 3413,
+                    start_point: TextPoint {
+                        row: 58,
+                        column: 20,
+                    },
+                    end_point: TextPoint {
+                        row: 58,
+                        column: 53,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 3380,
+                end_byte: 3455,
+                start_point: TextPoint {
+                    row: 58,
+                    column: 20,
+                },
+                end_point: TextPoint {
+                    row: 58,
+                    column: 95,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "container_instance",
+        },
+        Symbol {
+            id: SymbolId(
+                6,
+            ),
+            kind: ContainerInstance,
+            display_name: "liveWebApplicationInstance",
+            binding_name: Some(
+                "liveWebApplicationInstance",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 3740,
+                    end_byte: 3766,
+                    start_point: TextPoint {
+                        row: 65,
+                        column: 24,
+                    },
+                    end_point: TextPoint {
+                        row: 65,
+                        column: 50,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 3740,
+                end_byte: 3801,
+                start_point: TextPoint {
+                    row: 65,
+                    column: 24,
+                },
+                end_point: TextPoint {
+                    row: 65,
+                    column: 85,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "container_instance",
+        },
+        Symbol {
+            id: SymbolId(
+                7,
+            ),
+            kind: ContainerInstance,
+            display_name: "liveApiApplicationInstance",
+            binding_name: Some(
+                "liveApiApplicationInstance",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 4019,
+                    end_byte: 4045,
+                    start_point: TextPoint {
+                        row: 70,
+                        column: 24,
+                    },
+                    end_point: TextPoint {
+                        row: 70,
+                        column: 50,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 4019,
+                end_byte: 4080,
+                start_point: TextPoint {
+                    row: 70,
+                    column: 24,
+                },
+                end_point: TextPoint {
+                    row: 70,
+                    column: 85,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "container_instance",
+        },
+        Symbol {
+            id: SymbolId(
+                8,
+            ),
+            kind: DeploymentNode,
+            display_name: "Oracle - Primary",
+            binding_name: Some(
+                "primaryDatabaseServer",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 4212,
+                    end_byte: 4233,
+                    start_point: TextPoint {
+                        row: 75,
+                        column: 20,
+                    },
+                    end_point: TextPoint {
+                        row: 75,
+                        column: 41,
+                    },
+                },
+            ),
+            technology: Some(
+                "Oracle 12c",
+            ),
+            span: TextSpan {
+                start_byte: 4212,
+                end_byte: 4429,
+                start_point: TextPoint {
+                    row: 75,
+                    column: 20,
+                },
+                end_point: TextPoint {
+                    row: 77,
+                    column: 21,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "deployment_node",
+        },
+        Symbol {
+            id: SymbolId(
+                9,
+            ),
+            kind: ContainerInstance,
+            display_name: "livePrimaryDatabaseInstance",
+            binding_name: Some(
+                "livePrimaryDatabaseInstance",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 4351,
+                    end_byte: 4378,
+                    start_point: TextPoint {
+                        row: 76,
+                        column: 63,
+                    },
+                    end_point: TextPoint {
+                        row: 76,
+                        column: 90,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 4351,
+                end_byte: 4407,
+                start_point: TextPoint {
+                    row: 76,
+                    column: 63,
+                },
+                end_point: TextPoint {
+                    row: 76,
+                    column: 119,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    8,
+                ),
+            ),
+            syntax_node_kind: "container_instance",
+        },
+        Symbol {
+            id: SymbolId(
+                10,
+            ),
+            kind: DeploymentNode,
+            display_name: "Oracle - Secondary",
+            binding_name: Some(
+                "secondaryDatabaseServer",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 4549,
+                    end_byte: 4572,
+                    start_point: TextPoint {
+                        row: 80,
+                        column: 20,
+                    },
+                    end_point: TextPoint {
+                        row: 80,
+                        column: 43,
+                    },
+                },
+            ),
+            technology: Some(
+                "Oracle 12c",
+            ),
+            tags: [
+                "Failover",
+            ],
+            span: TextSpan {
+                start_byte: 4549,
+                end_byte: 4755,
+                start_point: TextPoint {
+                    row: 80,
+                    column: 20,
+                },
+                end_point: TextPoint {
+                    row: 82,
+                    column: 21,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "deployment_node",
+        },
+        Symbol {
+            id: SymbolId(
+                11,
+            ),
+            kind: ContainerInstance,
+            display_name: "liveSecondaryDatabaseInstance",
+            binding_name: Some(
+                "liveSecondaryDatabaseInstance",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 4664,
+                    end_byte: 4693,
+                    start_point: TextPoint {
+                        row: 81,
+                        column: 24,
+                    },
+                    end_point: TextPoint {
+                        row: 81,
+                        column: 53,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 4664,
+                end_byte: 4733,
+                start_point: TextPoint {
+                    row: 81,
+                    column: 24,
+                },
+                end_point: TextPoint {
+                    row: 81,
+                    column: 93,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    10,
+                ),
+            ),
+            syntax_node_kind: "container_instance",
+        },
+    ],
+    references: [
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "customer",
+            span: TextSpan {
+                start_byte: 330,
+                end_byte: 338,
+                start_point: TextPoint {
+                    row: 8,
+                    column: 38,
+                },
+                end_point: TextPoint {
+                    row: 8,
+                    column: 46,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "CURSOR",
+            span: TextSpan {
+                start_byte: 343,
+                end_byte: 349,
+                start_point: TextPoint {
+                    row: 8,
+                    column: 51,
+                },
+                end_point: TextPoint {
+                    row: 8,
+                    column: 57,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "customer",
+            span: TextSpan {
+                start_byte: 440,
+                end_byte: 448,
+                start_point: TextPoint {
+                    row: 9,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 9,
+                    column: 16,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "singlePageApplication",
+            span: TextSpan {
+                start_byte: 452,
+                end_byte: 473,
+                start_point: TextPoint {
+                    row: 9,
+                    column: 20,
+                },
+                end_point: TextPoint {
+                    row: 9,
+                    column: 41,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "customer",
+            span: TextSpan {
+                start_byte: 533,
+                end_byte: 541,
+                start_point: TextPoint {
+                    row: 10,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 10,
+                    column: 16,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "mobileApp",
+            span: TextSpan {
+                start_byte: 545,
+                end_byte: 554,
+                start_point: TextPoint {
+                    row: 10,
+                    column: 20,
+                },
+                end_point: TextPoint {
+                    row: 10,
+                    column: 29,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "webApplication",
+            span: TextSpan {
+                start_byte: 614,
+                end_byte: 628,
+                start_point: TextPoint {
+                    row: 11,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 11,
+                    column: 22,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "singlePageApplication",
+            span: TextSpan {
+                start_byte: 632,
+                end_byte: 653,
+                start_point: TextPoint {
+                    row: 11,
+                    column: 26,
+                },
+                end_point: TextPoint {
+                    row: 11,
+                    column: 47,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "singlePageApplication",
+            span: TextSpan {
+                start_byte: 747,
+                end_byte: 768,
+                start_point: TextPoint {
+                    row: 14,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 14,
+                    column: 29,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "signinController",
+            span: TextSpan {
+                start_byte: 772,
+                end_byte: 788,
+                start_point: TextPoint {
+                    row: 14,
+                    column: 33,
+                },
+                end_point: TextPoint {
+                    row: 14,
+                    column: 49,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "singlePageApplication",
+            span: TextSpan {
+                start_byte: 831,
+                end_byte: 852,
+                start_point: TextPoint {
+                    row: 15,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 15,
+                    column: 29,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "accountsSummaryController",
+            span: TextSpan {
+                start_byte: 856,
+                end_byte: 881,
+                start_point: TextPoint {
+                    row: 15,
+                    column: 33,
+                },
+                end_point: TextPoint {
+                    row: 15,
+                    column: 58,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "singlePageApplication",
+            span: TextSpan {
+                start_byte: 924,
+                end_byte: 945,
+                start_point: TextPoint {
+                    row: 16,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 16,
+                    column: 29,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "resetPasswordController",
+            span: TextSpan {
+                start_byte: 949,
+                end_byte: 972,
+                start_point: TextPoint {
+                    row: 16,
+                    column: 33,
+                },
+                end_point: TextPoint {
+                    row: 16,
+                    column: 56,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "mobileApp",
+            span: TextSpan {
+                start_byte: 1015,
+                end_byte: 1024,
+                start_point: TextPoint {
+                    row: 17,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 17,
+                    column: 17,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "signinController",
+            span: TextSpan {
+                start_byte: 1028,
+                end_byte: 1044,
+                start_point: TextPoint {
+                    row: 17,
+                    column: 21,
+                },
+                end_point: TextPoint {
+                    row: 17,
+                    column: 37,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "mobileApp",
+            span: TextSpan {
+                start_byte: 1087,
+                end_byte: 1096,
+                start_point: TextPoint {
+                    row: 18,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 18,
+                    column: 17,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "accountsSummaryController",
+            span: TextSpan {
+                start_byte: 1100,
+                end_byte: 1125,
+                start_point: TextPoint {
+                    row: 18,
+                    column: 21,
+                },
+                end_point: TextPoint {
+                    row: 18,
+                    column: 46,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "mobileApp",
+            span: TextSpan {
+                start_byte: 1168,
+                end_byte: 1177,
+                start_point: TextPoint {
+                    row: 19,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 19,
+                    column: 17,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "resetPasswordController",
+            span: TextSpan {
+                start_byte: 1181,
+                end_byte: 1204,
+                start_point: TextPoint {
+                    row: 19,
+                    column: 21,
+                },
+                end_point: TextPoint {
+                    row: 19,
+                    column: 44,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "signinController",
+            span: TextSpan {
+                start_byte: 1247,
+                end_byte: 1263,
+                start_point: TextPoint {
+                    row: 20,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 20,
+                    column: 24,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "securityComponent",
+            span: TextSpan {
+                start_byte: 1267,
+                end_byte: 1284,
+                start_point: TextPoint {
+                    row: 20,
+                    column: 28,
+                },
+                end_point: TextPoint {
+                    row: 20,
+                    column: 45,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "accountsSummaryController",
+            span: TextSpan {
+                start_byte: 1300,
+                end_byte: 1325,
+                start_point: TextPoint {
+                    row: 21,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 21,
+                    column: 33,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "mainframeBankingSystemFacade",
+            span: TextSpan {
+                start_byte: 1329,
+                end_byte: 1357,
+                start_point: TextPoint {
+                    row: 21,
+                    column: 37,
+                },
+                end_point: TextPoint {
+                    row: 21,
+                    column: 65,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "resetPasswordController",
+            span: TextSpan {
+                start_byte: 1373,
+                end_byte: 1396,
+                start_point: TextPoint {
+                    row: 22,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 22,
+                    column: 31,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "securityComponent",
+            span: TextSpan {
+                start_byte: 1400,
+                end_byte: 1417,
+                start_point: TextPoint {
+                    row: 22,
+                    column: 35,
+                },
+                end_point: TextPoint {
+                    row: 22,
+                    column: 52,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "resetPasswordController",
+            span: TextSpan {
+                start_byte: 1433,
+                end_byte: 1456,
+                start_point: TextPoint {
+                    row: 23,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 23,
+                    column: 31,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "emailComponent",
+            span: TextSpan {
+                start_byte: 1460,
+                end_byte: 1474,
+                start_point: TextPoint {
+                    row: 23,
+                    column: 35,
+                },
+                end_point: TextPoint {
+                    row: 23,
+                    column: 49,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "securityComponent",
+            span: TextSpan {
+                start_byte: 1490,
+                end_byte: 1507,
+                start_point: TextPoint {
+                    row: 24,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 24,
+                    column: 25,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "database",
+            span: TextSpan {
+                start_byte: 1511,
+                end_byte: 1519,
+                start_point: TextPoint {
+                    row: 24,
+                    column: 29,
+                },
+                end_point: TextPoint {
+                    row: 24,
+                    column: 37,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "mainframeBankingSystemFacade",
+            span: TextSpan {
+                start_byte: 1562,
+                end_byte: 1590,
+                start_point: TextPoint {
+                    row: 25,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 25,
+                    column: 36,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "mainframe",
+            span: TextSpan {
+                start_byte: 1594,
+                end_byte: 1603,
+                start_point: TextPoint {
+                    row: 25,
+                    column: 40,
+                },
+                end_point: TextPoint {
+                    row: 25,
+                    column: 49,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "emailComponent",
+            span: TextSpan {
+                start_byte: 1645,
+                end_byte: 1659,
+                start_point: TextPoint {
+                    row: 26,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 26,
+                    column: 22,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "email",
+            span: TextSpan {
+                start_byte: 1663,
+                end_byte: 1668,
+                start_point: TextPoint {
+                    row: 26,
+                    column: 26,
+                },
+                end_point: TextPoint {
+                    row: 26,
+                    column: 31,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: InstanceTarget,
+            raw_text: "singlePageApplication",
+            span: TextSpan {
+                start_byte: 1990,
+                end_byte: 2011,
+                start_point: TextPoint {
+                    row: 31,
+                    column: 79,
+                },
+                end_point: TextPoint {
+                    row: 31,
+                    column: 100,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "container_instance",
+            containing_symbol: Some(
+                SymbolId(
+                    0,
+                ),
+            ),
+        },
+        Reference {
+            kind: InstanceTarget,
+            raw_text: "CURSOR",
+            span: TextSpan {
+                start_byte: 2260,
+                end_byte: 2266,
+                start_point: TextPoint {
+                    row: 35,
+                    column: 77,
+                },
+                end_point: TextPoint {
+                    row: 35,
+                    column: 83,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "container_instance",
+            containing_symbol: Some(
+                SymbolId(
+                    1,
+                ),
+            ),
+        },
+        Reference {
+            kind: InstanceTarget,
+            raw_text: "apiApplication",
+            span: TextSpan {
+                start_byte: 2383,
+                end_byte: 2397,
+                start_point: TextPoint {
+                    row: 36,
+                    column: 76,
+                },
+                end_point: TextPoint {
+                    row: 36,
+                    column: 90,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "container_instance",
+            containing_symbol: Some(
+                SymbolId(
+                    2,
+                ),
+            ),
+        },
+        Reference {
+            kind: InstanceTarget,
+            raw_text: "database",
+            span: TextSpan {
+                start_byte: 2661,
+                end_byte: 2669,
+                start_point: TextPoint {
+                    row: 41,
+                    column: 70,
+                },
+                end_point: TextPoint {
+                    row: 41,
+                    column: 78,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "container_instance",
+            containing_symbol: Some(
+                SymbolId(
+                    3,
+                ),
+            ),
+        },
+        Reference {
+            kind: InstanceTarget,
+            raw_text: "CURSOR",
+            span: TextSpan {
+                start_byte: 2904,
+                end_byte: 2910,
+                start_point: TextPoint {
+                    row: 47,
+                    column: 44,
+                },
+                end_point: TextPoint {
+                    row: 47,
+                    column: 50,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "software_system_instance",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: InstanceTarget,
+            raw_text: "mobileApp",
+            span: TextSpan {
+                start_byte: 3162,
+                end_byte: 3171,
+                start_point: TextPoint {
+                    row: 54,
+                    column: 58,
+                },
+                end_point: TextPoint {
+                    row: 54,
+                    column: 67,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "container_instance",
+            containing_symbol: Some(
+                SymbolId(
+                    4,
+                ),
+            ),
+        },
+        Reference {
+            kind: InstanceTarget,
+            raw_text: "singlePageApplication",
+            span: TextSpan {
+                start_byte: 3434,
+                end_byte: 3455,
+                start_point: TextPoint {
+                    row: 58,
+                    column: 74,
+                },
+                end_point: TextPoint {
+                    row: 58,
+                    column: 95,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "container_instance",
+            containing_symbol: Some(
+                SymbolId(
+                    5,
+                ),
+            ),
+        },
+        Reference {
+            kind: InstanceTarget,
+            raw_text: "webApplication",
+            span: TextSpan {
+                start_byte: 3787,
+                end_byte: 3801,
+                start_point: TextPoint {
+                    row: 65,
+                    column: 71,
+                },
+                end_point: TextPoint {
+                    row: 65,
+                    column: 85,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "container_instance",
+            containing_symbol: Some(
+                SymbolId(
+                    6,
+                ),
+            ),
+        },
+        Reference {
+            kind: InstanceTarget,
+            raw_text: "apiApplication",
+            span: TextSpan {
+                start_byte: 4066,
+                end_byte: 4080,
+                start_point: TextPoint {
+                    row: 70,
+                    column: 71,
+                },
+                end_point: TextPoint {
+                    row: 70,
+                    column: 85,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "container_instance",
+            containing_symbol: Some(
+                SymbolId(
+                    7,
+                ),
+            ),
+        },
+        Reference {
+            kind: InstanceTarget,
+            raw_text: "database",
+            span: TextSpan {
+                start_byte: 4399,
+                end_byte: 4407,
+                start_point: TextPoint {
+                    row: 76,
+                    column: 111,
+                },
+                end_point: TextPoint {
+                    row: 76,
+                    column: 119,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "container_instance",
+            containing_symbol: Some(
+                SymbolId(
+                    9,
+                ),
+            ),
+        },
+        Reference {
+            kind: InstanceTarget,
+            raw_text: "database",
+            span: TextSpan {
+                start_byte: 4714,
+                end_byte: 4722,
+                start_point: TextPoint {
+                    row: 81,
+                    column: 74,
+                },
+                end_point: TextPoint {
+                    row: 81,
+                    column: 82,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "container_instance",
+            containing_symbol: Some(
+                SymbolId(
+                    11,
+                ),
+            ),
+        },
+        Reference {
+            kind: InstanceTarget,
+            raw_text: "mainframe",
+            span: TextSpan {
+                start_byte: 4877,
+                end_byte: 4886,
+                start_point: TextPoint {
+                    row: 85,
+                    column: 43,
+                },
+                end_point: TextPoint {
+                    row: 85,
+                    column: 52,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "software_system_instance",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: DeploymentRelationshipSource,
+            raw_text: "primaryDatabaseServer",
+            span: TextSpan {
+                start_byte: 4932,
+                end_byte: 4953,
+                start_point: TextPoint {
+                    row: 89,
+                    column: 12,
+                },
+                end_point: TextPoint {
+                    row: 89,
+                    column: 33,
+                },
+            },
+            target_hint: Deployment,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: DeploymentRelationshipDestination,
+            raw_text: "secondaryDatabaseServer",
+            span: TextSpan {
+                start_byte: 4957,
+                end_byte: 4980,
+                start_point: TextPoint {
+                    row: 89,
+                    column: 37,
+                },
+                end_point: TextPoint {
+                    row: 89,
+                    column: 60,
+                },
+            },
+            target_hint: Deployment,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewScope,
+            raw_text: "internetBankingSystem",
+            span: TextSpan {
+                start_byte: 5053,
+                end_byte: 5074,
+                start_point: TextPoint {
+                    row: 94,
+                    column: 22,
+                },
+                end_point: TextPoint {
+                    row: 94,
+                    column: 43,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "system_context_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewInclude,
+            raw_text: "internetBankingSystem",
+            span: TextSpan {
+                start_byte: 5113,
+                end_byte: 5134,
+                start_point: TextPoint {
+                    row: 95,
+                    column: 20,
+                },
+                end_point: TextPoint {
+                    row: 95,
+                    column: 41,
+                },
+            },
+            target_hint: ElementOrRelationship,
+            container_node_kind: "system_context_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewInclude,
+            raw_text: "mainframe",
+            span: TextSpan {
+                start_byte: 5169,
+                end_byte: 5178,
+                start_point: TextPoint {
+                    row: 95,
+                    column: 76,
+                },
+                end_point: TextPoint {
+                    row: 95,
+                    column: 85,
+                },
+            },
+            target_hint: ElementOrRelationship,
+            container_node_kind: "system_context_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewInclude,
+            raw_text: "email",
+            span: TextSpan {
+                start_byte: 5179,
+                end_byte: 5184,
+                start_point: TextPoint {
+                    row: 95,
+                    column: 86,
+                },
+                end_point: TextPoint {
+                    row: 95,
+                    column: 91,
+                },
+            },
+            target_hint: ElementOrRelationship,
+            container_node_kind: "system_context_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "internetBankingSystem",
+            span: TextSpan {
+                start_byte: 5225,
+                end_byte: 5246,
+                start_point: TextPoint {
+                    row: 97,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 97,
+                    column: 37,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "system_context_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "customer",
+            span: TextSpan {
+                start_byte: 5263,
+                end_byte: 5271,
+                start_point: TextPoint {
+                    row: 98,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 98,
+                    column: 24,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "system_context_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "mainframe",
+            span: TextSpan {
+                start_byte: 5288,
+                end_byte: 5297,
+                start_point: TextPoint {
+                    row: 99,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 99,
+                    column: 25,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "system_context_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "email",
+            span: TextSpan {
+                start_byte: 5314,
+                end_byte: 5319,
+                start_point: TextPoint {
+                    row: 100,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 100,
+                    column: 21,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "system_context_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewScope,
+            raw_text: "internetBankingSystem",
+            span: TextSpan {
+                start_byte: 5363,
+                end_byte: 5384,
+                start_point: TextPoint {
+                    row: 104,
+                    column: 18,
+                },
+                end_point: TextPoint {
+                    row: 104,
+                    column: 39,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "container_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewInclude,
+            raw_text: "customer",
+            span: TextSpan {
+                start_byte: 5420,
+                end_byte: 5428,
+                start_point: TextPoint {
+                    row: 105,
+                    column: 20,
+                },
+                end_point: TextPoint {
+                    row: 105,
+                    column: 28,
+                },
+            },
+            target_hint: ElementOrRelationship,
+            container_node_kind: "container_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "customer",
+            span: TextSpan {
+                start_byte: 5469,
+                end_byte: 5477,
+                start_point: TextPoint {
+                    row: 107,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 107,
+                    column: 24,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "container_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "mainframe",
+            span: TextSpan {
+                start_byte: 5478,
+                end_byte: 5487,
+                start_point: TextPoint {
+                    row: 107,
+                    column: 25,
+                },
+                end_point: TextPoint {
+                    row: 107,
+                    column: 34,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "container_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "email",
+            span: TextSpan {
+                start_byte: 5488,
+                end_byte: 5493,
+                start_point: TextPoint {
+                    row: 107,
+                    column: 35,
+                },
+                end_point: TextPoint {
+                    row: 107,
+                    column: 40,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "container_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "singlePageApplication",
+            span: TextSpan {
+                start_byte: 5573,
+                end_byte: 5594,
+                start_point: TextPoint {
+                    row: 109,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 109,
+                    column: 37,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "container_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "mobileApp",
+            span: TextSpan {
+                start_byte: 5611,
+                end_byte: 5620,
+                start_point: TextPoint {
+                    row: 110,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 110,
+                    column: 25,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "container_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "apiApplication",
+            span: TextSpan {
+                start_byte: 5637,
+                end_byte: 5651,
+                start_point: TextPoint {
+                    row: 111,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 111,
+                    column: 30,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "container_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "database",
+            span: TextSpan {
+                start_byte: 5668,
+                end_byte: 5676,
+                start_point: TextPoint {
+                    row: 112,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 112,
+                    column: 24,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "container_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewScope,
+            raw_text: "apiApplication",
+            span: TextSpan {
+                start_byte: 5720,
+                end_byte: 5734,
+                start_point: TextPoint {
+                    row: 116,
+                    column: 18,
+                },
+                end_point: TextPoint {
+                    row: 116,
+                    column: 32,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "component_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewInclude,
+            raw_text: "mobileApp",
+            span: TextSpan {
+                start_byte: 5770,
+                end_byte: 5779,
+                start_point: TextPoint {
+                    row: 117,
+                    column: 20,
+                },
+                end_point: TextPoint {
+                    row: 117,
+                    column: 29,
+                },
+            },
+            target_hint: ElementOrRelationship,
+            container_node_kind: "component_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "singlePageApplication",
+            span: TextSpan {
+                start_byte: 5820,
+                end_byte: 5841,
+                start_point: TextPoint {
+                    row: 119,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 119,
+                    column: 37,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "component_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "mobileApp",
+            span: TextSpan {
+                start_byte: 5842,
+                end_byte: 5851,
+                start_point: TextPoint {
+                    row: 119,
+                    column: 38,
+                },
+                end_point: TextPoint {
+                    row: 119,
+                    column: 47,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "component_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "database",
+            span: TextSpan {
+                start_byte: 5852,
+                end_byte: 5860,
+                start_point: TextPoint {
+                    row: 119,
+                    column: 48,
+                },
+                end_point: TextPoint {
+                    row: 119,
+                    column: 56,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "component_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "email",
+            span: TextSpan {
+                start_byte: 5861,
+                end_byte: 5866,
+                start_point: TextPoint {
+                    row: 119,
+                    column: 57,
+                },
+                end_point: TextPoint {
+                    row: 119,
+                    column: 62,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "component_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "mainframe",
+            span: TextSpan {
+                start_byte: 5867,
+                end_byte: 5876,
+                start_point: TextPoint {
+                    row: 119,
+                    column: 63,
+                },
+                end_point: TextPoint {
+                    row: 119,
+                    column: 72,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "component_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "signinController",
+            span: TextSpan {
+                start_byte: 5893,
+                end_byte: 5909,
+                start_point: TextPoint {
+                    row: 120,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 120,
+                    column: 32,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "component_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "securityComponent",
+            span: TextSpan {
+                start_byte: 5910,
+                end_byte: 5927,
+                start_point: TextPoint {
+                    row: 120,
+                    column: 33,
+                },
+                end_point: TextPoint {
+                    row: 120,
+                    column: 50,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "component_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "accountsSummaryController",
+            span: TextSpan {
+                start_byte: 5944,
+                end_byte: 5969,
+                start_point: TextPoint {
+                    row: 121,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 121,
+                    column: 41,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "component_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "mainframeBankingSystemFacade",
+            span: TextSpan {
+                start_byte: 5970,
+                end_byte: 5998,
+                start_point: TextPoint {
+                    row: 121,
+                    column: 42,
+                },
+                end_point: TextPoint {
+                    row: 121,
+                    column: 70,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "component_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "resetPasswordController",
+            span: TextSpan {
+                start_byte: 6015,
+                end_byte: 6038,
+                start_point: TextPoint {
+                    row: 122,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 122,
+                    column: 39,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "component_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "emailComponent",
+            span: TextSpan {
+                start_byte: 6039,
+                end_byte: 6053,
+                start_point: TextPoint {
+                    row: 122,
+                    column: 40,
+                },
+                end_point: TextPoint {
+                    row: 122,
+                    column: 54,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "component_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "singlePageApplication",
+            span: TextSpan {
+                start_byte: 6260,
+                end_byte: 6281,
+                start_point: TextPoint {
+                    row: 126,
+                    column: 44,
+                },
+                end_point: TextPoint {
+                    row: 126,
+                    column: 65,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "dynamic_relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "CURSOR",
+            span: TextSpan {
+                start_byte: 6286,
+                end_byte: 6292,
+                start_point: TextPoint {
+                    row: 126,
+                    column: 70,
+                },
+                end_point: TextPoint {
+                    row: 126,
+                    column: 76,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "dynamic_relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "signinController",
+            span: TextSpan {
+                start_byte: 6365,
+                end_byte: 6381,
+                start_point: TextPoint {
+                    row: 127,
+                    column: 12,
+                },
+                end_point: TextPoint {
+                    row: 127,
+                    column: 28,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "dynamic_relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "CURSOR",
+            span: TextSpan {
+                start_byte: 6386,
+                end_byte: 6392,
+                start_point: TextPoint {
+                    row: 127,
+                    column: 33,
+                },
+                end_point: TextPoint {
+                    row: 127,
+                    column: 39,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "dynamic_relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "securityComponent",
+            span: TextSpan {
+                start_byte: 6472,
+                end_byte: 6489,
+                start_point: TextPoint {
+                    row: 128,
+                    column: 12,
+                },
+                end_point: TextPoint {
+                    row: 128,
+                    column: 29,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "dynamic_relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "database",
+            span: TextSpan {
+                start_byte: 6493,
+                end_byte: 6501,
+                start_point: TextPoint {
+                    row: 128,
+                    column: 33,
+                },
+                end_point: TextPoint {
+                    row: 128,
+                    column: 41,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "dynamic_relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "database",
+            span: TextSpan {
+                start_byte: 6555,
+                end_byte: 6563,
+                start_point: TextPoint {
+                    row: 129,
+                    column: 12,
+                },
+                end_point: TextPoint {
+                    row: 129,
+                    column: 20,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "dynamic_relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "securityComponent",
+            span: TextSpan {
+                start_byte: 6567,
+                end_byte: 6584,
+                start_point: TextPoint {
+                    row: 129,
+                    column: 24,
+                },
+                end_point: TextPoint {
+                    row: 129,
+                    column: 41,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "dynamic_relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "securityComponent",
+            span: TextSpan {
+                start_byte: 6620,
+                end_byte: 6637,
+                start_point: TextPoint {
+                    row: 130,
+                    column: 12,
+                },
+                end_point: TextPoint {
+                    row: 130,
+                    column: 29,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "dynamic_relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "signinController",
+            span: TextSpan {
+                start_byte: 6641,
+                end_byte: 6657,
+                start_point: TextPoint {
+                    row: 130,
+                    column: 33,
+                },
+                end_point: TextPoint {
+                    row: 130,
+                    column: 49,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "dynamic_relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "signinController",
+            span: TextSpan {
+                start_byte: 6716,
+                end_byte: 6732,
+                start_point: TextPoint {
+                    row: 131,
+                    column: 12,
+                },
+                end_point: TextPoint {
+                    row: 131,
+                    column: 28,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "dynamic_relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "singlePageApplication",
+            span: TextSpan {
+                start_byte: 6736,
+                end_byte: 6757,
+                start_point: TextPoint {
+                    row: 131,
+                    column: 32,
+                },
+                end_point: TextPoint {
+                    row: 131,
+                    column: 53,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "dynamic_relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewScope,
+            raw_text: "internetBankingSystem",
+            span: TextSpan {
+                start_byte: 6828,
+                end_byte: 6849,
+                start_point: TextPoint {
+                    row: 134,
+                    column: 19,
+                },
+                end_point: TextPoint {
+                    row: 134,
+                    column: 40,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "deployment_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewInclude,
+            raw_text: "developerApiApplicationInstance",
+            span: TextSpan {
+                start_byte: 7025,
+                end_byte: 7056,
+                start_point: TextPoint {
+                    row: 135,
+                    column: 135,
+                },
+                end_point: TextPoint {
+                    row: 135,
+                    column: 166,
+                },
+            },
+            target_hint: Deployment,
+            container_node_kind: "deployment_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewInclude,
+            raw_text: "developerDatabaseInstance",
+            span: TextSpan {
+                start_byte: 7057,
+                end_byte: 7082,
+                start_point: TextPoint {
+                    row: 135,
+                    column: 167,
+                },
+                end_point: TextPoint {
+                    row: 135,
+                    column: 192,
+                },
+            },
+            target_hint: Deployment,
+            container_node_kind: "deployment_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "developerSinglePageApplicationInstance",
+            span: TextSpan {
+                start_byte: 7123,
+                end_byte: 7161,
+                start_point: TextPoint {
+                    row: 137,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 137,
+                    column: 54,
+                },
+            },
+            target_hint: Deployment,
+            container_node_kind: "deployment_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "developerWebApplicationInstance",
+            span: TextSpan {
+                start_byte: 7178,
+                end_byte: 7209,
+                start_point: TextPoint {
+                    row: 138,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 138,
+                    column: 47,
+                },
+            },
+            target_hint: Deployment,
+            container_node_kind: "deployment_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "developerApiApplicationInstance",
+            span: TextSpan {
+                start_byte: 7210,
+                end_byte: 7241,
+                start_point: TextPoint {
+                    row: 138,
+                    column: 48,
+                },
+                end_point: TextPoint {
+                    row: 138,
+                    column: 79,
+                },
+            },
+            target_hint: Deployment,
+            container_node_kind: "deployment_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "developerDatabaseInstance",
+            span: TextSpan {
+                start_byte: 7258,
+                end_byte: 7283,
+                start_point: TextPoint {
+                    row: 139,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 139,
+                    column: 41,
+                },
+            },
+            target_hint: Deployment,
+            container_node_kind: "deployment_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewScope,
+            raw_text: "internetBankingSystem",
+            span: TextSpan {
+                start_byte: 7328,
+                end_byte: 7349,
+                start_point: TextPoint {
+                    row: 143,
+                    column: 19,
+                },
+                end_point: TextPoint {
+                    row: 143,
+                    column: 40,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "deployment_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "liveSinglePageApplicationInstance",
+            span: TextSpan {
+                start_byte: 7438,
+                end_byte: 7471,
+                start_point: TextPoint {
+                    row: 146,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 146,
+                    column: 49,
+                },
+            },
+            target_hint: Deployment,
+            container_node_kind: "deployment_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "liveMobileAppInstance",
+            span: TextSpan {
+                start_byte: 7488,
+                end_byte: 7509,
+                start_point: TextPoint {
+                    row: 147,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 147,
+                    column: 37,
+                },
+            },
+            target_hint: Deployment,
+            container_node_kind: "deployment_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "liveWebApplicationInstance",
+            span: TextSpan {
+                start_byte: 7526,
+                end_byte: 7552,
+                start_point: TextPoint {
+                    row: 148,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 148,
+                    column: 42,
+                },
+            },
+            target_hint: Deployment,
+            container_node_kind: "deployment_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "liveApiApplicationInstance",
+            span: TextSpan {
+                start_byte: 7553,
+                end_byte: 7579,
+                start_point: TextPoint {
+                    row: 148,
+                    column: 43,
+                },
+                end_point: TextPoint {
+                    row: 148,
+                    column: 69,
+                },
+            },
+            target_hint: Deployment,
+            container_node_kind: "deployment_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "livePrimaryDatabaseInstance",
+            span: TextSpan {
+                start_byte: 7596,
+                end_byte: 7623,
+                start_point: TextPoint {
+                    row: 149,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 149,
+                    column: 43,
+                },
+            },
+            target_hint: Deployment,
+            container_node_kind: "deployment_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewAnimation,
+            raw_text: "liveSecondaryDatabaseInstance",
+            span: TextSpan {
+                start_byte: 7640,
+                end_byte: 7669,
+                start_point: TextPoint {
+                    row: 150,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 150,
+                    column: 45,
+                },
+            },
+            target_hint: Deployment,
+            container_node_kind: "deployment_view",
+            containing_symbol: None,
+        },
+    ],
+}

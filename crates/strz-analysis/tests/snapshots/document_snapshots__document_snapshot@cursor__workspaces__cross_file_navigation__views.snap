@@ -1,0 +1,143 @@
+---
+source: crates/strz-analysis/tests/document_snapshots.rs
+expression: "SnapshotView::from(&snapshot)"
+---
+SnapshotView {
+    has_syntax_errors: true,
+    diagnostics: [
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 26,
+                    end_byte: 27,
+                    start_point: TextPoint {
+                        row: 1,
+                        column: 18,
+                    },
+                    end_point: TextPoint {
+                        row: 1,
+                        column: 19,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 26,
+                    end_byte: 27,
+                    start_point: TextPoint {
+                        row: 1,
+                        column: 18,
+                    },
+                    end_point: TextPoint {
+                        row: 1,
+                        column: 19,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 33,
+                    end_byte: 34,
+                    start_point: TextPoint {
+                        row: 1,
+                        column: 25,
+                    },
+                    end_point: TextPoint {
+                        row: 1,
+                        column: 26,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 33,
+                    end_byte: 34,
+                    start_point: TextPoint {
+                        row: 1,
+                        column: 25,
+                    },
+                    end_point: TextPoint {
+                        row: 1,
+                        column: 26,
+                    },
+                },
+            },
+        },
+    ],
+    include_directives: [],
+    identifier_modes: [],
+    symbols: [],
+    references: [
+        Reference {
+            kind: ViewScope,
+            raw_text: "CURSOR",
+            span: TextSpan {
+                start_byte: 27,
+                end_byte: 33,
+                start_point: TextPoint {
+                    row: 1,
+                    column: 19,
+                },
+                end_point: TextPoint {
+                    row: 1,
+                    column: 25,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "system_context_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewInclude,
+            raw_text: "user",
+            span: TextSpan {
+                start_byte: 75,
+                end_byte: 79,
+                start_point: TextPoint {
+                    row: 2,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 2,
+                    column: 20,
+                },
+            },
+            target_hint: ElementOrRelationship,
+            container_node_kind: "system_context_view",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ViewInclude,
+            raw_text: "rel",
+            span: TextSpan {
+                start_byte: 96,
+                end_byte: 99,
+                start_point: TextPoint {
+                    row: 3,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 3,
+                    column: 19,
+                },
+            },
+            target_hint: ElementOrRelationship,
+            container_node_kind: "system_context_view",
+            containing_symbol: None,
+        },
+    ],
+}
