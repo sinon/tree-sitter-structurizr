@@ -60,7 +60,11 @@ fn arbitrary_utf8_source() -> impl Strategy<Value = String> {
 }
 
 fn identifier() -> impl Strategy<Value = String> {
-    string_regex("[a-z][a-z0-9_]{0,11}").expect("identifier regex should compile")
+    proptest::prop_oneof![
+        string_regex("[a-z_][a-z0-9_-]{0,11}").expect("identifier regex should compile"),
+        string_regex("[0-9][a-z0-9_-]{0,4}[a-z_-][a-z0-9_-]{0,5}")
+            .expect("leading-digit identifier regex should compile"),
+    ]
 }
 
 fn display_name() -> impl Strategy<Value = String> {

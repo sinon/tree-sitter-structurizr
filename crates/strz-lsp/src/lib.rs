@@ -5,6 +5,7 @@ pub mod capabilities;
 pub mod convert;
 pub mod documents;
 pub mod handlers;
+pub(crate) mod identifier;
 pub mod server;
 pub mod state;
 

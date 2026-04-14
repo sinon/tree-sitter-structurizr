@@ -48,11 +48,11 @@ pub fn server_capabilities() -> ServerCapabilities {
 /// The current bounded completion surface includes:
 /// - directives that start with `!`
 /// - fixed-vocabulary and style-property items that start with ASCII letters
-/// - identifier completions that start with ASCII letters or `_`
+/// - identifier completions that may start with ASCII letters, digits, or `_`
 ///
-/// ASCII digits stay in the trigger set because identifiers can contain them
-/// after the first character, so typing a suffix like `system2` should continue
-/// to retrigger completion as the user refines the prefix.
+/// ASCII digits stay in the trigger set because bindable identifiers may begin
+/// with them as long as they are not all digits, and suffix typing like
+/// `system2` should still retrigger completion as the user refines the prefix.
 ///
 /// We intentionally do not advertise `.` or `-` as trigger characters.
 /// Hierarchical identifier completions are still suppressed, so `.` is only a

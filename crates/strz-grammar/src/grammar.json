@@ -112,7 +112,7 @@
     },
     "identifier": {
       "type": "PATTERN",
-      "value": "[A-Za-z_][A-Za-z0-9_.-]*"
+      "value": "(?:[A-Za-z_][A-Za-z0-9_-]*|[0-9][A-Za-z0-9_-]*[A-Za-z_-][A-Za-z0-9_-]*)(?:\\.(?:[A-Za-z_][A-Za-z0-9_-]*|[0-9][A-Za-z0-9_-]*[A-Za-z_-][A-Za-z0-9_-]*))*"
     },
     "_assignment_identifier": {
       "type": "PREC",

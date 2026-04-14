@@ -9,7 +9,11 @@ use tower_lsp_server::ls_types::{
     Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, Location, NumberOrString, Uri,
 };
 
-use crate::{convert::positions::span_to_range, documents::DocumentState};
+use crate::{
+    convert::positions::span_to_range,
+    documents::DocumentState,
+    identifier::{consume_identifier, is_identifier_line},
+};
 
 /// Converts syntax, include, and bounded semantic diagnostics into publishable LSP diagnostics.
 #[must_use]
@@ -217,7 +221,7 @@ fn suppress_partial_relationship_recovery_diagnostic(
         (current_line, previous_nonempty_line),
         (Some(current_line), Some(previous_nonempty_line))
             if is_complete_assigned_deployment_environment_statement(current_line)
-                && is_bare_identifier_line(previous_nonempty_line)
+                && is_identifier_line(previous_nonempty_line)
     )
 }
 
@@ -255,23 +259,6 @@ fn consume_keyword<'a>(line: &'a str, keyword: &str) -> Option<&'a str> {
         .then_some(rest)
 }
 
-fn consume_identifier(line: &str) -> Option<&str> {
-    let mut end = 0;
-    for (index, ch) in line.char_indices() {
-        let is_valid = if index == 0 {
-            ch.is_ascii_alphabetic() || ch == '_'
-        } else {
-            ch.is_ascii_alphanumeric() || matches!(ch, '_' | '.' | '-')
-        };
-        if !is_valid {
-            break;
-        }
-        end = index + ch.len_utf8();
-    }
-
-    (end > 0).then_some(&line[end..])
-}
-
 fn consume_value(line: &str) -> Option<&str> {
     if let Some(rest) = line.strip_prefix('"') {
         let mut escaped = false;
@@ -287,11 +274,4 @@ fn consume_value(line: &str) -> Option<&str> {
     } else {
         consume_identifier(line)
     }
-}
-
-fn is_bare_identifier_line(line: &str) -> bool {
-    let trimmed = line.trim();
-    let mut chars = trimmed.chars();
-    matches!(chars.next(), Some(ch) if ch.is_ascii_alphabetic() || ch == '_')
-        && chars.all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '.' | '-'))
 }
