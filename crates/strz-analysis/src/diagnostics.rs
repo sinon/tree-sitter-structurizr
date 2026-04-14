@@ -452,6 +452,20 @@ impl RuledDiagnostic {
         )
     }
 
+    pub(crate) fn deployment_parent_child_relationship(
+        document: &DocumentId,
+        span: TextSpan,
+    ) -> Self {
+        Self::new(
+            rules::SEMANTIC_DEPLOYMENT_PARENT_CHILD_RELATIONSHIP.id(),
+            Diagnostic::new(
+                "Relationships cannot be added between parents and children",
+                span,
+            )
+            .in_document(document),
+        )
+    }
+
     pub(crate) fn dynamic_view_relationship_mismatch(
         document: &DocumentId,
         source_name: &str,

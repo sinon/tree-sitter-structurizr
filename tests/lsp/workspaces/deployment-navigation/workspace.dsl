@@ -12,9 +12,12 @@ workspace {
                 }
                 softwareSystemInstance system
             }
+            secondary = deploymentNode "Secondary" {
+                secondaryApiInstance = containerInstance api
+            }
 
-            primary -> gateway "Hosts traffic"
-            gateway -> apiInstance "Routes traffic"
+            primary -> secondary "Replicates traffic"
+            gateway -> secondaryApiInstance "Routes traffic"
         }
     }
 }

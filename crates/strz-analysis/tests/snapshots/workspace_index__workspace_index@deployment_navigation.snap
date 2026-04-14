@@ -1,6 +1,5 @@
 ---
 source: crates/strz-analysis/tests/workspace_index.rs
-assertion_line: 206
 expression: "WorkspaceIndexSetView::from_facts(&facts, &fixture_root)"
 ---
 WorkspaceIndexSetView {
@@ -47,20 +46,24 @@ WorkspaceIndexSetView {
                     status: "resolved workspace.dsl::system",
                 },
                 ReferenceResolutionView {
-                    reference: "workspace.dsl::primary@15:12",
+                    reference: "workspace.dsl::api@15:57",
+                    status: "resolved workspace.dsl::api",
+                },
+                ReferenceResolutionView {
+                    reference: "workspace.dsl::primary@18:12",
                     status: "resolved workspace.dsl::primary",
                 },
                 ReferenceResolutionView {
-                    reference: "workspace.dsl::gateway@15:23",
+                    reference: "workspace.dsl::secondary@18:23",
+                    status: "resolved workspace.dsl::secondary",
+                },
+                ReferenceResolutionView {
+                    reference: "workspace.dsl::gateway@19:12",
                     status: "resolved workspace.dsl::gateway",
                 },
                 ReferenceResolutionView {
-                    reference: "workspace.dsl::gateway@16:12",
-                    status: "resolved workspace.dsl::gateway",
-                },
-                ReferenceResolutionView {
-                    reference: "workspace.dsl::apiInstance@16:23",
-                    status: "resolved workspace.dsl::apiInstance",
+                    reference: "workspace.dsl::secondaryApiInstance@19:23",
+                    status: "resolved workspace.dsl::secondaryApiInstance",
                 },
             ],
             semantic_diagnostics: [],

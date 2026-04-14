@@ -492,6 +492,162 @@ fn extended_workspaces_inherit_base_bindings_without_foundation_diagnostics() {
 }
 
 #[test]
+fn deployment_parent_child_relationships_surface_semantic_diagnostics() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        system = softwareSystem "System" {
+                            api = container "API"
+                        }
+
+                        live = deploymentEnvironment "Live" {
+                            primary = deploymentNode "Primary" {
+                                gateway = infrastructureNode "Gateway"
+                                apiInstance = containerInstance api
+                            }
+
+                            primary -> gateway "Hosts traffic"
+                        }
+                    }
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_code(&facts, "semantic.deployment-parent-child-relationship");
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].message(),
+        "Relationships cannot be added between parents and children"
+    );
+    assert_eq!(diagnostics[0].annotations().len(), 2);
+    assert_eq!(
+        diagnostics[0].annotations()[0].message.as_deref(),
+        Some("ancestor deployment element Primary is declared here")
+    );
+    assert_eq!(
+        diagnostics[0].annotations()[1].message.as_deref(),
+        Some("descendant deployment element Gateway is declared here")
+    );
+}
+
+#[test]
+fn deployment_grandparent_relationships_also_surface_semantic_diagnostics() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        live = deploymentEnvironment "Live" {
+                            primary = deploymentNode "Primary" {
+                                zone = deploymentNode "Zone" {
+                                    gateway = infrastructureNode "Gateway"
+                                }
+                            }
+
+                            primary -> gateway "Routes traffic"
+                        }
+                    }
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_code(&facts, "semantic.deployment-parent-child-relationship");
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].annotations()[0].message.as_deref(),
+        Some("ancestor deployment element Primary is declared here")
+    );
+    assert_eq!(
+        diagnostics[0].annotations()[1].message.as_deref(),
+        Some("descendant deployment element Gateway is declared here")
+    );
+}
+
+#[test]
+fn deployment_node_to_instance_relationships_surface_semantic_diagnostics() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        system = softwareSystem "System" {
+                            api = container "API"
+                        }
+
+                        live = deploymentEnvironment "Live" {
+                            primary = deploymentNode "Primary" {
+                                apiInstance = containerInstance api
+                                systemInstance = softwareSystemInstance system
+                            }
+
+                            primary -> apiInstance "Hosts API"
+                            primary -> systemInstance "Hosts system"
+                        }
+                    }
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_code(&facts, "semantic.deployment-parent-child-relationship");
+    assert_eq!(diagnostics.len(), 2);
+    assert!(diagnostics.iter().all(|diagnostic| {
+        diagnostic.message() == "Relationships cannot be added between parents and children"
+            && diagnostic.annotations().len() == 2
+            && diagnostic.annotations()[0].message.as_deref()
+                == Some("ancestor deployment element Primary is declared here")
+    }));
+}
+
+#[test]
+fn deployment_sibling_relationships_remain_valid() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        system = softwareSystem "System" {
+                            api = container "API"
+                        }
+
+                        live = deploymentEnvironment "Live" {
+                            primary = deploymentNode "Primary" {
+                                gateway = infrastructureNode "Gateway"
+                                apiInstance = containerInstance api {
+                                    gateway -> this "Routes traffic"
+                                }
+                                softwareSystemInstance system
+                            }
+                            secondary = deploymentNode "Secondary" {
+                                secondaryApiInstance = containerInstance api
+                            }
+
+                            primary -> secondary "Replicates traffic"
+                            gateway -> secondaryApiInstance "Routes traffic"
+                        }
+                    }
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_code(&facts, "semantic.deployment-parent-child-relationship");
+    assert!(diagnostics.is_empty(), "{diagnostics:#?}");
+}
+
+#[test]
 fn unresolved_element_selector_targets_surface_semantic_diagnostics() {
     let (_workspace, facts) = load_temp_workspace(
         &[(
