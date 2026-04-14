@@ -1,6 +1,5 @@
 use std::{
-    fs,
-    io,
+    fs, io,
     path::{Path, PathBuf},
 };
 
@@ -756,7 +755,10 @@ fn image_source_paths_surface_file_and_directory_diagnostics() {
                 "The file at {} does not exist",
                 workspace.root().join("diagram.puml").display()
             ),
-            format!("{} is not a file", workspace.root().join("assets").display()),
+            format!(
+                "{} is not a file",
+                workspace.root().join("assets").display()
+            ),
         ]
     );
 }
@@ -1428,7 +1430,10 @@ fn load_temp_workspace(files: &[(&str, &str)], root_file: &str) -> (TempWorkspac
     (workspace, facts)
 }
 
-fn load_temp_workspace_error(files: &[(&str, &str)], root_file: &str) -> (TempWorkspace, io::Error) {
+fn load_temp_workspace_error(
+    files: &[(&str, &str)],
+    root_file: &str,
+) -> (TempWorkspace, io::Error) {
     let workspace = write_temp_workspace(files);
     let root_file = workspace.root.join(root_file);
     let mut loader = WorkspaceLoader::new();

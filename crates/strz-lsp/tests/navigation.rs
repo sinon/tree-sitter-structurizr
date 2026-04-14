@@ -2,7 +2,7 @@ mod support;
 
 use std::{fs, path::Path};
 
-use indoc::indoc;
+use indoc::{formatdoc, indoc};
 use serde_json::json;
 use support::{
     AnnotatedSource, TempWorkspace, TestService, annotated_source, change_document, close_document,
@@ -15,6 +15,42 @@ use tower_lsp_server::ls_types::{Position, Uri};
 
 const DIRECT_REFERENCES_SOURCE: &str =
     include_str!("fixtures/relationships/named-relationships-ok.dsl");
+
+// Keep one representative deployment workspace inline so each completion test
+// varies only the relationship line under review, not the surrounding model.
+fn deployment_completion_source(relation_line: &str) -> AnnotatedSource {
+    deployment_completion_source_with_preamble("", relation_line)
+}
+
+fn deployment_completion_source_with_preamble(
+    preamble: &str,
+    relation_line: &str,
+) -> AnnotatedSource {
+    annotated_source(&formatdoc! {r#"
+        workspace {{
+          model {{
+            {preamble}
+            system = softwareSystem "System" {{
+              api = container "API"
+            }}
+
+            live = deploymentEnvironment "Live" {{
+              primary = deploymentNode "Primary" {{
+                gateway = infrastructureNode "Gateway"
+                systemInstance = softwareSystemInstance system
+                apiInstance = containerInstance api
+              }}
+              secondary = deploymentNode "Secondary" {{
+                cdn = infrastructureNode "CDN"
+                secondaryApiInstance = containerInstance api
+              }}
+
+              {relation_line}
+            }}
+          }}
+        }}
+    "#})
+}
 
 #[tokio::test(flavor = "current_thread")]
 async fn document_symbols_follow_analysis_symbols() {
@@ -541,6 +577,190 @@ async fn completion_inside_unterminated_relationship_string_returns_no_items() {
         labels.is_empty(),
         "expected no completion labels inside an open relationship string, got {labels:?}"
     );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_deployment_relationship_source_suggests_deployment_identifiers() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = deployment_completion_source("ga<CURSOR> -> secondaryApiInstance");
+    let uri = file_uri("deployment-relationship-source-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let labels = completion_labels(&mut service, &uri, &source).await;
+
+    assert_eq!(labels, vec!["gateway"]);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_blank_deployment_relationship_source_suggests_deployment_identifiers() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = deployment_completion_source("<CURSOR>-> secondaryApiInstance");
+    let uri = file_uri("blank-deployment-relationship-source-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let mut labels = completion_labels(&mut service, &uri, &source).await;
+    labels.sort_unstable();
+
+    assert_eq!(
+        labels,
+        vec![
+            "apiInstance",
+            "cdn",
+            "gateway",
+            "primary",
+            "secondary",
+            "secondaryApiInstance",
+            "systemInstance",
+        ]
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_fresh_deployment_relationship_source_uses_deployment_bindings() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = deployment_completion_source("pri<CURSOR>");
+    let uri = file_uri("fresh-deployment-relationship-source-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let labels = completion_labels(&mut service, &uri, &source).await;
+
+    assert_eq!(labels, vec!["primary"]);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_deployment_node_relationship_destination_suggests_only_deployment_nodes()
+{
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = deployment_completion_source("primary -> <CURSOR>");
+    let uri = file_uri("deployment-node-destination-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let mut labels = completion_labels(&mut service, &uri, &source).await;
+    labels.sort_unstable();
+
+    assert_eq!(labels, vec!["primary", "secondary"]);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_infrastructure_node_relationship_destination_uses_deployment_matrix() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = deployment_completion_source("gateway -> <CURSOR>");
+    let uri = file_uri("infrastructure-node-destination-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let mut labels = completion_labels(&mut service, &uri, &source).await;
+    labels.sort_unstable();
+
+    assert_eq!(
+        labels,
+        vec![
+            "apiInstance",
+            "cdn",
+            "gateway",
+            "primary",
+            "secondary",
+            "secondaryApiInstance",
+            "systemInstance",
+        ]
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_workspace_backed_deployment_relationship_uses_deployment_bindings() {
+    let (mut service, _socket) = new_service();
+    let workspace_root = workspace_fixture_path("deployment-navigation");
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
+    initialized(&mut service).await;
+
+    let workspace_path = workspace_root.join("workspace.dsl");
+    let workspace_source = annotated_source(&read_workspace_file(&workspace_path).replacen(
+        "gateway -> secondaryApiInstance \"Routes traffic\"",
+        "gateway -> sec<CURSOR>",
+        1,
+    ));
+    let workspace_uri = file_uri_from_path(&workspace_path);
+    open_document(&mut service, &workspace_uri, workspace_source.source()).await;
+
+    let mut labels = completion_labels(&mut service, &workspace_uri, &workspace_source).await;
+    labels.sort_unstable();
+
+    assert_eq!(labels, vec!["secondary", "secondaryApiInstance"]);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_software_system_instance_relationship_destination_suggests_only_infrastructure_nodes()
+ {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = deployment_completion_source("systemInstance -> <CURSOR>");
+    let uri = file_uri("software-system-instance-destination-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let mut labels = completion_labels(&mut service, &uri, &source).await;
+    labels.sort_unstable();
+
+    assert_eq!(labels, vec!["cdn", "gateway"]);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_container_instance_relationship_destination_suggests_only_infrastructure_nodes()
+ {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = deployment_completion_source("apiInstance -> <CURSOR>");
+    let uri = file_uri("container-instance-destination-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let mut labels = completion_labels(&mut service, &uri, &source).await;
+    labels.sort_unstable();
+
+    assert_eq!(labels, vec!["cdn", "gateway"]);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_deployment_relationship_destination_suppresses_hierarchical_mode() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = deployment_completion_source_with_preamble(
+        "!identifiers hierarchical",
+        "primary -> <CURSOR>",
+    );
+    let uri = file_uri("deployment-relationship-hierarchical-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let labels = completion_labels(&mut service, &uri, &source).await;
+
+    assert!(labels.is_empty());
 }
 
 #[tokio::test(flavor = "current_thread")]

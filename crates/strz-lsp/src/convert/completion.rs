@@ -259,6 +259,24 @@ const CORE_ELEMENT_KINDS: &[SymbolKind] = &[
     SymbolKind::Component,
 ];
 
+const DEPLOYMENT_RELATIONSHIP_SOURCE_KINDS: &[SymbolKind] = &[
+    SymbolKind::DeploymentNode,
+    SymbolKind::InfrastructureNode,
+    SymbolKind::SoftwareSystemInstance,
+    SymbolKind::ContainerInstance,
+];
+
+const DEPLOYMENT_NODE_DESTINATION_KINDS: &[SymbolKind] = &[SymbolKind::DeploymentNode];
+
+const INFRASTRUCTURE_NODE_DESTINATION_KINDS: &[SymbolKind] = &[
+    SymbolKind::DeploymentNode,
+    SymbolKind::InfrastructureNode,
+    SymbolKind::SoftwareSystemInstance,
+    SymbolKind::ContainerInstance,
+];
+
+const INSTANCE_DESTINATION_KINDS: &[SymbolKind] = &[SymbolKind::InfrastructureNode];
+
 // =============================================================================
 // Completion context detection
 // =============================================================================
@@ -269,7 +287,7 @@ enum CompletionContext {
     StyleProperties(StyleBlockKind),
     StyleValues(StyleValueCompletionContext),
     RelationshipIdentifier(RelationshipCompletionContext),
-    FreshRelationshipSource,
+    FreshRelationshipSource(RelationshipBindingDomain),
     Suppress,
 }
 
@@ -335,12 +353,19 @@ impl StyleValueKind {
 struct RelationshipCompletionContext {
     endpoint: RelationshipEndpoint,
     source_text: Option<String>,
+    domain: RelationshipBindingDomain,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum RelationshipEndpoint {
     Source,
     Destination,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum RelationshipBindingDomain {
+    Core,
+    Deployment,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -398,9 +423,14 @@ pub fn completion_items(
             prefix,
             edit_range,
         ),
-        CompletionContext::FreshRelationshipSource => {
-            fresh_relationship_source_items(document, snapshot, workspace_facts, prefix, edit_range)
-        }
+        CompletionContext::FreshRelationshipSource(domain) => fresh_relationship_source_items(
+            document,
+            snapshot,
+            workspace_facts,
+            domain,
+            prefix,
+            edit_range,
+        ),
         CompletionContext::Suppress => Vec::new(),
     }
 }
@@ -707,17 +737,19 @@ fn relationship_completion_context_from_node(
                     .then_some(CompletionContext::Suppress);
             }
             "relationship" => {
-                if is_deployment_relationship(current) {
-                    return Some(CompletionContext::Suppress);
-                }
+                let domain = if is_deployment_relationship(current) {
+                    RelationshipBindingDomain::Deployment
+                } else {
+                    RelationshipBindingDomain::Core
+                };
 
                 return if relationship_node_matches_cursor(current, offset, prefix_start) {
                     Some(
-                        relationship_endpoint_context(text, current, offset, prefix_start)
+                        relationship_endpoint_context(text, current, offset, prefix_start, domain)
                             .unwrap_or(CompletionContext::Suppress),
                     )
                 } else {
-                    relationship_endpoint_context(text, current, offset, prefix_start)
+                    relationship_endpoint_context(text, current, offset, prefix_start, domain)
                 };
             }
             _ => {}
@@ -751,6 +783,7 @@ fn relationship_endpoint_context(
     relationship: tree_sitter::Node<'_>,
     offset: usize,
     prefix_start: usize,
+    domain: RelationshipBindingDomain,
 ) -> Option<CompletionContext> {
     let safe_offset = offset.min(text.len());
     let safe_prefix_start = prefix_start.min(text.len());
@@ -763,6 +796,7 @@ fn relationship_endpoint_context(
             RelationshipCompletionContext {
                 endpoint: RelationshipEndpoint::Source,
                 source_text: None,
+                domain,
             },
         ));
     }
@@ -778,6 +812,7 @@ fn relationship_endpoint_context(
             RelationshipCompletionContext {
                 endpoint: RelationshipEndpoint::Source,
                 source_text: None,
+                domain,
             },
         ));
     }
@@ -790,6 +825,7 @@ fn relationship_endpoint_context(
                 source_text: source
                     .filter(|source| source.kind() == "identifier")
                     .map(|source| node_text(source, text)),
+                domain,
             },
         ));
     }
@@ -808,6 +844,7 @@ fn relationship_endpoint_context(
                 source_text: source
                     .filter(|source| source.kind() == "identifier")
                     .map(|source| node_text(source, text)),
+                domain,
             },
         ));
     }
@@ -857,35 +894,34 @@ fn is_deployment_relationship(node: tree_sitter::Node<'_>) -> bool {
 fn fresh_relationship_source_context_from_node(
     node: tree_sitter::Node<'_>,
 ) -> Option<CompletionContext> {
-    if is_deployment_relationship(node) {
-        return None;
-    }
-
     let mut current = node;
     loop {
         if current.kind().ends_with("_block") {
-            return fresh_relationship_source_block_kind(current.kind())
-                .then_some(CompletionContext::FreshRelationshipSource);
+            return fresh_relationship_source_block_domain(current.kind())
+                .map(CompletionContext::FreshRelationshipSource);
         }
 
         current = current.parent()?;
     }
 }
 
-fn fresh_relationship_source_block_kind(kind: &str) -> bool {
-    matches!(
-        kind,
+fn fresh_relationship_source_block_domain(kind: &str) -> Option<RelationshipBindingDomain> {
+    match kind {
         "model_block"
-            | "person_block"
-            | "software_system_block"
-            | "container_block"
-            | "component_block"
-            | "group_block"
-            | "enterprise_block"
-            | "custom_element_block"
-            | "element_directive_block"
-            | "elements_block"
-    )
+        | "person_block"
+        | "software_system_block"
+        | "container_block"
+        | "component_block"
+        | "group_block"
+        | "enterprise_block"
+        | "custom_element_block"
+        | "element_directive_block"
+        | "elements_block" => Some(RelationshipBindingDomain::Core),
+        "deployment_environment_block" | "deployment_node_block" | "deployment_instance_block" => {
+            Some(RelationshipBindingDomain::Deployment)
+        }
+        _ => None,
+    }
 }
 
 fn is_fresh_relationship_source_insertion_point(
@@ -920,6 +956,7 @@ fn fresh_relationship_source_items(
     document: &DocumentState,
     snapshot: &DocumentSnapshot,
     workspace_facts: Option<&WorkspaceFacts>,
+    domain: RelationshipBindingDomain,
     prefix: &str,
     edit_range: Option<Range>,
 ) -> Vec<CompletionItem> {
@@ -930,6 +967,7 @@ fn fresh_relationship_source_items(
         &RelationshipCompletionContext {
             endpoint: RelationshipEndpoint::Source,
             source_text: None,
+            domain,
         },
         prefix,
         edit_range,
@@ -1009,21 +1047,31 @@ fn workspace_relationship_completion_candidates(
         return WorkspaceCompletionOutcome::Suppress;
     }
 
+    // Deployment relationships reuse the same conservative completion pipeline
+    // as core relationships. The only moving parts are which binding table we
+    // read from and which destination matrix applies to the resolved source.
     let allowed_kinds = match context.endpoint {
-        RelationshipEndpoint::Source => CORE_ELEMENT_KINDS,
+        RelationshipEndpoint::Source => relationship_source_kinds(context.domain),
         RelationshipEndpoint::Destination => {
             let Some(source_kind) = unanimous_workspace_source_kind(
                 workspace_facts,
                 &candidate_instances,
+                context.domain,
                 context.source_text.as_deref(),
             ) else {
                 return WorkspaceCompletionOutcome::Suppress;
             };
-            allowed_destination_kinds(source_kind)
+            allowed_destination_kinds(context.domain, source_kind)
         }
     };
 
-    unanimous_workspace_candidate_map(workspace_facts, &candidate_instances, allowed_kinds).map_or(
+    unanimous_workspace_candidate_map(
+        workspace_facts,
+        &candidate_instances,
+        context.domain,
+        allowed_kinds,
+    )
+    .map_or(
         WorkspaceCompletionOutcome::Suppress,
         WorkspaceCompletionOutcome::Candidates,
     )
@@ -1038,14 +1086,14 @@ fn same_document_relationship_completion_candidates(
     }
 
     let allowed_kinds = match context.endpoint {
-        RelationshipEndpoint::Source => CORE_ELEMENT_KINDS,
+        RelationshipEndpoint::Source => relationship_source_kinds(context.domain),
         RelationshipEndpoint::Destination => {
             let Some(source_kind) =
-                same_document_source_kind(snapshot, context.source_text.as_deref())
+                same_document_source_kind(snapshot, context.domain, context.source_text.as_deref())
             else {
                 return BTreeMap::new();
             };
-            allowed_destination_kinds(source_kind)
+            allowed_destination_kinds(context.domain, source_kind)
         }
     };
 
@@ -1055,23 +1103,35 @@ fn same_document_relationship_completion_candidates(
 fn unanimous_workspace_source_kind(
     workspace_facts: &WorkspaceFacts,
     candidate_instances: &[WorkspaceInstanceId],
+    domain: RelationshipBindingDomain,
     source_text: Option<&str>,
 ) -> Option<SymbolKind> {
     let source_text = source_text?;
+    let allowed_source_kinds = relationship_source_kinds(domain);
     let mut resolved_kind = None;
 
     for instance_id in candidate_instances {
         let workspace_index = workspace_facts.workspace_index(*instance_id)?;
-        if workspace_index
-            .duplicate_element_bindings()
-            .contains_key(source_text)
-        {
+        // If any candidate workspace sees the typed source as duplicated or as a
+        // different symbol kind, keep the existing "prefer no answer" policy
+        // rather than guessing across conflicting deployment bindings.
+        let duplicate_bindings = match domain {
+            RelationshipBindingDomain::Core => workspace_index.duplicate_element_bindings(),
+            RelationshipBindingDomain::Deployment => {
+                workspace_index.duplicate_deployment_bindings()
+            }
+        };
+        if duplicate_bindings.contains_key(source_text) {
             return None;
         }
 
-        let handle = workspace_index.unique_element_bindings().get(source_text)?;
+        let unique_bindings = match domain {
+            RelationshipBindingDomain::Core => workspace_index.unique_element_bindings(),
+            RelationshipBindingDomain::Deployment => workspace_index.unique_deployment_bindings(),
+        };
+        let handle = unique_bindings.get(source_text)?;
         let symbol = workspace_symbol(workspace_facts, handle)?;
-        if !is_core_element_kind(symbol.kind) {
+        if !allowed_source_kinds.contains(&symbol.kind) {
             return None;
         }
 
@@ -1091,14 +1151,19 @@ fn unanimous_workspace_source_kind(
 fn unanimous_workspace_candidate_map(
     workspace_facts: &WorkspaceFacts,
     candidate_instances: &[WorkspaceInstanceId],
+    domain: RelationshipBindingDomain,
     allowed_kinds: &[SymbolKind],
 ) -> Option<BTreeMap<String, IdentifierCompletionCandidate>> {
     let mut candidates = None;
 
     for instance_id in candidate_instances {
         let workspace_index = workspace_facts.workspace_index(*instance_id)?;
-        let current =
-            candidate_map_from_workspace_index(workspace_facts, workspace_index, allowed_kinds)?;
+        let current = candidate_map_from_workspace_index(
+            workspace_facts,
+            workspace_index,
+            domain,
+            allowed_kinds,
+        )?;
         if candidates
             .as_ref()
             .is_some_and(|existing| existing != &current)
@@ -1114,11 +1179,16 @@ fn unanimous_workspace_candidate_map(
 fn candidate_map_from_workspace_index(
     workspace_facts: &WorkspaceFacts,
     workspace_index: &WorkspaceIndex,
+    domain: RelationshipBindingDomain,
     allowed_kinds: &[SymbolKind],
 ) -> Option<BTreeMap<String, IdentifierCompletionCandidate>> {
     let mut candidates = BTreeMap::new();
+    let binding_table = match domain {
+        RelationshipBindingDomain::Core => workspace_index.unique_element_bindings(),
+        RelationshipBindingDomain::Deployment => workspace_index.unique_deployment_bindings(),
+    };
 
-    for (binding, handle) in workspace_index.unique_element_bindings() {
+    for (binding, handle) in binding_table {
         let symbol = workspace_symbol(workspace_facts, handle)?;
         if allowed_kinds.contains(&symbol.kind) {
             candidates.insert(
@@ -1179,11 +1249,14 @@ fn completion_candidate_detail(symbol: &Symbol) -> String {
 
 fn same_document_source_kind(
     snapshot: &DocumentSnapshot,
+    domain: RelationshipBindingDomain,
     source_text: Option<&str>,
 ) -> Option<SymbolKind> {
     let source_text = source_text?;
+    let allowed_source_kinds = relationship_source_kinds(domain);
     let mut matches = snapshot.symbols().iter().filter(|symbol| {
-        is_core_element_kind(symbol.kind) && symbol.binding_name.as_deref() == Some(source_text)
+        allowed_source_kinds.contains(&symbol.kind)
+            && symbol.binding_name.as_deref() == Some(source_text)
     });
     let first = matches.next()?;
     if matches.next().is_some() {
@@ -1212,7 +1285,24 @@ fn workspace_symbol<'a>(
         .get(handle.symbol_id().0)
 }
 
-const fn allowed_destination_kinds(source_kind: SymbolKind) -> &'static [SymbolKind] {
+const fn relationship_source_kinds(domain: RelationshipBindingDomain) -> &'static [SymbolKind] {
+    match domain {
+        RelationshipBindingDomain::Core => CORE_ELEMENT_KINDS,
+        RelationshipBindingDomain::Deployment => DEPLOYMENT_RELATIONSHIP_SOURCE_KINDS,
+    }
+}
+
+const fn allowed_destination_kinds(
+    domain: RelationshipBindingDomain,
+    source_kind: SymbolKind,
+) -> &'static [SymbolKind] {
+    match domain {
+        RelationshipBindingDomain::Core => core_allowed_destination_kinds(source_kind),
+        RelationshipBindingDomain::Deployment => deployment_allowed_destination_kinds(source_kind),
+    }
+}
+
+const fn core_allowed_destination_kinds(source_kind: SymbolKind) -> &'static [SymbolKind] {
     match source_kind {
         SymbolKind::Person
         | SymbolKind::SoftwareSystem
@@ -1222,14 +1312,15 @@ const fn allowed_destination_kinds(source_kind: SymbolKind) -> &'static [SymbolK
     }
 }
 
-const fn is_core_element_kind(kind: SymbolKind) -> bool {
-    matches!(
-        kind,
-        SymbolKind::Person
-            | SymbolKind::SoftwareSystem
-            | SymbolKind::Container
-            | SymbolKind::Component
-    )
+const fn deployment_allowed_destination_kinds(source_kind: SymbolKind) -> &'static [SymbolKind] {
+    match source_kind {
+        SymbolKind::DeploymentNode => DEPLOYMENT_NODE_DESTINATION_KINDS,
+        SymbolKind::InfrastructureNode => INFRASTRUCTURE_NODE_DESTINATION_KINDS,
+        SymbolKind::SoftwareSystemInstance | SymbolKind::ContainerInstance => {
+            INSTANCE_DESTINATION_KINDS
+        }
+        _ => &[],
+    }
 }
 
 const fn symbol_kind_label(kind: SymbolKind) -> &'static str {
