@@ -1,0 +1,691 @@
+---
+source: crates/strz-analysis/tests/document_snapshots.rs
+expression: "SnapshotView::from(&snapshot)"
+---
+SnapshotView {
+    has_syntax_errors: false,
+    diagnostics: [],
+    include_directives: [
+        IncludeDirective {
+            raw_value: "\"<CURSOR>internet-banking-system/${INTERNET_BANKING_SYSTEM_INCLUDE}\"",
+            value_kind: String,
+            span: TextSpan {
+                start_byte: 880,
+                end_byte: 957,
+                start_point: TextPoint {
+                    row: 11,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 11,
+                    column: 85,
+                },
+            },
+            value_span: TextSpan {
+                start_byte: 889,
+                end_byte: 957,
+                start_point: TextPoint {
+                    row: 11,
+                    column: 17,
+                },
+                end_point: TextPoint {
+                    row: 11,
+                    column: 85,
+                },
+            },
+            container: SourceFile,
+        },
+    ],
+    identifier_modes: [],
+    symbols: [
+        Symbol {
+            id: SymbolId(
+                0,
+            ),
+            kind: Person,
+            display_name: "Personal Banking Customer",
+            binding_name: Some(
+                "customer",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 0,
+                    end_byte: 8,
+                    start_point: TextPoint {
+                        row: 0,
+                        column: 0,
+                    },
+                    end_point: TextPoint {
+                        row: 0,
+                        column: 8,
+                    },
+                },
+            ),
+            description: Some(
+                "A customer of the bank, with personal bank accounts.",
+            ),
+            tags: [
+                "Customer",
+            ],
+            span: TextSpan {
+                start_byte: 0,
+                end_byte: 111,
+                start_point: TextPoint {
+                    row: 0,
+                    column: 0,
+                },
+                end_point: TextPoint {
+                    row: 0,
+                    column: 111,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "person",
+        },
+        Symbol {
+            id: SymbolId(
+                1,
+            ),
+            kind: Person,
+            display_name: "Customer Service Staff",
+            binding_name: Some(
+                "supportStaff",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 140,
+                    end_byte: 152,
+                    start_point: TextPoint {
+                        row: 3,
+                        column: 4,
+                    },
+                    end_point: TextPoint {
+                        row: 3,
+                        column: 16,
+                    },
+                },
+            ),
+            description: Some(
+                "Customer service staff within the bank.",
+            ),
+            tags: [
+                "Bank Staff",
+            ],
+            span: TextSpan {
+                start_byte: 140,
+                end_byte: 241,
+                start_point: TextPoint {
+                    row: 3,
+                    column: 4,
+                },
+                end_point: TextPoint {
+                    row: 3,
+                    column: 105,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "person",
+        },
+        Symbol {
+            id: SymbolId(
+                2,
+            ),
+            kind: Person,
+            display_name: "Back Office Staff",
+            binding_name: Some(
+                "backoffice",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 246,
+                    end_byte: 256,
+                    start_point: TextPoint {
+                        row: 4,
+                        column: 4,
+                    },
+                    end_point: TextPoint {
+                        row: 4,
+                        column: 14,
+                    },
+                },
+            ),
+            description: Some(
+                "Administration and support staff within the bank.",
+            ),
+            tags: [
+                "Bank Staff",
+            ],
+            span: TextSpan {
+                start_byte: 246,
+                end_byte: 350,
+                start_point: TextPoint {
+                    row: 4,
+                    column: 4,
+                },
+                end_point: TextPoint {
+                    row: 4,
+                    column: 108,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "person",
+        },
+        Symbol {
+            id: SymbolId(
+                3,
+            ),
+            kind: SoftwareSystem,
+            display_name: "Mainframe Banking System",
+            binding_name: Some(
+                "mainframe",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 356,
+                    end_byte: 365,
+                    start_point: TextPoint {
+                        row: 6,
+                        column: 4,
+                    },
+                    end_point: TextPoint {
+                        row: 6,
+                        column: 13,
+                    },
+                },
+            ),
+            description: Some(
+                "Stores all of the core banking information about customers, accounts, transactions, etc.",
+            ),
+            tags: [
+                "Existing System",
+            ],
+            span: TextSpan {
+                start_byte: 356,
+                end_byte: 518,
+                start_point: TextPoint {
+                    row: 6,
+                    column: 4,
+                },
+                end_point: TextPoint {
+                    row: 6,
+                    column: 166,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "software_system",
+        },
+        Symbol {
+            id: SymbolId(
+                4,
+            ),
+            kind: SoftwareSystem,
+            display_name: "E-mail System",
+            binding_name: Some(
+                "email",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 523,
+                    end_byte: 528,
+                    start_point: TextPoint {
+                        row: 7,
+                        column: 4,
+                    },
+                    end_point: TextPoint {
+                        row: 7,
+                        column: 9,
+                    },
+                },
+            ),
+            description: Some(
+                "The internal Microsoft Exchange e-mail system.",
+            ),
+            tags: [
+                "Existing System",
+            ],
+            span: TextSpan {
+                start_byte: 523,
+                end_byte: 628,
+                start_point: TextPoint {
+                    row: 7,
+                    column: 4,
+                },
+                end_point: TextPoint {
+                    row: 7,
+                    column: 109,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "software_system",
+        },
+        Symbol {
+            id: SymbolId(
+                5,
+            ),
+            kind: SoftwareSystem,
+            display_name: "ATM",
+            binding_name: Some(
+                "atm",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 633,
+                    end_byte: 636,
+                    start_point: TextPoint {
+                        row: 8,
+                        column: 4,
+                    },
+                    end_point: TextPoint {
+                        row: 8,
+                        column: 7,
+                    },
+                },
+            ),
+            description: Some(
+                "Allows customers to withdraw cash.",
+            ),
+            tags: [
+                "Existing System",
+            ],
+            span: TextSpan {
+                start_byte: 633,
+                end_byte: 714,
+                start_point: TextPoint {
+                    row: 8,
+                    column: 4,
+                },
+                end_point: TextPoint {
+                    row: 8,
+                    column: 85,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "software_system",
+        },
+        Symbol {
+            id: SymbolId(
+                6,
+            ),
+            kind: SoftwareSystem,
+            display_name: "Internet Banking System",
+            binding_name: Some(
+                "internetBankingSystem",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 720,
+                    end_byte: 741,
+                    start_point: TextPoint {
+                        row: 10,
+                        column: 4,
+                    },
+                    end_point: TextPoint {
+                        row: 10,
+                        column: 25,
+                    },
+                },
+            ),
+            description: Some(
+                "Allows customers to view information about their bank accounts, and make payments.",
+            ),
+            span: TextSpan {
+                start_byte: 720,
+                end_byte: 963,
+                start_point: TextPoint {
+                    row: 10,
+                    column: 4,
+                },
+                end_point: TextPoint {
+                    row: 12,
+                    column: 5,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "software_system",
+        },
+    ],
+    references: [
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "customer",
+            span: TextSpan {
+                start_byte: 1019,
+                end_byte: 1027,
+                start_point: TextPoint {
+                    row: 16,
+                    column: 0,
+                },
+                end_point: TextPoint {
+                    row: 16,
+                    column: 8,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "internetBankingSystem",
+            span: TextSpan {
+                start_byte: 1031,
+                end_byte: 1052,
+                start_point: TextPoint {
+                    row: 16,
+                    column: 12,
+                },
+                end_point: TextPoint {
+                    row: 16,
+                    column: 33,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "internetBankingSystem",
+            span: TextSpan {
+                start_byte: 1104,
+                end_byte: 1125,
+                start_point: TextPoint {
+                    row: 17,
+                    column: 0,
+                },
+                end_point: TextPoint {
+                    row: 17,
+                    column: 21,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "mainframe",
+            span: TextSpan {
+                start_byte: 1129,
+                end_byte: 1138,
+                start_point: TextPoint {
+                    row: 17,
+                    column: 25,
+                },
+                end_point: TextPoint {
+                    row: 17,
+                    column: 34,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "internetBankingSystem",
+            span: TextSpan {
+                start_byte: 1197,
+                end_byte: 1218,
+                start_point: TextPoint {
+                    row: 18,
+                    column: 0,
+                },
+                end_point: TextPoint {
+                    row: 18,
+                    column: 21,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "email",
+            span: TextSpan {
+                start_byte: 1222,
+                end_byte: 1227,
+                start_point: TextPoint {
+                    row: 18,
+                    column: 25,
+                },
+                end_point: TextPoint {
+                    row: 18,
+                    column: 30,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "email",
+            span: TextSpan {
+                start_byte: 1249,
+                end_byte: 1254,
+                start_point: TextPoint {
+                    row: 19,
+                    column: 0,
+                },
+                end_point: TextPoint {
+                    row: 19,
+                    column: 5,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "customer",
+            span: TextSpan {
+                start_byte: 1258,
+                end_byte: 1266,
+                start_point: TextPoint {
+                    row: 19,
+                    column: 9,
+                },
+                end_point: TextPoint {
+                    row: 19,
+                    column: 17,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "customer",
+            span: TextSpan {
+                start_byte: 1286,
+                end_byte: 1294,
+                start_point: TextPoint {
+                    row: 20,
+                    column: 0,
+                },
+                end_point: TextPoint {
+                    row: 20,
+                    column: 8,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "supportStaff",
+            span: TextSpan {
+                start_byte: 1298,
+                end_byte: 1310,
+                start_point: TextPoint {
+                    row: 20,
+                    column: 12,
+                },
+                end_point: TextPoint {
+                    row: 20,
+                    column: 24,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "supportStaff",
+            span: TextSpan {
+                start_byte: 1343,
+                end_byte: 1355,
+                start_point: TextPoint {
+                    row: 21,
+                    column: 0,
+                },
+                end_point: TextPoint {
+                    row: 21,
+                    column: 12,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "mainframe",
+            span: TextSpan {
+                start_byte: 1359,
+                end_byte: 1368,
+                start_point: TextPoint {
+                    row: 21,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 21,
+                    column: 25,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "customer",
+            span: TextSpan {
+                start_byte: 1376,
+                end_byte: 1384,
+                start_point: TextPoint {
+                    row: 22,
+                    column: 0,
+                },
+                end_point: TextPoint {
+                    row: 22,
+                    column: 8,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "atm",
+            span: TextSpan {
+                start_byte: 1388,
+                end_byte: 1391,
+                start_point: TextPoint {
+                    row: 22,
+                    column: 12,
+                },
+                end_point: TextPoint {
+                    row: 22,
+                    column: 15,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "atm",
+            span: TextSpan {
+                start_byte: 1415,
+                end_byte: 1418,
+                start_point: TextPoint {
+                    row: 23,
+                    column: 0,
+                },
+                end_point: TextPoint {
+                    row: 23,
+                    column: 3,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "mainframe",
+            span: TextSpan {
+                start_byte: 1422,
+                end_byte: 1431,
+                start_point: TextPoint {
+                    row: 23,
+                    column: 7,
+                },
+                end_point: TextPoint {
+                    row: 23,
+                    column: 16,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "backoffice",
+            span: TextSpan {
+                start_byte: 1439,
+                end_byte: 1449,
+                start_point: TextPoint {
+                    row: 24,
+                    column: 0,
+                },
+                end_point: TextPoint {
+                    row: 24,
+                    column: 10,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "mainframe",
+            span: TextSpan {
+                start_byte: 1453,
+                end_byte: 1462,
+                start_point: TextPoint {
+                    row: 24,
+                    column: 14,
+                },
+                end_point: TextPoint {
+                    row: 24,
+                    column: 23,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+    ],
+}

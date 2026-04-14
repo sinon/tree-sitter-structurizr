@@ -1,0 +1,222 @@
+---
+source: crates/strz-analysis/tests/document_snapshots.rs
+expression: "SnapshotView::from(&snapshot)"
+---
+SnapshotView {
+    has_syntax_errors: true,
+    diagnostics: [
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 119,
+                    end_byte: 120,
+                    start_point: TextPoint {
+                        row: 6,
+                        column: 16,
+                    },
+                    end_point: TextPoint {
+                        row: 6,
+                        column: 17,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 119,
+                    end_byte: 120,
+                    start_point: TextPoint {
+                        row: 6,
+                        column: 16,
+                    },
+                    end_point: TextPoint {
+                        row: 6,
+                        column: 17,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 126,
+                    end_byte: 127,
+                    start_point: TextPoint {
+                        row: 6,
+                        column: 23,
+                    },
+                    end_point: TextPoint {
+                        row: 6,
+                        column: 24,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 126,
+                    end_byte: 127,
+                    start_point: TextPoint {
+                        row: 6,
+                        column: 23,
+                    },
+                    end_point: TextPoint {
+                        row: 6,
+                        column: 24,
+                    },
+                },
+            },
+        },
+    ],
+    include_directives: [
+        IncludeDirective {
+            raw_value: "\"alpha.dsl\"",
+            value_kind: String,
+            span: TextSpan {
+                start_byte: 16,
+                end_byte: 36,
+                start_point: TextPoint {
+                    row: 1,
+                    column: 4,
+                },
+                end_point: TextPoint {
+                    row: 1,
+                    column: 24,
+                },
+            },
+            value_span: TextSpan {
+                start_byte: 25,
+                end_byte: 36,
+                start_point: TextPoint {
+                    row: 1,
+                    column: 13,
+                },
+                end_point: TextPoint {
+                    row: 1,
+                    column: 24,
+                },
+            },
+            container: Workspace,
+        },
+        IncludeDirective {
+            raw_value: "\"beta.dsl\"",
+            value_kind: String,
+            span: TextSpan {
+                start_byte: 41,
+                end_byte: 60,
+                start_point: TextPoint {
+                    row: 2,
+                    column: 4,
+                },
+                end_point: TextPoint {
+                    row: 2,
+                    column: 23,
+                },
+            },
+            value_span: TextSpan {
+                start_byte: 50,
+                end_byte: 60,
+                start_point: TextPoint {
+                    row: 2,
+                    column: 13,
+                },
+                end_point: TextPoint {
+                    row: 2,
+                    column: 23,
+                },
+            },
+            container: Workspace,
+        },
+    ],
+    identifier_modes: [],
+    symbols: [
+        Symbol {
+            id: SymbolId(
+                0,
+            ),
+            kind: Person,
+            display_name: "User",
+            binding_name: Some(
+                "user",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 82,
+                    end_byte: 86,
+                    start_point: TextPoint {
+                        row: 5,
+                        column: 8,
+                    },
+                    end_point: TextPoint {
+                        row: 5,
+                        column: 12,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 82,
+                end_byte: 102,
+                start_point: TextPoint {
+                    row: 5,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 5,
+                    column: 28,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "person",
+        },
+    ],
+    references: [
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "user",
+            span: TextSpan {
+                start_byte: 111,
+                end_byte: 115,
+                start_point: TextPoint {
+                    row: 6,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 6,
+                    column: 12,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "CURSOR",
+            span: TextSpan {
+                start_byte: 120,
+                end_byte: 126,
+                start_point: TextPoint {
+                    row: 6,
+                    column: 17,
+                },
+                end_point: TextPoint {
+                    row: 6,
+                    column: 23,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+    ],
+}

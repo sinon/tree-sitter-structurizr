@@ -1,0 +1,530 @@
+---
+source: crates/strz-analysis/tests/document_snapshots.rs
+expression: "SnapshotView::from(&snapshot)"
+---
+SnapshotView {
+    has_syntax_errors: false,
+    diagnostics: [],
+    include_directives: [],
+    identifier_modes: [],
+    symbols: [
+        Symbol {
+            id: SymbolId(
+                0,
+            ),
+            kind: Container,
+            display_name: "Single-Page Application",
+            binding_name: Some(
+                "singlePageApplication",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 0,
+                    end_byte: 21,
+                    start_point: TextPoint {
+                        row: 0,
+                        column: 0,
+                    },
+                    end_point: TextPoint {
+                        row: 0,
+                        column: 21,
+                    },
+                },
+            ),
+            description: Some(
+                "Provides all of the Internet banking functionality to customers via their web browser.",
+            ),
+            technology: Some(
+                "JavaScript and Angular",
+            ),
+            tags: [
+                "Web Browser",
+            ],
+            span: TextSpan {
+                start_byte: 0,
+                end_byte: 187,
+                start_point: TextPoint {
+                    row: 0,
+                    column: 0,
+                },
+                end_point: TextPoint {
+                    row: 0,
+                    column: 187,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "container",
+        },
+        Symbol {
+            id: SymbolId(
+                1,
+            ),
+            kind: Container,
+            display_name: "Mobile App",
+            binding_name: Some(
+                "mobileApp",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 188,
+                    end_byte: 197,
+                    start_point: TextPoint {
+                        row: 1,
+                        column: 0,
+                    },
+                    end_point: TextPoint {
+                        row: 1,
+                        column: 9,
+                    },
+                },
+            ),
+            description: Some(
+                "Provides a limited subset of the Internet banking functionality to customers via their mobile device.",
+            ),
+            technology: Some(
+                "Xamarin",
+            ),
+            tags: [
+                "Mobile App",
+            ],
+            span: TextSpan {
+                start_byte: 188,
+                end_byte: 349,
+                start_point: TextPoint {
+                    row: 1,
+                    column: 0,
+                },
+                end_point: TextPoint {
+                    row: 1,
+                    column: 161,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "container",
+        },
+        Symbol {
+            id: SymbolId(
+                2,
+            ),
+            kind: Container,
+            display_name: "Web Application",
+            binding_name: Some(
+                "webApplication",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 350,
+                    end_byte: 364,
+                    start_point: TextPoint {
+                        row: 2,
+                        column: 0,
+                    },
+                    end_point: TextPoint {
+                        row: 2,
+                        column: 14,
+                    },
+                },
+            ),
+            description: Some(
+                "Delivers the static content and the Internet banking single page application.",
+            ),
+            technology: Some(
+                "Java and Spring MVC",
+            ),
+            span: TextSpan {
+                start_byte: 350,
+                end_byte: 496,
+                start_point: TextPoint {
+                    row: 2,
+                    column: 0,
+                },
+                end_point: TextPoint {
+                    row: 2,
+                    column: 146,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "container",
+        },
+        Symbol {
+            id: SymbolId(
+                3,
+            ),
+            kind: Container,
+            display_name: "API Application",
+            binding_name: Some(
+                "apiApplication",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 497,
+                    end_byte: 511,
+                    start_point: TextPoint {
+                        row: 3,
+                        column: 0,
+                    },
+                    end_point: TextPoint {
+                        row: 3,
+                        column: 14,
+                    },
+                },
+            ),
+            description: Some(
+                "Provides Internet banking functionality via a JSON/HTTPS API.",
+            ),
+            technology: Some(
+                "Java and Spring MVC",
+            ),
+            span: TextSpan {
+                start_byte: 497,
+                end_byte: 1464,
+                start_point: TextPoint {
+                    row: 3,
+                    column: 0,
+                },
+                end_point: TextPoint {
+                    row: 10,
+                    column: 1,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "container",
+        },
+        Symbol {
+            id: SymbolId(
+                4,
+            ),
+            kind: Component,
+            display_name: "Sign In Controller",
+            binding_name: Some(
+                "signinController",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 634,
+                    end_byte: 650,
+                    start_point: TextPoint {
+                        row: 4,
+                        column: 4,
+                    },
+                    end_point: TextPoint {
+                        row: 4,
+                        column: 20,
+                    },
+                },
+            ),
+            description: Some(
+                "Allows users to sign in to the Internet Banking System.",
+            ),
+            technology: Some(
+                "Spring MVC Rest Controller",
+            ),
+            span: TextSpan {
+                start_byte: 634,
+                end_byte: 770,
+                start_point: TextPoint {
+                    row: 4,
+                    column: 4,
+                },
+                end_point: TextPoint {
+                    row: 4,
+                    column: 140,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    3,
+                ),
+            ),
+            syntax_node_kind: "component",
+        },
+        Symbol {
+            id: SymbolId(
+                5,
+            ),
+            kind: Component,
+            display_name: "Accounts Summary Controller",
+            binding_name: Some(
+                "accountsSummaryController",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 775,
+                    end_byte: 800,
+                    start_point: TextPoint {
+                        row: 5,
+                        column: 4,
+                    },
+                    end_point: TextPoint {
+                        row: 5,
+                        column: 29,
+                    },
+                },
+            ),
+            description: Some(
+                "Provides customers with a summary of their bank accounts.",
+            ),
+            technology: Some(
+                "Spring MVC Rest Controller",
+            ),
+            span: TextSpan {
+                start_byte: 775,
+                end_byte: 931,
+                start_point: TextPoint {
+                    row: 5,
+                    column: 4,
+                },
+                end_point: TextPoint {
+                    row: 5,
+                    column: 160,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    3,
+                ),
+            ),
+            syntax_node_kind: "component",
+        },
+        Symbol {
+            id: SymbolId(
+                6,
+            ),
+            kind: Component,
+            display_name: "Reset Password Controller",
+            binding_name: Some(
+                "resetPasswordController",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 936,
+                    end_byte: 959,
+                    start_point: TextPoint {
+                        row: 6,
+                        column: 4,
+                    },
+                    end_point: TextPoint {
+                        row: 6,
+                        column: 27,
+                    },
+                },
+            ),
+            description: Some(
+                "Allows users to reset their passwords with a single use URL.",
+            ),
+            technology: Some(
+                "Spring MVC Rest Controller",
+            ),
+            span: TextSpan {
+                start_byte: 936,
+                end_byte: 1091,
+                start_point: TextPoint {
+                    row: 6,
+                    column: 4,
+                },
+                end_point: TextPoint {
+                    row: 6,
+                    column: 159,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    3,
+                ),
+            ),
+            syntax_node_kind: "component",
+        },
+        Symbol {
+            id: SymbolId(
+                7,
+            ),
+            kind: Component,
+            display_name: "Security Component",
+            binding_name: Some(
+                "securityComponent",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 1096,
+                    end_byte: 1113,
+                    start_point: TextPoint {
+                        row: 7,
+                        column: 4,
+                    },
+                    end_point: TextPoint {
+                        row: 7,
+                        column: 21,
+                    },
+                },
+            ),
+            description: Some(
+                "Provides functionality related to signing in, changing passwords, etc.",
+            ),
+            technology: Some(
+                "Spring Bean",
+            ),
+            span: TextSpan {
+                start_byte: 1096,
+                end_byte: 1233,
+                start_point: TextPoint {
+                    row: 7,
+                    column: 4,
+                },
+                end_point: TextPoint {
+                    row: 7,
+                    column: 141,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    3,
+                ),
+            ),
+            syntax_node_kind: "component",
+        },
+        Symbol {
+            id: SymbolId(
+                8,
+            ),
+            kind: Component,
+            display_name: "Mainframe Banking System Facade",
+            binding_name: Some(
+                "mainframeBankingSystemFacade",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 1238,
+                    end_byte: 1266,
+                    start_point: TextPoint {
+                        row: 8,
+                        column: 4,
+                    },
+                    end_point: TextPoint {
+                        row: 8,
+                        column: 32,
+                    },
+                },
+            ),
+            description: Some(
+                "A facade onto the mainframe banking system.",
+            ),
+            technology: Some(
+                "Spring Bean",
+            ),
+            span: TextSpan {
+                start_byte: 1238,
+                end_byte: 1372,
+                start_point: TextPoint {
+                    row: 8,
+                    column: 4,
+                },
+                end_point: TextPoint {
+                    row: 8,
+                    column: 138,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    3,
+                ),
+            ),
+            syntax_node_kind: "component",
+        },
+        Symbol {
+            id: SymbolId(
+                9,
+            ),
+            kind: Component,
+            display_name: "E-mail Component",
+            binding_name: Some(
+                "emailComponent",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 1377,
+                    end_byte: 1391,
+                    start_point: TextPoint {
+                        row: 9,
+                        column: 4,
+                    },
+                    end_point: TextPoint {
+                        row: 9,
+                        column: 18,
+                    },
+                },
+            ),
+            description: Some(
+                "Sends e-mails to users.",
+            ),
+            technology: Some(
+                "Spring Bean",
+            ),
+            span: TextSpan {
+                start_byte: 1377,
+                end_byte: 1462,
+                start_point: TextPoint {
+                    row: 9,
+                    column: 4,
+                },
+                end_point: TextPoint {
+                    row: 9,
+                    column: 89,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    3,
+                ),
+            ),
+            syntax_node_kind: "component",
+        },
+        Symbol {
+            id: SymbolId(
+                10,
+            ),
+            kind: Container,
+            display_name: "Database",
+            binding_name: Some(
+                "database",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 1465,
+                    end_byte: 1473,
+                    start_point: TextPoint {
+                        row: 11,
+                        column: 0,
+                    },
+                    end_point: TextPoint {
+                        row: 11,
+                        column: 8,
+                    },
+                },
+            ),
+            description: Some(
+                "Stores user registration information, hashed authentication credentials, access logs, etc.",
+            ),
+            technology: Some(
+                "Oracle Database Schema",
+            ),
+            tags: [
+                "Database",
+            ],
+            span: TextSpan {
+                start_byte: 1465,
+                end_byte: 1625,
+                start_point: TextPoint {
+                    row: 11,
+                    column: 0,
+                },
+                end_point: TextPoint {
+                    row: 11,
+                    column: 160,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "container",
+        },
+    ],
+    references: [],
+}

@@ -1,0 +1,1124 @@
+---
+source: crates/strz-analysis/tests/document_snapshots.rs
+expression: "SnapshotView::from(&snapshot)"
+---
+SnapshotView {
+    has_syntax_errors: true,
+    diagnostics: [
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 79,
+                    end_byte: 80,
+                    start_point: TextPoint {
+                        row: 3,
+                        column: 12,
+                    },
+                    end_point: TextPoint {
+                        row: 3,
+                        column: 13,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 79,
+                    end_byte: 80,
+                    start_point: TextPoint {
+                        row: 3,
+                        column: 12,
+                    },
+                    end_point: TextPoint {
+                        row: 3,
+                        column: 13,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 86,
+                    end_byte: 87,
+                    start_point: TextPoint {
+                        row: 3,
+                        column: 19,
+                    },
+                    end_point: TextPoint {
+                        row: 3,
+                        column: 20,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 102,
+                    end_byte: 103,
+                    start_point: TextPoint {
+                        row: 3,
+                        column: 35,
+                    },
+                    end_point: TextPoint {
+                        row: 3,
+                        column: 36,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 102,
+                    end_byte: 103,
+                    start_point: TextPoint {
+                        row: 3,
+                        column: 35,
+                    },
+                    end_point: TextPoint {
+                        row: 3,
+                        column: 36,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 194,
+                    end_byte: 226,
+                    start_point: TextPoint {
+                        row: 7,
+                        column: 12,
+                    },
+                    end_point: TextPoint {
+                        row: 7,
+                        column: 44,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 194,
+                    end_byte: 195,
+                    start_point: TextPoint {
+                        row: 7,
+                        column: 12,
+                    },
+                    end_point: TextPoint {
+                        row: 7,
+                        column: 13,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 225,
+                    end_byte: 226,
+                    start_point: TextPoint {
+                        row: 7,
+                        column: 43,
+                    },
+                    end_point: TextPoint {
+                        row: 7,
+                        column: 44,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 261,
+                    end_byte: 449,
+                    start_point: TextPoint {
+                        row: 7,
+                        column: 79,
+                    },
+                    end_point: TextPoint {
+                        row: 9,
+                        column: 103,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 279,
+                    end_byte: 307,
+                    start_point: TextPoint {
+                        row: 8,
+                        column: 16,
+                    },
+                    end_point: TextPoint {
+                        row: 8,
+                        column: 44,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 279,
+                    end_byte: 280,
+                    start_point: TextPoint {
+                        row: 8,
+                        column: 16,
+                    },
+                    end_point: TextPoint {
+                        row: 8,
+                        column: 17,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 306,
+                    end_byte: 307,
+                    start_point: TextPoint {
+                        row: 8,
+                        column: 43,
+                    },
+                    end_point: TextPoint {
+                        row: 8,
+                        column: 44,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 362,
+                    end_byte: 395,
+                    start_point: TextPoint {
+                        row: 9,
+                        column: 16,
+                    },
+                    end_point: TextPoint {
+                        row: 9,
+                        column: 49,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 362,
+                    end_byte: 363,
+                    start_point: TextPoint {
+                        row: 9,
+                        column: 16,
+                    },
+                    end_point: TextPoint {
+                        row: 9,
+                        column: 17,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 394,
+                    end_byte: 395,
+                    start_point: TextPoint {
+                        row: 9,
+                        column: 48,
+                    },
+                    end_point: TextPoint {
+                        row: 9,
+                        column: 49,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 427,
+                    end_byte: 428,
+                    start_point: TextPoint {
+                        row: 9,
+                        column: 81,
+                    },
+                    end_point: TextPoint {
+                        row: 9,
+                        column: 82,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 427,
+                    end_byte: 428,
+                    start_point: TextPoint {
+                        row: 9,
+                        column: 81,
+                    },
+                    end_point: TextPoint {
+                        row: 9,
+                        column: 82,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 434,
+                    end_byte: 446,
+                    start_point: TextPoint {
+                        row: 9,
+                        column: 88,
+                    },
+                    end_point: TextPoint {
+                        row: 9,
+                        column: 100,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 445,
+                    end_byte: 446,
+                    start_point: TextPoint {
+                        row: 9,
+                        column: 99,
+                    },
+                    end_point: TextPoint {
+                        row: 9,
+                        column: 100,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 472,
+                    end_byte: 501,
+                    start_point: TextPoint {
+                        row: 10,
+                        column: 20,
+                    },
+                    end_point: TextPoint {
+                        row: 10,
+                        column: 49,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 472,
+                    end_byte: 473,
+                    start_point: TextPoint {
+                        row: 10,
+                        column: 20,
+                    },
+                    end_point: TextPoint {
+                        row: 10,
+                        column: 21,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 500,
+                    end_byte: 501,
+                    start_point: TextPoint {
+                        row: 10,
+                        column: 48,
+                    },
+                    end_point: TextPoint {
+                        row: 10,
+                        column: 49,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 512,
+                    end_byte: 513,
+                    start_point: TextPoint {
+                        row: 10,
+                        column: 60,
+                    },
+                    end_point: TextPoint {
+                        row: 10,
+                        column: 61,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 512,
+                    end_byte: 513,
+                    start_point: TextPoint {
+                        row: 10,
+                        column: 60,
+                    },
+                    end_point: TextPoint {
+                        row: 10,
+                        column: 61,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 519,
+                    end_byte: 555,
+                    start_point: TextPoint {
+                        row: 10,
+                        column: 67,
+                    },
+                    end_point: TextPoint {
+                        row: 10,
+                        column: 103,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 533,
+                    end_byte: 534,
+                    start_point: TextPoint {
+                        row: 10,
+                        column: 81,
+                    },
+                    end_point: TextPoint {
+                        row: 10,
+                        column: 82,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 590,
+                    end_byte: 641,
+                    start_point: TextPoint {
+                        row: 12,
+                        column: 16,
+                    },
+                    end_point: TextPoint {
+                        row: 12,
+                        column: 67,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 613,
+                    end_byte: 614,
+                    start_point: TextPoint {
+                        row: 12,
+                        column: 39,
+                    },
+                    end_point: TextPoint {
+                        row: 12,
+                        column: 40,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 634,
+                    end_byte: 635,
+                    start_point: TextPoint {
+                        row: 12,
+                        column: 60,
+                    },
+                    end_point: TextPoint {
+                        row: 12,
+                        column: 61,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 797,
+                    end_byte: 798,
+                    start_point: TextPoint {
+                        row: 18,
+                        column: 12,
+                    },
+                    end_point: TextPoint {
+                        row: 18,
+                        column: 13,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 797,
+                    end_byte: 798,
+                    start_point: TextPoint {
+                        row: 18,
+                        column: 12,
+                    },
+                    end_point: TextPoint {
+                        row: 18,
+                        column: 13,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 804,
+                    end_byte: 805,
+                    start_point: TextPoint {
+                        row: 18,
+                        column: 19,
+                    },
+                    end_point: TextPoint {
+                        row: 18,
+                        column: 20,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 825,
+                    end_byte: 826,
+                    start_point: TextPoint {
+                        row: 18,
+                        column: 40,
+                    },
+                    end_point: TextPoint {
+                        row: 18,
+                        column: 41,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 825,
+                    end_byte: 826,
+                    start_point: TextPoint {
+                        row: 18,
+                        column: 40,
+                    },
+                    end_point: TextPoint {
+                        row: 18,
+                        column: 41,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 891,
+                    end_byte: 892,
+                    start_point: TextPoint {
+                        row: 19,
+                        column: 23,
+                    },
+                    end_point: TextPoint {
+                        row: 19,
+                        column: 24,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 891,
+                    end_byte: 892,
+                    start_point: TextPoint {
+                        row: 19,
+                        column: 23,
+                    },
+                    end_point: TextPoint {
+                        row: 19,
+                        column: 24,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 898,
+                    end_byte: 899,
+                    start_point: TextPoint {
+                        row: 19,
+                        column: 30,
+                    },
+                    end_point: TextPoint {
+                        row: 19,
+                        column: 31,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 934,
+                    end_byte: 935,
+                    start_point: TextPoint {
+                        row: 19,
+                        column: 66,
+                    },
+                    end_point: TextPoint {
+                        row: 19,
+                        column: 67,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 934,
+                    end_byte: 935,
+                    start_point: TextPoint {
+                        row: 19,
+                        column: 66,
+                    },
+                    end_point: TextPoint {
+                        row: 19,
+                        column: 67,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 989,
+                    end_byte: 990,
+                    start_point: TextPoint {
+                        row: 22,
+                        column: 0,
+                    },
+                    end_point: TextPoint {
+                        row: 22,
+                        column: 1,
+                    },
+                },
+            },
+        },
+    ],
+    include_directives: [],
+    identifier_modes: [],
+    symbols: [
+        Symbol {
+            id: SymbolId(
+                0,
+            ),
+            kind: SoftwareSystem,
+            display_name: "System",
+            binding_name: Some(
+                "system",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 32,
+                    end_byte: 38,
+                    start_point: TextPoint {
+                        row: 2,
+                        column: 8,
+                    },
+                    end_point: TextPoint {
+                        row: 2,
+                        column: 14,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 32,
+                end_byte: 134,
+                start_point: TextPoint {
+                    row: 2,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 4,
+                    column: 9,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "software_system",
+        },
+        Symbol {
+            id: SymbolId(
+                1,
+            ),
+            kind: Container,
+            display_name: "API",
+            binding_name: Some(
+                "api",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 103,
+                    end_byte: 106,
+                    start_point: TextPoint {
+                        row: 3,
+                        column: 36,
+                    },
+                    end_point: TextPoint {
+                        row: 3,
+                        column: 39,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 103,
+                end_byte: 124,
+                start_point: TextPoint {
+                    row: 3,
+                    column: 36,
+                },
+                end_point: TextPoint {
+                    row: 3,
+                    column: 57,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    0,
+                ),
+            ),
+            syntax_node_kind: "container",
+        },
+        Symbol {
+            id: SymbolId(
+                2,
+            ),
+            kind: DeploymentEnvironment,
+            display_name: "Live",
+            binding_name: Some(
+                "live",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 144,
+                    end_byte: 148,
+                    start_point: TextPoint {
+                        row: 6,
+                        column: 8,
+                    },
+                    end_point: TextPoint {
+                        row: 6,
+                        column: 12,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 144,
+                end_byte: 655,
+                start_point: TextPoint {
+                    row: 6,
+                    column: 8,
+                },
+                end_point: TextPoint {
+                    row: 13,
+                    column: 13,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "deployment_environment",
+        },
+        Symbol {
+            id: SymbolId(
+                3,
+            ),
+            kind: DeploymentNode,
+            display_name: "Primary",
+            binding_name: Some(
+                "primary",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 226,
+                    end_byte: 233,
+                    start_point: TextPoint {
+                        row: 7,
+                        column: 44,
+                    },
+                    end_point: TextPoint {
+                        row: 7,
+                        column: 51,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 226,
+                end_byte: 573,
+                start_point: TextPoint {
+                    row: 7,
+                    column: 44,
+                },
+                end_point: TextPoint {
+                    row: 11,
+                    column: 17,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    2,
+                ),
+            ),
+            syntax_node_kind: "deployment_node",
+        },
+        Symbol {
+            id: SymbolId(
+                4,
+            ),
+            kind: InfrastructureNode,
+            display_name: "Gateway",
+            binding_name: Some(
+                "gateway",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 307,
+                    end_byte: 314,
+                    start_point: TextPoint {
+                        row: 8,
+                        column: 44,
+                    },
+                    end_point: TextPoint {
+                        row: 8,
+                        column: 51,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 307,
+                end_byte: 345,
+                start_point: TextPoint {
+                    row: 8,
+                    column: 44,
+                },
+                end_point: TextPoint {
+                    row: 8,
+                    column: 82,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    3,
+                ),
+            ),
+            syntax_node_kind: "infrastructure_node",
+        },
+        Symbol {
+            id: SymbolId(
+                5,
+            ),
+            kind: ContainerInstance,
+            display_name: "apiInstance",
+            binding_name: Some(
+                "apiInstance",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 395,
+                    end_byte: 406,
+                    start_point: TextPoint {
+                        row: 9,
+                        column: 49,
+                    },
+                    end_point: TextPoint {
+                        row: 9,
+                        column: 60,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 395,
+                end_byte: 434,
+                start_point: TextPoint {
+                    row: 9,
+                    column: 49,
+                },
+                end_point: TextPoint {
+                    row: 9,
+                    column: 88,
+                },
+            },
+            parent: Some(
+                SymbolId(
+                    3,
+                ),
+            ),
+            syntax_node_kind: "container_instance",
+        },
+    ],
+    references: [
+        Reference {
+            kind: InstanceTarget,
+            raw_text: "CURSOR",
+            span: TextSpan {
+                start_byte: 428,
+                end_byte: 434,
+                start_point: TextPoint {
+                    row: 9,
+                    column: 82,
+                },
+                end_point: TextPoint {
+                    row: 9,
+                    column: 88,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "container_instance",
+            containing_symbol: Some(
+                SymbolId(
+                    5,
+                ),
+            ),
+        },
+        Reference {
+            kind: DeploymentRelationshipSource,
+            raw_text: "gateway",
+            span: TextSpan {
+                start_byte: 501,
+                end_byte: 508,
+                start_point: TextPoint {
+                    row: 10,
+                    column: 49,
+                },
+                end_point: TextPoint {
+                    row: 10,
+                    column: 56,
+                },
+            },
+            target_hint: Deployment,
+            container_node_kind: "relationship",
+            containing_symbol: Some(
+                SymbolId(
+                    3,
+                ),
+            ),
+        },
+        Reference {
+            kind: DeploymentRelationshipDestination,
+            raw_text: "CURSOR",
+            span: TextSpan {
+                start_byte: 513,
+                end_byte: 519,
+                start_point: TextPoint {
+                    row: 10,
+                    column: 61,
+                },
+                end_point: TextPoint {
+                    row: 10,
+                    column: 67,
+                },
+            },
+            target_hint: Deployment,
+            container_node_kind: "relationship",
+            containing_symbol: Some(
+                SymbolId(
+                    3,
+                ),
+            ),
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "primary",
+            span: TextSpan {
+                start_byte: 826,
+                end_byte: 833,
+                start_point: TextPoint {
+                    row: 18,
+                    column: 41,
+                },
+                end_point: TextPoint {
+                    row: 18,
+                    column: 48,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "secondary",
+            span: TextSpan {
+                start_byte: 837,
+                end_byte: 846,
+                start_point: TextPoint {
+                    row: 18,
+                    column: 52,
+                },
+                end_point: TextPoint {
+                    row: 18,
+                    column: 61,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "gateway",
+            span: TextSpan {
+                start_byte: 880,
+                end_byte: 887,
+                start_point: TextPoint {
+                    row: 19,
+                    column: 12,
+                },
+                end_point: TextPoint {
+                    row: 19,
+                    column: 19,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "CURSOR",
+            span: TextSpan {
+                start_byte: 892,
+                end_byte: 898,
+                start_point: TextPoint {
+                    row: 19,
+                    column: 24,
+                },
+                end_point: TextPoint {
+                    row: 19,
+                    column: 30,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: None,
+        },
+    ],
+}

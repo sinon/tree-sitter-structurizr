@@ -1,0 +1,247 @@
+---
+source: crates/strz-analysis/tests/document_snapshots.rs
+expression: "SnapshotView::from(&snapshot)"
+---
+SnapshotView {
+    has_syntax_errors: true,
+    diagnostics: [
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 37,
+                    end_byte: 38,
+                    start_point: TextPoint {
+                        row: 2,
+                        column: 4,
+                    },
+                    end_point: TextPoint {
+                        row: 2,
+                        column: 5,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 37,
+                    end_byte: 38,
+                    start_point: TextPoint {
+                        row: 2,
+                        column: 4,
+                    },
+                    end_point: TextPoint {
+                        row: 2,
+                        column: 5,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 44,
+                    end_byte: 51,
+                    start_point: TextPoint {
+                        row: 2,
+                        column: 11,
+                    },
+                    end_point: TextPoint {
+                        row: 2,
+                        column: 18,
+                    },
+                },
+            },
+        },
+        RuledDiagnostic {
+            rule: syntax.error-node,
+            diagnostic: Diagnostic {
+                message: "unexpected syntax",
+                span: TextSpan {
+                    start_byte: 44,
+                    end_byte: 45,
+                    start_point: TextPoint {
+                        row: 2,
+                        column: 11,
+                    },
+                    end_point: TextPoint {
+                        row: 2,
+                        column: 12,
+                    },
+                },
+            },
+        },
+    ],
+    include_directives: [],
+    identifier_modes: [],
+    symbols: [
+        Symbol {
+            id: SymbolId(
+                0,
+            ),
+            kind: Person,
+            display_name: "User",
+            binding_name: Some(
+                "user",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 12,
+                    end_byte: 16,
+                    start_point: TextPoint {
+                        row: 1,
+                        column: 4,
+                    },
+                    end_point: TextPoint {
+                        row: 1,
+                        column: 8,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 12,
+                end_byte: 32,
+                start_point: TextPoint {
+                    row: 1,
+                    column: 4,
+                },
+                end_point: TextPoint {
+                    row: 1,
+                    column: 24,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "person",
+        },
+        Symbol {
+            id: SymbolId(
+                1,
+            ),
+            kind: SoftwareSystem,
+            display_name: "System",
+            binding_name: Some(
+                "CURSOR",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 38,
+                    end_byte: 44,
+                    start_point: TextPoint {
+                        row: 2,
+                        column: 5,
+                    },
+                    end_point: TextPoint {
+                        row: 2,
+                        column: 11,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 38,
+                end_byte: 77,
+                start_point: TextPoint {
+                    row: 2,
+                    column: 5,
+                },
+                end_point: TextPoint {
+                    row: 2,
+                    column: 44,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "software_system",
+        },
+        Symbol {
+            id: SymbolId(
+                2,
+            ),
+            kind: Relationship,
+            display_name: "Uses",
+            binding_name: Some(
+                "rel",
+            ),
+            binding_span: Some(
+                TextSpan {
+                    start_byte: 82,
+                    end_byte: 85,
+                    start_point: TextPoint {
+                        row: 3,
+                        column: 4,
+                    },
+                    end_point: TextPoint {
+                        row: 3,
+                        column: 7,
+                    },
+                },
+            ),
+            span: TextSpan {
+                start_byte: 82,
+                end_byte: 109,
+                start_point: TextPoint {
+                    row: 3,
+                    column: 4,
+                },
+                end_point: TextPoint {
+                    row: 3,
+                    column: 31,
+                },
+            },
+            parent: None,
+            syntax_node_kind: "relationship",
+        },
+    ],
+    references: [
+        Reference {
+            kind: RelationshipSource,
+            raw_text: "user",
+            span: TextSpan {
+                start_byte: 88,
+                end_byte: 92,
+                start_point: TextPoint {
+                    row: 3,
+                    column: 10,
+                },
+                end_point: TextPoint {
+                    row: 3,
+                    column: 14,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: Some(
+                SymbolId(
+                    2,
+                ),
+            ),
+        },
+        Reference {
+            kind: RelationshipDestination,
+            raw_text: "system",
+            span: TextSpan {
+                start_byte: 96,
+                end_byte: 102,
+                start_point: TextPoint {
+                    row: 3,
+                    column: 18,
+                },
+                end_point: TextPoint {
+                    row: 3,
+                    column: 24,
+                },
+            },
+            target_hint: Element,
+            container_node_kind: "relationship",
+            containing_symbol: Some(
+                SymbolId(
+                    2,
+                ),
+            ),
+        },
+    ],
+}
