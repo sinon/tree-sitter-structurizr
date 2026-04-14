@@ -30,10 +30,17 @@ pub enum WorkspaceDocumentKind {
     Fragment,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum WorkspaceDirectiveEvent {
+    ConstantDefinition(usize),
+    IncludeDirective(usize),
+}
+
 /// One discovered document plus the metadata gathered during workspace loading.
 #[derive(Debug)]
 pub struct WorkspaceDocument {
     snapshot: Arc<crate::DocumentSnapshot>,
+    directive_events: Arc<[WorkspaceDirectiveEvent]>,
     semantic_facts: Arc<WorkspaceSemanticDocumentFacts>,
     kind: WorkspaceDocumentKind,
     semantic_generation: u64,
@@ -43,6 +50,7 @@ pub struct WorkspaceDocument {
 impl WorkspaceDocument {
     const fn new(
         snapshot: Arc<crate::DocumentSnapshot>,
+        directive_events: Arc<[WorkspaceDirectiveEvent]>,
         semantic_facts: Arc<WorkspaceSemanticDocumentFacts>,
         kind: WorkspaceDocumentKind,
         semantic_generation: u64,
@@ -50,6 +58,7 @@ impl WorkspaceDocument {
     ) -> Self {
         Self {
             snapshot,
+            directive_events,
             semantic_facts,
             kind,
             semantic_generation,
@@ -67,6 +76,14 @@ impl WorkspaceDocument {
     #[must_use]
     pub fn snapshot(&self) -> &crate::DocumentSnapshot {
         self.snapshot.as_ref()
+    }
+
+    fn snapshot_handle(&self) -> Arc<crate::DocumentSnapshot> {
+        Arc::clone(&self.snapshot)
+    }
+
+    fn directive_events_handle(&self) -> Arc<[WorkspaceDirectiveEvent]> {
+        Arc::clone(&self.directive_events)
     }
 
     fn semantic_facts(&self) -> &WorkspaceSemanticDocumentFacts {
@@ -639,6 +656,7 @@ struct WorkspaceAnalysisSession {
 #[derive(Debug)]
 struct CachedWorkspaceDocument {
     snapshot: Arc<crate::DocumentSnapshot>,
+    directive_events: Arc<[WorkspaceDirectiveEvent]>,
     semantic_facts: Arc<WorkspaceSemanticDocumentFacts>,
     kind: WorkspaceDocumentKind,
     generation: u64,
@@ -706,6 +724,8 @@ impl CachedWorkspaceDocument {
         generation: u64,
         semantic_generation: u64,
     ) -> Self {
+        let directive_events =
+            Arc::<[WorkspaceDirectiveEvent]>::from(collect_document_directive_events(&snapshot));
         let kind = if snapshot.is_workspace_entry() {
             WorkspaceDocumentKind::Entry
         } else {
@@ -714,6 +734,7 @@ impl CachedWorkspaceDocument {
 
         Self {
             snapshot: Arc::new(snapshot),
+            directive_events,
             semantic_facts,
             kind,
             generation,
@@ -724,6 +745,7 @@ impl CachedWorkspaceDocument {
     fn workspace_document(&self, discovered_by_scan: bool) -> WorkspaceDocument {
         WorkspaceDocument::new(
             Arc::clone(&self.snapshot),
+            Arc::clone(&self.directive_events),
             Arc::clone(&self.semantic_facts),
             self.kind,
             self.semantic_generation,
@@ -1068,7 +1090,7 @@ impl<'loader> WorkspaceBuildSession<'loader> {
                 .clone());
         }
 
-        let (document_id, workspace_base, constant_definitions, include_directives) = {
+        let (document_id, workspace_base, snapshot, directive_events) = {
             let document = self
                 .loaded_documents
                 .get(&context.path)
@@ -1077,8 +1099,8 @@ impl<'loader> WorkspaceBuildSession<'loader> {
             (
                 document.id().clone(),
                 workspace_base_directive(document.snapshot()),
-                document.snapshot().constant_definitions().to_vec(),
-                document.snapshot().include_directives().to_vec(),
+                document.snapshot_handle(),
+                document.directive_events_handle(),
             )
         };
 
@@ -1115,16 +1137,23 @@ impl<'loader> WorkspaceBuildSession<'loader> {
             // Process constants and includes in source order so inherited values,
             // local definitions, and included fragments all obey the DSL's
             // imperative execution model.
-            for event in document_directive_events(&constant_definitions, &include_directives) {
+            for &event in directive_events.iter() {
                 match event {
-                    DocumentDirectiveEvent::Constant(constant) => {
+                    WorkspaceDirectiveEvent::ConstantDefinition(index) => {
+                        let constant = snapshot
+                            .constant_definitions()
+                            .get(index)
+                            .expect("BUG: cached directive event should point at a constant");
                         apply_constant_definition(constant, &mut current_constants);
                     }
-                    DocumentDirectiveEvent::Include(directive) => {
+                    WorkspaceDirectiveEvent::IncludeDirective(index) => {
                         let resolved_include = resolve_include(
                             &document_id,
                             &context.path,
-                            directive,
+                            snapshot
+                                .include_directives()
+                                .get(index)
+                                .expect("BUG: cached directive event should point at an include"),
                             &current_constants,
                         )?;
 
@@ -1371,25 +1400,43 @@ struct ProcessedDocumentContext {
     included_contexts: Vec<DocumentContextKey>,
 }
 
-enum DocumentDirectiveEvent<'a> {
-    Constant(&'a ConstantDefinition),
-    Include(&'a IncludeDirective),
-}
+fn collect_document_directive_events(
+    snapshot: &crate::DocumentSnapshot,
+) -> Vec<WorkspaceDirectiveEvent> {
+    let constant_definitions = snapshot.constant_definitions();
+    let include_directives = snapshot.include_directives();
 
-impl DocumentDirectiveEvent<'_> {
-    const fn sort_rank(&self) -> usize {
-        match self {
-            Self::Constant(_) => 0,
-            Self::Include(_) => 1,
+    // Both extractors walk the tree in source order already, so the workspace
+    // cache can merge the two ordered streams once and replay the result across
+    // repeated context processing without paying another sort.
+    let mut events = Vec::with_capacity(constant_definitions.len() + include_directives.len());
+    let mut constant_index = 0;
+    let mut include_index = 0;
+
+    while constant_index < constant_definitions.len() && include_index < include_directives.len() {
+        let constant = &constant_definitions[constant_index];
+        let include = &include_directives[include_index];
+
+        if constant.span.start_byte <= include.span.start_byte {
+            events.push(WorkspaceDirectiveEvent::ConstantDefinition(constant_index));
+            constant_index += 1;
+        } else {
+            events.push(WorkspaceDirectiveEvent::IncludeDirective(include_index));
+            include_index += 1;
         }
     }
 
-    const fn start_byte(&self) -> usize {
-        match self {
-            Self::Constant(constant) => constant.span.start_byte,
-            Self::Include(include) => include.span.start_byte,
-        }
+    while constant_index < constant_definitions.len() {
+        events.push(WorkspaceDirectiveEvent::ConstantDefinition(constant_index));
+        constant_index += 1;
     }
+
+    while include_index < include_directives.len() {
+        events.push(WorkspaceDirectiveEvent::IncludeDirective(include_index));
+        include_index += 1;
+    }
+
+    events
 }
 
 fn processed_context_dependency_keys(
@@ -1456,28 +1503,6 @@ where
     paths.sort();
     paths.dedup();
     paths
-}
-
-fn document_directive_events<'a>(
-    constant_definitions: &'a [ConstantDefinition],
-    include_directives: &'a [IncludeDirective],
-) -> Vec<DocumentDirectiveEvent<'a>> {
-    let mut events = constant_definitions
-        .iter()
-        .map(DocumentDirectiveEvent::Constant)
-        .chain(
-            include_directives
-                .iter()
-                .map(DocumentDirectiveEvent::Include),
-        )
-        .collect::<Vec<_>>();
-
-    events.sort_by(|left, right| {
-        left.start_byte()
-            .cmp(&right.start_byte())
-            .then_with(|| left.sort_rank().cmp(&right.sort_rank()))
-    });
-    events
 }
 
 fn apply_constant_definition(
@@ -4670,9 +4695,40 @@ mod tests {
     use tempfile::TempDir;
 
     use super::{
-        SymbolKind, ViewKind, WorkspaceFacts, WorkspaceIndex, WorkspaceLoader,
-        document_id_from_path, is_view_element_kind_allowed,
+        SymbolKind, ViewKind, WorkspaceDirectiveEvent, WorkspaceFacts, WorkspaceIndex,
+        WorkspaceLoader, document_id_from_path, is_view_element_kind_allowed,
     };
+
+    #[test]
+    fn workspace_document_caches_directive_event_order_for_context_replay() {
+        let fixture = TemporaryWorkspace::new(indoc! {r#"
+            workspace {
+                !include "a.dsl"
+                !constant env dev
+                !constant region eu-west-1
+                !include "b.dsl"
+            }
+        "#});
+        fixture.write_file("a.dsl", "model {}");
+        fixture.write_file("b.dsl", "views {}");
+
+        let workspace = WorkspaceLoader::new()
+            .load_paths([fixture.root()])
+            .expect("workspace should load");
+        let document = workspace
+            .document(&document_id_from_path(fixture.workspace_path()))
+            .expect("workspace document should exist");
+
+        assert_eq!(
+            document.directive_events_handle().as_ref(),
+            &[
+                WorkspaceDirectiveEvent::IncludeDirective(0),
+                WorkspaceDirectiveEvent::ConstantDefinition(0),
+                WorkspaceDirectiveEvent::ConstantDefinition(1),
+                WorkspaceDirectiveEvent::IncludeDirective(1),
+            ]
+        );
+    }
 
     #[test]
     fn loader_reuses_cached_document_snapshots_across_identical_loads() {
