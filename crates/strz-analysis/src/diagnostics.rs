@@ -524,6 +524,46 @@ impl RuledDiagnostic {
         )
     }
 
+    pub(crate) fn invalid_documentation_path(
+        document: &DocumentId,
+        message: impl Into<String>,
+        span: TextSpan,
+    ) -> Self {
+        Self::new(
+            rules::SEMANTIC_INVALID_DOCUMENTATION_PATH.id(),
+            Diagnostic::new(message, span).in_document(document),
+        )
+    }
+
+    pub(crate) fn invalid_image_source(
+        document: &DocumentId,
+        message: impl Into<String>,
+        span: TextSpan,
+    ) -> Self {
+        Self::new(
+            rules::SEMANTIC_INVALID_IMAGE_SOURCE.id(),
+            Diagnostic::new(message, span).in_document(document),
+        )
+    }
+
+    pub(crate) fn missing_image_renderer_property(
+        document: &DocumentId,
+        property_name: &str,
+        service_name: &str,
+        span: TextSpan,
+    ) -> Self {
+        Self::new(
+            rules::SEMANTIC_MISSING_IMAGE_RENDERER_PROPERTY.id(),
+            Diagnostic::new(
+                format!(
+                    "Please define a view/viewset property named {property_name} to specify your {service_name} server"
+                ),
+                span,
+            )
+            .in_document(document),
+        )
+    }
+
     pub(crate) fn ambiguous_reference(
         document: &DocumentId,
         raw_text: &str,

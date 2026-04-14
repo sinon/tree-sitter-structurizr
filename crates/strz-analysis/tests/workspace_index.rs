@@ -648,6 +648,165 @@ fn deployment_sibling_relationships_remain_valid() {
 }
 
 #[test]
+fn missing_documentation_paths_surface_semantic_diagnostics() {
+    let (workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    !docs "docs"
+                    !adrs "adrs"
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_code(&facts, "semantic.invalid-documentation-path");
+    assert_eq!(diagnostics.len(), 2);
+    assert_eq!(
+        diagnostics
+            .iter()
+            .map(|diagnostic| diagnostic.message())
+            .collect::<Vec<_>>(),
+        vec![
+            format!(
+                "Documentation path {} does not exist",
+                workspace.root().join("docs").display()
+            ),
+            format!(
+                "Documentation path {} does not exist",
+                workspace.root().join("adrs").display()
+            ),
+        ]
+    );
+}
+
+#[test]
+fn adrs_paths_must_resolve_to_directories_while_docs_can_use_files() {
+    let (workspace, facts) = load_temp_workspace(
+        &[
+            (
+                "workspace.dsl",
+                indoc! {r#"
+                    workspace {
+                        !docs "docs/readme.md"
+                        !adrs "adrs/0001.md"
+                    }
+                "#},
+            ),
+            ("docs/readme.md", "# Readme\n"),
+            ("adrs/0001.md", "# Decision\n"),
+        ],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_code(&facts, "semantic.invalid-documentation-path");
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].message(),
+        format!(
+            "Documentation path {} is not a directory",
+            workspace.root().join("adrs/0001.md").display()
+        )
+    );
+}
+
+#[test]
+fn image_source_paths_surface_file_and_directory_diagnostics() {
+    let (workspace, facts) = load_temp_workspace(
+        &[
+            (
+                "workspace.dsl",
+                indoc! {r#"
+                    workspace {
+                        views {
+                            properties {
+                                "plantuml.url" "https://plantuml.example.com"
+                            }
+
+                            image * "image-view" {
+                                plantuml "diagram.puml"
+                                image "assets"
+                                plantuml """
+                                    @startuml
+                                    Alice -> Bob
+                                    @enduml
+                                """
+                                image "https://example.com/logo.png"
+                            }
+                        }
+                    }
+                "#},
+            ),
+            ("assets/.keep", ""),
+        ],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_code(&facts, "semantic.invalid-image-source");
+    assert_eq!(diagnostics.len(), 2);
+    assert_eq!(
+        diagnostics
+            .iter()
+            .map(|diagnostic| diagnostic.message())
+            .collect::<Vec<_>>(),
+        vec![
+            format!(
+                "The file at {} does not exist",
+                workspace.root().join("diagram.puml").display()
+            ),
+            format!("{} is not a file", workspace.root().join("assets").display()),
+        ]
+    );
+}
+
+#[test]
+fn image_renderer_properties_can_be_view_local_or_viewset_level() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[
+            (
+                "workspace.dsl",
+                indoc! {r#"
+                    workspace {
+                        views {
+                            properties {
+                                "mermaid.url" "https://mermaid.example.com"
+                            }
+
+                            image * "image-view" {
+                                properties {
+                                    "plantuml.url" "https://plantuml.example.com"
+                                }
+                                plantuml "diagram.puml"
+                                mermaid "diagram.mmd"
+                                kroki plantuml "diagram.kroki"
+                            }
+                        }
+                    }
+                "#},
+            ),
+            ("diagram.puml", "@startuml\n@enduml\n"),
+            ("diagram.mmd", "graph TD\n"),
+            ("diagram.kroki", "graph TD\n"),
+        ],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_code(&facts, "semantic.missing-image-renderer-property");
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].message(),
+        "Please define a view/viewset property named kroki.url to specify your Kroki server"
+    );
+    let invalid_image_sources = diagnostics_of_code(&facts, "semantic.invalid-image-source");
+    assert!(
+        invalid_image_sources.is_empty(),
+        "{invalid_image_sources:#?}"
+    );
+}
+
+#[test]
 fn unresolved_element_selector_targets_surface_semantic_diagnostics() {
     let (_workspace, facts) = load_temp_workspace(
         &[(

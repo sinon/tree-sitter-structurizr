@@ -264,6 +264,54 @@ declare_rule! {
     };
 }
 
+declare_rule! {
+    /// ## What it does
+    /// Reports `!docs` or `!adrs` directives whose local paths are missing or incompatible.
+    ///
+    /// ## Why is this bad?
+    /// File-backed documentation directives participate in the assembled
+    /// workspace definition, so missing paths or non-directory ADR targets fail
+    /// upstream validation even though the syntax itself still parses cleanly.
+    pub static SEMANTIC_INVALID_DOCUMENTATION_PATH = {
+        name: "invalid-documentation-path",
+        source: "semantic",
+        summary: "reports missing or incompatible !docs and !adrs paths",
+        default_severity: DiagnosticSeverity::Error,
+    };
+}
+
+declare_rule! {
+    /// ## What it does
+    /// Reports image-view sources whose local file inputs are missing or incompatible.
+    ///
+    /// ## Why is this bad?
+    /// Image views can render from checked-in assets or diagram files, so
+    /// missing paths and directory/file mismatches leave the workspace unable to
+    /// render the declared image source.
+    pub static SEMANTIC_INVALID_IMAGE_SOURCE = {
+        name: "invalid-image-source",
+        source: "semantic",
+        summary: "reports missing or incompatible local image-view sources",
+        default_severity: DiagnosticSeverity::Error,
+    };
+}
+
+declare_rule! {
+    /// ## What it does
+    /// Reports `PlantUML`, `Mermaid`, or `Kroki` image sources that lack their required renderer property.
+    ///
+    /// ## Why is this bad?
+    /// Those image-source families delegate rendering to an external server, so
+    /// the DSL needs an explicit view or viewset property such as
+    /// `plantuml.url` before the source can resolve successfully.
+    pub static SEMANTIC_MISSING_IMAGE_RENDERER_PROPERTY = {
+        name: "missing-image-renderer-property",
+        source: "semantic",
+        summary: "reports image views missing required renderer properties",
+        default_severity: DiagnosticSeverity::Error,
+    };
+}
+
 pub fn register_rules(registry: &mut RuleRegistryBuilder) {
     registry.register(&SYNTAX_ERROR_NODE);
     registry.register(&SYNTAX_MISSING_NODE);
@@ -282,6 +330,9 @@ pub fn register_rules(registry: &mut RuleRegistryBuilder) {
     registry.register(&SEMANTIC_DYNAMIC_VIEW_RELATIONSHIP_MISMATCH);
     registry.register(&SEMANTIC_DYNAMIC_VIEW_SCOPE_REDUNDANCY);
     registry.register(&SEMANTIC_INVALID_VIEW_ELEMENT);
+    registry.register(&SEMANTIC_INVALID_DOCUMENTATION_PATH);
+    registry.register(&SEMANTIC_INVALID_IMAGE_SOURCE);
+    registry.register(&SEMANTIC_MISSING_IMAGE_RENDERER_PROPERTY);
 }
 
 pub fn diagnostic_rule_registry() -> &'static RuleRegistry {
@@ -320,7 +371,10 @@ mod tests {
                 "semantic.dynamic-view-relationship-mismatch",
                 "semantic.dynamic-view-scope-redundancy",
                 "semantic.filtered-view-autolayout-mismatch",
+                "semantic.invalid-documentation-path",
+                "semantic.invalid-image-source",
                 "semantic.invalid-view-element",
+                "semantic.missing-image-renderer-property",
                 "semantic.repeated-workspace-section",
                 "semantic.unresolved-element-selector",
                 "semantic.unresolved-reference",
@@ -351,7 +405,18 @@ mod tests {
                 .get("semantic.filtered-view-autolayout-mismatch")
                 .is_some()
         );
+        assert!(
+            registry
+                .get("semantic.invalid-documentation-path")
+                .is_some()
+        );
+        assert!(registry.get("semantic.invalid-image-source").is_some());
         assert!(registry.get("semantic.invalid-view-element").is_some());
+        assert!(
+            registry
+                .get("semantic.missing-image-renderer-property")
+                .is_some()
+        );
         assert!(
             registry
                 .get("semantic.repeated-workspace-section")

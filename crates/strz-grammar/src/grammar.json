@@ -8664,6 +8664,10 @@
               },
               {
                 "type": "SYMBOL",
+                "name": "properties_block"
+              },
+              {
+                "type": "SYMBOL",
                 "name": "default_statement"
               },
               {

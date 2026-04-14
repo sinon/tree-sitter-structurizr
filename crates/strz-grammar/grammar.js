@@ -1793,6 +1793,10 @@ export default grammar({
             $.image_source,
             $.light_image_sources,
             $.dark_image_sources,
+            // Upstream allows renderer properties inside one `image` view, not
+            // only at the surrounding `views` level. Keep that form in the
+            // grammar so semantic validation can inspect those local overrides.
+            $.properties_block,
             $.default_statement,
             $.title_statement,
             $.description_statement,
