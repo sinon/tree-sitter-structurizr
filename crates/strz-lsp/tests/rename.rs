@@ -260,7 +260,7 @@ async fn rename_rejects_dotted_new_names_for_the_flat_slice() {
     assert_eq!(response["error"]["code"], -32602);
     assert_eq!(
         response["error"]["message"],
-        "rename newName must match the supported flat Structurizr identifier shape"
+        "rename newName must match the supported flat identifier can only include a-zA-Z0-9-_"
     );
 }
 

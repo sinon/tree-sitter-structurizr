@@ -128,7 +128,7 @@ pub async fn rename(
     let new_name = params.new_name;
     if !is_valid_flat_identifier(&new_name) {
         return Err(Error::invalid_params(
-            "rename newName must match the supported flat Structurizr identifier shape",
+            "rename newName must match the supported flat identifier can only include a-zA-Z0-9-_",
         ));
     }
 
@@ -605,7 +605,7 @@ fn is_valid_flat_identifier(value: &str) -> bool {
     let Some(first) = characters.next() else {
         return false;
     };
-    if !first.is_ascii_alphabetic() && first != b'_' {
+    if !first.is_ascii_alphanumeric() && first != b'_' {
         return false;
     }
 
@@ -613,4 +613,22 @@ fn is_valid_flat_identifier(value: &str) -> bool {
     // would synthesize a hierarchical identifier inside a flat-only feature.
     characters
         .all(|character| character.is_ascii_alphanumeric() || matches!(character, b'_' | b'-'))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::rstest;
+
+    #[rstest]
+    #[case("abc", true)]
+    #[case("1abc", true)]
+    #[case("ABC", true)]
+    #[case("ABC_DEF", true)]
+    #[case("abc-DEF", true)]
+    #[case("_abc-DEF", true)]
+    #[case("*abcDEF", false)]
+    fn test_is_valid_flat_identifier(#[case] input: &str, #[case] expected: bool) {
+        assert_eq!(is_valid_flat_identifier(input), expected);
+    }
 }
