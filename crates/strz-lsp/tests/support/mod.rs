@@ -365,12 +365,6 @@ pub fn annotated_source(text: &str) -> AnnotatedSource {
     }
 }
 
-pub fn position_in(text: &str, needle: &str, byte_offset_within_needle: usize) -> Position {
-    let start = text.find(needle).expect("needle should exist in test text");
-    let offset = start + byte_offset_within_needle;
-    position_at_offset(text, offset)
-}
-
 async fn call_request(service: &mut TestService, request: Request) -> Response {
     service
         .ready()
