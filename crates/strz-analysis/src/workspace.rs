@@ -2912,8 +2912,9 @@ fn deployment_semantic_diagnostics(
     reference_tables: &WorkspaceReferenceTables,
 ) -> Vec<RuledDiagnostic> {
     // Deployment topology validation also works from resolved endpoint references,
-    // but it stays separate from the view family because it reasons about one
-    // specific upstream parity rule instead of view composition.
+    // but it stays separate from the view family because it reasons about
+    // deployment containment rather than view composition. Keep the wrapper even
+    // with one rule so later deployment-only checks have one obvious entry point.
     deployment_parent_child_relationship_diagnostics(documents, documents_by_id, reference_tables)
 }
 
@@ -2953,6 +2954,10 @@ fn deployment_parent_child_relationship_diagnostics(
             else {
                 continue;
             };
+            // Deployment endpoint references should already resolve to deployment
+            // symbols. Keep the explicit guard so any broader future resolution
+            // change fails closed instead of emitting topology diagnostics against
+            // model-layer elements.
             if !is_deployment_element_kind(source_symbol.kind)
                 || !is_deployment_element_kind(destination_symbol.kind)
             {
