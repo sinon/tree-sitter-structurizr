@@ -762,6 +762,36 @@ fn image_source_paths_surface_file_and_directory_diagnostics() {
 }
 
 #[test]
+fn diagram_image_sources_preserve_upstream_directory_message() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[
+            (
+                "workspace.dsl",
+                indoc! {r#"
+                    workspace {
+                        views {
+                            properties {
+                                "plantuml.url" "https://plantuml.example.com"
+                            }
+
+                            image * "image-view" {
+                                plantuml "assets"
+                            }
+                        }
+                    }
+                "#},
+            ),
+            ("assets/.keep", ""),
+        ],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_code(&facts, "semantic.invalid-image-source");
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(diagnostics[0].message(), "Is a directory");
+}
+
+#[test]
 fn image_renderer_properties_can_be_view_local_or_viewset_level() {
     let (_workspace, facts) = load_temp_workspace(
         &[

@@ -3092,6 +3092,8 @@ fn documentation_resource_path_message(
 ) -> Option<String> {
     match fs::metadata(path) {
         Ok(metadata) => match directive.kind {
+            // Upstream accepts any existing `!docs` path and lets the importer
+            // decide whether that path is a directory or a single file.
             ResourceDirectiveKind::Docs => None,
             ResourceDirectiveKind::Adrs if metadata.is_dir() => None,
             ResourceDirectiveKind::Adrs => Some(format!(
@@ -3110,7 +3112,11 @@ fn documentation_resource_path_message(
                 path.display()
             ))
         }
-        Err(error) => Some(error.to_string()),
+        Err(error) => Some(format!(
+            "Error inspecting documentation path {}: {}",
+            path.display(),
+            error
+        )),
     }
 }
 
@@ -3224,6 +3230,9 @@ fn image_source_path_message(kind: ImageSourceKind, path: &Path) -> Option<Strin
         Ok(metadata) if metadata.is_dir() => Some(match kind {
             ImageSourceKind::Image => format!("{} is not a file", path.display()),
             ImageSourceKind::PlantUml | ImageSourceKind::Mermaid | ImageSourceKind::Kroki => {
+                // The upstream importers attempt to read these sources as files
+                // and therefore surface the platform's terse "Is a directory"
+                // failure. Preserve that shape for parity.
                 "Is a directory".to_owned()
             }
         }),
@@ -3236,7 +3245,7 @@ fn image_source_path_message(kind: ImageSourceKind, path: &Path) -> Option<Strin
         {
             Some(format!("The file at {} does not exist", path.display()))
         }
-        Err(error) => Some(error.to_string()),
+        Err(error) => Some(format!("Error inspecting image source {}: {}", path.display(), error)),
     }
 }
 

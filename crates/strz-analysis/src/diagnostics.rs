@@ -555,6 +555,9 @@ impl RuledDiagnostic {
         Self::new(
             rules::SEMANTIC_MISSING_IMAGE_RENDERER_PROPERTY.id(),
             Diagnostic::new(
+                // Keep the guidance text aligned with Structurizr's importer
+                // exceptions so validation and upstream runtime failures read the
+                // same way.
                 format!(
                     "Please define a view/viewset property named {property_name} to specify your {service_name} server"
                 ),
