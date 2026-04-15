@@ -1,0 +1,408 @@
+==========================
+Comprehensive tag surfaces
+==========================
+
+workspace {
+  model {
+    archetypes {
+      service = element {
+        tag SharedQuality
+        tags "Customer Facing,Reusable Pattern"
+        tags "Async Messaging" "Operational Data"
+      }
+    }
+
+    customer = person "Customer" "Uses the platform" "Customer Facing,SharedQuality" {
+      tag "External User"
+      tags "People,Journey Mapping"
+      tags "Human Actor" "Primary Persona"
+    }
+
+    platform = softwareSystem "Payments Platform" "Processes payments" "Internal Only,SharedQuality" {
+      tag "Core System"
+      tags "Operational Data,Important Capability"
+      tags "Domain Logic" "Revenue Flow"
+
+      api = container "Public API" "Handles requests" "Rust" "Async Messaging,SharedQuality" {
+        tag "API Surface"
+        tags "Integration,Edge Routing"
+        tags "HTTP Boundary" "Public Contract"
+
+        worker = component "Worker" "Processes jobs" "Rust" "Operational Data,SharedQuality" {
+          tag "Background Processing"
+          tags "Queues,Async Messaging"
+          tags "Retry Policy" "Batch Work"
+        }
+      }
+    }
+
+    ledger = element "Ledger" "Domain Entity" "Stores journal entries" "Operational Data,SharedQuality" {
+      tag "Accounting"
+      tags "Reporting,Compliance"
+      tags "Financial Record" "Reference Data"
+    }
+
+    reporting = service "Reporting Service" "Analytics" "Supports finance reporting" "Customer Facing,SharedQuality" {
+      tag "Derived Service"
+      tags "Operational Data,Reusable Pattern"
+      tags "Batch Analytics" "Scheduled Work"
+    }
+
+    !element platform {
+      tag "Extended Platform"
+      tags "Platform Team,SharedQuality"
+      tags "Directive Tag" "Directive Batch"
+    }
+
+    rel = customer -> api "Uses API" "HTTPS" "Customer Facing,SharedQuality" {
+      tag "Critical Path"
+      tags "Request Flow,Sync Call"
+      tags "Primary Interaction" "Observed Traffic"
+    }
+
+    futureRel = customer -> platform "Tracks future capabilities" "" Future
+
+    !elements "element.tag==SharedQuality" {
+      tag "Bulk Element Tag"
+      tags "Bulk Element,SharedQuality"
+      tags "Bulk Batch" "Bulk Group"
+    }
+
+    !relationships "*->*" {
+      tag "Bulk Relationship Tag"
+      tags "Async Messaging,SharedQuality"
+      tags "Bulk Routing" "Bulk Transport"
+    }
+
+    live = deploymentEnvironment "Live" {
+      blue = deploymentGroup "Blue"
+
+      edge = deploymentNode "Edge" "Public ingress" "Kubernetes" 2 "Edge Routing,SharedQuality" {
+        tag "Deployment Node Tag"
+        tags "Operations,Platform Runtime"
+        tags "Blue Cluster" "Ingress Tier"
+
+        gateway = infrastructureNode "Gateway" "Routes traffic" "HAProxy" "Edge Routing,SharedQuality" {
+          tag "Infrastructure Tag"
+          tags "Network,SharedQuality"
+          tags "North South" "Traffic Control"
+        }
+
+        platformCanary = softwareSystemInstance platform blue "Customer Facing,SharedQuality" {
+          tag "Canary Release"
+          tags "Operations,Observed"
+          tags "Gradual Rollout" "Instance Metrics"
+        }
+
+        apiReplica = containerInstance api blue "Async Messaging,SharedQuality" {
+          tag "Replica"
+          tags "Operations,Observed"
+          tags "Queue Consumer" "Runtime Thread"
+        }
+
+        workerReplica = instanceOf api blue "Edge Routing,SharedQuality" {
+          tag "Alias Instance"
+          tags "Operations,Observed"
+          tags "Directive Replay" "Compatibility Check"
+        }
+      }
+    }
+  }
+
+  views {
+    systemContext platform "platform-context" {
+      include *
+    }
+
+    filtered "platform-context" include "SharedQuality,Customer Facing" "quality-view" {
+      title "Quality tags"
+    }
+
+    filtered "platform-context" exclude Future "future-view" {
+      title "Future tags"
+    }
+
+    styles {
+      element SharedQuality {
+        background #1168bd
+      }
+
+      relationship Future {
+        color #d46a00
+      }
+    }
+  }
+}
+
+---
+
+(source_file
+  (workspace
+    (workspace_block
+      (model
+        (model_block
+          (archetypes
+            (archetypes_block
+              (archetype_definition
+                (identifier)
+                (archetype_base)
+                (archetype_body
+                  (tag_statement
+                    (identifier))
+                  (tags_statement
+                    (string))
+                  (tags_statement
+                    (string)
+                    (string))))))
+          (person
+            (identifier)
+            (string)
+            (string)
+            (string)
+            (person_block
+              (tag_statement
+                (string))
+              (tags_statement
+                (string))
+              (tags_statement
+                (string)
+                (string))))
+          (software_system
+            (identifier)
+            (string)
+            (string)
+            (string)
+            (software_system_block
+              (tag_statement
+                (string))
+              (tags_statement
+                (string))
+              (tags_statement
+                (string)
+                (string))
+              (container
+                (identifier)
+                (string)
+                (string)
+                (string)
+                (string)
+                (container_block
+                  (tag_statement
+                    (string))
+                  (tags_statement
+                    (string))
+                  (tags_statement
+                    (string)
+                    (string))
+                  (component
+                    (identifier)
+                    (string)
+                    (string)
+                    (string)
+                    (string)
+                    (component_block
+                      (tag_statement
+                        (string))
+                      (tags_statement
+                        (string))
+                      (tags_statement
+                        (string)
+                        (string))))))))
+          (custom_element
+            (identifier)
+            (string)
+            (string)
+            (string)
+            (string)
+            (custom_element_block
+              (tag_statement
+                (string))
+              (tags_statement
+                (string))
+              (tags_statement
+                (string)
+                (string))))
+          (archetype_instance
+            (identifier)
+            (identifier)
+            (string)
+            (string)
+            (string)
+            (string)
+            (custom_element_block
+              (tag_statement
+                (string))
+              (tags_statement
+                (string))
+              (tags_statement
+                (string)
+                (string))))
+          (element_directive
+            (identifier)
+            (element_directive_block
+              (tag_statement
+                (string))
+              (tags_statement
+                (string))
+              (tags_statement
+                (string)
+                (string))))
+          (relationship
+            (identifier)
+            (identifier)
+            (relationship_operator)
+            (identifier)
+            (string)
+            (string)
+            (string)
+            (relationship_block
+              (tag_statement
+                (string))
+              (tags_statement
+                (string))
+              (tags_statement
+                (string)
+                (string))))
+          (relationship
+            (identifier)
+            (identifier)
+            (relationship_operator)
+            (identifier)
+            (string)
+            (string)
+            (identifier))
+          (elements_directive
+            (string)
+            (elements_block
+              (tag_statement
+                (string))
+              (tags_statement
+                (string))
+              (tags_statement
+                (string)
+                (string))))
+          (relationships_directive
+            (string)
+            (relationships_block
+              (tag_statement
+                (string))
+              (tags_statement
+                (string))
+              (tags_statement
+                (string)
+                (string))))
+          (deployment_environment
+            (identifier)
+            (string)
+            (deployment_environment_block
+              (deployment_group
+                (identifier)
+                (string))
+              (deployment_node
+                (identifier)
+                (string)
+                (string)
+                (string)
+                (number)
+                (string)
+                (deployment_node_block
+                  (tag_statement
+                    (string))
+                  (tags_statement
+                    (string))
+                  (tags_statement
+                    (string)
+                    (string))
+                  (infrastructure_node
+                    (identifier)
+                    (string)
+                    (string)
+                    (string)
+                    (string)
+                    (deployment_node_block
+                      (tag_statement
+                        (string))
+                      (tags_statement
+                        (string))
+                      (tags_statement
+                        (string)
+                        (string))))
+                  (software_system_instance
+                    (identifier)
+                    (identifier)
+                    (identifier)
+                    (string)
+                    (deployment_instance_block
+                      (tag_statement
+                        (string))
+                      (tags_statement
+                        (string))
+                      (tags_statement
+                        (string)
+                        (string))))
+                  (container_instance
+                    (identifier)
+                    (identifier)
+                    (identifier)
+                    (string)
+                    (deployment_instance_block
+                      (tag_statement
+                        (string))
+                      (tags_statement
+                        (string))
+                      (tags_statement
+                        (string)
+                        (string))))
+                  (instance_of
+                    (identifier)
+                    (identifier)
+                    (identifier)
+                    (string)
+                    (deployment_instance_block
+                      (tag_statement
+                        (string))
+                      (tags_statement
+                        (string))
+                      (tags_statement
+                        (string)
+                        (string))))))))))
+      (views
+        (views_block
+          (system_context_view
+            (identifier)
+            (string)
+            (system_context_view_block
+              (include_statement
+                (wildcard))))
+          (filtered_view
+            (string)
+            (filter_mode)
+            (string)
+            (string)
+            (filtered_view_block
+              (title_statement
+                (string))))
+          (filtered_view
+            (string)
+            (filter_mode)
+            (identifier)
+            (string)
+            (filtered_view_block
+              (title_statement
+                (string))))
+          (styles
+            (styles_block
+              (element_style
+                (identifier)
+                (style_rule_block
+                  (style_setting
+                    (identifier)
+                    (color_value
+                      (hex_color)))))
+              (relationship_style
+                (identifier)
+                (style_rule_block
+                  (style_setting
+                    (identifier)
+                    (color_value
+                      (hex_color))))))))))))

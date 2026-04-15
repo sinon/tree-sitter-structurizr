@@ -1,10 +1,10 @@
 //! Context-aware completion for the bounded LSP slice.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use strz_analysis::{
     DocumentId, DocumentSnapshot, ElementIdentifierMode, Symbol, SymbolHandle, SymbolKind,
-    WorkspaceFacts, WorkspaceIndex, WorkspaceInstanceId,
+    TagSurface, WorkspaceFacts, WorkspaceIndex, WorkspaceInstanceId, tag_surface_for_node_kind,
 };
 use tower_lsp_server::ls_types::{
     CompletionItem, CompletionItemKind, CompletionTextEdit, Position, Range, TextEdit,
@@ -286,6 +286,7 @@ enum CompletionContext {
     FixedVocabulary,
     StyleProperties(StyleBlockKind),
     StyleValues(StyleValueCompletionContext),
+    Tags(TagCompletionContext),
     RelationshipIdentifier(RelationshipCompletionContext),
     FreshRelationshipSource(RelationshipBindingDomain),
     Suppress,
@@ -368,6 +369,18 @@ enum RelationshipBindingDomain {
     Deployment,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct TagCompletionContext {
+    replace_start: usize,
+    mode: TagCompletionMode,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum TagCompletionMode {
+    RawValueSegment { close_quote: bool },
+    WholeValue { force_quotes: bool },
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct IdentifierCompletionCandidate {
     label: String,
@@ -414,6 +427,9 @@ pub fn completion_items(
         }
         CompletionContext::StyleValues(context) => {
             style_value_completion_items(context, edit_range, prefix)
+        }
+        CompletionContext::Tags(context) => {
+            tag_completion_items(document, snapshot, workspace_facts, context, offset)
         }
         CompletionContext::RelationshipIdentifier(context) => relationship_identifier_items(
             document,
@@ -483,6 +499,7 @@ fn completion_context(
     prefix_start: usize,
 ) -> CompletionContext {
     let style_context = style_block_context(text, snapshot, offset, prefix_start);
+    let tag_context = tag_completion_context(text, snapshot, offset, prefix_start);
 
     // Incomplete quoted text usually only exists through parser recovery, so do
     // not rely on syntax nodes alone to suppress noisy identifier/keyword
@@ -490,12 +507,14 @@ fn completion_context(
     if is_inside_quoted_string(text, offset) {
         return style_context
             .filter(CompletionContext::allows_quoted_completion)
+            .or(tag_context)
             .unwrap_or(CompletionContext::Suppress);
     }
 
     // First keep the existing syntax-backed refinements intact. Only after those
     // do we attempt the new semantic relationship-endpoint completion surface.
     style_context
+        .or(tag_context)
         .or_else(|| relationship_completion_context(text, snapshot, offset, prefix_start))
         .or_else(|| fresh_relationship_source_context(text, snapshot, offset, prefix_start))
         .unwrap_or(CompletionContext::FixedVocabulary)
@@ -538,6 +557,17 @@ fn fresh_relationship_source_context(
     syntax_nodes_at_offset(text, snapshot, offset, prefix_start)
         .into_iter()
         .find_map(fresh_relationship_source_context_from_node)
+}
+
+fn tag_completion_context(
+    text: &str,
+    snapshot: &DocumentSnapshot,
+    offset: usize,
+    prefix_start: usize,
+) -> Option<CompletionContext> {
+    syntax_nodes_at_offset(text, snapshot, offset, prefix_start)
+        .into_iter()
+        .find_map(|node| tag_completion_context_from_node(text, node, offset, prefix_start))
 }
 
 fn style_block_context_from_node(
@@ -720,6 +750,414 @@ fn style_value_prefix_matches(candidate: &str, prefix: &str) -> bool {
         || candidate
             .get(..prefix.len())
             .is_some_and(|leading| leading.eq_ignore_ascii_case(prefix))
+}
+
+fn tag_completion_items(
+    document: &DocumentState,
+    snapshot: &DocumentSnapshot,
+    workspace_facts: Option<&WorkspaceFacts>,
+    context: TagCompletionContext,
+    offset: usize,
+) -> Vec<CompletionItem> {
+    let safe_offset = offset.min(document.text().len());
+    let replace_start = context.replace_start.min(safe_offset);
+    let prefix = &document.text()[replace_start..safe_offset];
+    let trimmed_prefix = prefix.trim();
+    let edit_range = byte_offsets_to_range(document.line_index(), replace_start, safe_offset);
+
+    workspace_tag_candidates(document, snapshot, workspace_facts)
+        .into_iter()
+        .filter(|candidate| tag_prefix_matches(candidate, prefix))
+        .filter(|candidate| {
+            trimmed_prefix.is_empty() || !candidate.eq_ignore_ascii_case(trimmed_prefix)
+        })
+        .map(|candidate| CompletionItem {
+            label: candidate.clone(),
+            kind: Some(CompletionItemKind::VALUE),
+            detail: Some("Workspace tag".to_owned()),
+            text_edit: edit_range.map(|range| {
+                CompletionTextEdit::Edit(TextEdit {
+                    range,
+                    new_text: context.mode.render(&candidate),
+                })
+            }),
+            ..CompletionItem::default()
+        })
+        .collect()
+}
+
+fn workspace_tag_candidates(
+    document: &DocumentState,
+    snapshot: &DocumentSnapshot,
+    workspace_facts: Option<&WorkspaceFacts>,
+) -> Vec<String> {
+    let mut tags = BTreeSet::new();
+
+    if let Some(workspace_facts) = workspace_facts
+        && let Some(document_id) = workspace_document_id(document)
+    {
+        let candidate_instances = workspace_facts
+            .candidate_instances_for(&document_id)
+            .copied()
+            .collect::<Vec<_>>();
+
+        // Tag suggestions are read-only hints, so unioning candidate workspaces is
+        // preferable to suppressing completion when one document participates in
+        // multiple entry roots.
+        for instance_id in candidate_instances {
+            let Some(workspace_index) = workspace_facts.workspace_index(instance_id) else {
+                continue;
+            };
+            for member_document in workspace_index.documents() {
+                let Some(workspace_document) = workspace_facts.document(member_document) else {
+                    continue;
+                };
+                tags.extend(workspace_document.snapshot().tags().iter().cloned());
+            }
+        }
+    }
+
+    if tags.is_empty() {
+        tags.extend(snapshot.tags().iter().cloned());
+    }
+
+    tags.into_iter().collect()
+}
+
+fn tag_completion_context_from_node(
+    text: &str,
+    node: tree_sitter::Node<'_>,
+    offset: usize,
+    prefix_start: usize,
+) -> Option<CompletionContext> {
+    let mut current = node;
+
+    loop {
+        let context = if current.kind() == "ERROR" {
+            recovered_open_repeated_tags_context(text, current, offset)
+        } else {
+            tag_surface_for_node_kind(current.kind()).and_then(|surface| {
+                tag_completion_context_for_surface(text, current, surface, offset, prefix_start)
+            })
+        };
+
+        if let Some(context) = context {
+            return Some(CompletionContext::Tags(context));
+        }
+
+        current = current.parent()?;
+    }
+}
+
+fn tag_completion_context_for_surface(
+    text: &str,
+    node: tree_sitter::Node<'_>,
+    surface: TagSurface,
+    offset: usize,
+    prefix_start: usize,
+) -> Option<TagCompletionContext> {
+    match surface {
+        TagSurface::TagStatement => {
+            tag_statement_completion_context(text, node, offset, prefix_start)
+        }
+        TagSurface::TagsStatement => {
+            tags_statement_completion_context(text, node, offset, prefix_start)
+        }
+        TagSurface::NamedField {
+            field_name,
+            comma_separated,
+        } => named_field_tag_context(
+            text,
+            node,
+            field_name,
+            comma_separated,
+            offset,
+            prefix_start,
+        ),
+        TagSurface::IndexedField {
+            field_name,
+            index,
+            excluded_kind,
+            ..
+        } => excluded_kind.map_or_else(
+            || indexed_field_tag_context(text, node, field_name, index, offset, prefix_start),
+            |excluded_kind| {
+                filtered_indexed_field_tag_context(
+                    text,
+                    node,
+                    field_name,
+                    index,
+                    excluded_kind,
+                    offset,
+                    prefix_start,
+                )
+            },
+        ),
+    }
+}
+
+fn tag_statement_completion_context(
+    text: &str,
+    statement: tree_sitter::Node<'_>,
+    offset: usize,
+    prefix_start: usize,
+) -> Option<TagCompletionContext> {
+    let value = statement.child_by_field_name("value")?;
+    if !node_matches_cursor(value, offset, prefix_start) {
+        return None;
+    }
+
+    tag_value_context(text, value, false, offset)
+}
+
+fn tags_statement_completion_context(
+    text: &str,
+    statement: tree_sitter::Node<'_>,
+    offset: usize,
+    prefix_start: usize,
+) -> Option<TagCompletionContext> {
+    let mut cursor = statement.walk();
+    let values = statement
+        .children_by_field_name("value", &mut cursor)
+        .collect::<Vec<_>>();
+    let repeated_values = values.len() > 1;
+    values
+        .into_iter()
+        .find(|value| node_matches_cursor(*value, offset, prefix_start))
+        .and_then(|value| tag_value_context(text, value, !repeated_values, offset))
+        .or_else(|| open_repeated_tags_statement_completion_context(text, statement, offset))
+}
+
+fn named_field_tag_context(
+    text: &str,
+    node: tree_sitter::Node<'_>,
+    field_name: &str,
+    comma_separated: bool,
+    offset: usize,
+    prefix_start: usize,
+) -> Option<TagCompletionContext> {
+    let value = node.child_by_field_name(field_name)?;
+    if !node_matches_cursor(value, offset, prefix_start) {
+        return None;
+    }
+
+    tag_value_context(text, value, comma_separated, offset)
+}
+
+fn indexed_field_tag_context(
+    text: &str,
+    node: tree_sitter::Node<'_>,
+    field_name: &str,
+    index: usize,
+    offset: usize,
+    prefix_start: usize,
+) -> Option<TagCompletionContext> {
+    let value = nth_field_node(node, field_name, index)?;
+    if !node_matches_cursor(value, offset, prefix_start) {
+        return None;
+    }
+
+    tag_value_context(text, value, true, offset)
+}
+
+fn filtered_indexed_field_tag_context(
+    text: &str,
+    node: tree_sitter::Node<'_>,
+    field_name: &str,
+    index: usize,
+    excluded_kind: &str,
+    offset: usize,
+    prefix_start: usize,
+) -> Option<TagCompletionContext> {
+    let value = nth_field_node_excluding(node, field_name, index, excluded_kind)?;
+    if !node_matches_cursor(value, offset, prefix_start) {
+        return None;
+    }
+
+    tag_value_context(text, value, true, offset)
+}
+
+fn tag_value_context(
+    text: &str,
+    value: tree_sitter::Node<'_>,
+    comma_separated: bool,
+    offset: usize,
+) -> Option<TagCompletionContext> {
+    match value.kind() {
+        "string" => Some(TagCompletionContext {
+            replace_start: quoted_tag_segment_start(text, value, comma_separated, offset),
+            mode: TagCompletionMode::RawValueSegment { close_quote: false },
+        }),
+        "identifier" => Some(TagCompletionContext {
+            replace_start: value.start_byte(),
+            mode: TagCompletionMode::WholeValue {
+                force_quotes: false,
+            },
+        }),
+        _ => None,
+    }
+}
+
+fn recovered_open_repeated_tags_context(
+    text: &str,
+    error: tree_sitter::Node<'_>,
+    offset: usize,
+) -> Option<TagCompletionContext> {
+    let statement = preceding_tags_statement_for_error(error)?;
+    open_repeated_tags_statement_completion_context(text, statement, offset)
+}
+
+fn preceding_tags_statement_for_error(
+    error: tree_sitter::Node<'_>,
+) -> Option<tree_sitter::Node<'_>> {
+    let mut current = error;
+
+    loop {
+        if current.kind() == "ERROR"
+            && let Some(previous) = current.prev_named_sibling()
+            && previous.kind() == "tags_statement"
+        {
+            return Some(previous);
+        }
+
+        let parent = current.parent()?;
+        if parent.kind() != "ERROR" {
+            return None;
+        }
+        current = parent;
+    }
+}
+
+fn open_repeated_tags_statement_completion_context(
+    text: &str,
+    statement: tree_sitter::Node<'_>,
+    offset: usize,
+) -> Option<TagCompletionContext> {
+    if !is_inside_quoted_string(text, offset) {
+        return None;
+    }
+
+    let mut cursor = statement.walk();
+    let values = statement
+        .children_by_field_name("value", &mut cursor)
+        .collect::<Vec<_>>();
+    let last_value = *values.last()?;
+    if values.iter().any(|value| value.kind() != "string") || last_value.kind() != "string" {
+        return None;
+    }
+
+    let safe_offset = offset.min(text.len());
+    let quote_start = text[last_value.end_byte()..safe_offset]
+        .find('"')
+        .map(|relative_start| last_value.end_byte() + relative_start)?;
+    let gap = &text[last_value.end_byte()..quote_start];
+    if gap.contains('\n') || !gap.trim().is_empty() {
+        return None;
+    }
+
+    // The generic completion prefix logic stops at spaces, which is correct for
+    // identifiers but wrong for an unterminated quoted tag like `"Human T`.
+    // Replacing from the opening quote keeps both prefix filtering and the
+    // applied edit aligned with the whole in-progress string content.
+    Some(TagCompletionContext {
+        replace_start: quote_start + 1,
+        mode: TagCompletionMode::RawValueSegment { close_quote: true },
+    })
+}
+
+fn nth_field_node<'a>(
+    node: tree_sitter::Node<'a>,
+    field_name: &str,
+    index: usize,
+) -> Option<tree_sitter::Node<'a>> {
+    let mut cursor = node.walk();
+    node.children_by_field_name(field_name, &mut cursor)
+        .nth(index)
+}
+
+fn nth_field_node_excluding<'a>(
+    node: tree_sitter::Node<'a>,
+    field_name: &str,
+    index: usize,
+    excluded_kind: &str,
+) -> Option<tree_sitter::Node<'a>> {
+    let mut cursor = node.walk();
+    node.children_by_field_name(field_name, &mut cursor)
+        .filter(|child| child.kind() != excluded_kind)
+        .nth(index)
+}
+
+fn quoted_tag_segment_start(
+    text: &str,
+    value: tree_sitter::Node<'_>,
+    comma_separated: bool,
+    offset: usize,
+) -> usize {
+    let content_start = value.start_byte().saturating_add(1).min(text.len());
+    let content_end = offset
+        .min(value.end_byte().saturating_sub(1))
+        .min(text.len());
+    if !comma_separated || content_end < content_start {
+        return content_start;
+    }
+
+    let segment = &text[content_start..content_end];
+    let Some(last_comma) = segment.rfind(',') else {
+        return content_start;
+    };
+
+    let mut start = content_start + last_comma + 1;
+    while start < content_end && text.as_bytes()[start].is_ascii_whitespace() {
+        start += 1;
+    }
+    start
+}
+
+fn tag_prefix_matches(candidate: &str, prefix: &str) -> bool {
+    prefix.is_empty()
+        || candidate
+            .get(..prefix.len())
+            .is_some_and(|leading| leading.eq_ignore_ascii_case(prefix))
+}
+
+impl TagCompletionMode {
+    fn render(self, candidate: &str) -> String {
+        // Tag candidates already preserve the DSL source spelling collected by
+        // analysis, including escape sequences like `\"` or `\\`. Re-escaping
+        // them here would change the literal the user is trying to reuse.
+        match self {
+            Self::RawValueSegment { close_quote } => {
+                if close_quote {
+                    format!("{candidate}\"")
+                } else {
+                    candidate.to_owned()
+                }
+            }
+            Self::WholeValue { force_quotes } => {
+                if force_quotes || !is_unquoted_tag_candidate(candidate) {
+                    format!("\"{candidate}\"")
+                } else {
+                    candidate.to_owned()
+                }
+            }
+        }
+    }
+}
+
+fn is_unquoted_tag_candidate(value: &str) -> bool {
+    !value.is_empty() && value.split('.').all(is_identifier_segment)
+}
+
+fn is_identifier_segment(segment: &str) -> bool {
+    let mut chars = segment.chars();
+    let Some(first) = chars.next() else {
+        return false;
+    };
+    if !(first.is_ascii_alphabetic() || first == '_') {
+        return false;
+    }
+
+    chars.all(|char| char.is_ascii_alphanumeric() || matches!(char, '_' | '-'))
 }
 
 fn relationship_completion_context_from_node(

@@ -401,6 +401,155 @@ mod tests {
     }
 
     #[test]
+    fn analysis_extracts_repeated_tags_statements_from_supported_symbol_bodies() {
+        let mut analyzer = DocumentAnalyzer::new();
+        let snapshot = analyzer.analyze(DocumentInput::new(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        user = person "User" {
+                            tags "Customer Facing" "Primary Persona"
+                        }
+
+                        system = softwareSystem "Payments" {
+                            api = container "API" {
+                                tags "SharedQuality" "Operational Data"
+                            }
+                        }
+
+                        rel = user -> api "Uses" "HTTPS" {
+                            tags "Async Messaging" "Observed"
+                        }
+
+                        deploymentEnvironment "Live" {
+                            edge = deploymentNode "Edge" {
+                                canary = softwareSystemInstance system blue "Canary" {
+                                    tags "Gradual Rollout" "Observed"
+                                }
+                            }
+                        }
+                    }
+                }
+            "#},
+        ));
+
+        let user = snapshot
+            .symbols()
+            .iter()
+            .find(|symbol| symbol.binding_name.as_deref() == Some("user"))
+            .expect("user symbol should exist");
+        assert_eq!(user.tags, vec!["Customer Facing", "Primary Persona"]);
+
+        let api = snapshot
+            .symbols()
+            .iter()
+            .find(|symbol| symbol.binding_name.as_deref() == Some("api"))
+            .expect("api symbol should exist");
+        assert_eq!(api.tags, vec!["SharedQuality", "Operational Data"]);
+
+        let relationship = snapshot
+            .symbols()
+            .iter()
+            .find(|symbol| symbol.binding_name.as_deref() == Some("rel"))
+            .expect("relationship symbol should exist");
+        assert_eq!(relationship.tags, vec!["Async Messaging", "Observed"]);
+
+        let canary = snapshot
+            .symbols()
+            .iter()
+            .find(|symbol| symbol.binding_name.as_deref() == Some("canary"))
+            .expect("software system instance should exist");
+        assert_eq!(canary.tags, vec!["Canary", "Gradual Rollout", "Observed"]);
+    }
+
+    #[test]
+    fn analysis_collects_workspace_tags_from_non_symbol_surfaces() {
+        let mut analyzer = DocumentAnalyzer::new();
+        let snapshot = analyzer.analyze(DocumentInput::new(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        archetypes {
+                            service = element {
+                                tag SharedQuality
+                                tags "Customer Facing" "Operational Data"
+                            }
+                        }
+
+                        system = softwareSystem "Payments"
+                        custom = element "Ledger" "Domain Entity" "Tracks journals" "Custom Header,SharedQuality"
+                        derived = service "Reporting" "Analytics" "Generates reports" "Archetype Header,SharedQuality"
+
+                        !element system {
+                            tags "Directive Tag" "Directive Batch"
+                        }
+
+                        !elements "*" {
+                            tag "Bulk Element Tag"
+                        }
+
+                        rel = system -> custom "Uses" "" Future
+
+                        !relationships "*->*" {
+                            tags "Bulk Routing" "Bulk Transport"
+                        }
+
+                        deploymentEnvironment "Live" {
+                            blue = deploymentGroup "Blue"
+
+                            node = deploymentNode "Node" {
+                                alias = instanceOf system blue "Instance Header,SharedQuality" {
+                                    tags "Alias Body" "Observed"
+                                }
+                            }
+                        }
+                    }
+
+                    views {
+                        systemContext system "context" {
+                            include *
+                        }
+
+                        filtered "context" include "SharedQuality,Customer Facing" "filtered-view"
+
+                        styles {
+                            element SharedQuality {
+                                background #1168bd
+                            }
+
+                            relationship Future {
+                                color #d46a00
+                            }
+                        }
+                    }
+                }
+            "#},
+        ));
+
+        assert_eq!(
+            snapshot.tags(),
+            &[
+                "SharedQuality".to_owned(),
+                "Customer Facing".to_owned(),
+                "Operational Data".to_owned(),
+                "Custom Header".to_owned(),
+                "Archetype Header".to_owned(),
+                "Directive Tag".to_owned(),
+                "Directive Batch".to_owned(),
+                "Bulk Element Tag".to_owned(),
+                "Future".to_owned(),
+                "Bulk Routing".to_owned(),
+                "Bulk Transport".to_owned(),
+                "Instance Header".to_owned(),
+                "Alias Body".to_owned(),
+                "Observed".to_owned(),
+            ]
+        );
+    }
+
+    #[test]
     fn analysis_preserves_empty_relationship_placeholder_slots() {
         let mut analyzer = DocumentAnalyzer::new();
         let snapshot = analyzer.analyze(DocumentInput::new(

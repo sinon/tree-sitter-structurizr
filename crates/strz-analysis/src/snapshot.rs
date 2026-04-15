@@ -138,6 +138,7 @@ pub struct DocumentSyntaxFacts {
     include_directives: Vec<IncludeDirective>,
     constant_definitions: Vec<ConstantDefinition>,
     identifier_modes: Vec<IdentifierModeFact>,
+    tags: Vec<String>,
     symbols: Vec<Symbol>,
     references: Vec<Reference>,
     workspace_sections: Vec<WorkspaceSectionFact>,
@@ -156,6 +157,7 @@ impl DocumentSyntaxFacts {
         let include_directives = extract::includes::collect(tree, source);
         let constant_definitions = extract::constants::collect(tree, source);
         let identifier_modes = extract::symbols::collect_identifier_modes(tree, source);
+        let tags = extract::symbols::collect_tags(tree, source);
         let (symbols, references) = extract::symbols::collect_symbols_and_references(tree, source);
         let semantic_facts = extract::semantic::collect(tree, source);
 
@@ -165,6 +167,7 @@ impl DocumentSyntaxFacts {
             include_directives,
             constant_definitions,
             identifier_modes,
+            tags,
             symbols,
             references,
             workspace_sections: semantic_facts.workspace_sections,
@@ -211,6 +214,12 @@ impl DocumentSyntaxFacts {
     #[must_use]
     pub fn identifier_modes(&self) -> &[IdentifierModeFact] {
         &self.identifier_modes
+    }
+
+    /// Returns all normalized explicit tags observed anywhere in the document.
+    #[must_use]
+    pub fn tags(&self) -> &[String] {
+        &self.tags
     }
 
     /// Returns all declaration symbols extracted from the document.
@@ -374,6 +383,12 @@ impl DocumentSnapshot {
     /// Returns all extracted `!identifiers` mode directives in the document.
     pub fn identifier_modes(&self) -> &[IdentifierModeFact] {
         self.syntax_facts.identifier_modes()
+    }
+
+    #[must_use]
+    /// Returns all normalized explicit tags observed anywhere in the document.
+    pub fn tags(&self) -> &[String] {
+        self.syntax_facts.tags()
     }
 
     #[must_use]

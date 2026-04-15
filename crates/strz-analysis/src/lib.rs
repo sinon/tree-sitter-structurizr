@@ -15,6 +15,7 @@ mod semantic;
 mod snapshot;
 mod span;
 mod symbols;
+mod tag_surfaces;
 mod workspace;
 
 pub use constants::ConstantDefinition;
@@ -37,6 +38,7 @@ pub use symbols::{
     IdentifierMode, IdentifierModeFact, Reference, ReferenceKind, ReferenceTargetHint, Symbol,
     SymbolId, SymbolKind,
 };
+pub use tag_surfaces::{TagSurface, tag_surface_for_node_kind};
 pub use workspace::{
     ElementIdentifierMode, ReferenceHandle, ReferenceResolutionStatus, ResolvedInclude,
     SymbolHandle, WorkspaceDocument, WorkspaceDocumentKind, WorkspaceFacts, WorkspaceIncludeTarget,

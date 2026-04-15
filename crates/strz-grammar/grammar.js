@@ -251,10 +251,11 @@ function deploymentInstanceGroupedTail($) {
 }
 
 function deploymentInstanceRule($, keyword) {
-  // Upstream deployment instances accept three header shapes:
-  //   1. `softwareSystemInstance system`
-  //   2. `softwareSystemInstance system { ... }`
-  //   3. `softwareSystemInstance system blue "Canary" { ... }`
+  // Upstream deployment instances, including the `instanceOf` alias, accept
+  // three header shapes:
+  //   1. `<keyword> system`
+  //   2. `<keyword> system { ... }`
+  //   3. `<keyword> system blue "Canary" { ... }`
   //
   // Keep those branches named here so future grammar work can reason about
   // target-only, direct-body, and grouped-header forms separately.
@@ -551,7 +552,20 @@ export default grammar({
 
     technology_statement: ($) => seq("technology", field("value", $._value)),
 
-    tags_statement: ($) => seq("tags", field("value", $._value)),
+    // Upstream `tags` statements accept either one identifier/string or a
+    // whitespace-separated list of quoted strings such as:
+    // `tags "Tag 1" "Tag 2"`.
+    tags_statement: ($) =>
+      choice(
+        seq("tags", field("value", $.identifier)),
+        seq("tags", field("value", $.string)),
+        seq(
+          "tags",
+          field("value", $.string),
+          field("value", $.string),
+          repeat(field("value", $.string)),
+        ),
+      ),
 
     tag_statement: ($) => seq("tag", field("value", $._value)),
 
@@ -1034,13 +1048,7 @@ export default grammar({
     software_system_instance: ($) =>
       deploymentInstanceRule($, "softwareSystemInstance"),
 
-    instance_of: ($) =>
-      seq(
-        optional(seq(field("identifier", $._assignment_identifier), "=")),
-        "instanceOf",
-        field("target", $.identifier),
-        optional(field("body", $.deployment_instance_block)),
-      ),
+    instance_of: ($) => deploymentInstanceRule($, "instanceOf"),
 
     // Relationships appear both as top-level model statements and nested inside
     // element bodies. The grammar keeps them permissive enough to cover plain `->`
