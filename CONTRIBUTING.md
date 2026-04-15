@@ -69,7 +69,7 @@ applied. The pre-commit hook runs the same `hk` surface automatically.
 
 When you change docs, run `just check-links` to verify relative markdown links
 and fragment anchors across [`README.md`](README.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), [`AGENTS.md`](AGENTS.md),
-[`SESSION.md`](SESSION.md), `docs/**`, markdown docs under `crates/**`, and [`tasks/`](tasks/).
+[`SESSION.md`](SESSION.md), `docs/**` and markdown docs under `crates/**`.
 
 Use `just audit-upstream` when you are hardening coverage against upstream Structurizr examples. It is useful for maintainers and focused grammar work, but it is not required for every consumer-facing change.
 

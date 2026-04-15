@@ -1,0 +1,275 @@
+---
+source: crates/strz-grammar/tests/fixtures.rs
+assertion_line: 44
+expression: tree_sexp(&tree)
+---
+(source_file
+  (workspace body:
+    (workspace_block
+      (model body:
+        (model_block
+          (archetypes body:
+            (archetypes_block
+              (archetype_definition identifier:
+                (identifier) base:
+                (archetype_base) body:
+                (archetype_body
+                  (tag_statement value:
+                    (identifier))
+                  (tags_statement value:
+                    (string))
+                  (tags_statement value:
+                    (string) value:
+                    (string))))))
+          (person identifier:
+            (identifier) name:
+            (string) description:
+            (string) tags:
+            (string) body:
+            (person_block
+              (tag_statement value:
+                (string))
+              (tags_statement value:
+                (string))
+              (tags_statement value:
+                (string) value:
+                (string))))
+          (software_system identifier:
+            (identifier) name:
+            (string) description:
+            (string) tags:
+            (string) body:
+            (software_system_block
+              (tag_statement value:
+                (string))
+              (tags_statement value:
+                (string))
+              (tags_statement value:
+                (string) value:
+                (string))
+              (container identifier:
+                (identifier) name:
+                (string) description:
+                (string) technology:
+                (string) tags:
+                (string) body:
+                (container_block
+                  (tag_statement value:
+                    (string))
+                  (tags_statement value:
+                    (string))
+                  (tags_statement value:
+                    (string) value:
+                    (string))
+                  (component identifier:
+                    (identifier) name:
+                    (string) description:
+                    (string) technology:
+                    (string) tags:
+                    (string) body:
+                    (component_block
+                      (tag_statement value:
+                        (string))
+                      (tags_statement value:
+                        (string))
+                      (tags_statement value:
+                        (string) value:
+                        (string))))))))
+          (custom_element identifier:
+            (identifier) name:
+            (string) attribute:
+            (string) attribute:
+            (string) attribute:
+            (string) body:
+            (custom_element_block
+              (tag_statement value:
+                (string))
+              (tags_statement value:
+                (string))
+              (tags_statement value:
+                (string) value:
+                (string))))
+          (archetype_instance identifier:
+            (identifier) kind:
+            (identifier) name:
+            (string) metadata:
+            (string) metadata:
+            (string) metadata:
+            (string) body:
+            (custom_element_block
+              (tag_statement value:
+                (string))
+              (tags_statement value:
+                (string))
+              (tags_statement value:
+                (string) value:
+                (string))))
+          (element_directive target:
+            (identifier) body:
+            (element_directive_block
+              (tag_statement value:
+                (string))
+              (tags_statement value:
+                (string))
+              (tags_statement value:
+                (string) value:
+                (string))))
+          (relationship identifier:
+            (identifier) source:
+            (identifier) operator:
+            (relationship_operator) destination:
+            (identifier) attribute:
+            (string) attribute:
+            (string) attribute:
+            (string) body:
+            (relationship_block
+              (tag_statement value:
+                (string))
+              (tags_statement value:
+                (string))
+              (tags_statement value:
+                (string) value:
+                (string))))
+          (relationship identifier:
+            (identifier) source:
+            (identifier) operator:
+            (relationship_operator) destination:
+            (identifier) attribute:
+            (string) attribute:
+            (string) attribute:
+            (identifier))
+          (elements_directive expression:
+            (string) body:
+            (elements_block
+              (tag_statement value:
+                (string))
+              (tags_statement value:
+                (string))
+              (tags_statement value:
+                (string) value:
+                (string))))
+          (relationships_directive expression:
+            (string) body:
+            (relationships_block
+              (tag_statement value:
+                (string))
+              (tags_statement value:
+                (string))
+              (tags_statement value:
+                (string) value:
+                (string))))
+          (deployment_environment identifier:
+            (identifier) name:
+            (string) body:
+            (deployment_environment_block
+              (deployment_group identifier:
+                (identifier) name:
+                (string))
+              (deployment_node identifier:
+                (identifier) name:
+                (string) attribute:
+                (string) attribute:
+                (string) attribute:
+                (number) attribute:
+                (string) body:
+                (deployment_node_block
+                  (tag_statement value:
+                    (string))
+                  (tags_statement value:
+                    (string))
+                  (tags_statement value:
+                    (string) value:
+                    (string))
+                  (infrastructure_node identifier:
+                    (identifier) name:
+                    (string) attribute:
+                    (string) attribute:
+                    (string) attribute:
+                    (string) body:
+                    (deployment_node_block
+                      (tag_statement value:
+                        (string))
+                      (tags_statement value:
+                        (string))
+                      (tags_statement value:
+                        (string) value:
+                        (string))))
+                  (software_system_instance identifier:
+                    (identifier) target:
+                    (identifier) deployment_group:
+                    (identifier) tags:
+                    (string) body:
+                    (deployment_instance_block
+                      (tag_statement value:
+                        (string))
+                      (tags_statement value:
+                        (string))
+                      (tags_statement value:
+                        (string) value:
+                        (string))))
+                  (container_instance identifier:
+                    (identifier) target:
+                    (identifier) deployment_group:
+                    (identifier) tags:
+                    (string) body:
+                    (deployment_instance_block
+                      (tag_statement value:
+                        (string))
+                      (tags_statement value:
+                        (string))
+                      (tags_statement value:
+                        (string) value:
+                        (string))))
+                  (instance_of identifier:
+                    (identifier) target:
+                    (identifier) deployment_group:
+                    (identifier) tags:
+                    (string) body:
+                    (deployment_instance_block
+                      (tag_statement value:
+                        (string))
+                      (tags_statement value:
+                        (string))
+                      (tags_statement value:
+                        (string) value:
+                        (string))))))))))
+      (views body:
+        (views_block
+          (system_context_view scope:
+            (identifier) key:
+            (string) body:
+            (system_context_view_block
+              (include_statement value:
+                (wildcard))))
+          (filtered_view base_key:
+            (string) mode:
+            (filter_mode) tags:
+            (string) key:
+            (string) body:
+            (filtered_view_block
+              (title_statement value:
+                (string))))
+          (filtered_view base_key:
+            (string) mode:
+            (filter_mode) tags:
+            (identifier) key:
+            (string) body:
+            (filtered_view_block
+              (title_statement value:
+                (string))))
+          (styles body:
+            (styles_block
+              (element_style tag:
+                (identifier) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (color_value
+                      (hex_color)))))
+              (relationship_style tag:
+                (identifier) body:
+                (style_rule_block
+                  (style_setting name:
+                    (identifier) value:
+                    (color_value
+                      (hex_color))))))))))))

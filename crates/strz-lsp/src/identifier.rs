@@ -69,10 +69,7 @@ mod tests {
     #[case("-abc", false)]
     #[case("abc.def", false)]
     #[case("", false)]
-    fn bindable_identifier_shape_matches_policy(
-        #[case] input: &str,
-        #[case] expected: bool,
-    ) {
+    fn bindable_identifier_shape_matches_policy(#[case] input: &str, #[case] expected: bool) {
         assert_eq!(is_valid_bindable_identifier(input), expected);
     }
 

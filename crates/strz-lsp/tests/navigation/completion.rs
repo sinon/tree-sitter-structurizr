@@ -1,7 +1,8 @@
 use std::path::Path;
 
 use indoc::{formatdoc, indoc};
-use serde_json::json;
+use line_index::{LineIndex, WideEncoding, WideLineCol};
+use serde_json::{Value, json};
 use tower_lsp_server::ls_types::{Position, Uri};
 
 use crate::support::{
@@ -916,6 +917,369 @@ async fn completion_inside_multi_instance_relationship_fragment_returns_no_resul
 
     assert!(labels.is_empty());
 }
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_filtered_view_tags_uses_workspace_tag_vocabulary() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(indoc! {r##"
+        workspace {
+          model {
+            system = softwareSystem "System"
+          }
+          views {
+            systemLandscape base {
+              include *
+            }
+            filtered base include "Tea<CURSOR>"
+            styles {
+              element "Team Tag" {
+                background "#ffffff"
+              }
+            }
+          }
+        }
+    "##});
+    let uri = file_uri("filtered-view-tag-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let labels = completion_labels(&mut service, &uri, &source).await;
+
+    assert_eq!(labels, vec!["Team Tag"]);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_tag_statement_uses_workspace_tags_across_files() {
+    let temp_workspace = TempWorkspace::new(
+        "tag-completion-cross-file",
+        "workspace {\n  !include shared/model.dsl\n  !include shared/consumer.dsl\n}\n",
+        &[Path::new("shared")],
+        &[
+            (
+                Path::new("shared/model.dsl"),
+                "model {\n  system = softwareSystem \"System\" \"Description\" \"Workspace Tag\"\n}\n",
+            ),
+            (
+                Path::new("shared/consumer.dsl"),
+                "model {\n  user = person \"User\" {\n    tag \"Wor<CURSOR>\"\n  }\n}\n",
+            ),
+        ],
+    );
+    let (mut service, _socket) = new_service();
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(temp_workspace.path())])
+        .await;
+    initialized(&mut service).await;
+
+    let consumer_path = temp_workspace.path().join("shared/consumer.dsl");
+    let consumer_source = annotated_source(&read_workspace_file(&consumer_path));
+    let consumer_uri = file_uri_from_path(&consumer_path);
+    open_document(&mut service, &consumer_uri, consumer_source.source()).await;
+
+    let labels = completion_labels(&mut service, &consumer_uri, &consumer_source).await;
+
+    assert_eq!(labels, vec!["Workspace Tag"]);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_comma_delimited_tags_replaces_only_the_active_segment() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          model {
+            source = softwareSystem "Source" "Description" "Team Alpha"
+            target = softwareSystem "Target" "Description" "Core,Tea<CURSOR>"
+          }
+        }
+    "#});
+    let uri = file_uri("comma-tag-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let items = completion_items(&mut service, &uri, &source).await;
+    assert_eq!(
+        applied_completion_source(&source, completion_item(&items, "Team Alpha")),
+        indoc! {r#"
+            workspace {
+              model {
+                source = softwareSystem "Source" "Description" "Team Alpha"
+                target = softwareSystem "Target" "Description" "Core,Team Alpha"
+              }
+            }
+        "#}
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_repeated_tags_statement_reuses_raw_string_content() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          model {
+            source = softwareSystem "Source" {
+              tags "Flow Tag"
+            }
+            target = softwareSystem "Target" {
+              tags "Flo<CURSOR>" "Existing"
+            }
+          }
+        }
+    "#});
+    let uri = file_uri("repeated-tags-statement-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let items = completion_items(&mut service, &uri, &source).await;
+    assert_eq!(
+        applied_completion_source(&source, completion_item(&items, "Flow Tag")),
+        indoc! {r#"
+            workspace {
+              model {
+                source = softwareSystem "Source" {
+                  tags "Flow Tag"
+                }
+                target = softwareSystem "Target" {
+                  tags "Flow Tag" "Existing"
+                }
+              }
+            }
+        "#}
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_open_repeated_tags_statement_closes_the_quote() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          model {
+            source = softwareSystem "Source" {
+              tags "Human Tag"
+            }
+            target = softwareSystem "Target" {
+              tags "Financial Record" "Hu<CURSOR>
+            }
+          }
+        }
+    "#});
+    let uri = file_uri("open-repeated-tags-statement-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let items = completion_items(&mut service, &uri, &source).await;
+    assert_eq!(
+        applied_completion_source(&source, completion_item(&items, "Human Tag")),
+        indoc! {r#"
+            workspace {
+              model {
+                source = softwareSystem "Source" {
+                  tags "Human Tag"
+                }
+                target = softwareSystem "Target" {
+                  tags "Financial Record" "Human Tag"
+                }
+              }
+            }
+        "#}
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_open_repeated_tags_statement_matches_multiword_prefixes() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          model {
+            source = softwareSystem "Source" {
+              tags "Human Tag"
+            }
+            target = softwareSystem "Target" {
+              tags "Financial Record" "Human T<CURSOR>
+            }
+          }
+        }
+    "#});
+    let uri = file_uri("open-repeated-tags-multiword-prefix-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let items = completion_items(&mut service, &uri, &source).await;
+    assert_eq!(
+        applied_completion_source(&source, completion_item(&items, "Human Tag")),
+        indoc! {r#"
+            workspace {
+              model {
+                source = softwareSystem "Source" {
+                  tags "Human Tag"
+                }
+                target = softwareSystem "Target" {
+                  tags "Financial Record" "Human Tag"
+                }
+              }
+            }
+        "#}
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_repeated_tags_statement_preserves_escaped_quote_sequences() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          model {
+            source = softwareSystem "Source" {
+              tags "Quoted\"Tag"
+            }
+            target = softwareSystem "Target" {
+              tags "Quo<CURSOR>" "Existing"
+            }
+          }
+        }
+    "#});
+    let uri = file_uri("repeated-tags-escaped-quote-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let items = completion_items(&mut service, &uri, &source).await;
+    assert_eq!(
+        applied_completion_source(&source, completion_item(&items, r#"Quoted\"Tag"#)),
+        indoc! {r#"
+            workspace {
+              model {
+                source = softwareSystem "Source" {
+                  tags "Quoted\"Tag"
+                }
+                target = softwareSystem "Target" {
+                  tags "Quoted\"Tag" "Existing"
+                }
+              }
+            }
+        "#}
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_repeated_tags_statement_preserves_backslash_sequences() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          model {
+            source = softwareSystem "Source" {
+              tags "Path\\Tag"
+            }
+            target = softwareSystem "Target" {
+              tags "Pat<CURSOR>" "Existing"
+            }
+          }
+        }
+    "#});
+    let uri = file_uri("repeated-tags-backslash-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let items = completion_items(&mut service, &uri, &source).await;
+    assert_eq!(
+        applied_completion_source(&source, completion_item(&items, r"Path\\Tag")),
+        indoc! {r#"
+            workspace {
+              model {
+                source = softwareSystem "Source" {
+                  tags "Path\\Tag"
+                }
+                target = softwareSystem "Target" {
+                  tags "Path\\Tag" "Existing"
+                }
+              }
+            }
+        "#}
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_bare_tag_slot_quotes_spaced_workspace_tags() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          model {
+            source = softwareSystem "Source" "Description" "Team Alpha"
+            target = softwareSystem "Target" "Description" Tea<CURSOR>
+          }
+        }
+    "#});
+    let uri = file_uri("bare-tag-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let items = completion_items(&mut service, &uri, &source).await;
+    assert_eq!(
+        applied_completion_source(&source, completion_item(&items, "Team Alpha")),
+        indoc! {r#"
+            workspace {
+              model {
+                source = softwareSystem "Source" "Description" "Team Alpha"
+                target = softwareSystem "Target" "Description" "Team Alpha"
+              }
+            }
+        "#}
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_bare_tag_slot_quotes_escaped_tag_candidate_without_reescaping() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          model {
+            source = softwareSystem "Source" "Description" "Quoted\"Tag"
+            target = softwareSystem "Target" "Description" Quo<CURSOR>
+          }
+        }
+    "#});
+    let uri = file_uri("bare-tag-escaped-quote-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let items = completion_items(&mut service, &uri, &source).await;
+    assert_eq!(
+        applied_completion_source(&source, completion_item(&items, r#"Quoted\"Tag"#)),
+        indoc! {r#"
+            workspace {
+              model {
+                source = softwareSystem "Source" "Description" "Quoted\"Tag"
+                target = softwareSystem "Target" "Description" "Quoted\"Tag"
+              }
+            }
+        "#}
+    );
+}
+
 async fn completion_labels(
     service: &mut TestService,
     uri: &Uri,
@@ -950,4 +1314,99 @@ async fn completion_labels_at_position(
                 .to_owned()
         })
         .collect()
+}
+
+async fn completion_items(
+    service: &mut TestService,
+    uri: &Uri,
+    source: &AnnotatedSource,
+) -> Vec<Value> {
+    completion_items_at_position(service, uri, source.only_position()).await
+}
+
+async fn completion_items_at_position(
+    service: &mut TestService,
+    uri: &Uri,
+    position: Position,
+) -> Vec<Value> {
+    let response = request_json(
+        service,
+        "textDocument/completion",
+        json!({
+            "textDocument": { "uri": uri.as_str() },
+            "position": position,
+        }),
+    )
+    .await;
+
+    response["result"]
+        .as_array()
+        .expect("completion should return an item array")
+        .clone()
+}
+
+fn completion_item<'a>(items: &'a [Value], label: &str) -> &'a Value {
+    items
+        .iter()
+        .find(|item| item["label"].as_str() == Some(label))
+        .unwrap_or_else(|| panic!("expected completion item `{label}`, got {items:?}"))
+}
+
+fn applied_completion_source(source: &AnnotatedSource, item: &Value) -> String {
+    let text_edit = &item["textEdit"];
+    let range = &text_edit["range"];
+    let start = position_from_json(&range["start"]);
+    let end = position_from_json(&range["end"]);
+    let new_text = text_edit["newText"]
+        .as_str()
+        .expect("completion text edit should include string newText");
+
+    apply_text_edit(source.source(), start, end, new_text)
+}
+
+fn apply_text_edit(text: &str, start: Position, end: Position, new_text: &str) -> String {
+    let start_offset = offset_at_position(text, start);
+    let end_offset = offset_at_position(text, end);
+    assert!(
+        start_offset <= end_offset,
+        "completion edit start should not come after end"
+    );
+
+    format!(
+        "{}{}{}",
+        &text[..start_offset],
+        new_text,
+        &text[end_offset..]
+    )
+}
+
+fn offset_at_position(text: &str, position: Position) -> usize {
+    let line_index = LineIndex::new(text);
+    let utf8 = line_index
+        .to_utf8(
+            WideEncoding::Utf16,
+            WideLineCol {
+                line: position.line,
+                col: position.character,
+            },
+        )
+        .expect("completion edit position should map to UTF-8");
+    let offset = line_index
+        .offset(utf8)
+        .expect("completion edit position should resolve to an offset");
+
+    usize::try_from(u32::from(offset)).expect("offset should fit usize")
+}
+
+fn position_from_json(value: &Value) -> Position {
+    Position::new(
+        value["line"]
+            .as_u64()
+            .and_then(|line| u32::try_from(line).ok())
+            .expect("completion edit line should be a u32"),
+        value["character"]
+            .as_u64()
+            .and_then(|character| u32::try_from(character).ok())
+            .expect("completion edit character should be a u32"),
+    )
 }

@@ -485,12 +485,19 @@ fn workspace_has_non_flat_reference_spelling(
     target_handle: &SymbolHandle,
     current_name: &str,
 ) -> bool {
-    workspace_index.references_for_symbol(target_handle).any(|handle| {
-        workspace_facts
-            .document(handle.document())
-            .and_then(|document| document.snapshot().references().get(handle.reference_index()))
-            .is_none_or(|reference| reference.raw_text != current_name)
-    })
+    workspace_index
+        .references_for_symbol(target_handle)
+        .any(|handle| {
+            workspace_facts
+                .document(handle.document())
+                .and_then(|document| {
+                    document
+                        .snapshot()
+                        .references()
+                        .get(handle.reference_index())
+                })
+                .is_none_or(|reference| reference.raw_text != current_name)
+        })
 }
 
 fn same_document_has_ambiguous_same_text_references(

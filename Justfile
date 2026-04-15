@@ -1,11 +1,12 @@
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
+
 grammar_dir := "crates/strz-grammar"
 
 default:
     @just --list
 
 generate:
-    cd {{grammar_dir}} && tree-sitter generate
+    cd {{ grammar_dir }} && tree-sitter generate
 
 generate-bench-fixtures:
     tools/generate_benchmark_fixtures.py
@@ -14,17 +15,19 @@ build:
     cargo build
 
 # The generated Rust build script currently emits constant string emptiness checks,
+
 # so keep that one clippy lint disabled in the shared dev flow.
 lint:
     cargo clippy --workspace --all-targets -- -D warnings -W clippy::pedantic -W clippy::nursery -A clippy::const_is_empty
+
 lint-fix:
     cargo clippy --fix --workspace --all-targets -- -D warnings -W clippy::pedantic -W clippy::nursery -A clippy::const_is_empty
 
 check-links:
-    lychee --no-progress --scheme file --include-fragments --root-dir "$PWD" README.md CONTRIBUTING.md AGENTS.md SESSION.md "docs/**/*.md" "crates/**/*.md" "tasks/**/*.md"
+    lychee --no-progress --scheme file --include-fragments --root-dir "$PWD" README.md CONTRIBUTING.md AGENTS.md SESSION.md "docs/**/*.md" "crates/**/*.md"
 
 build-wasm:
-    tree-sitter build --wasm {{grammar_dir}} --output {{grammar_dir}}/tree-sitter-structurizr.wasm
+    tree-sitter build --wasm {{ grammar_dir }} --output {{ grammar_dir }}/tree-sitter-structurizr.wasm
 
 build-strz:
     cargo build -p strz --bin strz --release
@@ -70,19 +73,19 @@ test-rust-fast:
     cargo nextest run --profile agent --workspace
 
 test-proptest *args:
-    cargo test --workspace {{args}}
+    cargo test --workspace {{ args }}
 
 test-proptest-stress cases *args:
-    PROPTEST_CASES="{{cases}}" cargo test --workspace {{args}}
+    PROPTEST_CASES="{{ cases }}" cargo test --workspace {{ args }}
 
 rerun-proptest seed *args:
-    PROPTEST_CASES=1 PROPTEST_RNG_SEED="{{seed}}" cargo test --workspace {{args}}
+    PROPTEST_CASES=1 PROPTEST_RNG_SEED="{{ seed }}" cargo test --workspace {{ args }}
 
 capture-proptest capture_dir *args:
-    STRUCTURIZR_PROPTEST_CAPTURE_DIR="$PWD/{{capture_dir}}" cargo test --workspace {{args}}
+    STRUCTURIZR_PROPTEST_CAPTURE_DIR="$PWD/{{ capture_dir }}" cargo test --workspace {{ args }}
 
 rerun-and-capture-proptest seed capture_dir *args:
-    PROPTEST_CASES=1 PROPTEST_RNG_SEED="{{seed}}" STRUCTURIZR_PROPTEST_CAPTURE_DIR="$PWD/{{capture_dir}}" cargo test --workspace {{args}}
+    PROPTEST_CASES=1 PROPTEST_RNG_SEED="{{ seed }}" STRUCTURIZR_PROPTEST_CAPTURE_DIR="$PWD/{{ capture_dir }}" cargo test --workspace {{ args }}
 
 audit-upstream:
     cargo +nightly -Zscript tools/upstream_audit.rs
@@ -97,20 +100,20 @@ zizmor-fix:
     zizmor --gh-token="$(gh auth token)" .github/ --persona pedantic  --min-severity low --fix
 
 test-grammar:
-    tree-sitter test --grammar-path {{grammar_dir}}
+    tree-sitter test --grammar-path {{ grammar_dir }}
 
 fuzz-grammar iterations="10" edits="3":
-    tree-sitter fuzz --grammar-path {{grammar_dir}} --iterations {{iterations}} --edits {{edits}}
+    tree-sitter fuzz --grammar-path {{ grammar_dir }} --iterations {{ iterations }} --edits {{ edits }}
 
 fuzz-grammar-stress iterations="100" edits="5":
-    tree-sitter fuzz --grammar-path {{grammar_dir}} --iterations {{iterations}} --edits {{edits}}
+    tree-sitter fuzz --grammar-path {{ grammar_dir }} --iterations {{ iterations }} --edits {{ edits }}
 
 check: generate test
     @just lint
 
 run-strz *args:
-    cargo run -p strz --bin strz -- {{args}}
+    cargo run -p strz --bin strz -- {{ args }}
 
 playground:
-    tree-sitter build --wasm {{grammar_dir}} --output {{grammar_dir}}/tree-sitter-structurizr.wasm
-    tree-sitter playground --grammar-path {{grammar_dir}}
+    tree-sitter build --wasm {{ grammar_dir }} --output {{ grammar_dir }}/tree-sitter-structurizr.wasm
+    tree-sitter playground --grammar-path {{ grammar_dir }}

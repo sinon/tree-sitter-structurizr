@@ -8,11 +8,18 @@ use crate::symbols::{
     IdentifierMode, IdentifierModeFact, Reference, ReferenceKind, ReferenceTargetHint, Symbol,
     SymbolId, SymbolKind,
 };
+use crate::{TagSurface, tag_surface_for_node_kind};
 
 pub fn collect_identifier_modes(tree: &Tree, source: &str) -> Vec<IdentifierModeFact> {
     let mut facts = Vec::new();
     collect_identifier_mode_from_node(tree.root_node(), source, &mut facts);
     facts
+}
+
+pub fn collect_tags(tree: &Tree, source: &str) -> Vec<String> {
+    let mut tags = Vec::new();
+    collect_tags_from_node(tree.root_node(), source, &mut tags);
+    tags
 }
 
 pub fn collect_symbols_and_references(tree: &Tree, source: &str) -> (Vec<Symbol>, Vec<Reference>) {
@@ -45,6 +52,58 @@ fn collect_identifier_mode_from_node(
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         collect_identifier_mode_from_node(child, source, facts);
+    }
+}
+
+fn collect_tags_from_node(node: Node<'_>, source: &str, tags: &mut Vec<String>) {
+    if let Some(surface) = tag_surface_for_node_kind(node.kind()) {
+        collect_tags_from_surface(node, surface, source, tags);
+    }
+
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        collect_tags_from_node(child, source, tags);
+    }
+}
+
+fn collect_tags_from_surface(
+    node: Node<'_>,
+    surface: TagSurface,
+    source: &str,
+    tags: &mut Vec<String>,
+) {
+    match surface {
+        TagSurface::TagStatement => {
+            if let Some(tag) = metadata_value(node, source) {
+                extend_tags(tags, &tag);
+            }
+        }
+        TagSurface::TagsStatement => {
+            for tag_value in metadata_values(node, source) {
+                extend_tags(tags, &tag_value);
+            }
+        }
+        TagSurface::NamedField { field_name, .. } => {
+            if let Some(tag_value) = normalized_nonempty_field(node, field_name, source) {
+                extend_tags(tags, &tag_value);
+            }
+        }
+        TagSurface::IndexedField {
+            field_name,
+            index,
+            excluded_kind,
+            ..
+        } => {
+            let tag_value = excluded_kind.map_or_else(
+                || nth_field_value(node, field_name, source, index),
+                |excluded_kind| {
+                    nth_field_value_excluding(node, field_name, source, index, excluded_kind)
+                },
+            );
+            if let Some(tag_value) = tag_value {
+                extend_tags(tags, &tag_value);
+            }
+        }
     }
 }
 
@@ -694,9 +753,14 @@ fn apply_body_metadata(metadata: &mut ExtractedSymbolMetadata, body: Node<'_>, s
             "technology_statement" => {
                 metadata.technology = metadata_value(child, source);
             }
-            "tag_statement" | "tags_statement" => {
-                if let Some(tags) = metadata_value(child, source) {
-                    extend_tags(&mut metadata.tags, &tags);
+            "tag_statement" => {
+                if let Some(tag) = metadata_value(child, source) {
+                    extend_tags(&mut metadata.tags, &tag);
+                }
+            }
+            "tags_statement" => {
+                for tag_value in metadata_values(child, source) {
+                    extend_tags(&mut metadata.tags, &tag_value);
                 }
             }
             "url_statement" => {
@@ -753,6 +817,38 @@ fn normalized_nonempty_field(node: Node<'_>, field_name: &str, source: &str) -> 
 fn metadata_value(node: Node<'_>, source: &str) -> Option<String> {
     node.child_by_field_name("value")
         .and_then(|value| normalized_nonempty_text(value, source))
+}
+
+fn metadata_values(node: Node<'_>, source: &str) -> Vec<String> {
+    let mut cursor = node.walk();
+    node.children_by_field_name("value", &mut cursor)
+        .filter_map(|value| normalized_nonempty_text(value, source))
+        .collect()
+}
+
+fn nth_field_value(node: Node<'_>, field_name: &str, source: &str, index: usize) -> Option<String> {
+    let mut cursor = node.walk();
+    nonempty_text(
+        node.children_by_field_name(field_name, &mut cursor)
+            .map(|child| normalized_text(child, source))
+            .nth(index),
+    )
+}
+
+fn nth_field_value_excluding(
+    node: Node<'_>,
+    field_name: &str,
+    source: &str,
+    index: usize,
+    excluded_kind: &str,
+) -> Option<String> {
+    let mut cursor = node.walk();
+    nonempty_text(
+        node.children_by_field_name(field_name, &mut cursor)
+            .filter(|child| child.kind() != excluded_kind)
+            .map(|child| normalized_text(child, source))
+            .nth(index),
+    )
 }
 
 fn nonempty_text(text: Option<String>) -> Option<String> {
