@@ -16,6 +16,11 @@ use crate::symbols::{IdentifierModeFact, Reference, Symbol};
 use crate::workspace::{ElementIdentifierMode, effective_element_identifier_mode_from_facts};
 
 /// Stable caller-provided identifier for a document across analysis runs.
+///
+/// This is intentionally broader than a filesystem path. Workspace loading
+/// commonly uses canonical paths, the LSP uses document URIs, and tests or
+/// benchmarks sometimes use synthetic labels. When callers also have an on-disk
+/// path, they should attach it separately via [`DocumentInput::with_location`].
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct DocumentId(String);
 

@@ -1,3 +1,4 @@
+#![warn(missing_docs)]
 //! Unified `strz` CLI for contributor analysis commands and the Structurizr LSP.
 
 mod check;

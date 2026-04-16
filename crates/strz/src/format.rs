@@ -1,6 +1,6 @@
-use std::{fmt::Write as _, fs, path::PathBuf, process::ExitCode};
+use std::{fmt, fs, path::PathBuf, process::ExitCode};
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result};
 use strz_analysis::{DocumentInput, WorkspaceLoader};
 use strz_format::{FormatError, Formatter};
 
@@ -8,7 +8,7 @@ use crate::{
     cli::FormatArgs,
     report::{
         FormatDocumentView, FormatModeView, FormatReport, current_working_directory,
-        snapshot_display_path,
+        document_display_path,
     },
 };
 
@@ -33,43 +33,40 @@ pub fn run(arguments: &FormatArgs) -> Result<FormatExecution> {
         )
     })?;
 
-    let mut documents = workspace.documents().iter().collect::<Vec<_>>();
-    documents.sort_by(|left, right| {
-        snapshot_display_path(left.snapshot(), &cwd)
-            .cmp(&snapshot_display_path(right.snapshot(), &cwd))
-    });
+    let mut documents = workspace
+        .documents()
+        .iter()
+        .map(|document| prepare_format_target(document, &cwd))
+        .collect::<Vec<_>>();
+    documents.sort_by(|left, right| left.path.cmp(&right.path));
 
     let mut formatter = Formatter::default();
     let mut formatted_documents = Vec::with_capacity(documents.len());
     let mut blocked_documents = Vec::new();
 
     for document in documents {
-        let path = snapshot_display_path(document.snapshot(), &cwd);
-        let location = document
-            .snapshot()
-            .location()
-            .map(|location| location.path().to_path_buf());
-        let input = format_input(document);
-
-        match formatter.format_document(input) {
+        match formatter.format_document(document.input) {
             Ok(document_result) => {
                 let changed = document_result.changed();
                 let rewritten_source = document_result.into_formatted();
                 formatted_documents.push(PendingFormat {
-                    path,
-                    location,
+                    path: document.path,
+                    location: document.location,
                     formatted: rewritten_source,
                     changed,
                 });
             }
             Err(FormatError::SyntaxErrors { diagnostics }) => {
-                blocked_documents.push(BlockedFormat { path, diagnostics });
+                blocked_documents.push(BlockedFormat {
+                    path: document.path,
+                    diagnostics,
+                });
             }
         }
     }
 
     if !blocked_documents.is_empty() {
-        bail!(blocked_documents_message(&blocked_documents));
+        return Err(BlockedFormatsError::new(blocked_documents).into());
     }
 
     if !arguments.check {
@@ -120,12 +117,72 @@ struct PendingFormat {
 }
 
 #[derive(Debug, Clone)]
+struct PreparedFormatTarget {
+    path: String,
+    location: Option<PathBuf>,
+    input: DocumentInput,
+}
+
+#[derive(Debug, Clone)]
 struct BlockedFormat {
     path: String,
     diagnostics: Vec<strz_analysis::RuledDiagnostic>,
 }
 
-fn format_input(document: &strz_analysis::WorkspaceDocument) -> DocumentInput {
+#[derive(Debug, Clone)]
+struct BlockedFormatsError {
+    blocked_documents: Vec<BlockedFormat>,
+}
+
+impl BlockedFormatsError {
+    const fn new(blocked_documents: Vec<BlockedFormat>) -> Self {
+        Self { blocked_documents }
+    }
+}
+
+impl fmt::Display for BlockedFormatsError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "cannot format {} document(s) because syntax errors are present:",
+            self.blocked_documents.len()
+        )?;
+        for blocked in &self.blocked_documents {
+            write!(formatter, "{blocked}")?;
+        }
+        Ok(())
+    }
+}
+
+impl std::error::Error for BlockedFormatsError {}
+
+impl fmt::Display for BlockedFormat {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.diagnostics.is_empty() {
+            return write!(formatter, "\n  {}: syntax errors are present", self.path);
+        }
+        for diagnostic in &self.diagnostics {
+            let line = diagnostic.span().start_point.row + 1;
+            let column = diagnostic.span().start_point.column + 1;
+            write!(
+                formatter,
+                "\n  {}:{}:{}: {}[{}] {}",
+                self.path,
+                line,
+                column,
+                diagnostic.severity().as_str(),
+                diagnostic.code(),
+                diagnostic.message()
+            )?;
+        }
+        Ok(())
+    }
+}
+
+fn prepare_format_target(
+    document: &strz_analysis::WorkspaceDocument,
+    cwd: &std::path::Path,
+) -> PreparedFormatTarget {
     let mut input = DocumentInput::new(
         document.id().clone(),
         document.snapshot().source().to_owned(),
@@ -133,7 +190,14 @@ fn format_input(document: &strz_analysis::WorkspaceDocument) -> DocumentInput {
     if let Some(location) = document.snapshot().location() {
         input = input.with_location(location.path());
     }
-    input
+    PreparedFormatTarget {
+        path: document_display_path(document.snapshot().location(), document.id(), cwd),
+        location: document
+            .snapshot()
+            .location()
+            .map(|location| location.path().to_path_buf()),
+        input,
+    }
 }
 
 fn joined_paths(paths: &[PathBuf]) -> String {
@@ -142,31 +206,4 @@ fn joined_paths(paths: &[PathBuf]) -> String {
         .map(|path| path.display().to_string())
         .collect::<Vec<_>>()
         .join(", ")
-}
-
-fn blocked_documents_message(blocked_documents: &[BlockedFormat]) -> String {
-    let mut message = format!(
-        "cannot format {} document(s) because syntax recovery is present:",
-        blocked_documents.len()
-    );
-
-    for blocked in blocked_documents {
-        for diagnostic in &blocked.diagnostics {
-            let line = diagnostic.span().start_point.row + 1;
-            let column = diagnostic.span().start_point.column + 1;
-            write!(
-                message,
-                "\n  {}:{}:{}: {}[{}] {}",
-                blocked.path,
-                line,
-                column,
-                diagnostic.severity().as_str(),
-                diagnostic.code(),
-                diagnostic.message()
-            )
-            .expect("writing to String should not fail");
-        }
-    }
-
-    message
 }

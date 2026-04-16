@@ -13,7 +13,7 @@ use std::{
 use anyhow::{Context, Result};
 use serde::{Serialize, Serializer};
 use strz_analysis::{
-    DiagnosticSeverity, DocumentId, DocumentSnapshot, RuledDiagnostic, TextPoint, TextSpan,
+    DiagnosticSeverity, DocumentId, DocumentLocation, RuledDiagnostic, TextPoint, TextSpan,
 };
 
 /// Serialize the analysis-owned severity in the CLI's stable `snake_case` form.
@@ -333,18 +333,25 @@ pub fn display_path(path: &Path, cwd: &Path) -> String {
     }
 }
 
-/// Renders a document-backed path for diagnostics and dump output.
+/// Renders one document label for diagnostics and dump output.
+///
+/// The CLI prefers the concrete filesystem location when one is available.
+/// Otherwise it falls back to the raw document id without reinterpreting that
+/// identifier as a filesystem path.
 #[must_use]
-pub fn snapshot_display_path(snapshot: &DocumentSnapshot, cwd: &Path) -> String {
-    snapshot.location().map_or_else(
-        || document_id_display_path(snapshot.id(), cwd),
+pub fn document_display_path(
+    location: Option<&DocumentLocation>,
+    fallback_id: &DocumentId,
+    cwd: &Path,
+) -> String {
+    location.map_or_else(
+        || document_id_display(fallback_id),
         |location| display_path(location.path(), cwd),
     )
 }
 
-/// Renders a document identifier as a path when it originated from workspace
-/// loading.
+/// Renders a document identifier without assuming path semantics.
 #[must_use]
-pub fn document_id_display_path(id: &DocumentId, cwd: &Path) -> String {
-    display_path(Path::new(id.as_str()), cwd)
+pub fn document_id_display(id: &DocumentId) -> String {
+    id.as_str().to_owned()
 }
