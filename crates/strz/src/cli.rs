@@ -36,6 +36,8 @@ pub struct GlobalOptions {
 pub enum Command {
     /// Check one or more files or directories for syntax, include, and semantic diagnostics.
     Check(CheckArgs),
+    /// Format one or more files or workspaces using the canonical Structurizr layout policy.
+    Format(FormatArgs),
     /// Dump analysis-layer facts for a document or workspace.
     Dump(DumpArgs),
     /// Run the Structurizr LSP server over stdio.
@@ -59,6 +61,28 @@ pub struct CheckArgs {
 }
 
 impl CheckArgs {
+    /// Returns the requested roots, defaulting to the current directory.
+    #[must_use]
+    pub fn roots(&self) -> Vec<PathBuf> {
+        if self.paths.is_empty() {
+            vec![PathBuf::from(".")]
+        } else {
+            self.paths.clone()
+        }
+    }
+}
+
+/// Arguments for the `format` command.
+#[derive(Debug, Clone, Args)]
+pub struct FormatArgs {
+    #[arg(value_name = "PATH")]
+    pub paths: Vec<PathBuf>,
+    /// Report whether formatting would change any discovered local documents.
+    #[arg(long)]
+    pub check: bool,
+}
+
+impl FormatArgs {
     /// Returns the requested roots, defaulting to the current directory.
     #[must_use]
     pub fn roots(&self) -> Vec<PathBuf> {

@@ -7,7 +7,10 @@ use strz_analysis::DiagnosticSeverity;
 
 use crate::{
     cli::{GlobalOptions, OutputFormat},
-    report::{CheckReport, DiagnosticView, DocumentDump, DumpOutput, WorkspaceDump},
+    report::{
+        CheckReport, DiagnosticView, DocumentDump, DumpOutput, FormatModeView, FormatReport,
+        WorkspaceDump,
+    },
 };
 
 /// Writes `check` output in the requested format.
@@ -20,6 +23,21 @@ pub fn write_check(report: &CheckReport, options: &GlobalOptions) -> Result<()> 
         OutputFormat::Json => {
             let rendered = serde_json::to_string_pretty(report)
                 .context("while attempting to serialize the check report as JSON")?;
+            write_stdout(&(rendered + "\n"), options.color.to_anstream())
+        }
+    }
+}
+
+/// Writes `format` output in the requested format.
+pub fn write_format(report: &FormatReport, options: &GlobalOptions) -> Result<()> {
+    match options.output_format {
+        OutputFormat::Text => write_stdout(
+            &render_format_text(report, options),
+            options.color.to_anstream(),
+        ),
+        OutputFormat::Json => {
+            let rendered = serde_json::to_string_pretty(report)
+                .context("while attempting to serialize the format report as JSON")?;
             write_stdout(&(rendered + "\n"), options.color.to_anstream())
         }
     }
@@ -152,6 +170,38 @@ fn render_dump_text(output: &DumpOutput, options: &GlobalOptions) -> String {
         DumpOutput::Document(document) => render_document_dump(document, colors),
         DumpOutput::Workspace(workspace) => render_workspace_dump(workspace, colors),
     }
+}
+
+fn render_format_text(report: &FormatReport, options: &GlobalOptions) -> String {
+    let mut output = String::new();
+    let changed = report.summary.changed_documents;
+    let documents_checked = report.summary.documents_checked;
+
+    if changed == 0 {
+        if !options.quiet {
+            writeln!(
+                output,
+                "All {documents_checked} document(s) already formatted."
+            )
+            .expect("writing to String should not fail");
+        }
+        return output;
+    }
+
+    let verb = match report.summary.mode {
+        FormatModeView::Check => "Would reformat",
+        FormatModeView::Write => "Reformatted",
+    };
+    writeln!(
+        output,
+        "{verb} {changed} of {documents_checked} document(s):"
+    )
+    .expect("writing to String should not fail");
+    for document in report.documents.iter().filter(|document| document.changed) {
+        writeln!(output, "- {}", document.path).expect("writing to String should not fail");
+    }
+
+    output
 }
 
 fn render_document_dump(document: &DocumentDump, colors: bool) -> String {

@@ -28,6 +28,10 @@ fn root_help_lists_server_subcommand() {
         stdout.contains("check   Check one or more files or directories"),
         "root help should preserve the check subcommand"
     );
+    assert!(
+        stdout.contains("format  Format one or more files or workspaces"),
+        "root help should list the format subcommand"
+    );
 }
 
 #[test]
@@ -365,9 +369,152 @@ fn runtime_errors_honor_color_choice() {
     );
 }
 
+#[test]
+fn format_check_reports_clean_documents() {
+    assert_cmd_snapshot!(
+        command()
+            .arg("format")
+            .arg("--check")
+            .arg("tests/lsp/workspaces/minimal-scan"),
+        @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    All 3 document(s) already formatted.
+
+    ----- stderr -----
+    "###
+    );
+}
+
+#[test]
+fn format_check_reports_dirty_documents() {
+    let temp_dir = tempfile::tempdir().expect("tempdir should create");
+    let path = temp_dir.path().join("workspace.dsl");
+    std::fs::write(
+        &path,
+        "workspace {\nmodel {\nuser = person \"User\"\n}\n}\n",
+    )
+    .expect("should write messy workspace");
+
+    let output = command_in(temp_dir.path())
+        .arg("format")
+        .arg("--check")
+        .arg("workspace.dsl")
+        .output()
+        .expect("format check command should run");
+
+    assert_eq!(output.status.code(), Some(1));
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "Would reformat 1 of 1 document(s):\n- workspace.dsl\n"
+    );
+    assert_eq!(
+        std::fs::read_to_string(&path).expect("check mode should not rewrite the file"),
+        "workspace {\nmodel {\nuser = person \"User\"\n}\n}\n"
+    );
+}
+
+#[test]
+fn format_check_json_reports_dirty_documents() {
+    let temp_dir = tempfile::tempdir().expect("tempdir should create");
+    let path = temp_dir.path().join("workspace.dsl");
+    std::fs::write(
+        &path,
+        "workspace {\nmodel {\nuser = person \"User\"\n}\n}\n",
+    )
+    .expect("should write messy workspace");
+
+    let output = command_in(temp_dir.path())
+        .arg("--output-format")
+        .arg("json")
+        .arg("format")
+        .arg("--check")
+        .arg("workspace.dsl")
+        .output()
+        .expect("json format check command should run");
+
+    assert_eq!(output.status.code(), Some(1));
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "{\n  \"summary\": {\n    \"documents_checked\": 1,\n    \"changed_documents\": 1,\n    \"unchanged_documents\": 0,\n    \"mode\": \"check\"\n  },\n  \"documents\": [\n    {\n      \"path\": \"workspace.dsl\",\n      \"changed\": true\n    }\n  ]\n}\n"
+    );
+    assert_eq!(
+        std::fs::read_to_string(&path).expect("check mode should not rewrite the file"),
+        "workspace {\nmodel {\nuser = person \"User\"\n}\n}\n"
+    );
+}
+
+#[test]
+fn format_rewrites_a_single_document_in_place() {
+    let temp_dir = tempfile::tempdir().expect("tempdir should create");
+    let path = temp_dir.path().join("workspace.dsl");
+    std::fs::write(
+        &path,
+        "workspace {\nmodel {\nuser = person \"User\"\n}\n}\n",
+    )
+    .expect("should write messy workspace");
+
+    let output = command_in(temp_dir.path())
+        .arg("format")
+        .arg("workspace.dsl")
+        .output()
+        .expect("format command should run");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "Reformatted 1 of 1 document(s):\n- workspace.dsl\n"
+    );
+    assert_eq!(
+        std::fs::read_to_string(&path).expect("formatted file should be readable"),
+        "workspace {\n    model {\n        user = person \"User\"\n    }\n}\n"
+    );
+}
+
+#[test]
+fn format_workspace_roots_rewrite_discovered_local_fragments() {
+    let temp_dir = tempfile::tempdir().expect("tempdir should create");
+    let root = temp_dir.path();
+    std::fs::create_dir_all(root.join("fragments")).expect("fragments dir should exist");
+    std::fs::write(
+        root.join("workspace.dsl"),
+        "workspace {\n!include \"fragments\"\n}\n",
+    )
+    .expect("workspace root should be writable");
+    std::fs::write(
+        root.join("fragments/model.dsl"),
+        "model {\nuser = person \"User\"\n}\n",
+    )
+    .expect("fragment should be writable");
+
+    let output = command_in(root)
+        .arg("format")
+        .arg("workspace.dsl")
+        .output()
+        .expect("format workspace command should run");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        String::from_utf8_lossy(&output.stdout).contains("fragments/model.dsl"),
+        "workspace formatting should rewrite discovered local fragments"
+    );
+    assert_eq!(
+        std::fs::read_to_string(root.join("fragments/model.dsl"))
+            .expect("formatted fragment should be readable"),
+        "model {\n    user = person \"User\"\n}\n"
+    );
+}
+
 fn command() -> Command {
     let mut command = Command::new(get_cargo_bin(BIN_NAME));
     command.current_dir(repo_root());
+    command
+}
+
+fn command_in(directory: &Path) -> Command {
+    let mut command = Command::new(get_cargo_bin(BIN_NAME));
+    command.current_dir(directory);
     command
 }
 

@@ -1,9 +1,10 @@
 # Structurizr DSL formatting policy
 
-> Status: planned for implementation.
+> Status: implemented in the first conservative `crates/strz-format/` printer and
+> `strz format` CLI flow.
 >
-> This note locks the first-pass contract for `strz format` so later code work
-> can implement one canonical layout without re-deciding whitespace policy
+> This note now serves as the contract that the current implementation and its
+> regression tests are expected to uphold without re-deciding whitespace policy
 > file by file.
 
 This note covers formatting policy for one physical `.dsl` document plus the

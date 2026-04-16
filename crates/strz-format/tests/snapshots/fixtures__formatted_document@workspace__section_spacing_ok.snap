@@ -1,0 +1,30 @@
+---
+source: crates/strz-format/tests/fixtures.rs
+expression: formatted
+---
+workspace "Payments" {
+    model {
+        customer = person "Customer"
+        payments = softwareSystem "Payments API" {
+            api = container "API" \
+                "Handles payment authorisation requests for the mobile platform and sends results to the ledger system" \
+                "Kotlin"
+        }
+        customer -> payments \
+            "Uses the Payments API from a mobile client that sends a JWT bearer token and expects JSON/HTTPS" \
+            "JSON/HTTPS" "Current"
+    }
+
+    views {
+        systemContext payments "payments-context" {
+            include *
+            autoLayout lr
+        }
+
+        styles {
+            element "Person" {
+                shape Person
+            }
+        }
+    }
+}

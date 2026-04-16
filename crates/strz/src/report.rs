@@ -161,6 +161,59 @@ impl CheckReport {
     }
 }
 
+/// Whether one format execution checked or wrote documents.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FormatModeView {
+    /// Report whether formatting would change any document.
+    Check,
+    /// Rewrite changed documents in place.
+    Write,
+}
+
+/// Aggregate counts for one `format` run.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct FormatSummaryView {
+    pub documents_checked: usize,
+    pub changed_documents: usize,
+    pub unchanged_documents: usize,
+    pub mode: FormatModeView,
+}
+
+/// One per-document format result.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct FormatDocumentView {
+    pub path: String,
+    pub changed: bool,
+}
+
+/// Structured output emitted by `strz format`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct FormatReport {
+    pub summary: FormatSummaryView,
+    pub documents: Vec<FormatDocumentView>,
+}
+
+impl FormatReport {
+    /// Creates a deterministic formatter report from one execution mode and result set.
+    #[must_use]
+    pub fn new(mode: FormatModeView, mut documents: Vec<FormatDocumentView>) -> Self {
+        documents.sort_by(|left, right| left.path.cmp(&right.path));
+        let changed_documents = documents.iter().filter(|document| document.changed).count();
+        let unchanged_documents = documents.len() - changed_documents;
+
+        Self {
+            summary: FormatSummaryView {
+                documents_checked: documents.len(),
+                changed_documents,
+                unchanged_documents,
+                mode,
+            },
+            documents,
+        }
+    }
+}
+
 /// One raw include directive as exposed by `dump document`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct IncludeDirectiveView {

@@ -3,6 +3,7 @@
 mod check;
 mod cli;
 mod dump;
+mod format;
 mod observability;
 mod render;
 mod report;
@@ -39,6 +40,13 @@ async fn run(cli: &Cli) -> Result<ExitCode> {
                 check::run(arguments).context("while attempting to execute the check command")?;
             render::write_check(&result.report, &cli.global)
                 .context("while attempting to render check output")?;
+            Ok(result.exit_code)
+        }
+        Command::Format(arguments) => {
+            let result =
+                format::run(arguments).context("while attempting to execute the format command")?;
+            render::write_format(&result.report, &cli.global)
+                .context("while attempting to render format output")?;
             Ok(result.exit_code)
         }
         Command::Dump(arguments) => {

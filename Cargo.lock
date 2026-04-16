@@ -1459,7 +1459,9 @@ dependencies = [
  "serde",
  "serde_json",
  "strz-analysis",
+ "strz-format",
  "strz-lsp",
+ "tempfile",
  "tokio",
  "tracing-log",
  "tracing-subscriber",
@@ -1479,6 +1481,16 @@ dependencies = [
  "tempfile",
  "tree-sitter",
  "tree-sitter-structurizr",
+]
+
+[[package]]
+name = "strz-format"
+version = "0.0.0"
+dependencies = [
+ "indoc",
+ "insta",
+ "rstest",
+ "strz-analysis",
 ]
 
 [[package]]

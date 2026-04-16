@@ -17,6 +17,8 @@ license = "MIT OR Apache-2.0"
 [workspace.dependencies]
 strz-analysis = { path = "crates/strz-analysis" }
 strz = { path = "crates/strz" }
+strz-cli = { path = "crates/strz" }
+strz-format = { path = "crates/strz-format" }
 strz-lsp = { path = "crates/strz-lsp" }
 tree-sitter-structurizr = { path = "crates/strz-grammar" }
 

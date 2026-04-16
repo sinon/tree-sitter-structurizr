@@ -1,0 +1,13 @@
+---
+source: crates/strz-format/tests/fixtures.rs
+expression: formatted
+---
+workspace {
+    model {
+        # This comment line should stay exactly as written even when it exceeds the soft target because v1 intentionally avoids comment reflow and preserves authored wording verbatim.
+        user = person "User"
+        // This inline-style comment should also stay exactly as written even when it includes https://example.com/a/really/long/path/that/keeps/going/for/testing
+        /* This block comment should stay exactly as written because the formatter only normalizes surrounding indentation in v1. */
+        system = softwareSystem "System"
+    }
+}
