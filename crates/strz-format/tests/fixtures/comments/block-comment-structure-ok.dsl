@@ -1,0 +1,10 @@
+workspace{
+model{
+/*
+  This block comment keeps its relative indentation.
+    The second line is intentionally more indented.
+*/
+#	A hash comment that starts with a tab after the marker should still be treated as a comment.
+system = softwareSystem "System"
+}
+}

@@ -10,9 +10,9 @@ use std::{
 use ignore::WalkBuilder;
 
 use crate::{
-    Annotation, ConstantDefinition, DocumentAnalyzer, DocumentId, DocumentInput, IdentifierMode,
-    IdentifierModeFact, IncludeDirective, Reference, ReferenceKind, ReferenceTargetHint,
-    RuledDiagnostic, Symbol, SymbolId, SymbolKind, TextSpan,
+    Annotation, ConstantDefinition, DocumentAnalyzer, DocumentId, DocumentInput, DocumentLocation,
+    IdentifierMode, IdentifierModeFact, IncludeDirective, Reference, ReferenceKind,
+    ReferenceTargetHint, RuledDiagnostic, Symbol, SymbolId, SymbolKind, TextSpan,
     includes::{DirectiveContainer, DirectiveValueKind, normalized_directive_value},
     semantic::{
         ConfigurationScopeFact, DynamicViewStepFact, ElementDirectiveFact, ImageSourceKind,
@@ -320,6 +320,7 @@ struct DerivedWorkspaceInstance {
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct WorkspaceSemanticDocumentFacts {
     document_id: DocumentId,
+    document_location: Option<DocumentLocation>,
     has_syntax_errors: bool,
     identifier_modes: Vec<IdentifierModeFact>,
     symbols: Vec<Symbol>,
@@ -337,6 +338,7 @@ impl WorkspaceSemanticDocumentFacts {
     fn from_snapshot(snapshot: &crate::DocumentSnapshot) -> Self {
         Self {
             document_id: snapshot.id().clone(),
+            document_location: snapshot.location().cloned(),
             has_syntax_errors: snapshot.has_syntax_errors(),
             identifier_modes: snapshot.identifier_modes().to_vec(),
             symbols: snapshot.symbols().to_vec(),
@@ -1809,7 +1811,10 @@ fn is_supported_local_include_path(path: &Path) -> bool {
         })
 }
 
-fn resolve_local_resource_path(document: &DocumentId, value: &ValueFact) -> Option<PathBuf> {
+fn resolve_local_resource_path(
+    document_location: Option<&DocumentLocation>,
+    value: &ValueFact,
+) -> Option<PathBuf> {
     if value.value_kind == DirectiveValueKind::TextBlockString
         || value.normalized_text.contains("${")
         || is_remote_resource_value(&value.normalized_text)
@@ -1824,8 +1829,7 @@ fn resolve_local_resource_path(document: &DocumentId, value: &ValueFact) -> Opti
 
     // TODO: Expand `${...}` substitutions here once workspace semantic packets
     // carry the effective constant environment for each processed document.
-    let document_path = Path::new(document.as_str());
-    let parent_directory = document_path.parent()?;
+    let parent_directory = document_location?.path().parent()?;
     Some(parent_directory.join(relative_path))
 }
 
@@ -3101,7 +3105,8 @@ fn documentation_resource_diagnostics(
         }
 
         for directive in &document.resource_directives {
-            let Some(path) = resolve_local_resource_path(&document.document_id, &directive.path)
+            let Some(path) =
+                resolve_local_resource_path(document.document_location.as_ref(), &directive.path)
             else {
                 continue;
             };
@@ -3196,7 +3201,8 @@ fn image_resource_diagnostics(
                     ));
                 }
 
-                let Some(path) = resolve_local_resource_path(&document.document_id, &source.value)
+                let Some(path) =
+                    resolve_local_resource_path(document.document_location.as_ref(), &source.value)
                 else {
                     continue;
                 };

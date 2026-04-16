@@ -6,8 +6,8 @@ use strz_analysis::{DocumentId, WorkspaceFacts, WorkspaceLoader};
 use crate::{
     cli::CheckArgs,
     report::{
-        CheckReport, DiagnosticView, current_working_directory, document_id_display_path,
-        snapshot_display_path,
+        CheckReport, DiagnosticView, current_working_directory, document_display_path,
+        document_id_display,
     },
 };
 
@@ -50,7 +50,8 @@ pub fn run(arguments: &CheckArgs) -> Result<CheckExecution> {
     match selection {
         DiagnosticSelection::SyntaxOnly => {
             for document in workspace.documents() {
-                let path = snapshot_display_path(document.snapshot(), &cwd);
+                let path =
+                    document_display_path(document.snapshot().location(), document.id(), &cwd);
                 diagnostics.extend(
                     document
                         .snapshot()
@@ -74,7 +75,8 @@ pub fn run(arguments: &CheckArgs) -> Result<CheckExecution> {
         }
         DiagnosticSelection::All => {
             for document in workspace.documents() {
-                let path = snapshot_display_path(document.snapshot(), &cwd);
+                let path =
+                    document_display_path(document.snapshot().location(), document.id(), &cwd);
                 diagnostics.extend(
                     document
                         .snapshot()
@@ -132,7 +134,7 @@ fn workspace_diagnostic_path(
     cwd: &Path,
 ) -> String {
     workspace.document(document).map_or_else(
-        || document_id_display_path(document, cwd),
-        |document| snapshot_display_path(document.snapshot(), cwd),
+        || document_id_display(document),
+        |document| document_display_path(document.snapshot().location(), document.id(), cwd),
     )
 }

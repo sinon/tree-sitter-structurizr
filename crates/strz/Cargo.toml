@@ -23,6 +23,7 @@ clap = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 strz-analysis = { workspace = true }
+strz-format = { workspace = true }
 strz-lsp = { workspace = true }
 tokio = { workspace = true }
 tracing-log = { workspace = true }
@@ -31,3 +32,4 @@ tracing-subscriber = { workspace = true }
 [dev-dependencies]
 insta = { workspace = true }
 insta-cmd = { workspace = true }
+tempfile = { workspace = true }
