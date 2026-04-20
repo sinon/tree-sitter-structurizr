@@ -14,6 +14,8 @@
   - supports `--check` to report whether formatting would change any discovered local documents
 - `strz dump document <PATH>` - a single-document analysis snapshot
 - `strz dump workspace [PATH ...]` - workspace discovery and include-following facts
+- `strz version` - prints the package version plus compile-time build metadata
+  - defaults to `unknown` for the Git SHA when built outside a repository checkout
 - `strz server` - runs the Structurizr LSP over stdio
 
 Global flags:
@@ -35,6 +37,7 @@ The CLI and server share the same opt-in logging controls:
 ```sh
 just build-strz
 just run-strz check
+just run-strz version
 just run-strz format --check
 just run-strz dump document crates/strz-lsp/tests/fixtures/identifiers/direct-references-ok.dsl
 just run-strz dump workspace tests/lsp/workspaces/directory-include

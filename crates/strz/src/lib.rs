@@ -8,6 +8,7 @@ mod format;
 mod observability;
 mod render;
 mod report;
+mod version;
 
 use std::process::ExitCode;
 
@@ -33,6 +34,13 @@ pub async fn main() -> ExitCode {
 }
 
 async fn run(cli: &Cli) -> Result<ExitCode> {
+    if matches!(cli.command, Command::Version) {
+        let report = version::build_report();
+        render::write_version(&report, &cli.global)
+            .context("while attempting to render version output")?;
+        return Ok(ExitCode::SUCCESS);
+    }
+
     observability::init_from_env().context("while attempting to initialize observability")?;
 
     match &cli.command {
@@ -57,6 +65,7 @@ async fn run(cli: &Cli) -> Result<ExitCode> {
                 .context("while attempting to render dump output")?;
             Ok(ExitCode::SUCCESS)
         }
+        Command::Version => unreachable!("version returns before observability initialization"),
         Command::Server => {
             strz_lsp::serve_stdio().await;
             Ok(ExitCode::SUCCESS)

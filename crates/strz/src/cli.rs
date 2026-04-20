@@ -40,6 +40,8 @@ pub enum Command {
     Format(FormatArgs),
     /// Dump analysis-layer facts for a document or workspace.
     Dump(DumpArgs),
+    /// Print build metadata for the current `strz` binary.
+    Version,
     /// Run the Structurizr LSP server over stdio.
     Server,
 }
