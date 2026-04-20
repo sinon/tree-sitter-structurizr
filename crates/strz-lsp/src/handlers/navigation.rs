@@ -1,14 +1,12 @@
 //! Shared navigation helpers for same-document fallback and workspace indexing.
 
-use std::path::Path;
-
 use line_index::LineIndex;
 use strz_analysis::{
-    DocumentId, DocumentSnapshot, Reference, ReferenceHandle, ReferenceKind,
+    DocumentId, DocumentLocation, DocumentSnapshot, Reference, ReferenceHandle, ReferenceKind,
     ReferenceResolutionStatus, Symbol, SymbolHandle, SymbolId, SymbolKind, WorkspaceFacts,
     WorkspaceInstanceId,
 };
-use tower_lsp_server::ls_types::{Location, Uri};
+use tower_lsp_server::ls_types::Location;
 use tracing::debug;
 
 use crate::{
@@ -441,7 +439,7 @@ fn symbol_location(
 
     location_for_span(
         document,
-        symbol_handle.document(),
+        snapshot.location(),
         snapshot.source(),
         symbol.span,
     )
@@ -462,7 +460,7 @@ fn reference_location(
 
     location_for_span(
         document,
-        reference_handle.document(),
+        snapshot.location(),
         snapshot.source(),
         reference.span,
     )
@@ -470,7 +468,7 @@ fn reference_location(
 
 fn location_for_span(
     open_document: Option<&DocumentState>,
-    document_id: &DocumentId,
+    location: Option<&DocumentLocation>,
     source: &str,
     span: strz_analysis::TextSpan,
 ) -> Option<Location> {
@@ -481,7 +479,7 @@ fn location_for_span(
 
     let line_index = LineIndex::new(source);
     let range = span_to_range(&line_index, span)?;
-    let uri = file_uri_from_document_id(document_id)?;
+    let uri = file_uri_from_path(location?.path())?;
     Some(Location::new(uri, range))
 }
 
@@ -518,10 +516,6 @@ fn open_document_by_id<'a>(
 
 fn workspace_document_id(document: &DocumentState) -> Option<DocumentId> {
     document.workspace_document_id().cloned()
-}
-
-fn file_uri_from_document_id(document_id: &DocumentId) -> Option<Uri> {
-    file_uri_from_path(Path::new(document_id.as_str()))
 }
 
 fn bindable_symbol_at_offset(snapshot: &DocumentSnapshot, offset: usize) -> Option<&Symbol> {

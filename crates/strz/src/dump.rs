@@ -13,7 +13,7 @@ use crate::{
     report::{
         DiagnosticView, DocumentDump, DumpOutput, IdentifierModeView, IncludeDirectiveView,
         ReferenceView, ResolvedIncludeView, SymbolView, WorkspaceDocumentView, WorkspaceDump,
-        current_working_directory, display_path, document_id_display_path, snapshot_display_path,
+        current_working_directory, display_path, document_display_path, document_id_display,
     },
 };
 
@@ -39,7 +39,7 @@ fn dump_document(path: &std::path::Path) -> Result<DumpOutput> {
             .with_location(canonical_path.clone()),
     );
 
-    let display_path = snapshot_display_path(&snapshot, &cwd);
+    let display_path = document_display_path(snapshot.location(), snapshot.id(), &cwd);
     let syntax_diagnostics = snapshot
         .syntax_diagnostics()
         .iter()
@@ -131,18 +131,18 @@ fn dump_workspace(roots: &[std::path::PathBuf]) -> Result<DumpOutput> {
         .map(|document| {
             (
                 document.id().as_str().to_owned(),
-                snapshot_display_path(document.snapshot(), &cwd),
+                document_display_path(document.snapshot().location(), document.id(), &cwd),
             )
         })
         .collect::<std::collections::BTreeMap<_, _>>();
 
     let documents = workspace_document_views(&workspace, &cwd);
     let includes = resolved_include_views(&workspace, &document_paths, &cwd);
-    let include_diagnostics = include_diagnostic_views(&workspace, &document_paths, &cwd);
+    let include_diagnostics = include_diagnostic_views(&workspace, &document_paths);
 
     let entry_documents = workspace
         .entry_documents()
-        .map(|document| snapshot_display_path(document.snapshot(), &cwd))
+        .map(|document| document_display_path(document.snapshot().location(), document.id(), &cwd))
         .collect();
 
     Ok(DumpOutput::Workspace(WorkspaceDump {
@@ -168,7 +168,7 @@ fn workspace_document_view(
     document: &WorkspaceDocument,
     cwd: &std::path::Path,
 ) -> WorkspaceDocumentView {
-    let path = snapshot_display_path(document.snapshot(), cwd);
+    let path = document_display_path(document.snapshot().location(), document.id(), cwd);
 
     WorkspaceDocumentView {
         path: path.clone(),
@@ -207,7 +207,7 @@ fn resolved_include_view(
         document: document_paths
             .get(include.including_document().as_str())
             .cloned()
-            .unwrap_or_else(|| document_id_display_path(include.including_document(), cwd)),
+            .unwrap_or_else(|| document_id_display(include.including_document())),
         target_kind: workspace_include_target_kind_name(include.target()),
         target_text: include.target_text().to_owned(),
         raw_value: include.raw_value().to_owned(),
@@ -221,7 +221,7 @@ fn resolved_include_view(
                 document_paths
                     .get(document_id.as_str())
                     .cloned()
-                    .unwrap_or_else(|| document_id_display_path(document_id, cwd))
+                    .unwrap_or_else(|| document_id_display(document_id))
             })
             .collect(),
     }
@@ -230,19 +230,17 @@ fn resolved_include_view(
 fn include_diagnostic_views(
     workspace: &WorkspaceFacts,
     document_paths: &std::collections::BTreeMap<String, String>,
-    cwd: &std::path::Path,
 ) -> Vec<DiagnosticView> {
     workspace
         .include_diagnostics()
         .iter()
-        .map(|diagnostic| include_diagnostic_view(diagnostic, document_paths, cwd))
+        .map(|diagnostic| include_diagnostic_view(diagnostic, document_paths))
         .collect()
 }
 
 fn include_diagnostic_view(
     diagnostic: &RuledDiagnostic,
     document_paths: &std::collections::BTreeMap<String, String>,
-    cwd: &std::path::Path,
 ) -> DiagnosticView {
     let document = diagnostic
         .document()
@@ -250,7 +248,7 @@ fn include_diagnostic_view(
     let path = document_paths
         .get(document.as_str())
         .cloned()
-        .unwrap_or_else(|| document_id_display_path(document, cwd));
+        .unwrap_or_else(|| document_id_display(document));
 
     DiagnosticView::from_analysis(path, diagnostic)
 }

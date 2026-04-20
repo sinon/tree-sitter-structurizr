@@ -13,7 +13,7 @@ use std::{
 use anyhow::{Context, Result};
 use serde::{Serialize, Serializer};
 use strz_analysis::{
-    DiagnosticSeverity, DocumentId, DocumentSnapshot, RuledDiagnostic, TextPoint, TextSpan,
+    DiagnosticSeverity, DocumentId, DocumentLocation, RuledDiagnostic, TextPoint, TextSpan,
 };
 
 /// Serialize the analysis-owned severity in the CLI's stable `snake_case` form.
@@ -161,6 +161,59 @@ impl CheckReport {
     }
 }
 
+/// Whether one format execution checked or wrote documents.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FormatModeView {
+    /// Report whether formatting would change any document.
+    Check,
+    /// Rewrite changed documents in place.
+    Write,
+}
+
+/// Aggregate counts for one `format` run.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct FormatSummaryView {
+    pub documents_checked: usize,
+    pub changed_documents: usize,
+    pub unchanged_documents: usize,
+    pub mode: FormatModeView,
+}
+
+/// One per-document format result.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct FormatDocumentView {
+    pub path: String,
+    pub changed: bool,
+}
+
+/// Structured output emitted by `strz format`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct FormatReport {
+    pub summary: FormatSummaryView,
+    pub documents: Vec<FormatDocumentView>,
+}
+
+impl FormatReport {
+    /// Creates a deterministic formatter report from one execution mode and result set.
+    #[must_use]
+    pub fn new(mode: FormatModeView, mut documents: Vec<FormatDocumentView>) -> Self {
+        documents.sort_by(|left, right| left.path.cmp(&right.path));
+        let changed_documents = documents.iter().filter(|document| document.changed).count();
+        let unchanged_documents = documents.len() - changed_documents;
+
+        Self {
+            summary: FormatSummaryView {
+                documents_checked: documents.len(),
+                changed_documents,
+                unchanged_documents,
+                mode,
+            },
+            documents,
+        }
+    }
+}
+
 /// One raw include directive as exposed by `dump document`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct IncludeDirectiveView {
@@ -280,18 +333,25 @@ pub fn display_path(path: &Path, cwd: &Path) -> String {
     }
 }
 
-/// Renders a document-backed path for diagnostics and dump output.
+/// Renders one document label for diagnostics and dump output.
+///
+/// The CLI prefers the concrete filesystem location when one is available.
+/// Otherwise it falls back to the raw document id without reinterpreting that
+/// identifier as a filesystem path.
 #[must_use]
-pub fn snapshot_display_path(snapshot: &DocumentSnapshot, cwd: &Path) -> String {
-    snapshot.location().map_or_else(
-        || document_id_display_path(snapshot.id(), cwd),
+pub fn document_display_path(
+    location: Option<&DocumentLocation>,
+    fallback_id: &DocumentId,
+    cwd: &Path,
+) -> String {
+    location.map_or_else(
+        || document_id_display(fallback_id),
         |location| display_path(location.path(), cwd),
     )
 }
 
-/// Renders a document identifier as a path when it originated from workspace
-/// loading.
+/// Renders a document identifier without assuming path semantics.
 #[must_use]
-pub fn document_id_display_path(id: &DocumentId, cwd: &Path) -> String {
-    display_path(Path::new(id.as_str()), cwd)
+pub fn document_id_display(id: &DocumentId) -> String {
+    id.as_str().to_owned()
 }

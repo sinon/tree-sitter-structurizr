@@ -1,15 +1,12 @@
 //! Rename handlers for the first bounded identifier-editing slice.
 
-use std::{
-    collections::{BTreeMap, HashMap},
-    path::Path,
-};
+use std::collections::{BTreeMap, HashMap};
 
 use line_index::LineIndex;
 use strz_analysis::{
     DocumentId, DocumentSnapshot, ElementIdentifierMode, ReferenceHandle,
-    ReferenceResolutionStatus, Symbol, SymbolHandle, SymbolKind, TextSpan, WorkspaceFacts,
-    WorkspaceIndex, WorkspaceInstanceId,
+    ReferenceResolutionStatus, Symbol, SymbolHandle, SymbolKind, TextSpan, WorkspaceDocument,
+    WorkspaceFacts, WorkspaceIndex, WorkspaceInstanceId,
 };
 use tower_lsp_server::jsonrpc::Error;
 use tower_lsp_server::ls_types::{
@@ -307,12 +304,11 @@ fn workspace_instance_rename_sites(
         return None;
     }
 
-    let target_snapshot = workspace_facts
-        .document(target_handle.document())?
-        .snapshot();
+    let target_document = workspace_facts.document(target_handle.document())?;
+    let target_snapshot = target_document.snapshot();
     let declaration = target_snapshot.symbols().get(target_handle.symbol_id().0)?;
     let mut sites = vec![workspace_edit_site(
-        target_handle.document(),
+        target_document,
         declaration.binding_span?,
     )?];
 
@@ -324,9 +320,10 @@ fn workspace_instance_rename_sites(
     reference_handles.dedup();
 
     for handle in reference_handles {
-        let snapshot = workspace_facts.document(handle.document())?.snapshot();
+        let document = workspace_facts.document(handle.document())?;
+        let snapshot = document.snapshot();
         let reference = snapshot.references().get(handle.reference_index())?;
-        sites.push(workspace_edit_site(handle.document(), reference.span)?);
+        sites.push(workspace_edit_site(document, reference.span)?);
     }
 
     sort_and_dedup_sites(&mut sites);
@@ -584,10 +581,10 @@ fn workspace_symbol<'a>(
         .get(handle.symbol_id().0)
 }
 
-fn workspace_edit_site(document_id: &DocumentId, span: TextSpan) -> Option<RenameEditSite> {
+fn workspace_edit_site(document: &WorkspaceDocument, span: TextSpan) -> Option<RenameEditSite> {
     Some(RenameEditSite {
-        uri: file_uri_from_path(Path::new(document_id.as_str()))?,
-        document_id: Some(document_id.clone()),
+        uri: file_uri_from_path(document.snapshot().location()?.path())?,
+        document_id: Some(document.id().clone()),
         span,
     })
 }

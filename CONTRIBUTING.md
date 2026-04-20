@@ -4,7 +4,7 @@ This repository now has three areas of focus:
 
 - grammar and query coverage work
 - transport-agnostic analysis and workspace work
-- LSP, CLI, and downstream editor-integration work
+- LSP, CLI, formatter, and downstream editor-integration work
 
 If you are starting on the semantic or editor-facing side, read [`docs/lsp/00-current-state.md`](docs/lsp/00-current-state.md) first. It is the quickest summary of the current architecture, shipped bounded surface, and remaining path to feature completeness.
 
@@ -14,6 +14,7 @@ Pick the layer before you pick the code:
 
 - grammar or query work: start with [`README.md`](README.md), then use this file's recommended grammar workflow and test surfaces
 - analysis or LSP work: start with [`docs/lsp/00-current-state.md`](docs/lsp/00-current-state.md), then [`docs/lsp/01-foundations/overview.md`](docs/lsp/01-foundations/overview.md), then the relevant design note under [`docs/lsp/02-design/`](docs/lsp/02-design/)
+- formatter work: start with [`docs/formatting.md`](docs/formatting.md#structurizr-dsl-formatting-policy), then [`crates/strz/README.md`](crates/strz/README.md#command-surface), then the relevant CLI tests in [`crates/strz/tests/cli.rs`](crates/strz/tests/cli.rs) and workspace fixtures under [`tests/lsp/workspaces/`](tests/lsp/workspaces/)
 - downstream editor wiring or release work: start with [`docs/lsp/03-delivery/roadmap.md`](docs/lsp/03-delivery/roadmap.md) and the packaging/wiring notes under [`docs/lsp/03-delivery/`](docs/lsp/03-delivery/)
 
 ## Prerequisites
