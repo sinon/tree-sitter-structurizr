@@ -322,7 +322,7 @@ fn parse_chunks(source: &str) -> Vec<Chunk> {
 
 fn consume_block_comment(lines: &[String], index: &mut usize) -> Vec<String> {
     let first_line = &lines[*index];
-    let mut comment_lines = vec![first_line.to_string()];
+    let mut comment_lines = vec![first_line.clone()];
     *index += 1;
     if first_line.trim_start().contains("*/") {
         return comment_lines;
@@ -330,7 +330,7 @@ fn consume_block_comment(lines: &[String], index: &mut usize) -> Vec<String> {
 
     while *index < lines.len() {
         let comment_line = &lines[*index];
-        comment_lines.push(comment_line.to_string());
+        comment_lines.push(comment_line.clone());
         *index += 1;
         if comment_line.trim_start().contains("*/") {
             break;
@@ -341,14 +341,14 @@ fn consume_block_comment(lines: &[String], index: &mut usize) -> Vec<String> {
 }
 
 fn consume_line_comments(lines: &[String], index: &mut usize) -> Vec<String> {
-    let mut comment_lines = vec![lines[*index].to_string()];
+    let mut comment_lines = vec![lines[*index].clone()];
     *index += 1;
     while *index < lines.len() {
         let next = &lines[*index];
         if next.trim().is_empty() || !is_line_comment(next.trim_start()) {
             break;
         }
-        comment_lines.push(next.to_string());
+        comment_lines.push(next.clone());
         *index += 1;
     }
 
@@ -362,11 +362,11 @@ fn consume_text_block(lines: &[String], index: &mut usize) -> (Vec<String>, Stri
     while *index < lines.len() {
         let candidate = &lines[*index];
         if count_text_block_delimiters(candidate) % 2 == 1 {
-            closing_line = candidate.to_string();
+            closing_line.clone_from(candidate);
             *index += 1;
             break;
         }
-        body_lines.push(candidate.to_string());
+        body_lines.push(candidate.clone());
         *index += 1;
     }
 
@@ -379,7 +379,7 @@ fn consume_statement_lines(lines: &[String], index: &mut usize, first_line: Stri
     let mut continued = ends_with_continuation(&statement_lines[0]);
     while continued && *index < lines.len() {
         let next = &lines[*index];
-        statement_lines.push(next.to_string());
+        statement_lines.push(next.clone());
         continued = ends_with_continuation(next);
         *index += 1;
     }

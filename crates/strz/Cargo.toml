@@ -10,6 +10,7 @@ homepage = { workspace = true }
 repository = { workspace = true }
 license = { workspace = true }
 autobins = false
+build = "build.rs"
 
 [[bin]]
 name = "strz"
@@ -32,4 +33,8 @@ tracing-subscriber = { workspace = true }
 [dev-dependencies]
 insta = { workspace = true }
 insta-cmd = { workspace = true }
+jiff = { version = "0.2.23", default-features = false, features = ["std"] }
 tempfile = { workspace = true }
+
+[build-dependencies]
+jiff = { version = "0.2.23", default-features = false, features = ["std"] }

@@ -214,6 +214,15 @@ impl FormatReport {
     }
 }
 
+/// Structured output emitted by `strz version`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct VersionReport {
+    pub name: String,
+    pub version: String,
+    pub git_sha: String,
+    pub build_date: String,
+}
+
 /// One raw include directive as exposed by `dump document`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct IncludeDirectiveView {

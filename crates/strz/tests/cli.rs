@@ -21,16 +21,78 @@ fn root_help_lists_server_subcommand() {
         "root help should advertise the strz binary name"
     );
     assert!(
-        stdout.contains("server  Run the Structurizr LSP server over stdio"),
+        stdout.contains("Run the Structurizr LSP server over stdio"),
         "root help should list the server subcommand"
     );
     assert!(
-        stdout.contains("check   Check one or more files or directories"),
+        stdout.contains(
+            "Check one or more files or directories for syntax, include, and semantic diagnostics"
+        ),
         "root help should preserve the check subcommand"
     );
     assert!(
-        stdout.contains("format  Format one or more files or workspaces"),
+        stdout.contains(
+            "Format one or more files or workspaces using the canonical Structurizr layout policy"
+        ),
         "root help should list the format subcommand"
+    );
+    assert!(
+        stdout.contains("Print build metadata for the current `strz` binary"),
+        "root help should list the version subcommand"
+    );
+}
+
+#[test]
+fn root_version_flag_preserves_package_version() {
+    let output = command()
+        .arg("--version")
+        .output()
+        .expect("version flag should run");
+
+    assert_eq!(output.status.code(), Some(0));
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        format!("strz {}\n", env!("CARGO_PKG_VERSION"))
+    );
+}
+
+#[test]
+fn version_subcommand_reports_extended_build_metadata_shape() {
+    let output = command()
+        .arg("version")
+        .output()
+        .expect("version should run");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let prefix = format!("strz {} (", env!("CARGO_PKG_VERSION"));
+
+    assert_eq!(output.status.code(), Some(0));
+    assert!(
+        stdout.starts_with(&prefix),
+        "version output should start with the binary name and package version"
+    );
+
+    let metadata = stdout
+        .strip_prefix(&prefix)
+        .and_then(|suffix| suffix.strip_suffix(")\n"))
+        .expect("version output should end with parenthesized build metadata");
+    let (git_sha, build_date) = metadata
+        .rsplit_once(' ')
+        .expect("build metadata should contain a sha and date");
+
+    assert!(
+        !git_sha.trim().is_empty(),
+        "version output should include a non-empty git sha placeholder or hash"
+    );
+    assert_eq!(build_date.len(), 10, "build date should be YYYY-MM-DD");
+    assert!(
+        build_date
+            .chars()
+            .enumerate()
+            .all(|(index, character)| match index {
+                4 | 7 => character == '-',
+                _ => character.is_ascii_digit(),
+            }),
+        "build date should match the YYYY-MM-DD shape"
     );
 }
 

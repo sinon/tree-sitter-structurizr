@@ -9,7 +9,7 @@ use crate::{
     cli::{GlobalOptions, OutputFormat},
     report::{
         CheckReport, DiagnosticView, DocumentDump, DumpOutput, FormatModeView, FormatReport,
-        WorkspaceDump,
+        VersionReport, WorkspaceDump,
     },
 };
 
@@ -57,6 +57,20 @@ pub fn write_dump(output: &DumpOutput, options: &GlobalOptions) -> Result<()> {
                 DumpOutput::Workspace(workspace) => serde_json::to_string_pretty(workspace)
                     .context("while attempting to serialize the workspace dump as JSON")?,
             };
+            write_stdout(&(rendered + "\n"), options.color.to_anstream())
+        }
+    }
+}
+
+/// Writes `version` output in the requested format.
+pub fn write_version(report: &VersionReport, options: &GlobalOptions) -> Result<()> {
+    match options.output_format {
+        OutputFormat::Text => {
+            write_stdout(&render_version_text(report), options.color.to_anstream())
+        }
+        OutputFormat::Json => {
+            let rendered = serde_json::to_string_pretty(report)
+                .context("while attempting to serialize the version report as JSON")?;
             write_stdout(&(rendered + "\n"), options.color.to_anstream())
         }
     }
@@ -202,6 +216,13 @@ fn render_format_text(report: &FormatReport, options: &GlobalOptions) -> String 
     }
 
     output
+}
+
+fn render_version_text(report: &VersionReport) -> String {
+    format!(
+        "{} {} ({} {})\n",
+        report.name, report.version, report.git_sha, report.build_date
+    )
 }
 
 fn render_document_dump(document: &DocumentDump, colors: bool) -> String {
@@ -440,4 +461,40 @@ fn write_stderr(rendered: &str, color_choice: ColorChoice) -> Result<()> {
     stderr
         .flush()
         .context("while attempting to flush CLI output to stderr")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::render_version_text;
+    use crate::report::VersionReport;
+
+    #[test]
+    fn render_version_text_includes_build_metadata() {
+        let report = VersionReport {
+            name: "strz".to_owned(),
+            version: "0.0.1-alpha".to_owned(),
+            git_sha: "abc1234".to_owned(),
+            build_date: "2025-01-01".to_owned(),
+        };
+
+        assert_eq!(
+            render_version_text(&report),
+            "strz 0.0.1-alpha (abc1234 2025-01-01)\n"
+        );
+    }
+
+    #[test]
+    fn render_version_text_supports_unknown_sha_fallback() {
+        let report = VersionReport {
+            name: "strz".to_owned(),
+            version: "0.0.1-alpha".to_owned(),
+            git_sha: "unknown".to_owned(),
+            build_date: "1970-01-01".to_owned(),
+        };
+
+        assert_eq!(
+            render_version_text(&report),
+            "strz 0.0.1-alpha (unknown 1970-01-01)\n"
+        );
+    }
 }
