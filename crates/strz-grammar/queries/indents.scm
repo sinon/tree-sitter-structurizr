@@ -19,7 +19,16 @@
 (component_block
   "}" @end) @indent
 
+(group_block
+  "}" @end) @indent
+
+(enterprise_block
+  "}" @end) @indent
+
 (deployment_environment_block
+  "}" @end) @indent
+
+(deployment_instance_block
   "}" @end) @indent
 
 (deployment_node_block
@@ -43,6 +52,9 @@
 (elements_block
   "}" @end) @indent
 
+(relationships_block
+  "}" @end) @indent
+
 (system_landscape_view_block
   "}" @end) @indent
 
@@ -64,6 +76,12 @@
 (animation_block
   "}" @end) @indent
 
+(dynamic_relationship_block
+  "}" @end) @indent
+
+(dynamic_parallel_block
+  "}" @end) @indent
+
 (deployment_view_block
   "}" @end) @indent
 
@@ -71,6 +89,12 @@
   "}" @end) @indent
 
 (image_view_block
+  "}" @end) @indent
+
+(image_source_block
+  "}" @end) @indent
+
+(branding_block
   "}" @end) @indent
 
 (styles_block
@@ -83,6 +107,15 @@
   "}" @end) @indent
 
 (properties_block
+  "}" @end) @indent
+
+(perspectives_block
+  "}" @end) @indent
+
+(perspective_block
+  "}" @end) @indent
+
+(terminology_block
   "}" @end) @indent
 
 (configuration_block
