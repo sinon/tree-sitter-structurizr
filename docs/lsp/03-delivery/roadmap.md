@@ -21,8 +21,8 @@ The repository already contains:
 | Phase 2: analysis crate                 | Done in repo             | `strz-analysis` is the transport-agnostic semantic layer.                                                          |
 | Phase 3: workspace indexing             | Done in bounded form     | Workspace discovery, include-following, and bounded workspace facts already exist.                                 |
 | Phase 4: LSP crate and bounded handlers | Done in repo             | The current server already ships diagnostics, symbols, completion, navigation, and links within the bounded scope. |
-| Phase 5: downstream editor delivery     | Next                     | Zed wiring, packaging, and release choreography are the nearest delivery milestone.                                |
-| Phase 6: broader semantic expansion     | After delivery           | This is where the current bounded model grows toward a more complete-feeling editor experience.                    |
+| Phase 5: downstream editor delivery     | Done downstream          | The downstream launch path now exists; remaining repo work is to keep status and packaging docs aligned with reality. |
+| Phase 6: broader semantic expansion     | Current                  | This is now the active in-repo track for making the bounded model feel more complete in practice.                 |
 
 ## What "feature complete" means here
 
@@ -38,16 +38,15 @@ It means:
 
 ## Current work streams
 
-### 1. Deliver the existing server downstream
+### 1. Keep the delivery docs aligned with the shipped downstream path
 
-The next delivery milestone is not another in-repo proof of concept. It is making the current server easy to run in practice.
+The separate downstream launch path is no longer the missing milestone it once was.
 
 That means:
 
-- wiring `strz server` into the separate `zed-structurizr` extension
-- settling the local override, `PATH`, and release-binary story
-- smoke-testing representative workspaces through the downstream editor path
-- making the release choreography between grammar revisions, binaries, and the extension predictable
+- removing stale wording that still treats Zed wiring as upcoming work
+- keeping packaging and wiring notes as reference material rather than the active milestone
+- avoiding accidental drift between shipped behavior, tests, and the delivery docs
 
 See:
 
@@ -73,7 +72,7 @@ Once the broader reference model is strong enough, the next high-value additions
 
 That includes:
 
-- hover
+- richer hover
 - workspace symbols
 - broader identifier completion
 - richer diagnostic messages where the current semantic model already has the underlying facts
@@ -103,8 +102,7 @@ The main follow-on work here is:
 
 - cached workspace invalidation instead of whole-workspace recomputation on every relevant update
 - better surfacing of filesystem and workspace-loading failures
-- continued benchmarking against representative workspaces such as `big-bank-plc`
-- avoiding accidental drift between shipped behavior, tests, and the delivery docs
+- continued use of the existing benchmark harnesses against representative workspaces such as `big-bank-plc`
 
 ## What not to chase
 

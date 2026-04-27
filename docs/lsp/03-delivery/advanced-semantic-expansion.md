@@ -23,18 +23,18 @@ The shipped bounded slice already gives us:
 
 - syntax diagnostics
 - document symbols
-- keyword/directive completion
+- keyword/directive completion plus the current bounded identifier-completion slice
 - go-to-definition for the bounded identifier set
 - find-references for the same bounded set
+- type-definition, bounded hover, and bounded rename
 - workspace instances and bounded workspace indexes
 
-The next delivery milestone is still downstream editor wiring and packaging.
-Once that path is stable, the pressure usually changes.
+With downstream editor wiring in place, the pressure usually changes.
 
 Instead of asking “can this be an LSP at all?”, the questions become:
 
-- can we add rename now?
-- can we add hover?
+- can we broaden rename now?
+- can we enrich hover?
 - can we support `system.api`?
 - can we color unresolved references semantically?
 - can we surface workspace symbols?

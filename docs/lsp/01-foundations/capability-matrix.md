@@ -21,13 +21,13 @@ This matrix records which editor features are already shipped in-repo, which one
 | Keyword/directive completion                                             | Syntax + LSP                 | Shipped          | Fixed-vocabulary completion already works.                                                                                                   |
 | Style-property completion                                                | Syntax + LSP                 | Shipped          | Property-name completion is already landed for style blocks.                                                                                 |
 | Bounded element-style value completion                                   | Syntax + LSP                 | Shipped, bounded | Known colour, boolean, border, and shape values now complete inside `element_style`; `relationship_style` value completion remains deferred. |
-| Relationship identifier completion (flat explicit model endpoints)       | Analysis + LSP               | Shipped, bounded | Explicit `relationship` source/destination endpoints now complete flat-mode core element identifiers.                                        |
+| Relationship identifier completion (flat explicit model endpoints)       | Analysis + LSP               | Shipped, bounded | Explicit `relationship` source/destination endpoints now complete flat-mode identifiers across the shipped bounded slice.                    |
 | Directive-path document links                                            | Syntax + LSP                 | Shipped          | `textDocument/documentLink` is supported, with a `definition` fallback for clients that need file targets.                                   |
 | Go to definition                                                         | Analysis + LSP               | Shipped, bounded | Core cross-file navigation already works for the currently modeled symbol families.                                                          |
 | Find references                                                          | Analysis + LSP               | Shipped, bounded | Shares the same bounded semantic model as definition.                                                                                        |
 | Type definition                                                          | Analysis + LSP               | Shipped, bounded | Instance-to-model navigation is already exposed through `textDocument/typeDefinition`.                                                       |
 | Broader scope/reference coverage (`this`, selectors, named dynamic refs) | Analysis + LSP               | Next             | This is the biggest remaining gap inside the current semantic model.                                                                         |
-| Broader identifier completion                                            | Analysis + LSP               | Next             | Expand beyond the shipped flat relationship slice to hierarchical keys, deployment-layer endpoints, and other deferred forms.                |
+| Broader identifier completion                                            | Analysis + LSP               | Next             | Expand beyond the shipped bounded flat identifier slice to non-relationship sites, hierarchical keys, and other deferred forms.              |
 | Hover                                                                    | Analysis + LSP               | Shipped, bounded | Current hover covers the bounded identifier families with compact source-derived metadata from declarations.                                 |
 | Workspace symbols                                                        | Analysis + LSP               | Next             | A good follow-on once workspace facts cover more symbol families.                                                                            |
 | Rename                                                                   | Analysis + LSP               | Shipped, bounded | Current support covers flat core-element and deployment-layer identifier rename when the edit set is unanimous.                              |
@@ -56,7 +56,7 @@ The biggest missing pieces are:
 
 - broader safe resolution across the still-deferred scope families
 - richer read-only semantic feedback such as hover and workspace symbols
-- safe edit-capable features such as rename
-- downstream packaging and editor wiring that make the current in-repo server easy to consume
+- broader safe edit-capable features such as rename expansion and, later, code actions
+- operability work such as cached invalidation, failure surfacing, and keeping the docs aligned with shipped behavior
 
 For sequencing and delivery detail, continue with [`../03-delivery/roadmap.md`](../03-delivery/roadmap.md).
