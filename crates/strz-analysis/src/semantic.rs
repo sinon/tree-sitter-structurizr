@@ -175,8 +175,8 @@ pub struct AutoLayoutFact {
 pub struct RelationshipFact {
     /// Source span covered by the whole relationship declaration.
     pub span: TextSpan,
-    /// Source endpoint identifier.
-    pub source: ValueFact,
+    /// Source endpoint identifier, if the declaration spelled one explicitly.
+    pub source: Option<ValueFact>,
     /// Destination endpoint identifier.
     pub destination: ValueFact,
     /// Optional description text.

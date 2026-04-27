@@ -42,6 +42,10 @@ WorkspaceIndexSetView {
                     status: "resolved workspace.dsl::gateway",
                 },
                 ReferenceResolutionView {
+                    reference: "workspace.dsl::this@10:31",
+                    status: "resolved workspace.dsl::apiInstance",
+                },
+                ReferenceResolutionView {
                     reference: "workspace.dsl::system@12:39",
                     status: "resolved workspace.dsl::system",
                 },

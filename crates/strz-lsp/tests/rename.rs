@@ -73,6 +73,24 @@ const DUPLICATE_BINDINGS_RENAME_SOURCE: &str = r#"workspace {
 }
 "#;
 
+const THIS_RENAME_SOURCE: &str = r#"workspace {
+    model {
+        system = softwareSystem "System" {
+            api = container "API"
+        }
+
+        live = deploymentEnvironment "Live" {
+            primary = deploymentNode "Primary" {
+                gateway = infrastructureNode "Gateway"
+                <CURSOR:api-instance-declaration>apiInstance = containerInstance api {
+                    gateway -> <CURSOR:this-reference>this "Routes traffic"
+                }
+            }
+        }
+    }
+}
+"#;
+
 #[tokio::test(flavor = "current_thread")]
 async fn prepare_rename_returns_a_placeholder_for_flat_element_declarations() {
     let (mut service, _socket) = new_service();
@@ -258,6 +276,45 @@ async fn rename_returns_no_result_for_duplicate_bindings() {
     .await;
 
     assert!(response["result"].is_null());
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn prepare_rename_returns_no_result_for_contextual_this_aliases() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(THIS_RENAME_SOURCE);
+    let uri = file_uri("rename-this-alias.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let response =
+        request_prepare_rename(&mut service, &uri, source.position("this-reference")).await;
+
+    assert!(response["result"].is_null());
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn rename_keeps_declarations_renameable_when_only_contextual_this_references_exist() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(THIS_RENAME_SOURCE);
+    let uri = file_uri("rename-this-alias.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let response = request_rename(
+        &mut service,
+        &uri,
+        source.position("api-instance-declaration"),
+        "paymentsApi",
+    )
+    .await;
+
+    assert_workspace_edit(&response, &[(&uri, &[9])], "paymentsApi");
 }
 
 #[tokio::test(flavor = "current_thread")]

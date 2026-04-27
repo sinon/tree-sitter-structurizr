@@ -339,11 +339,13 @@ fn assert_semantic_snapshot_spans_within_source(
             source,
             &format!("relationship fact #{index} span"),
         )?;
-        assert_span_within_source(
-            relationship.source.span,
-            source,
-            &format!("relationship fact #{index} source span"),
-        )?;
+        if let Some(endpoint) = &relationship.source {
+            assert_span_within_source(
+                endpoint.span,
+                source,
+                &format!("relationship fact #{index} source span"),
+            )?;
+        }
         assert_span_within_source(
             relationship.destination.span,
             source,

@@ -2254,6 +2254,7 @@ fn build_derived_workspace_instance(
     semantic_diagnostics.extend(deployment_semantic_diagnostics(
         documents,
         &documents_by_id,
+        &bindings,
         &reference_tables,
     ));
     semantic_diagnostics.extend(resource_semantic_diagnostics(documents));
@@ -2971,18 +2972,25 @@ enum DeploymentContainmentRelation {
 fn deployment_semantic_diagnostics(
     documents: &[&WorkspaceSemanticDocumentFacts],
     documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
+    bindings: &WorkspaceBindingTables,
     reference_tables: &WorkspaceReferenceTables,
 ) -> Vec<RuledDiagnostic> {
     // Deployment topology validation also works from resolved endpoint references,
     // but it stays separate from the view family because it reasons about
     // deployment containment rather than view composition. Keep the wrapper even
     // with one rule so later deployment-only checks have one obvious entry point.
-    deployment_parent_child_relationship_diagnostics(documents, documents_by_id, reference_tables)
+    deployment_parent_child_relationship_diagnostics(
+        documents,
+        documents_by_id,
+        bindings,
+        reference_tables,
+    )
 }
 
 fn deployment_parent_child_relationship_diagnostics(
     documents: &[&WorkspaceSemanticDocumentFacts],
     documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
+    bindings: &WorkspaceBindingTables,
     reference_tables: &WorkspaceReferenceTables,
 ) -> Vec<RuledDiagnostic> {
     let mut diagnostics = Vec::new();
@@ -2993,18 +3001,24 @@ fn deployment_parent_child_relationship_diagnostics(
         }
 
         for relationship in &document.relationship_facts {
-            let Some(source_handle) = resolved_reference_target(
+            let Some(source_handle) = resolved_declared_relationship_endpoint(
                 document,
+                relationship.source.as_ref(),
+                relationship.span,
                 ReferenceKind::DeploymentRelationshipSource,
-                relationship.source.span,
+                ReferenceKind::RelationshipSource,
+                bindings,
                 reference_tables,
             ) else {
                 continue;
             };
-            let Some(destination_handle) = resolved_reference_target(
+            let Some(destination_handle) = resolved_declared_relationship_endpoint(
                 document,
+                Some(&relationship.destination),
+                relationship.span,
                 ReferenceKind::DeploymentRelationshipDestination,
-                relationship.destination.span,
+                ReferenceKind::RelationshipDestination,
+                bindings,
                 reference_tables,
             ) else {
                 continue;
@@ -3303,7 +3317,7 @@ fn view_semantic_diagnostics(
     // checks across unrelated binding code paths.
     let views_by_key = index_views_by_key(documents);
     let declared_relationships =
-        collect_declared_relationships(documents, documents_by_id, reference_tables);
+        collect_declared_relationships(documents, documents_by_id, bindings, reference_tables);
 
     let mut diagnostics = Vec::new();
     diagnostics.extend(filtered_view_autolayout_diagnostics(
@@ -3799,6 +3813,7 @@ fn index_views_by_key(
 fn collect_declared_relationships(
     documents: &[&WorkspaceSemanticDocumentFacts],
     documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
+    bindings: &WorkspaceBindingTables,
     reference_tables: &WorkspaceReferenceTables,
 ) -> Vec<DeclaredRelationship> {
     let mut relationships = Vec::new();
@@ -3825,20 +3840,24 @@ fn collect_declared_relationships(
             .collect::<BTreeMap<_, _>>();
 
         for relationship in &document.relationship_facts {
-            let Some(source) = resolved_relationship_target(
+            let Some(source) = resolved_declared_relationship_endpoint(
                 document,
+                relationship.source.as_ref(),
+                relationship.span,
                 ReferenceKind::RelationshipSource,
                 ReferenceKind::DeploymentRelationshipSource,
-                relationship.source.span,
+                bindings,
                 reference_tables,
             ) else {
                 continue;
             };
-            let Some(destination) = resolved_relationship_target(
+            let Some(destination) = resolved_declared_relationship_endpoint(
                 document,
+                Some(&relationship.destination),
+                relationship.span,
                 ReferenceKind::RelationshipDestination,
                 ReferenceKind::DeploymentRelationshipDestination,
-                relationship.destination.span,
+                bindings,
                 reference_tables,
             ) else {
                 continue;
@@ -3881,6 +3900,172 @@ fn resolved_relationship_target(
 ) -> Option<SymbolHandle> {
     resolved_reference_target(document, primary_kind, span, reference_tables)
         .or_else(|| resolved_reference_target(document, fallback_kind, span, reference_tables))
+}
+
+fn resolved_declared_relationship_endpoint(
+    document: &WorkspaceSemanticDocumentFacts,
+    endpoint: Option<&ValueFact>,
+    relationship_span: TextSpan,
+    primary_kind: ReferenceKind,
+    fallback_kind: ReferenceKind,
+    bindings: &WorkspaceBindingTables,
+    reference_tables: &WorkspaceReferenceTables,
+) -> Option<SymbolHandle> {
+    endpoint.map_or_else(
+        || {
+            contextual_owner_resolution(
+                document,
+                relationship_span,
+                enclosing_symbol_for_span(document, relationship_span),
+                ContextualOwnerTarget::ElementOrDeployment,
+                bindings,
+            )
+            .resolved()
+        },
+        |value| {
+            resolved_relationship_target(
+                document,
+                primary_kind,
+                fallback_kind,
+                value.span,
+                reference_tables,
+            )
+        },
+    )
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ContextualOwnerTarget {
+    Element,
+    Deployment,
+    ElementOrDeployment,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum ContextualOwnerResolution {
+    Resolved(SymbolHandle),
+    Unresolved,
+    Ambiguous,
+}
+
+impl ContextualOwnerResolution {
+    fn resolved(self) -> Option<SymbolHandle> {
+        match self {
+            Self::Resolved(handle) => Some(handle),
+            Self::Unresolved | Self::Ambiguous => None,
+        }
+    }
+}
+
+fn contextual_owner_resolution(
+    document: &WorkspaceSemanticDocumentFacts,
+    span: TextSpan,
+    start_symbol: Option<SymbolId>,
+    target: ContextualOwnerTarget,
+    bindings: &WorkspaceBindingTables,
+) -> ContextualOwnerResolution {
+    if let Some(selector_resolution) =
+        enclosing_element_selector_owner_resolution(document, span, target, bindings)
+    {
+        return selector_resolution;
+    }
+
+    contextual_symbol_target_handle_for_owner(document, start_symbol, target)
+        .map_or(ContextualOwnerResolution::Unresolved, ContextualOwnerResolution::Resolved)
+}
+
+fn enclosing_element_selector_owner_resolution(
+    document: &WorkspaceSemanticDocumentFacts,
+    span: TextSpan,
+    target: ContextualOwnerTarget,
+    bindings: &WorkspaceBindingTables,
+) -> Option<ContextualOwnerResolution> {
+    let directive = enclosing_element_directive(document, span)?;
+    Some(resolve_element_selector_owner_resolution(
+        document, directive, target, bindings,
+    ))
+}
+
+fn resolve_element_selector_owner_resolution(
+    document: &WorkspaceSemanticDocumentFacts,
+    directive: &ElementDirectiveFact,
+    target: ContextualOwnerTarget,
+    bindings: &WorkspaceBindingTables,
+) -> ContextualOwnerResolution {
+    if !matches!(
+        directive.target.value_kind,
+        DirectiveValueKind::BareValue | DirectiveValueKind::Identifier
+    ) {
+        return ContextualOwnerResolution::Unresolved;
+    }
+
+    for candidate in element_selector_target_candidates(document, directive, bindings) {
+        let resolution = resolve_contextual_selector_candidate(&candidate, target, bindings);
+        if resolution != ContextualOwnerResolution::Unresolved {
+            return resolution;
+        }
+    }
+
+    ContextualOwnerResolution::Unresolved
+}
+
+fn resolve_contextual_selector_candidate(
+    candidate: &str,
+    target: ContextualOwnerTarget,
+    bindings: &WorkspaceBindingTables,
+) -> ContextualOwnerResolution {
+    match target {
+        ContextualOwnerTarget::Element => {
+            match resolve_reference_against_element_table(
+                candidate,
+                &bindings.unique_elements,
+                &bindings.duplicate_elements,
+            ) {
+                ReferenceResolutionStatus::Resolved(handle) => {
+                    ContextualOwnerResolution::Resolved(handle)
+                }
+                ReferenceResolutionStatus::AmbiguousDuplicateBinding
+                | ReferenceResolutionStatus::AmbiguousElementVsRelationship => {
+                    ContextualOwnerResolution::Ambiguous
+                }
+                ReferenceResolutionStatus::UnresolvedNoMatch
+                | ReferenceResolutionStatus::DeferredByScopePolicy => {
+                    ContextualOwnerResolution::Unresolved
+                }
+            }
+        }
+        ContextualOwnerTarget::Deployment => {
+            match resolve_reference_against_binding_table(
+                candidate,
+                &bindings.unique_deployments,
+                &bindings.duplicate_deployments,
+            ) {
+                ReferenceResolutionStatus::Resolved(handle) => {
+                    ContextualOwnerResolution::Resolved(handle)
+                }
+                ReferenceResolutionStatus::AmbiguousDuplicateBinding
+                | ReferenceResolutionStatus::AmbiguousElementVsRelationship => {
+                    ContextualOwnerResolution::Ambiguous
+                }
+                ReferenceResolutionStatus::UnresolvedNoMatch
+                | ReferenceResolutionStatus::DeferredByScopePolicy => {
+                    ContextualOwnerResolution::Unresolved
+                }
+            }
+        }
+        ContextualOwnerTarget::ElementOrDeployment => {
+            match resolve_selector_target_raw_text(candidate, bindings) {
+                SelectorResolutionStatus::Resolved => bindings
+                    .unique_elements
+                    .get(candidate)
+                    .or_else(|| bindings.unique_deployments.get(candidate))
+                    .cloned()
+                    .map_or(ContextualOwnerResolution::Unresolved, ContextualOwnerResolution::Resolved),
+                SelectorResolutionStatus::Ambiguous => ContextualOwnerResolution::Ambiguous,
+                SelectorResolutionStatus::UnresolvedNoMatch => ContextualOwnerResolution::Unresolved,
+            }
+        }
+    }
 }
 
 fn resolved_reference_target(
@@ -4176,21 +4361,7 @@ fn resolve_element_selector_target(
     directive: &ElementDirectiveFact,
     bindings: &WorkspaceBindingTables,
 ) -> SelectorResolutionStatus {
-    let raw_text = directive.target.normalized_text.as_str();
-    let status = resolve_selector_target_raw_text(raw_text, bindings);
-    if status != SelectorResolutionStatus::UnresolvedNoMatch {
-        return status;
-    }
-
-    let Some(mode) = bindings.element_modes.get(&document.document_id).copied() else {
-        return SelectorResolutionStatus::UnresolvedNoMatch;
-    };
-    let Some(containing_symbol) = enclosing_symbol_for_span(document, directive.span) else {
-        return SelectorResolutionStatus::UnresolvedNoMatch;
-    };
-
-    for prefix in contextual_selector_prefixes(&document.symbols, containing_symbol, mode) {
-        let candidate = format!("{prefix}.{raw_text}");
+    for candidate in element_selector_target_candidates(document, directive, bindings) {
         let contextual_status = resolve_selector_target_raw_text(&candidate, bindings);
         if contextual_status != SelectorResolutionStatus::UnresolvedNoMatch {
             return contextual_status;
@@ -4237,6 +4408,10 @@ fn resolve_reference_status(
     reference: &Reference,
     bindings: &WorkspaceBindingTables,
 ) -> ReferenceResolutionStatus {
+    if is_contextual_this_reference(reference) {
+        return resolve_this_reference_status(document, reference, bindings);
+    }
+
     // Syntax-role kinds remain useful to the LSP and diagnostics, but bounded
     // workspace resolution really depends on which binding family one reference
     // is allowed to target.
@@ -4265,6 +4440,84 @@ fn resolve_reference_status(
     } else {
         status
     }
+}
+
+fn is_contextual_this_reference(reference: &Reference) -> bool {
+    reference.raw_text == "this"
+        && matches!(
+            reference.kind,
+            ReferenceKind::RelationshipSource
+                | ReferenceKind::RelationshipDestination
+                | ReferenceKind::DeploymentRelationshipSource
+                | ReferenceKind::DeploymentRelationshipDestination
+        )
+}
+
+fn resolve_this_reference_status(
+    document: &WorkspaceSemanticDocumentFacts,
+    reference: &Reference,
+    bindings: &WorkspaceBindingTables,
+) -> ReferenceResolutionStatus {
+    let start_symbol = reference
+        .containing_symbol
+        .or_else(|| enclosing_symbol_for_span(document, reference.span));
+    let Some(target) = contextual_owner_target(reference.target_hint) else {
+        return ReferenceResolutionStatus::UnresolvedNoMatch;
+    };
+
+    match contextual_owner_resolution(document, reference.span, start_symbol, target, bindings) {
+        ContextualOwnerResolution::Resolved(handle) => ReferenceResolutionStatus::Resolved(handle),
+        ContextualOwnerResolution::Ambiguous => {
+            ReferenceResolutionStatus::AmbiguousDuplicateBinding
+        }
+        ContextualOwnerResolution::Unresolved => ReferenceResolutionStatus::UnresolvedNoMatch,
+    }
+}
+
+const fn contextual_owner_target(
+    target_hint: ReferenceTargetHint,
+) -> Option<ContextualOwnerTarget> {
+    match target_hint {
+        ReferenceTargetHint::Element => Some(ContextualOwnerTarget::Element),
+        ReferenceTargetHint::Deployment => Some(ContextualOwnerTarget::Deployment),
+        ReferenceTargetHint::Relationship | ReferenceTargetHint::ElementOrRelationship => None,
+    }
+}
+
+fn contextual_symbol_target_handle_for_owner(
+    document: &WorkspaceSemanticDocumentFacts,
+    start_symbol: Option<SymbolId>,
+    target: ContextualOwnerTarget,
+) -> Option<SymbolHandle> {
+    let matches_kind: fn(SymbolKind) -> bool = match target {
+        ContextualOwnerTarget::Element => is_model_element_kind,
+        ContextualOwnerTarget::Deployment => is_deployment_element_kind,
+        ContextualOwnerTarget::ElementOrDeployment => {
+            |kind| is_model_element_kind(kind) || is_deployment_element_kind(kind)
+        }
+    };
+
+    contextual_symbol_target_handle_from_matcher(document, start_symbol, matches_kind)
+}
+
+fn contextual_symbol_target_handle_from_matcher(
+    document: &WorkspaceSemanticDocumentFacts,
+    start_symbol: Option<SymbolId>,
+    matches_kind: fn(SymbolKind) -> bool,
+) -> Option<SymbolHandle> {
+    let mut current = start_symbol;
+    while let Some(symbol_id) = current {
+        let symbol = document
+            .symbols
+            .get(symbol_id.0)
+            .expect("BUG: contextual symbol should exist");
+        if matches_kind(symbol.kind) {
+            return Some(SymbolHandle::new(document.document_id.clone(), symbol.id));
+        }
+        current = symbol.parent;
+    }
+
+    None
 }
 
 fn resolve_reference_with_symbol_context(
@@ -4410,16 +4663,44 @@ fn resolve_reference_with_selector_context(
     }
 }
 
-fn enclosing_element_selector_target(
+fn enclosing_element_directive(
     document: &WorkspaceSemanticDocumentFacts,
     span: TextSpan,
-) -> Option<&crate::ValueFact> {
+) -> Option<&ElementDirectiveFact> {
     document
         .element_directives
         .iter()
         .filter(|directive| span_within(directive.span, span))
         .min_by_key(|directive| directive.span.end_byte - directive.span.start_byte)
-        .map(|directive| &directive.target)
+}
+
+fn enclosing_element_selector_target(
+    document: &WorkspaceSemanticDocumentFacts,
+    span: TextSpan,
+) -> Option<&crate::ValueFact> {
+    enclosing_element_directive(document, span).map(|directive| &directive.target)
+}
+
+fn element_selector_target_candidates(
+    document: &WorkspaceSemanticDocumentFacts,
+    directive: &ElementDirectiveFact,
+    bindings: &WorkspaceBindingTables,
+) -> Vec<String> {
+    let raw_text = directive.target.normalized_text.as_str();
+    let mut candidates = vec![raw_text.to_owned()];
+
+    let Some(mode) = bindings.element_modes.get(&document.document_id).copied() else {
+        return candidates;
+    };
+    let Some(containing_symbol) = enclosing_symbol_for_span(document, directive.span) else {
+        return candidates;
+    };
+
+    for prefix in contextual_selector_prefixes(&document.symbols, containing_symbol, mode) {
+        candidates.push(format!("{prefix}.{raw_text}"));
+    }
+
+    candidates
 }
 
 const fn span_within(outer: TextSpan, inner: TextSpan) -> bool {

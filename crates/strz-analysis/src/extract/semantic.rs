@@ -80,7 +80,7 @@ impl SemanticCollector<'_> {
                     self.facts.element_directives.push(element_fact);
                 }
             }
-            "relationship" => {
+            "relationship" | "nested_relationship" => {
                 if let Some(relationship_fact) = self.relationship_fact(node) {
                     self.facts.relationship_facts.push(relationship_fact);
                 }
@@ -163,7 +163,7 @@ impl SemanticCollector<'_> {
 
         Some(RelationshipFact {
             span: TextSpan::from_node(node),
-            source: self.value_from_field(node, "source")?,
+            source: self.value_from_field(node, "source"),
             destination: self.value_from_field(node, "destination")?,
             description: attributes.next(),
             technology: attributes.next(),

@@ -1,5 +1,7 @@
 //! Handwritten extraction for bounded-MVP identifier modes, symbols, and references.
 
+use std::collections::BTreeMap;
+
 use tree_sitter::{Node, Tree};
 
 use crate::includes::{DirectiveContainer, DirectiveValueKind};
@@ -25,7 +27,7 @@ pub fn collect_tags(tree: &Tree, source: &str) -> Vec<String> {
 pub fn collect_symbols_and_references(tree: &Tree, source: &str) -> (Vec<Symbol>, Vec<Reference>) {
     // Keep symbol and reference extraction in one pass so snapshots see a
     // consistent view of declaration hierarchy and cross-reference sites.
-    let mut extractor = SymbolExtractor::new(source);
+    let mut extractor = SymbolExtractor::new(source, collect_supported_archetype_symbol_kinds(tree, source));
     extractor.visit(tree.root_node(), None);
     (extractor.symbols, extractor.references)
 }
@@ -122,14 +124,16 @@ struct ExtractedBinding {
 
 struct SymbolExtractor<'a> {
     source: &'a str,
+    archetype_symbol_kinds: BTreeMap<String, SymbolKind>,
     symbols: Vec<Symbol>,
     references: Vec<Reference>,
 }
 
 impl<'a> SymbolExtractor<'a> {
-    const fn new(source: &'a str) -> Self {
+    const fn new(source: &'a str, archetype_symbol_kinds: BTreeMap<String, SymbolKind>) -> Self {
         Self {
             source,
+            archetype_symbol_kinds,
             symbols: Vec::new(),
             references: Vec::new(),
         }
@@ -139,6 +143,11 @@ impl<'a> SymbolExtractor<'a> {
         // Declaration nodes build the hierarchical symbol tree, while
         // relationships and views contribute reference edges into that tree.
         if let Some(kind) = element_symbol_kind(node.kind()) {
+            let symbol_id = self.push_declaration_symbol(node, kind, parent_symbol);
+            self.visit_children(node, Some(symbol_id));
+            return;
+        }
+        if let Some(kind) = archetype_instance_symbol_kind(node, &self.archetype_symbol_kinds, self.source) {
             let symbol_id = self.push_declaration_symbol(node, kind, parent_symbol);
             self.visit_children(node, Some(symbol_id));
             return;
@@ -159,22 +168,12 @@ impl<'a> SymbolExtractor<'a> {
             "relationship" => {
                 let relationship_symbol = self.push_relationship_symbol(node, parent_symbol);
                 let containing_symbol = relationship_symbol.or(parent_symbol);
-                let (source_kind, destination_kind, target_hint) =
-                    relationship_reference_surface(node);
-                self.push_relationship_reference(
-                    node,
-                    "source",
-                    source_kind,
-                    target_hint,
-                    containing_symbol,
-                );
-                self.push_relationship_reference(
-                    node,
-                    "destination",
-                    destination_kind,
-                    target_hint,
-                    containing_symbol,
-                );
+                self.collect_relationship_references(node, containing_symbol);
+                self.visit_children(node, containing_symbol);
+            }
+            "nested_relationship" => {
+                self.collect_relationship_references(node, parent_symbol);
+                self.visit_children(node, parent_symbol);
             }
             "system_landscape_view" => self.extract_view(
                 node,
@@ -316,7 +315,7 @@ impl<'a> SymbolExtractor<'a> {
             return;
         };
 
-        if endpoint.kind() != "identifier" {
+        if !matches!(endpoint.kind(), "identifier" | "this_keyword") {
             return;
         }
 
@@ -328,6 +327,29 @@ impl<'a> SymbolExtractor<'a> {
             container_node_kind: relationship.kind().to_owned(),
             containing_symbol,
         });
+    }
+
+    fn collect_relationship_references(
+        &mut self,
+        relationship: Node<'_>,
+        containing_symbol: Option<SymbolId>,
+    ) {
+        let (source_kind, destination_kind, target_hint) =
+            relationship_reference_surface(relationship);
+        self.push_relationship_reference(
+            relationship,
+            "source",
+            source_kind,
+            target_hint,
+            containing_symbol,
+        );
+        self.push_relationship_reference(
+            relationship,
+            "destination",
+            destination_kind,
+            target_hint,
+            containing_symbol,
+        );
     }
 
     fn push_named_deployment_symbol(
@@ -605,6 +627,80 @@ fn element_symbol_kind(node_kind: &str) -> Option<SymbolKind> {
     }
 }
 
+fn collect_supported_archetype_symbol_kinds(
+    tree: &Tree,
+    source: &str,
+) -> BTreeMap<String, SymbolKind> {
+    let mut definitions = Vec::<(String, String)>::new();
+    collect_archetype_definitions(tree.root_node(), source, &mut definitions);
+
+    let mut resolved = BTreeMap::<String, SymbolKind>::new();
+    let mut changed = true;
+    while changed {
+        changed = false;
+        for (identifier, base) in &definitions {
+            if resolved.contains_key(identifier) {
+                continue;
+            }
+            let Some(kind) = resolve_archetype_base_symbol_kind(base, &resolved) else {
+                continue;
+            };
+            resolved.insert(identifier.clone(), kind);
+            changed = true;
+        }
+    }
+
+    resolved
+}
+
+fn collect_archetype_definitions(
+    node: Node<'_>,
+    source: &str,
+    definitions: &mut Vec<(String, String)>,
+) {
+    if node.kind() == "archetype_definition"
+        && let (Some(identifier), Some(base)) = (
+            node.child_by_field_name("identifier"),
+            node.child_by_field_name("base"),
+        )
+    {
+        definitions.push((node_text(identifier, source), normalized_text(base, source)));
+    }
+
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        collect_archetype_definitions(child, source, definitions);
+    }
+}
+
+fn resolve_archetype_base_symbol_kind(
+    base: &str,
+    resolved: &BTreeMap<String, SymbolKind>,
+) -> Option<SymbolKind> {
+    match base.to_ascii_lowercase().as_str() {
+        "person" => Some(SymbolKind::Person),
+        "softwaresystem" => Some(SymbolKind::SoftwareSystem),
+        "container" => Some(SymbolKind::Container),
+        "component" => Some(SymbolKind::Component),
+        _ => resolved.get(base).copied(),
+    }
+}
+
+fn archetype_instance_symbol_kind(
+    node: Node<'_>,
+    archetype_symbol_kinds: &BTreeMap<String, SymbolKind>,
+    source: &str,
+) -> Option<SymbolKind> {
+    if node.kind() != "archetype_instance" {
+        return None;
+    }
+
+    let archetype_name = node.child_by_field_name("kind")?;
+    archetype_symbol_kinds
+        .get(&node_text(archetype_name, source))
+        .copied()
+}
+
 fn named_deployment_symbol_kind(node_kind: &str) -> Option<SymbolKind> {
     match node_kind {
         "deployment_environment" => Some(SymbolKind::DeploymentEnvironment),
@@ -662,7 +758,9 @@ fn is_deployment_relationship(node: Node<'_>) -> bool {
 
 fn declaration_metadata(node: Node<'_>, source: &str) -> ExtractedSymbolMetadata {
     match node.kind() {
-        "person" | "software_system" | "container" | "component" => element_metadata(node, source),
+        "person" | "software_system" | "container" | "component" | "archetype_instance" => {
+            element_metadata(node, source)
+        }
         "relationship" => relationship_metadata(node, source),
         "deployment_environment" | "deployment_node" | "infrastructure_node" => {
             deployment_metadata(node, source)
