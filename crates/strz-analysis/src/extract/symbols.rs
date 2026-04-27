@@ -27,7 +27,10 @@ pub fn collect_tags(tree: &Tree, source: &str) -> Vec<String> {
 pub fn collect_symbols_and_references(tree: &Tree, source: &str) -> (Vec<Symbol>, Vec<Reference>) {
     // Keep symbol and reference extraction in one pass so snapshots see a
     // consistent view of declaration hierarchy and cross-reference sites.
-    let mut extractor = SymbolExtractor::new(source, collect_supported_archetype_symbol_kinds(tree, source));
+    let mut extractor = SymbolExtractor::new(
+        source,
+        collect_supported_archetype_symbol_kinds(tree, source),
+    );
     extractor.visit(tree.root_node(), None);
     (extractor.symbols, extractor.references)
 }
@@ -147,7 +150,9 @@ impl<'a> SymbolExtractor<'a> {
             self.visit_children(node, Some(symbol_id));
             return;
         }
-        if let Some(kind) = archetype_instance_symbol_kind(node, &self.archetype_symbol_kinds, self.source) {
+        if let Some(kind) =
+            archetype_instance_symbol_kind(node, &self.archetype_symbol_kinds, self.source)
+        {
             let symbol_id = self.push_declaration_symbol(node, kind, parent_symbol);
             self.visit_children(node, Some(symbol_id));
             return;
@@ -165,6 +170,10 @@ impl<'a> SymbolExtractor<'a> {
         }
 
         match node.kind() {
+            "element_directive" => {
+                self.push_element_selector_reference(node, parent_symbol);
+                self.visit_children(node, parent_symbol);
+            }
             "relationship" => {
                 let relationship_symbol = self.push_relationship_symbol(node, parent_symbol);
                 let containing_symbol = relationship_symbol.or(parent_symbol);
@@ -429,6 +438,25 @@ impl<'a> SymbolExtractor<'a> {
             span: TextSpan::from_node(target),
             target_hint: ReferenceTargetHint::Element,
             container_node_kind: instance.kind().to_owned(),
+            containing_symbol,
+        });
+    }
+
+    fn push_element_selector_reference(
+        &mut self,
+        directive: Node<'_>,
+        containing_symbol: Option<SymbolId>,
+    ) {
+        let Some(target) = directive.child_by_field_name("target") else {
+            return;
+        };
+
+        self.references.push(Reference {
+            kind: ReferenceKind::ElementSelectorTarget,
+            raw_text: node_text(target, self.source),
+            span: TextSpan::from_node(target),
+            target_hint: ReferenceTargetHint::ElementOrDeployment,
+            container_node_kind: directive.kind().to_owned(),
             containing_symbol,
         });
     }

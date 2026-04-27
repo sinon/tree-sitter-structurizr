@@ -10,9 +10,9 @@ use crate::support::{
 };
 
 use super::shared::{
-    ARCHETYPE_THIS_CURSOR_SOURCE, DIRECT_REFERENCES_CURSOR_SOURCE, SELECTOR_THIS_CURSOR_SOURCE,
-    THIS_SOURCE_CURSOR_SOURCE, copied_workspace_fixture,
-    read_annotated_cursor_workspace_fixture,
+    ARCHETYPE_THIS_CURSOR_SOURCE, DIRECT_REFERENCES_CURSOR_SOURCE,
+    HIERARCHICAL_SELECTOR_CURSOR_SOURCE, SELECTOR_THIS_CURSOR_SOURCE, THIS_SOURCE_CURSOR_SOURCE,
+    copied_workspace_fixture, read_annotated_cursor_workspace_fixture,
 };
 
 #[tokio::test(flavor = "current_thread")]
@@ -63,6 +63,56 @@ async fn goto_definition_prefers_selector_context_for_same_document_this_referen
 
     assert_eq!(response["result"]["uri"], uri.as_str());
     assert_eq!(response["result"]["range"]["start"]["line"], 3);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn goto_definition_resolves_hierarchical_selector_targets() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(HIERARCHICAL_SELECTOR_CURSOR_SOURCE);
+    let uri = file_uri("hierarchical-selector-ok.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let response = request_json(
+        &mut service,
+        "textDocument/definition",
+        json!({
+            "textDocument": { "uri": uri.as_str() },
+            "position": source.position("selector-target"),
+        }),
+    )
+    .await;
+
+    assert_eq!(response["result"]["uri"], uri.as_str());
+    assert_eq!(response["result"]["range"]["start"]["line"], 5);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn goto_definition_resolves_same_document_dotted_hierarchical_references() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(HIERARCHICAL_SELECTOR_CURSOR_SOURCE);
+    let uri = file_uri("hierarchical-selector-ok.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let response = request_json(
+        &mut service,
+        "textDocument/definition",
+        json!({
+            "textDocument": { "uri": uri.as_str() },
+            "position": source.position("dotted-reference"),
+        }),
+    )
+    .await;
+
+    assert_eq!(response["result"]["uri"], uri.as_str());
+    assert_eq!(response["result"]["range"]["start"]["line"], 5);
 }
 
 #[tokio::test(flavor = "current_thread")]

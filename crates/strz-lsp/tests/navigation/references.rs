@@ -6,8 +6,8 @@ use crate::support::{
 };
 
 use super::shared::{
-    DIRECT_REFERENCES_CURSOR_SOURCE, SELECTOR_THIS_CURSOR_SOURCE,
-    read_annotated_cursor_workspace_fixture,
+    DIRECT_REFERENCES_CURSOR_SOURCE, HIERARCHICAL_SELECTOR_CURSOR_SOURCE,
+    SELECTOR_THIS_CURSOR_SOURCE, read_annotated_cursor_workspace_fixture,
 };
 
 #[tokio::test(flavor = "current_thread")]
@@ -80,7 +80,43 @@ async fn references_include_same_document_selector_scoped_this_sites() {
         })
         .collect::<Vec<_>>();
 
-    assert_eq!(lines, vec![3, 7]);
+    assert_eq!(lines, vec![3, 6, 7]);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn references_include_hierarchical_selector_targets_and_dotted_sites() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(HIERARCHICAL_SELECTOR_CURSOR_SOURCE);
+    let uri = file_uri("hierarchical-selector-ok.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let response = request_json(
+        &mut service,
+        "textDocument/references",
+        json!({
+            "textDocument": { "uri": uri.as_str() },
+            "position": source.position("api-declaration"),
+            "context": { "includeDeclaration": true },
+        }),
+    )
+    .await;
+
+    let lines = response["result"]
+        .as_array()
+        .expect("references should return an array")
+        .iter()
+        .map(|location| {
+            location["range"]["start"]["line"]
+                .as_u64()
+                .expect("reference location line should be numeric")
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(lines, vec![5, 8, 9, 12]);
 }
 
 #[tokio::test(flavor = "current_thread")]

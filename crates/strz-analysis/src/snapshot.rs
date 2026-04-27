@@ -7,13 +7,18 @@ use tree_sitter::Tree;
 use crate::constants::ConstantDefinition;
 use crate::diagnostics::RuledDiagnostic;
 use crate::extract;
-use crate::includes::IncludeDirective;
+use crate::includes::{DirectiveValueKind, IncludeDirective};
 use crate::semantic::{
     ConfigurationScopeFact, ElementDirectiveFact, PropertyFact, RelationshipFact,
     ResourceDirectiveFact, ViewFact, WorkspaceSectionFact,
 };
-use crate::symbols::{IdentifierModeFact, Reference, Symbol};
-use crate::workspace::{ElementIdentifierMode, effective_element_identifier_mode_from_facts};
+use crate::symbols::{
+    IdentifierModeFact, Reference, ReferenceKind, ReferenceTargetHint, Symbol, SymbolId, SymbolKind,
+};
+use crate::workspace::{
+    ElementIdentifierMode, canonical_deployment_binding_key, canonical_element_binding_key,
+    effective_element_identifier_mode_from_facts,
+};
 
 /// Stable caller-provided identifier for a document across analysis runs.
 ///
@@ -399,7 +404,19 @@ impl DocumentSnapshot {
     #[must_use]
     /// Returns the document's effective bounded element-identifier mode.
     pub fn effective_element_identifier_mode(&self) -> ElementIdentifierMode {
-        effective_element_identifier_mode_from_facts(self.identifier_modes(), None)
+        self.effective_element_identifier_mode_with(None)
+    }
+
+    #[must_use]
+    /// Returns the document's effective bounded element-identifier mode, optionally
+    /// using a caller-provided inherited workspace mode when one is already known.
+    pub fn effective_element_identifier_mode_with(
+        &self,
+        inherited_workspace_mode: Option<ElementIdentifierMode>,
+    ) -> ElementIdentifierMode {
+        inherited_workspace_mode.unwrap_or_else(|| {
+            effective_element_identifier_mode_from_facts(self.identifier_modes(), None)
+        })
     }
 
     #[must_use]
@@ -412,6 +429,40 @@ impl DocumentSnapshot {
     /// Returns all symbol references extracted from the document.
     pub fn references(&self) -> &[Reference] {
         self.syntax_facts.references()
+    }
+
+    #[must_use]
+    /// Resolves one extracted reference against the current document only.
+    pub fn resolve_reference(&self, reference: &Reference) -> Option<&Symbol> {
+        self.resolve_reference_with_mode(reference, self.effective_element_identifier_mode())
+    }
+
+    #[must_use]
+    /// Resolves one extracted reference against the current document using an
+    /// explicit effective identifier mode when the caller already knows the
+    /// inherited workspace policy for this document.
+    pub fn resolve_reference_with_mode(
+        &self,
+        reference: &Reference,
+        mode: ElementIdentifierMode,
+    ) -> Option<&Symbol> {
+        if is_contextual_this_reference(reference) {
+            return resolve_contextual_this_reference(self, reference, mode).resolved();
+        }
+
+        match resolve_reference_raw_text(self, reference.target_hint, &reference.raw_text, mode) {
+            SnapshotReferenceResolution::Resolved(symbol) => Some(symbol),
+            SnapshotReferenceResolution::Ambiguous => None,
+            SnapshotReferenceResolution::Unresolved => {
+                match resolve_reference_with_symbol_context(self, reference, mode) {
+                    SnapshotReferenceResolution::Resolved(symbol) => Some(symbol),
+                    SnapshotReferenceResolution::Ambiguous => None,
+                    SnapshotReferenceResolution::Unresolved => {
+                        resolve_reference_with_selector_context(self, reference, mode).resolved()
+                    }
+                }
+            }
+        }
     }
 
     #[must_use]
@@ -463,4 +514,377 @@ fn contains_workspace_entry(tree: &Tree) -> bool {
 
     root.named_children(&mut cursor)
         .any(|child| matches!(child.kind(), "workspace" | "workspace_block"))
+}
+
+#[derive(Clone, Copy)]
+enum SnapshotContextualOwnerTarget {
+    Element,
+    Deployment,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum SnapshotReferenceResolution<'a> {
+    Resolved(&'a Symbol),
+    Unresolved,
+    Ambiguous,
+}
+
+impl<'a> SnapshotReferenceResolution<'a> {
+    const fn resolved(self) -> Option<&'a Symbol> {
+        match self {
+            Self::Resolved(symbol) => Some(symbol),
+            Self::Unresolved | Self::Ambiguous => None,
+        }
+    }
+}
+
+fn is_contextual_this_reference(reference: &Reference) -> bool {
+    reference.raw_text == "this"
+        && matches!(
+            reference.kind,
+            ReferenceKind::RelationshipSource
+                | ReferenceKind::RelationshipDestination
+                | ReferenceKind::DeploymentRelationshipSource
+                | ReferenceKind::DeploymentRelationshipDestination
+        )
+}
+
+fn resolve_contextual_this_reference<'a>(
+    snapshot: &'a DocumentSnapshot,
+    reference: &Reference,
+    mode: ElementIdentifierMode,
+) -> SnapshotReferenceResolution<'a> {
+    match resolve_selector_owner_target(snapshot, reference, mode) {
+        Some(SnapshotReferenceResolution::Resolved(symbol)) => {
+            return SnapshotReferenceResolution::Resolved(symbol);
+        }
+        Some(SnapshotReferenceResolution::Ambiguous) => {
+            return SnapshotReferenceResolution::Ambiguous;
+        }
+        Some(SnapshotReferenceResolution::Unresolved) => {
+            return SnapshotReferenceResolution::Unresolved;
+        }
+        None => {}
+    }
+
+    let start_symbol = reference
+        .containing_symbol
+        .or_else(|| enclosing_symbol_for_span(snapshot, reference.span));
+    contextual_symbol_target(snapshot, start_symbol, reference)
+}
+
+fn resolve_selector_owner_target<'a>(
+    snapshot: &'a DocumentSnapshot,
+    reference: &Reference,
+    mode: ElementIdentifierMode,
+) -> Option<SnapshotReferenceResolution<'a>> {
+    let selector_target = enclosing_element_selector_target(snapshot, reference.span)?;
+    if !matches!(
+        selector_target.value_kind,
+        DirectiveValueKind::BareValue | DirectiveValueKind::Identifier
+    ) {
+        return Some(SnapshotReferenceResolution::Unresolved);
+    }
+
+    let target_hint = match reference.target_hint {
+        ReferenceTargetHint::Element => SnapshotContextualOwnerTarget::Element,
+        ReferenceTargetHint::Deployment => SnapshotContextualOwnerTarget::Deployment,
+        ReferenceTargetHint::ElementOrDeployment
+        | ReferenceTargetHint::Relationship
+        | ReferenceTargetHint::ElementOrRelationship => {
+            return Some(SnapshotReferenceResolution::Unresolved);
+        }
+    };
+
+    let directive = enclosing_element_directive(snapshot, reference.span)?;
+    for candidate in selector_target_candidates(snapshot, directive, mode) {
+        let resolution = match target_hint {
+            SnapshotContextualOwnerTarget::Element => {
+                resolve_reference_raw_text(snapshot, ReferenceTargetHint::Element, &candidate, mode)
+            }
+            SnapshotContextualOwnerTarget::Deployment => resolve_reference_raw_text(
+                snapshot,
+                ReferenceTargetHint::Deployment,
+                &candidate,
+                mode,
+            ),
+        };
+        if !matches!(resolution, SnapshotReferenceResolution::Unresolved) {
+            return Some(resolution);
+        }
+    }
+
+    Some(SnapshotReferenceResolution::Unresolved)
+}
+
+fn contextual_symbol_target<'a>(
+    snapshot: &'a DocumentSnapshot,
+    start_symbol: Option<SymbolId>,
+    reference: &Reference,
+) -> SnapshotReferenceResolution<'a> {
+    let matches_kind: fn(SymbolKind) -> bool = match reference.target_hint {
+        ReferenceTargetHint::Element => is_element_symbol_kind,
+        ReferenceTargetHint::Deployment => is_deployment_symbol_kind,
+        ReferenceTargetHint::ElementOrDeployment
+        | ReferenceTargetHint::Relationship
+        | ReferenceTargetHint::ElementOrRelationship => {
+            return SnapshotReferenceResolution::Unresolved;
+        }
+    };
+
+    let mut current = start_symbol;
+    while let Some(symbol_id) = current {
+        let Some(symbol) = snapshot.symbols().get(symbol_id.0) else {
+            return SnapshotReferenceResolution::Unresolved;
+        };
+        if matches_kind(symbol.kind) {
+            return SnapshotReferenceResolution::Resolved(symbol);
+        }
+        current = symbol.parent;
+    }
+
+    SnapshotReferenceResolution::Unresolved
+}
+
+fn resolve_reference_with_symbol_context<'a>(
+    snapshot: &'a DocumentSnapshot,
+    reference: &Reference,
+    mode: ElementIdentifierMode,
+) -> SnapshotReferenceResolution<'a> {
+    let Some(containing_symbol) = reference.containing_symbol else {
+        return SnapshotReferenceResolution::Unresolved;
+    };
+    for prefix in
+        contextual_reference_prefixes(snapshot, containing_symbol, mode, reference.target_hint)
+    {
+        let contextual_raw_text = format!("{prefix}.{}", reference.raw_text);
+        let resolution =
+            resolve_reference_raw_text(snapshot, reference.target_hint, &contextual_raw_text, mode);
+        if !matches!(resolution, SnapshotReferenceResolution::Unresolved) {
+            return resolution;
+        }
+    }
+
+    SnapshotReferenceResolution::Unresolved
+}
+
+fn resolve_reference_with_selector_context<'a>(
+    snapshot: &'a DocumentSnapshot,
+    reference: &Reference,
+    mode: ElementIdentifierMode,
+) -> SnapshotReferenceResolution<'a> {
+    let Some(directive) = enclosing_element_directive(snapshot, reference.span) else {
+        return SnapshotReferenceResolution::Unresolved;
+    };
+    if !matches!(
+        directive.target.value_kind,
+        DirectiveValueKind::BareValue | DirectiveValueKind::Identifier
+    ) {
+        return SnapshotReferenceResolution::Unresolved;
+    }
+
+    for selector_target in selector_target_candidates(snapshot, directive, mode) {
+        let contextual_raw_text = format!("{selector_target}.{}", reference.raw_text);
+        let resolution =
+            resolve_reference_raw_text(snapshot, reference.target_hint, &contextual_raw_text, mode);
+        if !matches!(resolution, SnapshotReferenceResolution::Unresolved) {
+            return resolution;
+        }
+    }
+
+    SnapshotReferenceResolution::Unresolved
+}
+
+fn resolve_reference_raw_text<'a>(
+    snapshot: &'a DocumentSnapshot,
+    target_hint: ReferenceTargetHint,
+    raw_text: &str,
+    mode: ElementIdentifierMode,
+) -> SnapshotReferenceResolution<'a> {
+    let mut candidates = snapshot.symbols().iter().filter(|symbol| {
+        symbol_matches_reference_raw_text(snapshot, symbol, target_hint, raw_text, mode)
+    });
+    let Some(first) = candidates.next() else {
+        return SnapshotReferenceResolution::Unresolved;
+    };
+    if candidates.next().is_some() {
+        return SnapshotReferenceResolution::Ambiguous;
+    }
+
+    SnapshotReferenceResolution::Resolved(first)
+}
+
+fn symbol_matches_reference_raw_text(
+    snapshot: &DocumentSnapshot,
+    symbol: &Symbol,
+    target_hint: ReferenceTargetHint,
+    raw_text: &str,
+    mode: ElementIdentifierMode,
+) -> bool {
+    let relationship_match =
+        symbol.kind == SymbolKind::Relationship && symbol.binding_name.as_deref() == Some(raw_text);
+    let element_match = canonical_element_binding_key(snapshot.symbols(), symbol.id, mode)
+        .as_deref()
+        == Some(raw_text);
+    let deployment_match = canonical_deployment_binding_key(snapshot.symbols(), symbol.id, mode)
+        .as_deref()
+        == Some(raw_text);
+
+    match target_hint {
+        ReferenceTargetHint::Element => element_match,
+        ReferenceTargetHint::ElementOrDeployment => element_match || deployment_match,
+        ReferenceTargetHint::Deployment => deployment_match,
+        ReferenceTargetHint::Relationship => relationship_match,
+        ReferenceTargetHint::ElementOrRelationship => element_match || relationship_match,
+    }
+}
+
+fn contextual_reference_prefixes(
+    snapshot: &DocumentSnapshot,
+    containing_symbol: SymbolId,
+    mode: ElementIdentifierMode,
+    target_hint: ReferenceTargetHint,
+) -> Vec<String> {
+    match target_hint {
+        ReferenceTargetHint::Element => contextual_prefixes(
+            snapshot,
+            containing_symbol,
+            mode,
+            &[ReferenceTargetHint::Element],
+        ),
+        ReferenceTargetHint::ElementOrDeployment => contextual_prefixes(
+            snapshot,
+            containing_symbol,
+            mode,
+            &[
+                ReferenceTargetHint::Element,
+                ReferenceTargetHint::Deployment,
+            ],
+        ),
+        ReferenceTargetHint::Deployment => contextual_prefixes(
+            snapshot,
+            containing_symbol,
+            mode,
+            &[ReferenceTargetHint::Deployment],
+        ),
+        ReferenceTargetHint::Relationship | ReferenceTargetHint::ElementOrRelationship => {
+            Vec::new()
+        }
+    }
+}
+
+fn contextual_prefixes(
+    snapshot: &DocumentSnapshot,
+    containing_symbol: SymbolId,
+    mode: ElementIdentifierMode,
+    target_hints: &[ReferenceTargetHint],
+) -> Vec<String> {
+    let mut prefixes = Vec::new();
+    let mut current = Some(containing_symbol);
+
+    while let Some(symbol_id) = current {
+        let Some(symbol) = snapshot.symbols().get(symbol_id.0) else {
+            break;
+        };
+        for target_hint in target_hints {
+            let candidate = match target_hint {
+                ReferenceTargetHint::Element => {
+                    canonical_element_binding_key(snapshot.symbols(), symbol_id, mode)
+                }
+                ReferenceTargetHint::Deployment => {
+                    canonical_deployment_binding_key(snapshot.symbols(), symbol_id, mode)
+                }
+                ReferenceTargetHint::ElementOrDeployment
+                | ReferenceTargetHint::Relationship
+                | ReferenceTargetHint::ElementOrRelationship => None,
+            };
+            if let Some(prefix) = candidate {
+                prefixes.push(prefix);
+            }
+        }
+        current = symbol.parent;
+    }
+
+    prefixes
+}
+
+fn enclosing_element_directive(
+    snapshot: &DocumentSnapshot,
+    span: crate::TextSpan,
+) -> Option<&ElementDirectiveFact> {
+    snapshot
+        .element_directives()
+        .iter()
+        .filter(|directive| span_within(directive.span, span))
+        .min_by_key(|directive| directive.span.end_byte - directive.span.start_byte)
+}
+
+fn enclosing_element_selector_target(
+    snapshot: &DocumentSnapshot,
+    span: crate::TextSpan,
+) -> Option<&crate::ValueFact> {
+    enclosing_element_directive(snapshot, span).map(|directive| &directive.target)
+}
+
+fn selector_target_candidates(
+    snapshot: &DocumentSnapshot,
+    directive: &ElementDirectiveFact,
+    mode: ElementIdentifierMode,
+) -> Vec<String> {
+    let raw_text = directive.target.normalized_text.as_str();
+    let mut candidates = vec![raw_text.to_owned()];
+    let Some(containing_symbol) = enclosing_symbol_for_span(snapshot, directive.span) else {
+        return candidates;
+    };
+
+    for prefix in contextual_prefixes(
+        snapshot,
+        containing_symbol,
+        mode,
+        &[
+            ReferenceTargetHint::Element,
+            ReferenceTargetHint::Deployment,
+        ],
+    ) {
+        candidates.push(format!("{prefix}.{raw_text}"));
+    }
+
+    candidates
+}
+
+fn enclosing_symbol_for_span(
+    snapshot: &DocumentSnapshot,
+    span: crate::TextSpan,
+) -> Option<SymbolId> {
+    snapshot
+        .symbols()
+        .iter()
+        .filter(|symbol| span_within(symbol.span, span))
+        .min_by_key(|symbol| symbol.span.end_byte - symbol.span.start_byte)
+        .map(|symbol| symbol.id)
+}
+
+const fn is_element_symbol_kind(kind: SymbolKind) -> bool {
+    matches!(
+        kind,
+        SymbolKind::Person
+            | SymbolKind::SoftwareSystem
+            | SymbolKind::Container
+            | SymbolKind::Component
+    )
+}
+
+const fn is_deployment_symbol_kind(kind: SymbolKind) -> bool {
+    matches!(
+        kind,
+        SymbolKind::DeploymentEnvironment
+            | SymbolKind::DeploymentNode
+            | SymbolKind::InfrastructureNode
+            | SymbolKind::ContainerInstance
+            | SymbolKind::SoftwareSystemInstance
+    )
+}
+
+const fn span_within(outer: crate::TextSpan, inner: crate::TextSpan) -> bool {
+    outer.start_byte <= inner.start_byte && inner.end_byte <= outer.end_byte
 }

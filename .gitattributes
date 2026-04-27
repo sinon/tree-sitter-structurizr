@@ -11,3 +11,6 @@ crates/strz-grammar/bindings/rust/* linguist-generated
 # Generated test data
 tests/lsp/workspaces/benchmark-mega-multi-root/** linguist-generated
 tests/lsp/workspaces/benchmark-mega/** linguist-generated
+
+# Use bd merge for beads JSONL files
+.beads/issues.jsonl merge=beads

@@ -1,7 +1,8 @@
 use indoc::indoc;
 use strz_analysis::{
-    DocumentAnalyzer, DocumentInput, DynamicViewStepFact, ImageSourceKind, ImageSourceMode,
-    ResourceDirectiveKind, ViewKind, WorkspaceScope, WorkspaceSectionKind,
+    DocumentAnalyzer, DocumentInput, DynamicViewStepFact, ElementIdentifierMode, ImageSourceKind,
+    ImageSourceMode, ReferenceKind, ReferenceTargetHint, ResourceDirectiveKind, ViewKind,
+    WorkspaceScope, WorkspaceSectionKind,
 };
 
 fn analyze(source: &str) -> strz_analysis::DocumentSnapshot {
@@ -146,6 +147,17 @@ fn assert_resource_selector_and_property_facts(snapshot: &strz_analysis::Documen
         .expect("element directive should exist");
     assert_eq!(selector.target.normalized_text, "system.api");
     assert_eq!(selector.container_node_kind, "model_block");
+
+    let selector_reference = snapshot
+        .references()
+        .iter()
+        .find(|reference| reference.kind == ReferenceKind::ElementSelectorTarget)
+        .expect("selector target reference should exist");
+    assert_eq!(selector_reference.raw_text, "system.api");
+    assert_eq!(
+        selector_reference.target_hint,
+        ReferenceTargetHint::ElementOrDeployment
+    );
 }
 
 fn find_view<'a>(
@@ -260,6 +272,102 @@ fn analysis_extracts_workspace_view_and_resource_facts() {
     assert_resource_selector_and_property_facts(&snapshot);
     assert_container_and_filtered_views(&snapshot);
     assert_dynamic_and_image_views(&snapshot);
+}
+
+#[test]
+fn analysis_resolves_hierarchical_selector_targets_and_dotted_references() {
+    let snapshot = analyze(indoc! {r#"
+        workspace {
+            model {
+                !identifiers hierarchical
+
+                system = softwareSystem "System" {
+                    api = container "API"
+                    worker = container "Worker"
+
+                    !element api {
+                        worker -> this "Targets selector"
+                    }
+
+                    worker -> system.api "Uses"
+                }
+            }
+        }
+    "#});
+
+    let selector_reference = snapshot
+        .references()
+        .iter()
+        .find(|reference| reference.kind == ReferenceKind::ElementSelectorTarget)
+        .expect("selector target reference should exist");
+    assert_eq!(
+        snapshot
+            .resolve_reference(selector_reference)
+            .and_then(|symbol| symbol.binding_name.as_deref()),
+        Some("api")
+    );
+
+    let dotted_reference = snapshot
+        .references()
+        .iter()
+        .find(|reference| {
+            reference.kind == ReferenceKind::RelationshipDestination
+                && reference.raw_text == "system.api"
+        })
+        .expect("dotted relationship reference should exist");
+    assert_eq!(
+        snapshot
+            .resolve_reference(dotted_reference)
+            .and_then(|symbol| symbol.binding_name.as_deref()),
+        Some("api")
+    );
+}
+
+#[test]
+fn analysis_can_resolve_hierarchical_references_with_inherited_mode() {
+    let snapshot = analyze(indoc! {r#"
+        model {
+            system = softwareSystem "System" {
+                api = container "API"
+                worker = container "Worker"
+
+                !element system.api {
+                    worker -> this "Targets selector"
+                }
+
+                worker -> system.api "Uses"
+            }
+        }
+    "#});
+
+    let selector_reference = snapshot
+        .references()
+        .iter()
+        .find(|reference| reference.kind == ReferenceKind::ElementSelectorTarget)
+        .expect("selector target reference should exist");
+    assert_eq!(snapshot.resolve_reference(selector_reference), None);
+    assert_eq!(
+        snapshot
+            .resolve_reference_with_mode(selector_reference, ElementIdentifierMode::Hierarchical)
+            .and_then(|symbol| symbol.binding_name.as_deref()),
+        Some("api")
+    );
+
+    let dotted_reference = snapshot
+        .references()
+        .iter()
+        .find(|reference| {
+            reference.kind == ReferenceKind::RelationshipDestination
+                && reference.raw_text == "system.api"
+        })
+        .expect("dotted relationship reference should exist");
+    assert_eq!(snapshot.resolve_reference(dotted_reference), None);
+    assert_eq!(
+        snapshot
+            .resolve_reference_with_mode(dotted_reference, ElementIdentifierMode::Hierarchical)
+            .and_then(|symbol| symbol.binding_name.as_deref()),
+        Some("api")
+    );
 }
 
 #[test]

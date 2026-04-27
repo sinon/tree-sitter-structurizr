@@ -192,5 +192,25 @@ SnapshotView {
             syntax_node_kind: "component",
         },
     ],
-    references: [],
+    references: [
+        Reference {
+            kind: ElementSelectorTarget,
+            raw_text: "system.api.worker",
+            span: TextSpan {
+                start_byte: 247,
+                end_byte: 264,
+                start_point: TextPoint {
+                    row: 12,
+                    column: 17,
+                },
+                end_point: TextPoint {
+                    row: 12,
+                    column: 34,
+                },
+            },
+            target_hint: ElementOrDeployment,
+            container_node_kind: "element_directive",
+            containing_symbol: None,
+        },
+    ],
 }

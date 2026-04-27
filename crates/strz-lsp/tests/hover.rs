@@ -69,6 +69,27 @@ const DEPLOYMENT_INSTANCE_HOVER_SOURCE: &str = r#"workspace {
     }
 }
 "#;
+const HIERARCHICAL_SELECTOR_HOVER_SOURCE: &str = r#"workspace {
+    model {
+        !identifiers hierarchical
+
+        system = softwareSystem "Payments Platform" {
+            <CURSOR:api-declaration>api = container "Payments API" "Processes payment requests" "Rust" "Internal, HTTP" {
+                technology "Axum"
+                tags "Internal, Edge"
+                url "https://example.com/api"
+            }
+            worker = container "Settlement Worker" "Settles payment jobs" "Rust"
+
+            !element <CURSOR:selector-target>api {
+                worker -> <CURSOR:this-reference>this "Targets selector"
+            }
+
+            worker -> <CURSOR:dotted-reference>system.api "Uses"
+        }
+    }
+}
+"#;
 
 const API_HOVER: &str = "**Container** `api`\nPayments API\n\nProcesses payment requests\n\n**Technology:** Axum  \n**Tags:** Internal, HTTP, Edge  \n**URL:** <https://example.com/api>";
 const RELATIONSHIP_HOVER: &str = "**Relationship** `rel`\nPublishes jobs\n\nDelivers asynchronous jobs\n\n**Technology:** NATS  \n**Tags:** Async, Messaging, Observed  \n**URL:** <https://example.com/rel>";
@@ -113,6 +134,25 @@ async fn hover_returns_markdown_for_same_document_references() {
     )
     .await;
     assert_hover_markdown(&relationship_hover, RELATIONSHIP_HOVER);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn hover_resolves_hierarchical_selector_and_dotted_reference_sites() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(HIERARCHICAL_SELECTOR_HOVER_SOURCE);
+    let uri = file_uri("hover-hierarchical-selector.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let selector_hover =
+        request_hover(&mut service, &uri, source.position("selector-target")).await;
+    assert_hover_markdown(&selector_hover, API_HOVER);
+
+    let dotted_hover = request_hover(&mut service, &uri, source.position("dotted-reference")).await;
+    assert_hover_markdown(&dotted_hover, API_HOVER);
 }
 
 #[tokio::test(flavor = "current_thread")]

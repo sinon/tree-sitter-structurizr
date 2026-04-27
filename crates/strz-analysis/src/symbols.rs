@@ -99,6 +99,8 @@ impl fmt::Debug for Symbol {
 /// Categorizes how a reference is used at its source site.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReferenceKind {
+    /// `!element` selector target reference.
+    ElementSelectorTarget,
     /// Relationship source endpoint reference.
     RelationshipSource,
     /// Relationship destination endpoint reference.
@@ -124,6 +126,8 @@ pub enum ReferenceKind {
 pub enum ReferenceTargetHint {
     /// The reference should resolve to an element symbol.
     Element,
+    /// The reference should resolve to either an element or deployment-layer symbol.
+    ElementOrDeployment,
     /// The reference should resolve to a deployment-layer symbol.
     Deployment,
     /// The reference should resolve to a relationship symbol.
