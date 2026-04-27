@@ -57,8 +57,7 @@ The current implementation deliberately stays conservative around:
 - selector and hierarchical reference forms such as `system.api`
 - named dynamic relationship reference sites
 - richer hover content
-- broader identifier completion beyond flat-mode explicit relationship
-  endpoints for core elements
+- broader identifier completion beyond the current bounded flat identifier slice
 - workspace symbols
 - broader or hierarchical rename and code actions
 - semantic tokens
@@ -80,12 +79,12 @@ For this repository, "feature complete" does not mean upstream runtime parity. I
 
 The remaining path to that state is roughly:
 
-- finish downstream editor wiring and release choreography, especially around the separate Zed extension
 - broaden safe reference coverage for selectors, `this`, named dynamic references, and other still-deferred scope cases
 - deepen read-only semantic UX with broader hover coverage and workspace symbols
 - broaden rename beyond the shipped flat/deployment slice, and add code actions,
   only after broader reference coverage lands
 - improve workspace invalidation, performance, and operational visibility so the current implementation scales more gracefully
+- keep the current-state and delivery docs aligned with the now-shipped downstream editor path
 
 ## Suggested reading paths
 

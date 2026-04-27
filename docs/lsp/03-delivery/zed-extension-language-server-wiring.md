@@ -1,6 +1,10 @@
 # Structurizr DSL Zed extension language-server wiring
 
-This note turns Phase 5 of [`docs/lsp/03-delivery/roadmap.md`](roadmap.md) into a concrete integration plan for `/Users/rob/dev/zed-structurizr`.
+> Status: downstream launch wiring has since been completed in the separate
+> `zed-structurizr` repository. Treat this note as the original wiring/design
+> record rather than the current extension status.
+
+This note recorded Phase 5 of [`docs/lsp/03-delivery/roadmap.md`](roadmap.md) as a concrete integration plan for `/Users/rob/dev/zed-structurizr`.
 
 Its job is to answer:
 
@@ -26,9 +30,9 @@ What still needed to be made explicit was the downstream wiring story:
 
 Without that, “wire it into Zed” stays vague and tends to drift into accidental packaging decisions.
 
-## Current starting point
+## Original starting point
 
-Today `/Users/rob/dev/zed-structurizr` is a static language extension:
+At the time this note was written, `/Users/rob/dev/zed-structurizr` was a static language extension:
 
 - `extensions.toml` registers the grammar
 - `languages/structurizr/config.toml` defines the language metadata

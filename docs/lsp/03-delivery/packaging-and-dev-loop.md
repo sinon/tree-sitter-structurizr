@@ -1,5 +1,9 @@
 # Structurizr DSL packaging and development loop
 
+> Status: downstream launch wiring now exists in the separate extension repo.
+> Treat this note as packaging/reference context, not as evidence that editor
+> delivery is still the next missing milestone in this repository.
+
 This note defines the recommended packaging model and contributor loops for the current Structurizr DSL grammar, analysis layer, LSP, and Zed extension.
 
 It is the operational companion to:
