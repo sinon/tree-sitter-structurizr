@@ -13,6 +13,53 @@ pub const DIRECT_REFERENCES_SOURCE: &str =
     include_str!("../fixtures/relationships/named-relationships-ok.dsl");
 pub const DIRECT_REFERENCES_CURSOR_SOURCE: &str =
     include_str!("../fixtures/cursor/relationships/named-relationships-ok.dsl");
+pub const SELECTOR_THIS_CURSOR_SOURCE: &str = r#"workspace {
+    model {
+        system = softwareSystem "System" {
+            <CURSOR:api-declaration>api = container "API"
+            worker = container "Worker"
+
+            !element api {
+                worker -> <CURSOR:this-reference>this "Targets selector"
+            }
+        }
+    }
+}
+"#;
+pub const THIS_SOURCE_CURSOR_SOURCE: &str = r#"workspace {
+    model {
+        system = softwareSystem "System" {
+            db = container "DB"
+            api = container "API" {
+                <CURSOR:repo-declaration>repo = component "Repository" {
+                    <CURSOR:this-source>this -> db
+                }
+            }
+        }
+    }
+}
+"#;
+pub const ARCHETYPE_THIS_CURSOR_SOURCE: &str = r#"workspace {
+    model {
+        archetypes {
+            application = container
+            springBootApplication = application
+            repository = component
+        }
+
+        x = softwareSystem "X" {
+            db = container "DB"
+            api = springBootApplication "Customer API" {
+                customerController = component "Customer Controller"
+                <CURSOR:repo-declaration>customerRepository = repository "Customer Repository" {
+                    customerController -> this
+                    <CURSOR:this-source>this -> db
+                }
+            }
+        }
+    }
+}
+"#;
 
 pub fn copied_workspace_fixture(name: &str) -> TempDir {
     let source_root = workspace_fixture_path(name);

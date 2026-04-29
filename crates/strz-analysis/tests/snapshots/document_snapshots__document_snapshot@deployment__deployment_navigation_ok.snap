@@ -301,6 +301,29 @@ SnapshotView {
             ),
         },
         Reference {
+            kind: DeploymentRelationshipDestination,
+            raw_text: "this",
+            span: TextSpan {
+                start_byte: 347,
+                end_byte: 351,
+                start_point: TextPoint {
+                    row: 10,
+                    column: 31,
+                },
+                end_point: TextPoint {
+                    row: 10,
+                    column: 35,
+                },
+            },
+            target_hint: Deployment,
+            container_node_kind: "relationship",
+            containing_symbol: Some(
+                SymbolId(
+                    5,
+                ),
+            ),
+        },
+        Reference {
             kind: InstanceTarget,
             raw_text: "system",
             span: TextSpan {

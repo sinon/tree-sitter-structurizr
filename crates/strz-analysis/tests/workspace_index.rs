@@ -624,7 +624,9 @@ fn deployment_sibling_relationships_remain_valid() {
                             primary = deploymentNode "Primary" {
                                 gateway = infrastructureNode "Gateway"
                                 apiInstance = containerInstance api {
+                                    this -> gateway "Checks health"
                                     gateway -> this "Routes traffic"
+                                    -> this "Implicit return path"
                                 }
                                 softwareSystemInstance system
                             }
@@ -1043,6 +1045,63 @@ fn dynamic_view_relationship_annotations_point_to_the_declared_relationship_docu
             .map(|document| display_document_id(document.as_str(), workspace.root())),
         Some("model.dsl".to_owned())
     );
+}
+
+#[test]
+fn selector_scoped_this_and_omitted_source_relationships_match_dynamic_steps() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        system = softwareSystem "System" {
+                            api = container "API"
+                            worker = container "Worker"
+
+                            !element api {
+                                worker -> this "Targets selector"
+                                -> worker "Selector source"
+                            }
+                        }
+                    }
+
+                    views {
+                        dynamic system "dynamic-view" {
+                            1: worker -> api "Targets selector"
+                            2: api -> worker "Selector source"
+                        }
+                    }
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_code(&facts, "semantic.dynamic-view-relationship-mismatch");
+    assert!(diagnostics.is_empty(), "{diagnostics:#?}");
+}
+
+#[test]
+fn invalid_this_references_surface_unresolved_reference_diagnostics() {
+    let (_workspace, facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        user = person "User"
+                        this -> user "Uses"
+                    }
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_code(&facts, "semantic.unresolved-reference");
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(diagnostics[0].span().start_point.row, 3);
 }
 
 #[test]

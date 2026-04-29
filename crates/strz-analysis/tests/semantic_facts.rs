@@ -352,3 +352,56 @@ fn analysis_extracts_nested_image_sources_and_dynamic_reference_steps() {
         "mermaid"
     );
 }
+
+#[test]
+fn analysis_keeps_this_and_omitted_source_relationship_facts() {
+    let snapshot = analyze(indoc! {r#"
+        workspace {
+            model {
+                system = softwareSystem "System" {
+                    api = container "API"
+                }
+
+                live = deploymentEnvironment "Live" {
+                    primary = deploymentNode "Primary" {
+                        gateway = infrastructureNode "Gateway"
+                        apiInstance = containerInstance api {
+                            this -> gateway "Calls back"
+                            gateway -> this "Routes traffic"
+                            -> this "Implicit source"
+                        }
+                    }
+                }
+            }
+        }
+    "#});
+
+    assert_eq!(snapshot.relationship_facts().len(), 3);
+
+    let relationship_shapes = snapshot
+        .relationship_facts()
+        .iter()
+        .map(|relationship| {
+            (
+                relationship
+                    .source
+                    .as_ref()
+                    .map(|value| value.normalized_text.as_str()),
+                relationship.destination.normalized_text.as_str(),
+                relationship
+                    .description
+                    .as_ref()
+                    .map(|value| value.normalized_text.as_str()),
+            )
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        relationship_shapes,
+        vec![
+            (Some("this"), "gateway", Some("Calls back")),
+            (Some("gateway"), "this", Some("Routes traffic")),
+            (None, "this", Some("Implicit source")),
+        ]
+    );
+}

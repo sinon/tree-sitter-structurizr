@@ -214,6 +214,7 @@ mod tests {
 
     use super::DocumentAnalyzer;
     use crate::snapshot::DocumentInput;
+    use crate::symbols::SymbolKind;
 
     fn parse_execution_logs(logs: &[String]) -> usize {
         logs.iter()
@@ -547,6 +548,45 @@ mod tests {
                 "Observed".to_owned(),
             ]
         );
+    }
+
+    #[test]
+    fn analysis_extracts_supported_archetype_instances_as_symbols() {
+        let mut analyzer = DocumentAnalyzer::new();
+        let snapshot = analyzer.analyze(DocumentInput::new(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        archetypes {
+                            application = container
+                            springBootApplication = application
+                            repository = component
+                        }
+
+                        system = softwareSystem "System" {
+                            api = springBootApplication "API" {
+                                repo = repository "Repository"
+                            }
+                        }
+                    }
+                }
+            "#},
+        ));
+
+        let api = snapshot
+            .symbols()
+            .iter()
+            .find(|symbol| symbol.binding_name.as_deref() == Some("api"))
+            .expect("archetyped container symbol should exist");
+        assert_eq!(api.kind, SymbolKind::Container);
+
+        let repo = snapshot
+            .symbols()
+            .iter()
+            .find(|symbol| symbol.binding_name.as_deref() == Some("repo"))
+            .expect("archetyped component symbol should exist");
+        assert_eq!(repo.kind, SymbolKind::Component);
     }
 
     #[test]

@@ -221,6 +221,13 @@ fn workspace_rename_plan(
     candidate_instances: &[WorkspaceInstanceId],
 ) -> Option<RenamePlan> {
     let site = super::navigation::navigation_site_at_offset(snapshot, offset)?;
+    if matches!(
+        site,
+        super::navigation::NavigationSite::Reference { reference, .. }
+            if super::navigation::is_contextual_this_reference(reference)
+    ) {
+        return None;
+    }
     let request_span = match site {
         super::navigation::NavigationSite::Symbol(symbol) => symbol.binding_span?,
         super::navigation::NavigationSite::Reference { reference, .. } => reference.span,
@@ -323,6 +330,9 @@ fn workspace_instance_rename_sites(
         let document = workspace_facts.document(handle.document())?;
         let snapshot = document.snapshot();
         let reference = snapshot.references().get(handle.reference_index())?;
+        if super::navigation::is_contextual_this_reference(reference) {
+            continue;
+        }
         sites.push(workspace_edit_site(document, reference.span)?);
     }
 
@@ -336,6 +346,13 @@ fn same_document_rename_plan(
     offset: usize,
 ) -> Option<RenamePlan> {
     let site = super::navigation::navigation_site_at_offset(snapshot, offset)?;
+    if matches!(
+        site,
+        super::navigation::NavigationSite::Reference { reference, .. }
+            if super::navigation::is_contextual_this_reference(reference)
+    ) {
+        return None;
+    }
     let request_span = match site {
         super::navigation::NavigationSite::Symbol(symbol) => symbol.binding_span?,
         super::navigation::NavigationSite::Reference { reference, .. } => reference.span,
@@ -360,6 +377,7 @@ fn same_document_rename_plan(
     let current_name = target_symbol.binding_name.clone()?;
     if snapshot.references().iter().any(|reference| {
         super::navigation::resolve_reference(snapshot, reference) == Some(target_symbol)
+            && !super::navigation::is_contextual_this_reference(reference)
             && reference.raw_text != current_name
     }) {
         return None;
@@ -382,6 +400,7 @@ fn same_document_rename_plan(
             .iter()
             .filter(|reference| {
                 super::navigation::resolve_reference(snapshot, reference) == Some(target_symbol)
+                    && !super::navigation::is_contextual_this_reference(reference)
             })
             .map(|reference| RenameEditSite {
                 uri: document.uri().clone(),
@@ -493,7 +512,10 @@ fn workspace_has_non_flat_reference_spelling(
                         .references()
                         .get(handle.reference_index())
                 })
-                .is_none_or(|reference| reference.raw_text != current_name)
+                .is_none_or(|reference| {
+                    !super::navigation::is_contextual_this_reference(reference)
+                        && reference.raw_text != current_name
+                })
         })
 }
 

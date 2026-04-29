@@ -10,7 +10,8 @@ use crate::support::{
 };
 
 use super::shared::{
-    DIRECT_REFERENCES_CURSOR_SOURCE, copied_workspace_fixture,
+    ARCHETYPE_THIS_CURSOR_SOURCE, DIRECT_REFERENCES_CURSOR_SOURCE, SELECTOR_THIS_CURSOR_SOURCE,
+    THIS_SOURCE_CURSOR_SOURCE, copied_workspace_fixture,
     read_annotated_cursor_workspace_fixture,
 };
 
@@ -38,6 +39,88 @@ async fn goto_definition_resolves_same_document_relationship_references() {
     assert_eq!(response["result"]["uri"], uri.as_str());
     assert_eq!(response["result"]["range"]["start"]["line"], 5);
 }
+
+#[tokio::test(flavor = "current_thread")]
+async fn goto_definition_prefers_selector_context_for_same_document_this_references() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(SELECTOR_THIS_CURSOR_SOURCE);
+    let uri = file_uri("selector-this-ok.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let response = request_json(
+        &mut service,
+        "textDocument/definition",
+        json!({
+            "textDocument": { "uri": uri.as_str() },
+            "position": source.position("this-reference"),
+        }),
+    )
+    .await;
+
+    assert_eq!(response["result"]["uri"], uri.as_str());
+    assert_eq!(response["result"]["range"]["start"]["line"], 3);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn goto_definition_for_this_source_uses_the_binding_span() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(THIS_SOURCE_CURSOR_SOURCE);
+    let uri = file_uri("this-source-ok.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let response = request_json(
+        &mut service,
+        "textDocument/definition",
+        json!({
+            "textDocument": { "uri": uri.as_str() },
+            "position": source.position("this-source"),
+        }),
+    )
+    .await;
+
+    assert_eq!(response["result"]["uri"], uri.as_str());
+    assert_eq!(response["result"]["range"]["start"]["line"], 5);
+    assert_eq!(response["result"]["range"]["start"]["character"], 16);
+    assert_eq!(response["result"]["range"]["end"]["line"], 5);
+    assert_eq!(response["result"]["range"]["end"]["character"], 20);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn goto_definition_for_archetype_backed_this_uses_the_nearest_owner() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(ARCHETYPE_THIS_CURSOR_SOURCE);
+    let uri = file_uri("archetype-this-ok.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let response = request_json(
+        &mut service,
+        "textDocument/definition",
+        json!({
+            "textDocument": { "uri": uri.as_str() },
+            "position": source.position("this-source"),
+        }),
+    )
+    .await;
+
+    assert_eq!(response["result"]["uri"], uri.as_str());
+    assert_eq!(response["result"]["range"]["start"]["line"], 12);
+    assert_eq!(response["result"]["range"]["start"]["character"], 16);
+    assert_eq!(response["result"]["range"]["end"]["line"], 12);
+    assert_eq!(response["result"]["range"]["end"]["character"], 34);
+}
+
 #[tokio::test(flavor = "current_thread")]
 async fn goto_definition_resolves_cross_file_view_scope_references() {
     let (mut service, _socket) = new_service();
@@ -568,7 +651,7 @@ async fn goto_definition_resolves_deployment_relationship_endpoints() {
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn goto_definition_returns_no_result_for_deferred_deployment_this() {
+async fn goto_definition_resolves_deployment_this_to_the_enclosing_instance() {
     let (mut service, _socket) = new_service();
     let workspace_root = workspace_fixture_path("deployment-navigation");
 
@@ -581,17 +664,17 @@ async fn goto_definition_returns_no_result_for_deferred_deployment_this() {
     let workspace_uri = file_uri_from_path(&workspace_path);
     open_document(&mut service, &workspace_uri, workspace_source.source()).await;
 
-    let response = request_json(
+    assert_definition_target(
         &mut service,
-        "textDocument/definition",
-        json!({
-            "textDocument": { "uri": workspace_uri.as_str() },
-            "position": workspace_source.position("deferred-this"),
-        }),
+        &workspace_uri,
+        &workspace_source,
+        DefinitionExpectation {
+            marker: "deferred-this",
+            expected_uri: workspace_uri.as_str(),
+            expected_line: 9,
+        },
     )
     .await;
-
-    assert!(response["result"].is_null());
 }
 
 #[tokio::test(flavor = "current_thread")]
