@@ -101,7 +101,7 @@ exit_code: 1
       "severity": "error",
       "code": "semantic.ambiguous-reference",
       "source": "semantic",
-      "message": "ambiguous identifier reference: api",
+      "message": "ambiguous element reference: api (multiple bindings match)",
       "span": {
         "start_byte": 119,
         "end_byte": 122,

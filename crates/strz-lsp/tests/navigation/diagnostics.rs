@@ -156,9 +156,10 @@ async fn diagnostics_publish_bounded_semantic_errors() {
     let alpha_notification =
         next_publish_diagnostics_for_uri(&mut socket, alpha_uri.as_str()).await;
 
-    let alpha_messages = alpha_notification["params"]["diagnostics"]
+    let alpha_diagnostics = alpha_notification["params"]["diagnostics"]
         .as_array()
-        .expect("diagnostics notification should include an array")
+        .expect("diagnostics notification should include an array");
+    let alpha_messages = alpha_diagnostics
         .iter()
         .map(|diagnostic| {
             diagnostic["message"]
@@ -172,6 +173,23 @@ async fn diagnostics_publish_bounded_semantic_errors() {
             "multiple model sections are not permitted in a DSL definition",
             "duplicate element binding: api",
         ]
+    );
+    let duplicate_diagnostic = alpha_diagnostics
+        .iter()
+        .find(|diagnostic| diagnostic["code"] == "semantic.duplicate-binding")
+        .expect("duplicate binding diagnostic should publish");
+    assert_eq!(duplicate_diagnostic["severity"], 1);
+    let related_information = duplicate_diagnostic["relatedInformation"]
+        .as_array()
+        .expect("duplicate binding diagnostic should include related information");
+    assert_eq!(related_information.len(), 1);
+    assert_eq!(
+        related_information[0]["message"],
+        "other element binding for api is declared here"
+    );
+    assert_eq!(
+        related_information[0]["location"]["uri"],
+        file_uri_from_path(&workspace_root.join("beta.dsl")).as_str()
     );
 
     close_document(&mut service, &alpha_uri).await;
@@ -200,7 +218,40 @@ async fn diagnostics_publish_bounded_semantic_errors() {
         .collect::<Vec<_>>();
     assert_eq!(
         workspace_messages,
-        vec!["ambiguous identifier reference: api"]
+        vec!["ambiguous element reference: api (multiple bindings match)"]
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn diagnostics_publish_multi_context_disagreement_warnings() {
+    let (mut service, mut socket) = new_service();
+    let workspace_root = workspace_fixture_path("multi-instance-open-fragment");
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
+    initialized(&mut service).await;
+
+    let shared_view_path = workspace_root.join("shared/view.dsl");
+    let shared_view_uri = file_uri_from_path(&shared_view_path);
+    open_document(
+        &mut service,
+        &shared_view_uri,
+        &read_workspace_file(&shared_view_path),
+    )
+    .await;
+    let notification =
+        next_publish_diagnostics_for_uri(&mut socket, shared_view_uri.as_str()).await;
+    let diagnostics = notification["params"]["diagnostics"]
+        .as_array()
+        .expect("diagnostics notification should include an array");
+    let warning = diagnostics
+        .iter()
+        .find(|diagnostic| diagnostic["code"] == "semantic.multi-context-disagreement")
+        .expect("multi-context disagreement diagnostic should publish");
+
+    assert_eq!(warning["severity"], 2);
+    assert_eq!(
+        warning["message"],
+        "some workspace contexts report: unresolved element or relationship reference: api (no matching binding found) (reported in 1 of 2 contexts)"
     );
 }
 

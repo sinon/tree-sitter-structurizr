@@ -12,7 +12,7 @@ use ignore::WalkBuilder;
 use crate::{
     Annotation, ConstantDefinition, DocumentAnalyzer, DocumentId, DocumentInput, DocumentLocation,
     IdentifierMode, IdentifierModeFact, IncludeDirective, Reference, ReferenceKind,
-    ReferenceTargetHint, RuledDiagnostic, Symbol, SymbolId, SymbolKind, TextSpan,
+    ReferenceTargetHint, RuleId, RuledDiagnostic, Symbol, SymbolId, SymbolKind, TextSpan,
     includes::{DirectiveContainer, DirectiveValueKind, normalized_directive_value},
     semantic::{
         ConfigurationScopeFact, DynamicViewStepFact, ElementDirectiveFact, ImageSourceKind,
@@ -2984,20 +2984,19 @@ fn build_reference_resolution_tables(
                 match status {
                     ReferenceResolutionStatus::UnresolvedNoMatch => {
                         if emits_generic_reference_diagnostics(reference) {
-                            semantic_diagnostics.push(RuledDiagnostic::unresolved_reference(
+                            semantic_diagnostics.push(unresolved_reference_diagnostic(
                                 &document.document_id,
-                                &reference.raw_text,
-                                reference.span,
+                                reference,
                             ));
                         }
                     }
                     ReferenceResolutionStatus::AmbiguousDuplicateBinding
                     | ReferenceResolutionStatus::AmbiguousElementVsRelationship => {
                         if emits_generic_reference_diagnostics(reference) {
-                            semantic_diagnostics.push(RuledDiagnostic::ambiguous_reference(
+                            semantic_diagnostics.push(ambiguous_reference_diagnostic(
                                 &document.document_id,
-                                &reference.raw_text,
-                                reference.span,
+                                reference,
+                                &status,
                             ));
                         }
                     }
@@ -3040,6 +3039,54 @@ fn emits_generic_reference_diagnostics(reference: &Reference) -> bool {
     reference.kind != ReferenceKind::ElementSelectorTarget
 }
 
+fn unresolved_reference_diagnostic(
+    document: &DocumentId,
+    reference: &Reference,
+) -> RuledDiagnostic {
+    RuledDiagnostic::unresolved_reference_with_hint(
+        document,
+        reference_target_hint_label(reference.target_hint),
+        &reference.raw_text,
+        reference.span,
+    )
+}
+
+fn ambiguous_reference_diagnostic(
+    document: &DocumentId,
+    reference: &Reference,
+    status: &ReferenceResolutionStatus,
+) -> RuledDiagnostic {
+    RuledDiagnostic::ambiguous_reference_with_hint(
+        document,
+        reference_target_hint_label(reference.target_hint),
+        &reference.raw_text,
+        ambiguous_reference_reason(status),
+        reference.span,
+    )
+}
+
+const fn reference_target_hint_label(target_hint: ReferenceTargetHint) -> &'static str {
+    match target_hint {
+        ReferenceTargetHint::Element => "element",
+        ReferenceTargetHint::ElementOrDeployment => "element or deployment",
+        ReferenceTargetHint::Deployment => "deployment",
+        ReferenceTargetHint::Relationship => "relationship",
+        ReferenceTargetHint::ElementOrRelationship => "element or relationship",
+    }
+}
+
+const fn ambiguous_reference_reason(status: &ReferenceResolutionStatus) -> &'static str {
+    match status {
+        ReferenceResolutionStatus::AmbiguousDuplicateBinding => "multiple bindings match",
+        ReferenceResolutionStatus::AmbiguousElementVsRelationship => {
+            "both an element binding and a relationship binding match"
+        }
+        ReferenceResolutionStatus::Resolved(_)
+        | ReferenceResolutionStatus::UnresolvedNoMatch
+        | ReferenceResolutionStatus::DeferredByScopePolicy => "resolution is not unique",
+    }
+}
+
 fn split_binding_table(
     bindings: BTreeMap<String, Vec<SymbolHandle>>,
 ) -> (
@@ -3075,24 +3122,39 @@ fn push_duplicate_binding_diagnostics(
         .collect::<BTreeMap<_, _>>();
 
     for (key, handles) in duplicate_bindings {
-        for handle in handles {
-            let document = documents_by_id
-                .get(handle.document())
-                .expect("BUG: duplicate-binding document should exist");
-            if document.has_syntax_errors {
-                continue;
-            }
+        let duplicate_sites = handles
+            .iter()
+            .filter_map(|handle| {
+                let document = documents_by_id
+                    .get(handle.document())
+                    .expect("BUG: duplicate-binding document should exist");
+                if document.has_syntax_errors {
+                    return None;
+                }
 
-            let symbol = document
-                .symbols
-                .get(handle.symbol_id().0)
-                .expect("BUG: duplicate-binding symbol should exist");
-            diagnostics.push(RuledDiagnostic::duplicate_binding(
-                handle.document(),
-                binding_kind,
-                key,
-                symbol.span,
-            ));
+                let symbol = document
+                    .symbols
+                    .get(handle.symbol_id().0)
+                    .expect("BUG: duplicate-binding symbol should exist");
+                Some((handle, symbol.span))
+            })
+            .collect::<Vec<_>>();
+
+        for (handle, span) in &duplicate_sites {
+            let mut diagnostic =
+                RuledDiagnostic::duplicate_binding(handle.document(), binding_kind, key, *span);
+            for (related_handle, related_span) in &duplicate_sites {
+                if related_handle == handle {
+                    continue;
+                }
+                diagnostic.annotate(secondary_annotation(
+                    handle.document(),
+                    related_handle.document(),
+                    *related_span,
+                    format!("other {binding_kind} binding for {key} is declared here"),
+                ));
+            }
+            diagnostics.push(diagnostic);
         }
     }
 }
@@ -5601,10 +5663,11 @@ fn merge_semantic_diagnostics(
     document_instances: &BTreeMap<DocumentId, Vec<WorkspaceInstanceId>>,
 ) -> Vec<RuledDiagnostic> {
     // A document can participate in multiple candidate workspace instances.
-    // Only publish a merged semantic diagnostic when every instance that contains
-    // the document agrees on that diagnostic; otherwise editor surfaces would
-    // oscillate based on whichever instance happened to be consulted first.
-    let mut diagnostic_counts = BTreeMap::<DocumentId, BTreeMap<RuledDiagnostic, usize>>::new();
+    // Exact agreement keeps the original diagnostic. Any disagreement becomes a
+    // warning with unioned related context so shared fragments do not hide
+    // context-specific issues or publish one root's view as unconditional truth.
+    let mut diagnostic_instances =
+        BTreeMap::<DocumentId, BTreeMap<RuledDiagnostic, BTreeSet<WorkspaceInstanceId>>>::new();
 
     for workspace_index in workspace_indexes {
         let mut per_document = BTreeMap::<DocumentId, BTreeSet<RuledDiagnostic>>::new();
@@ -5622,28 +5685,90 @@ fn merge_semantic_diagnostics(
         }
 
         for (document, diagnostics) in per_document {
-            let counts = diagnostic_counts.entry(document).or_default();
+            let counts = diagnostic_instances.entry(document).or_default();
             for diagnostic in diagnostics {
-                *counts.entry(diagnostic).or_default() += 1;
+                counts
+                    .entry(diagnostic)
+                    .or_default()
+                    .insert(workspace_index.id());
             }
         }
     }
 
     let mut merged = Vec::new();
     for (document, instances) in document_instances {
-        let Some(counts) = diagnostic_counts.get(document) else {
+        let Some(counts) = diagnostic_instances.get(document) else {
             continue;
         };
 
-        for (diagnostic, count) in counts {
-            if *count == instances.len() {
+        let mut primary_groups = BTreeMap::<
+            SemanticDiagnosticMergeKey,
+            Vec<(&RuledDiagnostic, &BTreeSet<WorkspaceInstanceId>)>,
+        >::new();
+        for (diagnostic, reported_instances) in counts {
+            if reported_instances.len() == instances.len() {
                 merged.push(diagnostic.clone());
+            } else {
+                primary_groups
+                    .entry(SemanticDiagnosticMergeKey::from_diagnostic(diagnostic))
+                    .or_default()
+                    .push((diagnostic, reported_instances));
             }
+        }
+
+        for variants in primary_groups.values() {
+            let mut reported_instances = BTreeSet::new();
+            for (_, variant_instances) in variants {
+                reported_instances.extend(variant_instances.iter().copied());
+            }
+
+            let representative = variants[0].0;
+            let mut diagnostic = RuledDiagnostic::multi_context_disagreement(
+                document,
+                representative.message(),
+                reported_instances.len(),
+                instances.len(),
+                representative.span(),
+            );
+            diagnostic.diagnostic.annotations = merged_annotations(variants);
+            merged.push(diagnostic);
         }
     }
 
     sort_semantic_diagnostics(&mut merged);
     merged
+}
+
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct SemanticDiagnosticMergeKey {
+    rule: RuleId,
+    span: TextSpan,
+    message: String,
+    target_text: Option<String>,
+    value_span: Option<TextSpan>,
+}
+
+impl SemanticDiagnosticMergeKey {
+    fn from_diagnostic(diagnostic: &RuledDiagnostic) -> Self {
+        Self {
+            rule: diagnostic.rule,
+            span: diagnostic.span(),
+            message: diagnostic.message().to_owned(),
+            target_text: diagnostic.target_text().map(str::to_owned),
+            value_span: diagnostic.value_span(),
+        }
+    }
+}
+
+fn merged_annotations(
+    variants: &[(&RuledDiagnostic, &BTreeSet<WorkspaceInstanceId>)],
+) -> Vec<Annotation> {
+    variants
+        .iter()
+        .flat_map(|(diagnostic, _)| diagnostic.annotations().iter().cloned())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect()
 }
 
 fn sort_semantic_diagnostics(diagnostics: &mut [RuledDiagnostic]) {

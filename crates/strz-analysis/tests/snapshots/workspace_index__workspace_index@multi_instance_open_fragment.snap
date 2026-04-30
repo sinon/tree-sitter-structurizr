@@ -31,7 +31,42 @@ WorkspaceIndexSetView {
             ],
         },
     ],
-    merged_semantic_diagnostics: [],
+    merged_semantic_diagnostics: [
+        DiagnosticView {
+            document: "shared/model.dsl",
+            code: "semantic.multi-context-disagreement",
+            message: "workspace contexts report different details for: multiple model sections are not permitted in a DSL definition (reported in all 2 contexts)",
+            span: TextSpan {
+                start_byte: 0,
+                end_byte: 84,
+                start_point: TextPoint {
+                    row: 0,
+                    column: 0,
+                },
+                end_point: TextPoint {
+                    row: 4,
+                    column: 1,
+                },
+            },
+        },
+        DiagnosticView {
+            document: "shared/view.dsl",
+            code: "semantic.multi-context-disagreement",
+            message: "some workspace contexts report: unresolved element or relationship reference: api (no matching binding found) (reported in 1 of 2 contexts)",
+            span: TextSpan {
+                start_byte: 60,
+                end_byte: 63,
+                start_point: TextPoint {
+                    row: 2,
+                    column: 16,
+                },
+                end_point: TextPoint {
+                    row: 2,
+                    column: 19,
+                },
+            },
+        },
+    ],
     instances: [
         WorkspaceIndexView {
             id: 0,
@@ -144,7 +179,7 @@ WorkspaceIndexSetView {
                 DiagnosticView {
                     document: "shared/view.dsl",
                     code: "semantic.unresolved-reference",
-                    message: "unresolved identifier reference: api",
+                    message: "unresolved element or relationship reference: api (no matching binding found)",
                     span: TextSpan {
                         start_byte: 60,
                         end_byte: 63,

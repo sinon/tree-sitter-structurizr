@@ -6,8 +6,8 @@ use std::{
 use indoc::indoc;
 use rstest::rstest;
 use strz_analysis::{
-    ReferenceHandle, ReferenceResolutionStatus, RuledDiagnostic, SymbolHandle, TextSpan,
-    WorkspaceFacts, WorkspaceLoader,
+    DiagnosticSeverity, ReferenceHandle, ReferenceResolutionStatus, RuledDiagnostic, SymbolHandle,
+    TextSpan, WorkspaceFacts, WorkspaceLoader,
 };
 use tempfile::TempDir;
 
@@ -285,6 +285,195 @@ fn repeated_model_sections_report_related_context() {
     assert_eq!(
         diagnostic.annotations()[0].message.as_deref(),
         Some("first model section here")
+    );
+}
+
+#[test]
+fn duplicate_bindings_report_conflicting_declarations_as_annotations() {
+    let (workspace, facts) = load_temp_workspace(
+        &[
+            (
+                "workspace.dsl",
+                indoc! {r#"
+                    workspace {
+                        !include "alpha.dsl"
+                        !include "beta.dsl"
+                    }
+                "#},
+            ),
+            (
+                "alpha.dsl",
+                indoc! {r#"
+                    model {
+                        api = softwareSystem "Alpha API"
+                    }
+                "#},
+            ),
+            (
+                "beta.dsl",
+                indoc! {r#"
+                    model {
+                        api = softwareSystem "Beta API"
+                    }
+                "#},
+            ),
+        ],
+        "workspace.dsl",
+    );
+
+    let diagnostics = diagnostics_of_code(&facts, "semantic.duplicate-binding");
+    assert_eq!(diagnostics.len(), 2);
+
+    let alpha_diagnostic = diagnostics
+        .iter()
+        .copied()
+        .find(|diagnostic| {
+            display_document_id(
+                diagnostic
+                    .document()
+                    .expect("duplicate binding diagnostics should carry documents")
+                    .as_str(),
+                workspace.root(),
+            ) == "alpha.dsl"
+        })
+        .expect("alpha duplicate binding diagnostic should exist");
+    assert_eq!(alpha_diagnostic.message(), "duplicate element binding: api");
+    assert_eq!(alpha_diagnostic.annotations().len(), 1);
+    assert_eq!(
+        alpha_diagnostic.annotations()[0]
+            .document
+            .as_ref()
+            .map(|document| display_document_id(document.as_str(), workspace.root())),
+        Some("beta.dsl".to_owned())
+    );
+    assert_eq!(
+        alpha_diagnostic.annotations()[0].message.as_deref(),
+        Some("other element binding for api is declared here")
+    );
+}
+
+#[test]
+fn reference_diagnostics_explain_unresolved_and_ambiguous_resolution_states() {
+    let (_workspace, unresolved_facts) = load_temp_workspace(
+        &[(
+            "workspace.dsl",
+            indoc! {r#"
+                workspace {
+                    model {
+                        user = person "User"
+                        user -> api "Calls"
+                    }
+                }
+            "#},
+        )],
+        "workspace.dsl",
+    );
+    let unresolved = diagnostics_of_code(&unresolved_facts, "semantic.unresolved-reference");
+    assert_eq!(unresolved.len(), 1);
+    assert_eq!(
+        unresolved[0].message(),
+        "unresolved element reference: api (no matching binding found)"
+    );
+
+    let (_workspace, ambiguous_facts) = load_temp_workspace(
+        &[
+            (
+                "workspace.dsl",
+                indoc! {r#"
+                    workspace {
+                        !include "alpha.dsl"
+                        !include "beta.dsl"
+
+                        model {
+                            user = person "User"
+                            user -> api "Calls"
+                        }
+                    }
+                "#},
+            ),
+            (
+                "alpha.dsl",
+                indoc! {r#"
+                    model {
+                        api = softwareSystem "Alpha API"
+                    }
+                "#},
+            ),
+            (
+                "beta.dsl",
+                indoc! {r#"
+                    model {
+                        api = softwareSystem "Beta API"
+                    }
+                "#},
+            ),
+        ],
+        "workspace.dsl",
+    );
+    let ambiguous = diagnostics_of_code(&ambiguous_facts, "semantic.ambiguous-reference");
+    assert_eq!(ambiguous.len(), 1);
+    assert_eq!(
+        ambiguous[0].message(),
+        "ambiguous element reference: api (multiple bindings match)"
+    );
+}
+
+#[test]
+fn multi_context_reference_disagreements_surface_as_warnings() {
+    let fixture_root = workspace_fixture_root().join("multi-instance-open-fragment");
+    let mut loader = WorkspaceLoader::new();
+    let facts = loader
+        .load_paths([fixture_root.as_path()])
+        .expect("multi-instance fixture should load");
+
+    let diagnostics = diagnostics_of_code(&facts, "semantic.multi-context-disagreement");
+    assert_eq!(diagnostics.len(), 2);
+    assert!(
+        diagnostics
+            .iter()
+            .all(|diagnostic| diagnostic.severity() == DiagnosticSeverity::Warning)
+    );
+    let model_diagnostic = diagnostics
+        .iter()
+        .copied()
+        .find(|diagnostic| {
+            diagnostic.message()
+                == "workspace contexts report different details for: multiple model sections are not permitted in a DSL definition (reported in all 2 contexts)"
+        })
+        .expect("repeated model section disagreement warning should exist");
+    assert_eq!(
+        display_document_id(
+            model_diagnostic
+                .document()
+                .expect("multi-context diagnostics should carry documents")
+                .as_str(),
+            &fixture_root,
+        ),
+        "shared/model.dsl"
+    );
+    assert_eq!(model_diagnostic.annotations().len(), 2);
+
+    let view_diagnostic = diagnostics
+        .iter()
+        .copied()
+        .find(|diagnostic| {
+            diagnostic.message()
+                == "some workspace contexts report: unresolved element or relationship reference: api (no matching binding found) (reported in 1 of 2 contexts)"
+        })
+        .expect("context-specific unresolved reference warning should exist");
+    assert_eq!(
+        display_document_id(
+            view_diagnostic
+                .document()
+                .expect("multi-context diagnostics should carry documents")
+                .as_str(),
+            &fixture_root,
+        ),
+        "shared/view.dsl"
+    );
+    assert_eq!(
+        view_diagnostic.message(),
+        "some workspace contexts report: unresolved element or relationship reference: api (no matching binding found) (reported in 1 of 2 contexts)"
     );
 }
 

@@ -170,7 +170,7 @@ fn check_text_reports_unresolved_semantic_diagnostics() {
     success: false
     exit_code: 1
     ----- stdout -----
-    tests/lsp/workspaces/hierarchical-identifiers/workspace.dsl:9:17: error[semantic.unresolved-reference] unresolved identifier reference: api
+    tests/lsp/workspaces/hierarchical-identifiers/workspace.dsl:9:17: error[semantic.unresolved-reference] unresolved element reference: api (no matching binding found)
 
     ----- stderr -----
     "###
