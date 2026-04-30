@@ -170,5 +170,24 @@ SnapshotView {
                 ),
             ),
         },
+        Reference {
+            kind: DynamicRelationshipReference,
+            raw_text: "rel",
+            span: TextSpan {
+                start_byte: 167,
+                end_byte: 170,
+                start_point: TextPoint {
+                    row: 10,
+                    column: 12,
+                },
+                end_point: TextPoint {
+                    row: 10,
+                    column: 15,
+                },
+            },
+            target_hint: Relationship,
+            container_node_kind: "dynamic_relationship_reference",
+            containing_symbol: None,
+        },
     ],
 }

@@ -7,8 +7,8 @@ use crate::support::{
 
 use super::shared::{
     DIRECT_REFERENCES_CURSOR_SOURCE, HIERARCHICAL_SELECTOR_CURSOR_SOURCE,
-    SELECTOR_SEGMENT_CURSOR_SOURCE, SELECTOR_THIS_CURSOR_SOURCE,
-    read_annotated_cursor_workspace_fixture,
+    NAMED_DYNAMIC_RELATIONSHIP_CURSOR_SOURCE, SELECTOR_SEGMENT_CURSOR_SOURCE,
+    SELECTOR_THIS_CURSOR_SOURCE, read_annotated_cursor_workspace_fixture,
 };
 
 #[tokio::test(flavor = "current_thread")]
@@ -46,6 +46,49 @@ async fn references_include_definition_when_requested() {
         .collect::<Vec<_>>();
 
     assert_eq!(lines, vec![5, 10]);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn references_include_named_dynamic_relationship_reference_sites() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(NAMED_DYNAMIC_RELATIONSHIP_CURSOR_SOURCE);
+    let uri = file_uri("named-dynamic-relationship-references.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    for marker in ["relationship-declaration", "dynamic-relationship-reference"] {
+        let response = request_json(
+            &mut service,
+            "textDocument/references",
+            json!({
+                "textDocument": { "uri": uri.as_str() },
+                "position": source.position(marker),
+                "context": { "includeDeclaration": true },
+            }),
+        )
+        .await;
+        let rendered = response["result"]
+            .as_array()
+            .expect("references should return an array")
+            .iter()
+            .map(|location| {
+                format!(
+                    "{}:{}",
+                    location["range"]["start"]["line"]
+                        .as_u64()
+                        .expect("reference line should be numeric"),
+                    location["range"]["start"]["character"]
+                        .as_u64()
+                        .expect("reference character should be numeric")
+                )
+            })
+            .collect::<Vec<_>>();
+
+        assert_eq!(rendered, vec!["5:8", "10:12"], "{marker}");
+    }
 }
 
 #[tokio::test(flavor = "current_thread")]

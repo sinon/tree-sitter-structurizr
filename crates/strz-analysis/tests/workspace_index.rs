@@ -6,8 +6,8 @@ use std::{
 use indoc::indoc;
 use rstest::rstest;
 use strz_analysis::{
-    DiagnosticSeverity, ReferenceHandle, ReferenceResolutionStatus, RuledDiagnostic, SymbolHandle,
-    TextSpan, WorkspaceFacts, WorkspaceLoader,
+    DiagnosticSeverity, ReferenceHandle, ReferenceKind, ReferenceResolutionStatus, RuledDiagnostic,
+    SymbolHandle, TextSpan, WorkspaceFacts, WorkspaceLoader,
 };
 use tempfile::TempDir;
 
@@ -1546,6 +1546,93 @@ fn dynamic_view_scope_reference_annotations_point_to_the_relationship_document()
             .as_ref()
             .map(|document| display_document_id(document.as_str(), workspace.root())),
         Some("model.dsl".to_owned())
+    );
+}
+
+#[test]
+fn named_dynamic_relationship_references_use_workspace_reference_tables() {
+    let (workspace, facts) = load_temp_workspace(
+        &[
+            (
+                "workspace.dsl",
+                indoc! {r#"
+                    workspace {
+                        !include "model.dsl"
+                        !include "dynamic.dsl"
+                    }
+                "#},
+            ),
+            (
+                "model.dsl",
+                indoc! {r#"
+                    model {
+                        user = person "User"
+                        system = softwareSystem "System"
+
+                        rel = user -> system "Uses"
+                    }
+                "#},
+            ),
+            (
+                "dynamic.dsl",
+                indoc! {r#"
+                    views {
+                        dynamic * "dynamic-view" {
+                            rel "Uses"
+                        }
+                    }
+                "#},
+            ),
+        ],
+        "workspace.dsl",
+    );
+
+    let index = facts
+        .workspace_indexes()
+        .first()
+        .expect("workspace index should exist");
+    let dynamic_document = facts
+        .documents()
+        .iter()
+        .find(|document| {
+            display_document_id(document.id().as_str(), workspace.root()) == "dynamic.dsl"
+        })
+        .expect("dynamic document should be indexed");
+    let model_document = facts
+        .documents()
+        .iter()
+        .find(|document| {
+            display_document_id(document.id().as_str(), workspace.root()) == "model.dsl"
+        })
+        .expect("model document should be indexed");
+    let relationship_symbol = model_document
+        .snapshot()
+        .symbols()
+        .iter()
+        .find(|symbol| symbol.binding_name.as_deref() == Some("rel"))
+        .expect("relationship symbol should be extracted");
+    let (reference_index, _) = dynamic_document
+        .snapshot()
+        .references()
+        .iter()
+        .enumerate()
+        .find(|(_, reference)| reference.kind == ReferenceKind::DynamicRelationshipReference)
+        .expect("dynamic relationship reference should be extracted");
+    let reference_handle = ReferenceHandle::new(dynamic_document.id().clone(), reference_index);
+    let relationship_handle =
+        SymbolHandle::new(model_document.id().clone(), relationship_symbol.id);
+
+    assert_eq!(
+        index.reference_resolution(&reference_handle),
+        Some(&ReferenceResolutionStatus::Resolved(
+            relationship_handle.clone()
+        ))
+    );
+    assert!(
+        index
+            .references_for_symbol(&relationship_handle)
+            .any(|handle| handle == &reference_handle),
+        "dynamic relationship reference should be indexed by target"
     );
 }
 

@@ -655,28 +655,58 @@ impl<'a> SymbolExtractor<'a> {
         node: Node<'_>,
         parent_symbol: Option<SymbolId>,
     ) {
-        if node.kind() == "dynamic_relationship" {
-            let (source_kind, destination_kind, target_hint) = relationship_reference_surface(node);
-            self.push_relationship_reference(
-                node,
-                "source",
-                source_kind,
-                target_hint,
-                parent_symbol,
-            );
-            self.push_relationship_reference(
-                node,
-                "destination",
-                destination_kind,
-                target_hint,
-                parent_symbol,
-            );
+        match node.kind() {
+            "dynamic_relationship" => {
+                let (source_kind, destination_kind, target_hint) =
+                    relationship_reference_surface(node);
+                self.push_relationship_reference(
+                    node,
+                    "source",
+                    source_kind,
+                    target_hint,
+                    parent_symbol,
+                );
+                self.push_relationship_reference(
+                    node,
+                    "destination",
+                    destination_kind,
+                    target_hint,
+                    parent_symbol,
+                );
+            }
+            "dynamic_relationship_reference" => {
+                self.push_dynamic_relationship_reference(node, parent_symbol);
+            }
+            _ => {}
         }
 
         let mut cursor = node.walk();
         for child in node.named_children(&mut cursor) {
             self.collect_dynamic_relationship_references(child, parent_symbol);
         }
+    }
+
+    fn push_dynamic_relationship_reference(
+        &mut self,
+        relationship_reference: Node<'_>,
+        containing_symbol: Option<SymbolId>,
+    ) {
+        let Some(relationship) = relationship_reference.child_by_field_name("relationship") else {
+            return;
+        };
+
+        if relationship.kind() != "identifier" {
+            return;
+        }
+
+        self.references.push(Reference {
+            kind: ReferenceKind::DynamicRelationshipReference,
+            raw_text: node_text(relationship, self.source),
+            span: TextSpan::from_node(relationship),
+            target_hint: ReferenceTargetHint::Relationship,
+            container_node_kind: relationship_reference.kind().to_owned(),
+            containing_symbol,
+        });
     }
 
     fn push_view_reference(

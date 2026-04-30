@@ -337,6 +337,7 @@ fn relationship_endpoint_references(
                 )?;
             }
             ReferenceKind::ElementSelectorTarget
+            | ReferenceKind::DynamicRelationshipReference
             | ReferenceKind::InstanceTarget
             | ReferenceKind::ViewScope
             | ReferenceKind::ViewInclude

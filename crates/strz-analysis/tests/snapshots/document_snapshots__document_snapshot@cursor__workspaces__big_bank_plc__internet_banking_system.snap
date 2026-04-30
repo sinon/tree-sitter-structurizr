@@ -2680,6 +2680,25 @@ SnapshotView {
             containing_symbol: None,
         },
         Reference {
+            kind: DynamicRelationshipReference,
+            raw_text: "signinController",
+            span: TextSpan {
+                start_byte: 6311,
+                end_byte: 6327,
+                start_point: TextPoint {
+                    row: 126,
+                    column: 95,
+                },
+                end_point: TextPoint {
+                    row: 126,
+                    column: 111,
+                },
+            },
+            target_hint: Relationship,
+            container_node_kind: "dynamic_relationship_reference",
+            containing_symbol: None,
+        },
+        Reference {
             kind: RelationshipSource,
             raw_text: "signinController",
             span: TextSpan {
@@ -2715,6 +2734,25 @@ SnapshotView {
             },
             target_hint: Element,
             container_node_kind: "dynamic_relationship",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: DynamicRelationshipReference,
+            raw_text: "securityComponent",
+            span: TextSpan {
+                start_byte: 6412,
+                end_byte: 6429,
+                start_point: TextPoint {
+                    row: 127,
+                    column: 59,
+                },
+                end_point: TextPoint {
+                    row: 127,
+                    column: 76,
+                },
+            },
+            target_hint: Relationship,
+            container_node_kind: "dynamic_relationship_reference",
             containing_symbol: None,
         },
         Reference {

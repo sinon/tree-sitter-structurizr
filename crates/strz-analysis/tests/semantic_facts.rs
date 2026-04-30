@@ -479,6 +479,20 @@ fn analysis_extracts_nested_image_sources_and_dynamic_reference_steps() {
             panic!("expected explicit relationship step second");
         }
     }
+    let relationship_reference = snapshot
+        .references()
+        .iter()
+        .find(|reference| reference.kind == ReferenceKind::DynamicRelationshipReference)
+        .expect("dynamic relationship reference should become a generic reference");
+    assert_eq!(relationship_reference.raw_text, "rel");
+    assert_eq!(
+        relationship_reference.target_hint,
+        ReferenceTargetHint::Relationship
+    );
+    assert_eq!(
+        relationship_reference.container_node_kind,
+        "dynamic_relationship_reference"
+    );
 
     let image_view = snapshot
         .view_facts()

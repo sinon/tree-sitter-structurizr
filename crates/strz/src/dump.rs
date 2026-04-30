@@ -300,6 +300,7 @@ fn reference_kind_name(kind: ReferenceKind) -> String {
         ReferenceKind::ElementSelectorTarget => "element_selector_target".to_owned(),
         ReferenceKind::RelationshipSource => "relationship_source".to_owned(),
         ReferenceKind::RelationshipDestination => "relationship_destination".to_owned(),
+        ReferenceKind::DynamicRelationshipReference => "dynamic_relationship_reference".to_owned(),
         ReferenceKind::InstanceTarget => "instance_target".to_owned(),
         ReferenceKind::DeploymentRelationshipSource => "deployment_relationship_source".to_owned(),
         ReferenceKind::DeploymentRelationshipDestination => {
