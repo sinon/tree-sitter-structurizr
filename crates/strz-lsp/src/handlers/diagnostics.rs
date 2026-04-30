@@ -1,6 +1,6 @@
 //! Diagnostic helpers that keep publishable diagnostics out of text-sync code.
 
-use strz_analysis::{DocumentSnapshot, WorkspaceFacts};
+use strz_analysis::{DocumentSnapshot, WorkspaceFacts, WorkspaceLoadFailure};
 use tower_lsp_server::ls_types::Diagnostic;
 
 use crate::{convert, documents::DocumentState};
@@ -12,6 +12,12 @@ pub fn document_diagnostics(
     document: &DocumentState,
     snapshot: &DocumentSnapshot,
     workspace_facts: Option<&WorkspaceFacts>,
+    workspace_load_failures: &[WorkspaceLoadFailure],
 ) -> Vec<Diagnostic> {
-    convert::diagnostics::document_diagnostics(document, snapshot, workspace_facts)
+    convert::diagnostics::document_diagnostics(
+        document,
+        snapshot,
+        workspace_facts,
+        workspace_load_failures,
+    )
 }
