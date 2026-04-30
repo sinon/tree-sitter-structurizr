@@ -2,9 +2,9 @@
 
 use line_index::LineIndex;
 use strz_analysis::{
-    DirectiveValueKind, DocumentId, DocumentLocation, DocumentSnapshot, Reference, ReferenceHandle,
-    ReferenceKind, ReferenceResolutionStatus, Symbol, SymbolHandle, SymbolId, SymbolKind,
-    WorkspaceFacts, WorkspaceInstanceId,
+    DocumentId, DocumentLocation, DocumentSnapshot, ElementIdentifierMode, Reference,
+    ReferenceHandle, ReferenceKind, ReferenceResolutionStatus, Symbol, SymbolHandle, SymbolId,
+    SymbolKind, WorkspaceFacts, WorkspaceInstanceId,
 };
 use tower_lsp_server::ls_types::Location;
 use tracing::debug;
@@ -41,7 +41,7 @@ pub fn navigation_site_at_offset(
 pub fn target_symbol_at_offset(snapshot: &DocumentSnapshot, offset: usize) -> Option<&Symbol> {
     navigation_site_at_offset(snapshot, offset).and_then(|site| match site {
         NavigationSite::Symbol(symbol) => Some(symbol),
-        NavigationSite::Reference { reference, .. } => resolve_reference(snapshot, reference),
+        NavigationSite::Reference { reference, .. } => snapshot.resolve_reference(reference),
     })
 }
 
@@ -74,7 +74,10 @@ pub fn resolved_symbol_at_offset<'a>(
                 }
             }
 
-            resolve_reference(snapshot, reference)
+            snapshot.resolve_reference_with_mode(
+                reference,
+                same_document_resolution_mode(state, document, snapshot),
+            )
         }
     }
 }
@@ -88,7 +91,7 @@ pub fn references_for_symbol<'a>(
     snapshot
         .references()
         .iter()
-        .filter(|reference| resolve_reference(snapshot, reference) == Some(symbol))
+        .filter(|reference| snapshot.resolve_reference(reference) == Some(symbol))
         .collect()
 }
 
@@ -134,7 +137,11 @@ pub fn definition_location(
                 reference = %reference.raw_text,
                 "falling back to same-document gotoDefinition resolution"
             );
-            resolve_reference(snapshot, reference)
+            snapshot
+                .resolve_reference_with_mode(
+                    reference,
+                    same_document_resolution_mode(state, document, snapshot),
+                )
                 .and_then(|symbol| same_document_symbol_location(document, symbol))
         }
     }
@@ -522,6 +529,33 @@ fn workspace_document_id(document: &DocumentState) -> Option<DocumentId> {
     document.workspace_document_id().cloned()
 }
 
+fn same_document_resolution_mode(
+    state: &ServerState,
+    document: &DocumentState,
+    snapshot: &DocumentSnapshot,
+) -> ElementIdentifierMode {
+    let Some((workspace_facts, document_id)) = workspace_context(state, document) else {
+        return snapshot.effective_element_identifier_mode();
+    };
+    let candidate_instances = candidate_instances(workspace_facts, &document_id);
+    let mut mode = None;
+
+    for instance_id in candidate_instances {
+        let Some(current) = workspace_facts
+            .workspace_index(instance_id)
+            .and_then(|workspace_index| workspace_index.element_identifier_mode_for(&document_id))
+        else {
+            return snapshot.effective_element_identifier_mode();
+        };
+        if mode.as_ref().is_some_and(|existing| *existing != current) {
+            return snapshot.effective_element_identifier_mode();
+        }
+        mode = Some(current);
+    }
+
+    snapshot.effective_element_identifier_mode_with(mode)
+}
+
 fn bindable_symbol_at_offset(snapshot: &DocumentSnapshot, offset: usize) -> Option<&Symbol> {
     snapshot
         .symbols()
@@ -553,24 +587,7 @@ pub(super) fn resolve_reference<'a>(
     snapshot: &'a DocumentSnapshot,
     reference: &Reference,
 ) -> Option<&'a Symbol> {
-    if is_contextual_this_reference(reference) {
-        return resolve_contextual_this_reference(snapshot, reference);
-    }
-
-    // Prefer returning no result over guessing between multiple candidates. The
-    // same-document fallback stays conservative when workspace indexes are not
-    // available or when the current file is not part of a known workspace.
-    let candidates: Vec<&Symbol> = snapshot
-        .symbols()
-        .iter()
-        .filter(|symbol| symbol_matches_reference(symbol, reference))
-        .collect();
-
-    if candidates.len() == 1 {
-        candidates.into_iter().next()
-    } else {
-        None
-    }
+    snapshot.resolve_reference(reference)
 }
 
 pub(super) fn is_contextual_this_reference(reference: &Reference) -> bool {
@@ -584,108 +601,15 @@ pub(super) fn is_contextual_this_reference(reference: &Reference) -> bool {
         )
 }
 
-fn resolve_contextual_this_reference<'a>(
-    snapshot: &'a DocumentSnapshot,
-    reference: &Reference,
-) -> Option<&'a Symbol> {
-    match contextual_selector_target(snapshot, reference) {
-        SelectorContextResolution::Resolved(symbol) => return Some(symbol),
-        SelectorContextResolution::Unresolved => return None,
-        SelectorContextResolution::NotPresent => {}
-    }
-
-    let start_symbol = reference
-        .containing_symbol
-        .or_else(|| enclosing_symbol_for_span(snapshot, reference.span));
-    contextual_symbol_target(snapshot, start_symbol, reference)
-}
-
-fn contextual_symbol_target<'a>(
-    snapshot: &'a DocumentSnapshot,
-    start_symbol: Option<SymbolId>,
-    reference: &Reference,
-) -> Option<&'a Symbol> {
-    let matches_kind: fn(SymbolKind) -> bool = match reference.target_hint {
-        strz_analysis::ReferenceTargetHint::Element => is_element_symbol_kind,
-        strz_analysis::ReferenceTargetHint::Deployment => is_deployment_symbol_kind,
-        strz_analysis::ReferenceTargetHint::Relationship
-        | strz_analysis::ReferenceTargetHint::ElementOrRelationship => return None,
-    };
-
-    let mut current = start_symbol;
-    while let Some(symbol_id) = current {
-        let symbol = snapshot.symbols().get(symbol_id.0)?;
-        if matches_kind(symbol.kind) {
-            return Some(symbol);
-        }
-        current = symbol.parent;
-    }
-
-    None
-}
-
-enum SelectorContextResolution<'a> {
-    NotPresent,
-    Resolved(&'a Symbol),
-    Unresolved,
-}
-
-fn contextual_selector_target<'a>(
-    snapshot: &'a DocumentSnapshot,
-    reference: &Reference,
-) -> SelectorContextResolution<'a> {
-    let Some(selector_target) = snapshot
-        .element_directives()
-        .iter()
-        .filter(|directive| span_within(directive.span, reference.span))
-        .min_by_key(|directive| directive.span.end_byte - directive.span.start_byte)
-        .map(|directive| &directive.target)
-    else {
-        return SelectorContextResolution::NotPresent;
-    };
-    if !matches!(
-        selector_target.value_kind,
-        DirectiveValueKind::BareValue | DirectiveValueKind::Identifier
-    ) {
-        return SelectorContextResolution::Unresolved;
-    }
-
-    let mut candidates = snapshot
-        .symbols()
-        .iter()
-        .filter(|symbol| symbol.binding_name.as_deref() == Some(&selector_target.normalized_text))
-        .filter(|symbol| reference_could_target_symbol_kind(reference, symbol.kind));
-    let Some(first) = candidates.next() else {
-        return SelectorContextResolution::Unresolved;
-    };
-    if candidates.next().is_some() {
-        return SelectorContextResolution::Unresolved;
-    }
-
-    SelectorContextResolution::Resolved(first)
-}
-
-fn enclosing_symbol_for_span(
-    snapshot: &DocumentSnapshot,
-    span: strz_analysis::TextSpan,
-) -> Option<SymbolId> {
-    snapshot
-        .symbols()
-        .iter()
-        .filter(|symbol| span_within(symbol.span, span))
-        .min_by_key(|symbol| symbol.span.end_byte - symbol.span.start_byte)
-        .map(|symbol| symbol.id)
-}
-
 fn instance_type_symbol_for_reference<'a>(
     snapshot: &'a DocumentSnapshot,
     reference: &Reference,
 ) -> Option<&'a Symbol> {
     if reference.kind == ReferenceKind::InstanceTarget {
-        return resolve_reference(snapshot, reference);
+        return snapshot.resolve_reference(reference);
     }
 
-    let symbol = resolve_reference(snapshot, reference)?;
+    let symbol = snapshot.resolve_reference(reference)?;
     instance_type_symbol(snapshot, symbol)
 }
 
@@ -695,7 +619,7 @@ fn instance_type_symbol<'a>(snapshot: &'a DocumentSnapshot, symbol: &Symbol) -> 
     }
 
     let (_, reference) = instance_target_reference(snapshot, symbol.id)?;
-    resolve_reference(snapshot, reference)
+    snapshot.resolve_reference(reference)
 }
 
 fn instance_target_reference(
@@ -734,10 +658,6 @@ pub(super) fn symbol_matches_reference(symbol: &Symbol, reference: &Reference) -
     binding_name == reference.raw_text && reference_could_target_symbol_kind(reference, symbol.kind)
 }
 
-const fn span_within(outer: strz_analysis::TextSpan, inner: strz_analysis::TextSpan) -> bool {
-    outer.start_byte <= inner.start_byte && inner.end_byte <= outer.end_byte
-}
-
 pub(super) const fn is_element_symbol_kind(kind: SymbolKind) -> bool {
     matches!(
         kind,
@@ -765,11 +685,16 @@ pub(super) const fn reference_could_target_symbol_kind(
 ) -> bool {
     match reference.target_hint {
         strz_analysis::ReferenceTargetHint::Element => is_element_symbol_kind(target_kind),
+        strz_analysis::ReferenceTargetHint::ElementOrDeployment => {
+            is_element_symbol_kind(target_kind) || is_deployment_symbol_kind(target_kind)
+        }
         strz_analysis::ReferenceTargetHint::Deployment => is_deployment_symbol_kind(target_kind),
         strz_analysis::ReferenceTargetHint::Relationship => {
             matches!(target_kind, SymbolKind::Relationship)
         }
-        strz_analysis::ReferenceTargetHint::ElementOrRelationship => true,
+        strz_analysis::ReferenceTargetHint::ElementOrRelationship => {
+            is_element_symbol_kind(target_kind) || matches!(target_kind, SymbolKind::Relationship)
+        }
     }
 }
 

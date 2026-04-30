@@ -14,15 +14,15 @@ The repository already contains:
 
 ## Status of the original roadmap phases
 
-| Original phase                          | Status now               | Notes                                                                                                              |
-| --------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| Phase 0: boundaries and dev loop        | Done in repo             | The grammar/analysis/LSP split is established, and the local CLI loop exists.                                      |
-| Phase 1: grammar/query hardening        | Done as ongoing baseline | The grammar and query surface are real and continue to harden through fixtures and audits.                         |
-| Phase 2: analysis crate                 | Done in repo             | `strz-analysis` is the transport-agnostic semantic layer.                                                          |
-| Phase 3: workspace indexing             | Done in bounded form     | Workspace discovery, include-following, and bounded workspace facts already exist.                                 |
-| Phase 4: LSP crate and bounded handlers | Done in repo             | The current server already ships diagnostics, symbols, completion, navigation, and links within the bounded scope. |
+| Original phase                          | Status now               | Notes                                                                                                                 |
+| --------------------------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| Phase 0: boundaries and dev loop        | Done in repo             | The grammar/analysis/LSP split is established, and the local CLI loop exists.                                         |
+| Phase 1: grammar/query hardening        | Done as ongoing baseline | The grammar and query surface are real and continue to harden through fixtures and audits.                            |
+| Phase 2: analysis crate                 | Done in repo             | `strz-analysis` is the transport-agnostic semantic layer.                                                             |
+| Phase 3: workspace indexing             | Done in bounded form     | Workspace discovery, include-following, and bounded workspace facts already exist.                                    |
+| Phase 4: LSP crate and bounded handlers | Done in repo             | The current server already ships diagnostics, symbols, completion, navigation, and links within the bounded scope.    |
 | Phase 5: downstream editor delivery     | Done downstream          | The downstream launch path now exists; remaining repo work is to keep status and packaging docs aligned with reality. |
-| Phase 6: broader semantic expansion     | Current                  | This is now the active in-repo track for making the bounded model feel more complete in practice.                 |
+| Phase 6: broader semantic expansion     | Current                  | This is now the active in-repo track for making the bounded model feel more complete in practice.                     |
 
 ## What "feature complete" means here
 

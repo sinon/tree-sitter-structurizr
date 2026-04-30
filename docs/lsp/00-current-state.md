@@ -41,6 +41,9 @@ Current in-repo behavior includes:
 - hover for the current bounded identifier families, with compact source-derived metadata for declaration sites and resolved references
 - go-to-definition across the bounded symbol set, including cross-file cases already modeled in the workspace layer
 - find-references across the same bounded symbol families
+- bounded read-only selector and hierarchical reference resolution, including
+  `!element` selector targets and dotted identifiers such as `system.api`, for
+  hover, go-to-definition, and find-references
 - bounded rename plus `prepareRename` for flat core-element identifiers and
   deployment-layer identifiers when the current workspace facts produce one
   unambiguous edit set
@@ -54,10 +57,10 @@ The important qualifier is still "bounded". The implementation already has real 
 The current implementation deliberately stays conservative around:
 
 - `this`-based navigation and diagnostics beyond the cases already modeled safely
-- selector and hierarchical reference forms such as `system.api`
+- selector-relative and other still-deferred scope edge cases beyond the now-shipped bounded read-only selector / dotted-reference slice
 - named dynamic relationship reference sites
 - richer hover content
-- broader identifier completion beyond the current bounded flat identifier slice
+- broader identifier completion, including hierarchical completion for selector / dotted-reference workflows
 - workspace symbols
 - broader or hierarchical rename and code actions
 - semantic tokens
@@ -79,7 +82,7 @@ For this repository, "feature complete" does not mean upstream runtime parity. I
 
 The remaining path to that state is roughly:
 
-- broaden safe reference coverage for selectors, `this`, named dynamic references, and other still-deferred scope cases
+- broaden the remaining safe reference coverage for `this`, named dynamic references, selector-relative edge cases, and other still-deferred scope cases
 - deepen read-only semantic UX with broader hover coverage and workspace symbols
 - broaden rename beyond the shipped flat/deployment slice, and add code actions,
   only after broader reference coverage lands

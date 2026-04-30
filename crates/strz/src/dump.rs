@@ -297,6 +297,7 @@ fn symbol_kind_name(kind: SymbolKind) -> String {
 
 fn reference_kind_name(kind: ReferenceKind) -> String {
     match kind {
+        ReferenceKind::ElementSelectorTarget => "element_selector_target".to_owned(),
         ReferenceKind::RelationshipSource => "relationship_source".to_owned(),
         ReferenceKind::RelationshipDestination => "relationship_destination".to_owned(),
         ReferenceKind::InstanceTarget => "instance_target".to_owned(),
@@ -314,6 +315,7 @@ fn reference_kind_name(kind: ReferenceKind) -> String {
 fn target_hint_name(hint: ReferenceTargetHint) -> String {
     match hint {
         ReferenceTargetHint::Element => "element".to_owned(),
+        ReferenceTargetHint::ElementOrDeployment => "element_or_deployment".to_owned(),
         ReferenceTargetHint::Deployment => "deployment".to_owned(),
         ReferenceTargetHint::Relationship => "relationship".to_owned(),
         ReferenceTargetHint::ElementOrRelationship => "element_or_relationship".to_owned(),

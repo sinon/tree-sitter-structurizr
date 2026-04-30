@@ -2570,6 +2570,10 @@ fn build_reference_resolution_tables(
     documents: &[&WorkspaceSemanticDocumentFacts],
     bindings: &WorkspaceBindingTables,
 ) -> WorkspaceReferenceTables {
+    let documents_by_id = documents
+        .iter()
+        .map(|document| (document.document_id.clone(), *document))
+        .collect::<BTreeMap<_, _>>();
     let mut reference_resolutions = BTreeMap::<ReferenceHandle, ReferenceResolutionStatus>::new();
     let mut resolved_targets =
         BTreeMap::<DocumentId, BTreeMap<(u8, TextSpan), SymbolHandle>>::new();
@@ -2582,24 +2586,28 @@ fn build_reference_resolution_tables(
                 document: document.document_id.clone(),
                 reference_index,
             };
-            let status = resolve_reference_status(document, reference, bindings);
+            let status = resolve_reference_status(document, reference, bindings, &documents_by_id);
 
             if !document.has_syntax_errors {
                 match status {
                     ReferenceResolutionStatus::UnresolvedNoMatch => {
-                        semantic_diagnostics.push(RuledDiagnostic::unresolved_reference(
-                            &document.document_id,
-                            &reference.raw_text,
-                            reference.span,
-                        ));
+                        if emits_generic_reference_diagnostics(reference) {
+                            semantic_diagnostics.push(RuledDiagnostic::unresolved_reference(
+                                &document.document_id,
+                                &reference.raw_text,
+                                reference.span,
+                            ));
+                        }
                     }
                     ReferenceResolutionStatus::AmbiguousDuplicateBinding
                     | ReferenceResolutionStatus::AmbiguousElementVsRelationship => {
-                        semantic_diagnostics.push(RuledDiagnostic::ambiguous_reference(
-                            &document.document_id,
-                            &reference.raw_text,
-                            reference.span,
-                        ));
+                        if emits_generic_reference_diagnostics(reference) {
+                            semantic_diagnostics.push(RuledDiagnostic::ambiguous_reference(
+                                &document.document_id,
+                                &reference.raw_text,
+                                reference.span,
+                            ));
+                        }
                     }
                     ReferenceResolutionStatus::Resolved(_)
                     | ReferenceResolutionStatus::DeferredByScopePolicy => {}
@@ -2630,6 +2638,14 @@ fn build_reference_resolution_tables(
         references_by_target,
         semantic_diagnostics,
     }
+}
+
+fn emits_generic_reference_diagnostics(reference: &Reference) -> bool {
+    // Dotted `!element` targets contribute one reference per segment for
+    // navigation (`system`, `system.api`, ...), but selector diagnostics still
+    // belong to the directive facts. Keep that policy in one helper so future
+    // consumers do not need to rediscover why selector references are special.
+    reference.kind != ReferenceKind::ElementSelectorTarget
 }
 
 fn split_binding_table(
@@ -3970,8 +3986,10 @@ fn contextual_owner_resolution(
         return selector_resolution;
     }
 
-    contextual_symbol_target_handle_for_owner(document, start_symbol, target)
-        .map_or(ContextualOwnerResolution::Unresolved, ContextualOwnerResolution::Resolved)
+    contextual_symbol_target_handle_for_owner(document, start_symbol, target).map_or(
+        ContextualOwnerResolution::Unresolved,
+        ContextualOwnerResolution::Resolved,
+    )
 }
 
 fn enclosing_element_selector_owner_resolution(
@@ -4060,9 +4078,14 @@ fn resolve_contextual_selector_candidate(
                     .get(candidate)
                     .or_else(|| bindings.unique_deployments.get(candidate))
                     .cloned()
-                    .map_or(ContextualOwnerResolution::Unresolved, ContextualOwnerResolution::Resolved),
+                    .map_or(
+                        ContextualOwnerResolution::Unresolved,
+                        ContextualOwnerResolution::Resolved,
+                    ),
                 SelectorResolutionStatus::Ambiguous => ContextualOwnerResolution::Ambiguous,
-                SelectorResolutionStatus::UnresolvedNoMatch => ContextualOwnerResolution::Unresolved,
+                SelectorResolutionStatus::UnresolvedNoMatch => {
+                    ContextualOwnerResolution::Unresolved
+                }
             }
         }
     }
@@ -4090,15 +4113,16 @@ const fn reference_lookup_key(reference_kind: ReferenceKind, span: TextSpan) -> 
 
 const fn reference_kind_index(reference_kind: ReferenceKind) -> u8 {
     match reference_kind {
-        ReferenceKind::RelationshipSource => 0,
-        ReferenceKind::RelationshipDestination => 1,
-        ReferenceKind::InstanceTarget => 2,
-        ReferenceKind::DeploymentRelationshipSource => 3,
-        ReferenceKind::DeploymentRelationshipDestination => 4,
-        ReferenceKind::ViewScope => 5,
-        ReferenceKind::ViewInclude => 6,
-        ReferenceKind::ViewExclude => 7,
-        ReferenceKind::ViewAnimation => 8,
+        ReferenceKind::ElementSelectorTarget => 0,
+        ReferenceKind::RelationshipSource => 1,
+        ReferenceKind::RelationshipDestination => 2,
+        ReferenceKind::InstanceTarget => 3,
+        ReferenceKind::DeploymentRelationshipSource => 4,
+        ReferenceKind::DeploymentRelationshipDestination => 5,
+        ReferenceKind::ViewScope => 6,
+        ReferenceKind::ViewInclude => 7,
+        ReferenceKind::ViewExclude => 8,
+        ReferenceKind::ViewAnimation => 9,
     }
 }
 
@@ -4356,19 +4380,42 @@ enum SelectorResolutionStatus {
     Ambiguous,
 }
 
+enum SelectorTargetHandleResolution {
+    Resolved(SymbolHandle),
+    UnresolvedNoMatch,
+    Ambiguous,
+}
+
 fn resolve_element_selector_target(
     document: &WorkspaceSemanticDocumentFacts,
     directive: &ElementDirectiveFact,
     bindings: &WorkspaceBindingTables,
 ) -> SelectorResolutionStatus {
+    match resolve_element_selector_target_handle(document, directive, bindings) {
+        SelectorTargetHandleResolution::Resolved(_) => SelectorResolutionStatus::Resolved,
+        SelectorTargetHandleResolution::UnresolvedNoMatch => {
+            SelectorResolutionStatus::UnresolvedNoMatch
+        }
+        SelectorTargetHandleResolution::Ambiguous => SelectorResolutionStatus::Ambiguous,
+    }
+}
+
+fn resolve_element_selector_target_handle(
+    document: &WorkspaceSemanticDocumentFacts,
+    directive: &ElementDirectiveFact,
+    bindings: &WorkspaceBindingTables,
+) -> SelectorTargetHandleResolution {
     for candidate in element_selector_target_candidates(document, directive, bindings) {
-        let contextual_status = resolve_selector_target_raw_text(&candidate, bindings);
-        if contextual_status != SelectorResolutionStatus::UnresolvedNoMatch {
+        let contextual_status = resolve_selector_target_handle_raw_text(&candidate, bindings);
+        if !matches!(
+            contextual_status,
+            SelectorTargetHandleResolution::UnresolvedNoMatch
+        ) {
             return contextual_status;
         }
     }
 
-    SelectorResolutionStatus::UnresolvedNoMatch
+    SelectorTargetHandleResolution::UnresolvedNoMatch
 }
 
 fn resolve_selector_target_raw_text(
@@ -4391,6 +4438,28 @@ fn resolve_selector_target_raw_text(
     }
 }
 
+fn resolve_selector_target_handle_raw_text(
+    raw_text: &str,
+    bindings: &WorkspaceBindingTables,
+) -> SelectorTargetHandleResolution {
+    if bindings.duplicate_elements.contains_key(raw_text)
+        || bindings.duplicate_deployments.contains_key(raw_text)
+    {
+        return SelectorTargetHandleResolution::Ambiguous;
+    }
+
+    match (
+        bindings.unique_elements.get(raw_text),
+        bindings.unique_deployments.get(raw_text),
+    ) {
+        (Some(_), Some(_)) => SelectorTargetHandleResolution::Ambiguous,
+        (Some(handle), None) | (None, Some(handle)) => {
+            SelectorTargetHandleResolution::Resolved(handle.clone())
+        }
+        (None, None) => SelectorTargetHandleResolution::UnresolvedNoMatch,
+    }
+}
+
 fn enclosing_symbol_for_span(
     document: &WorkspaceSemanticDocumentFacts,
     span: TextSpan,
@@ -4407,7 +4476,12 @@ fn resolve_reference_status(
     document: &WorkspaceSemanticDocumentFacts,
     reference: &Reference,
     bindings: &WorkspaceBindingTables,
+    documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
 ) -> ReferenceResolutionStatus {
+    if reference.kind == ReferenceKind::ElementSelectorTarget {
+        return resolve_selector_segment_reference(document, reference, bindings, documents_by_id);
+    }
+
     if is_contextual_this_reference(reference) {
         return resolve_this_reference_status(document, reference, bindings);
     }
@@ -4419,6 +4493,7 @@ fn resolve_reference_status(
         ReferenceKind::RelationshipSource
         | ReferenceKind::RelationshipDestination
         | ReferenceKind::InstanceTarget
+        | ReferenceKind::ElementSelectorTarget
         | ReferenceKind::DeploymentRelationshipSource
         | ReferenceKind::DeploymentRelationshipDestination
         | ReferenceKind::ViewScope
@@ -4440,6 +4515,45 @@ fn resolve_reference_status(
     } else {
         status
     }
+}
+
+fn resolve_selector_segment_reference(
+    document: &WorkspaceSemanticDocumentFacts,
+    reference: &Reference,
+    bindings: &WorkspaceBindingTables,
+    documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
+) -> ReferenceResolutionStatus {
+    let Some(directive) = enclosing_element_directive(document, reference.span) else {
+        return ReferenceResolutionStatus::UnresolvedNoMatch;
+    };
+    if !matches!(
+        directive.target.value_kind,
+        DirectiveValueKind::BareValue | DirectiveValueKind::Identifier
+    ) {
+        return ReferenceResolutionStatus::UnresolvedNoMatch;
+    }
+
+    let resolved_target =
+        match resolve_element_selector_target_handle(document, directive, bindings) {
+            SelectorTargetHandleResolution::Resolved(handle) => handle,
+            SelectorTargetHandleResolution::Ambiguous => {
+                return ReferenceResolutionStatus::AmbiguousDuplicateBinding;
+            }
+            SelectorTargetHandleResolution::UnresolvedNoMatch => {
+                return ReferenceResolutionStatus::UnresolvedNoMatch;
+            }
+        };
+    if reference.span == directive.target.span || !directive.target.normalized_text.contains('.') {
+        return ReferenceResolutionStatus::Resolved(resolved_target);
+    }
+    let Some(segment_index) = selector_segment_index(&directive.target, reference.span) else {
+        return ReferenceResolutionStatus::UnresolvedNoMatch;
+    };
+
+    selector_segment_handle(&resolved_target, segment_index, documents_by_id).map_or(
+        ReferenceResolutionStatus::UnresolvedNoMatch,
+        ReferenceResolutionStatus::Resolved,
+    )
 }
 
 fn is_contextual_this_reference(reference: &Reference) -> bool {
@@ -4479,6 +4593,9 @@ const fn contextual_owner_target(
 ) -> Option<ContextualOwnerTarget> {
     match target_hint {
         ReferenceTargetHint::Element => Some(ContextualOwnerTarget::Element),
+        ReferenceTargetHint::ElementOrDeployment => {
+            Some(ContextualOwnerTarget::ElementOrDeployment)
+        }
         ReferenceTargetHint::Deployment => Some(ContextualOwnerTarget::Deployment),
         ReferenceTargetHint::Relationship | ReferenceTargetHint::ElementOrRelationship => None,
     }
@@ -4545,6 +4662,15 @@ fn resolve_reference_with_symbol_context(
                 &bindings.unique_elements,
                 &bindings.duplicate_elements,
             ),
+            ReferenceTargetHint::ElementOrDeployment => {
+                resolve_reference_against_element_or_deployment_tables(
+                    &contextual_raw_text,
+                    &bindings.unique_elements,
+                    &bindings.duplicate_elements,
+                    &bindings.unique_deployments,
+                    &bindings.duplicate_deployments,
+                )
+            }
             ReferenceTargetHint::Deployment => resolve_reference_against_binding_table(
                 &contextual_raw_text,
                 &bindings.unique_deployments,
@@ -4574,6 +4700,15 @@ fn contextual_reference_prefixes(
             containing_symbol,
             mode,
             &[CanonicalBindingKind::Element],
+        ),
+        ReferenceTargetHint::ElementOrDeployment => contextual_prefixes(
+            symbols,
+            containing_symbol,
+            mode,
+            &[
+                CanonicalBindingKind::Element,
+                CanonicalBindingKind::Deployment,
+            ],
         ),
         ReferenceTargetHint::Deployment => contextual_prefixes(
             symbols,
@@ -4635,32 +4770,48 @@ fn resolve_reference_with_selector_context(
     reference: &Reference,
     bindings: &WorkspaceBindingTables,
 ) -> ReferenceResolutionStatus {
-    let Some(selector_target) = enclosing_element_selector_target(document, reference.span) else {
+    let Some(directive) = enclosing_element_directive(document, reference.span) else {
         return ReferenceResolutionStatus::UnresolvedNoMatch;
     };
     if !matches!(
-        selector_target.value_kind,
+        directive.target.value_kind,
         DirectiveValueKind::BareValue | DirectiveValueKind::Identifier
     ) {
         return ReferenceResolutionStatus::UnresolvedNoMatch;
     }
 
-    let contextual_raw_text = format!("{}.{}", selector_target.normalized_text, reference.raw_text);
-    match reference.target_hint {
-        ReferenceTargetHint::Element => resolve_reference_against_element_table(
-            &contextual_raw_text,
-            &bindings.unique_elements,
-            &bindings.duplicate_elements,
-        ),
-        ReferenceTargetHint::Deployment => resolve_reference_against_binding_table(
-            &contextual_raw_text,
-            &bindings.unique_deployments,
-            &bindings.duplicate_deployments,
-        ),
-        ReferenceTargetHint::Relationship | ReferenceTargetHint::ElementOrRelationship => {
-            ReferenceResolutionStatus::UnresolvedNoMatch
+    for selector_target in element_selector_target_candidates(document, directive, bindings) {
+        let contextual_raw_text = format!("{selector_target}.{}", reference.raw_text);
+        let status = match reference.target_hint {
+            ReferenceTargetHint::Element => resolve_reference_against_element_table(
+                &contextual_raw_text,
+                &bindings.unique_elements,
+                &bindings.duplicate_elements,
+            ),
+            ReferenceTargetHint::ElementOrDeployment => {
+                resolve_reference_against_element_or_deployment_tables(
+                    &contextual_raw_text,
+                    &bindings.unique_elements,
+                    &bindings.duplicate_elements,
+                    &bindings.unique_deployments,
+                    &bindings.duplicate_deployments,
+                )
+            }
+            ReferenceTargetHint::Deployment => resolve_reference_against_binding_table(
+                &contextual_raw_text,
+                &bindings.unique_deployments,
+                &bindings.duplicate_deployments,
+            ),
+            ReferenceTargetHint::Relationship | ReferenceTargetHint::ElementOrRelationship => {
+                ReferenceResolutionStatus::UnresolvedNoMatch
+            }
+        };
+        if status != ReferenceResolutionStatus::UnresolvedNoMatch {
+            return status;
         }
     }
+
+    ReferenceResolutionStatus::UnresolvedNoMatch
 }
 
 fn enclosing_element_directive(
@@ -4672,13 +4823,6 @@ fn enclosing_element_directive(
         .iter()
         .filter(|directive| span_within(directive.span, span))
         .min_by_key(|directive| directive.span.end_byte - directive.span.start_byte)
-}
-
-fn enclosing_element_selector_target(
-    document: &WorkspaceSemanticDocumentFacts,
-    span: TextSpan,
-) -> Option<&crate::ValueFact> {
-    enclosing_element_directive(document, span).map(|directive| &directive.target)
 }
 
 fn element_selector_target_candidates(
@@ -4703,6 +4847,84 @@ fn element_selector_target_candidates(
     candidates
 }
 
+fn selector_segment_index(target: &ValueFact, reference_span: TextSpan) -> Option<usize> {
+    let prefix_end = reference_span
+        .end_byte
+        .checked_sub(target.span.start_byte)?;
+    let prefix = target.normalized_text.get(..prefix_end)?;
+    Some(prefix.split('.').count().saturating_sub(1))
+}
+
+fn selector_segment_handle(
+    target: &SymbolHandle,
+    segment_index: usize,
+    documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
+) -> Option<SymbolHandle> {
+    let target_document = documents_by_id.get(target.document())?;
+    let path = canonical_symbol_path(&target_document.symbols, target.symbol_id())?;
+    let symbol_id = *path.get(segment_index)?;
+    Some(SymbolHandle::new(target.document().clone(), symbol_id))
+}
+
+fn canonical_symbol_path(symbols: &[Symbol], target: SymbolId) -> Option<Vec<SymbolId>> {
+    let binding_family = canonical_binding_family(symbols.get(target.0)?.kind)?;
+    let mut path = vec![target];
+    let mut parent = symbols.get(target.0)?.parent;
+
+    while let Some(parent_id) = parent {
+        let ancestor = symbols.get(parent_id.0)?;
+        if !binding_family_matches(binding_family, ancestor.kind) {
+            return None;
+        }
+        path.push(parent_id);
+        parent = ancestor.parent;
+    }
+
+    path.reverse();
+    Some(path)
+}
+
+#[derive(Clone, Copy)]
+enum CanonicalBindingFamily {
+    Element,
+    Deployment,
+}
+
+const fn canonical_binding_family(kind: SymbolKind) -> Option<CanonicalBindingFamily> {
+    match kind {
+        SymbolKind::Person
+        | SymbolKind::SoftwareSystem
+        | SymbolKind::Container
+        | SymbolKind::Component => Some(CanonicalBindingFamily::Element),
+        SymbolKind::DeploymentEnvironment
+        | SymbolKind::DeploymentNode
+        | SymbolKind::InfrastructureNode
+        | SymbolKind::ContainerInstance
+        | SymbolKind::SoftwareSystemInstance => Some(CanonicalBindingFamily::Deployment),
+        SymbolKind::Relationship => None,
+    }
+}
+
+const fn binding_family_matches(family: CanonicalBindingFamily, kind: SymbolKind) -> bool {
+    match family {
+        CanonicalBindingFamily::Element => matches!(
+            kind,
+            SymbolKind::Person
+                | SymbolKind::SoftwareSystem
+                | SymbolKind::Container
+                | SymbolKind::Component
+        ),
+        CanonicalBindingFamily::Deployment => matches!(
+            kind,
+            SymbolKind::DeploymentEnvironment
+                | SymbolKind::DeploymentNode
+                | SymbolKind::InfrastructureNode
+                | SymbolKind::ContainerInstance
+                | SymbolKind::SoftwareSystemInstance
+        ),
+    }
+}
+
 const fn span_within(outer: TextSpan, inner: TextSpan) -> bool {
     outer.start_byte <= inner.start_byte && inner.end_byte <= outer.end_byte
 }
@@ -4717,6 +4939,15 @@ fn resolve_reference_against_target_hint(
             &bindings.unique_elements,
             &bindings.duplicate_elements,
         ),
+        ReferenceTargetHint::ElementOrDeployment => {
+            resolve_reference_against_element_or_deployment_tables(
+                &reference.raw_text,
+                &bindings.unique_elements,
+                &bindings.duplicate_elements,
+                &bindings.unique_deployments,
+                &bindings.duplicate_deployments,
+            )
+        }
         ReferenceTargetHint::Deployment => resolve_reference_against_binding_table(
             &reference.raw_text,
             &bindings.unique_deployments,
@@ -4750,6 +4981,31 @@ fn resolve_reference_against_element_table(
         unique_element_bindings,
         duplicate_element_bindings,
     )
+}
+
+fn resolve_reference_against_element_or_deployment_tables(
+    raw_text: &str,
+    unique_element_bindings: &BTreeMap<String, SymbolHandle>,
+    duplicate_element_bindings: &BTreeMap<String, Vec<SymbolHandle>>,
+    unique_deployment_bindings: &BTreeMap<String, SymbolHandle>,
+    duplicate_deployment_bindings: &BTreeMap<String, Vec<SymbolHandle>>,
+) -> ReferenceResolutionStatus {
+    if duplicate_element_bindings.contains_key(raw_text)
+        || duplicate_deployment_bindings.contains_key(raw_text)
+    {
+        return ReferenceResolutionStatus::AmbiguousDuplicateBinding;
+    }
+
+    match (
+        unique_element_bindings.get(raw_text),
+        unique_deployment_bindings.get(raw_text),
+    ) {
+        (Some(_), Some(_)) => ReferenceResolutionStatus::AmbiguousDuplicateBinding,
+        (Some(handle), None) | (None, Some(handle)) => {
+            ReferenceResolutionStatus::Resolved(handle.clone())
+        }
+        (None, None) => ReferenceResolutionStatus::UnresolvedNoMatch,
+    }
 }
 
 fn resolve_reference_against_binding_table(
@@ -4845,7 +5101,7 @@ fn last_identifier_mode_for_container(
 }
 
 #[derive(Clone, Copy)]
-enum CanonicalBindingKind {
+pub enum CanonicalBindingKind {
     Element,
     Deployment,
 }
@@ -4872,7 +5128,7 @@ impl CanonicalBindingKind {
     }
 }
 
-fn canonical_binding_key(
+pub fn canonical_binding_key(
     symbols: &[Symbol],
     symbol_id: SymbolId,
     mode: ElementIdentifierMode,
@@ -4907,6 +5163,45 @@ fn canonical_binding_key(
             Some(segments.join("."))
         }
     }
+}
+
+pub fn canonical_element_binding_key(
+    symbols: &[Symbol],
+    symbol_id: SymbolId,
+    mode: ElementIdentifierMode,
+) -> Option<String> {
+    let symbol = symbols.get(symbol_id.0)?;
+    if !matches!(
+        symbol.kind,
+        SymbolKind::Person
+            | SymbolKind::SoftwareSystem
+            | SymbolKind::Container
+            | SymbolKind::Component
+    ) {
+        return None;
+    }
+
+    canonical_binding_key(symbols, symbol_id, mode, CanonicalBindingKind::Element)
+}
+
+pub fn canonical_deployment_binding_key(
+    symbols: &[Symbol],
+    symbol_id: SymbolId,
+    mode: ElementIdentifierMode,
+) -> Option<String> {
+    let symbol = symbols.get(symbol_id.0)?;
+    if !matches!(
+        symbol.kind,
+        SymbolKind::DeploymentEnvironment
+            | SymbolKind::DeploymentNode
+            | SymbolKind::InfrastructureNode
+            | SymbolKind::ContainerInstance
+            | SymbolKind::SoftwareSystemInstance
+    ) {
+        return None;
+    }
+
+    canonical_binding_key(symbols, symbol_id, mode, CanonicalBindingKind::Deployment)
 }
 
 fn merge_semantic_diagnostics(

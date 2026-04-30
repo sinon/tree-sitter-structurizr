@@ -1,5 +1,19 @@
 # AGENTS.md
 
+## Issue Tracking
+
+This project uses **bd (beads)** for issue tracking.
+Run `bd prime` for workflow context, or install hooks (`bd hooks install`) for auto-injection.
+
+**Quick reference:**
+
+- `bd ready` - Find unblocked work
+- `bd create "Title" --type task --priority 2` - Create issue
+- `bd close <id>` - Complete work
+- `bd dolt push` - Push beads to remote
+
+For full workflow details: `bd prime`
+
 ## Purpose of this repository
 
 This repository contains an LSP and linter for the Structurizr DSL, built on top of tree-sitter grammar.
