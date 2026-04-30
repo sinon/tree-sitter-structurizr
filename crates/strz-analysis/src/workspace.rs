@@ -2,7 +2,7 @@
 
 use std::{
     collections::{BTreeMap, BTreeSet},
-    fs, io,
+    fmt, fs, io,
     path::{Component, Path, PathBuf},
     sync::Arc,
 };
@@ -571,6 +571,279 @@ impl WorkspaceFacts {
     }
 }
 
+/// Fatal failures that can prevent workspace facts from being assembled.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum WorkspaceLoadFailureKind {
+    /// A requested workspace root could not be normalized or opened.
+    WorkspaceRoot,
+    /// A workspace root could not be traversed.
+    WorkspaceScan,
+    /// A discovered file-backed document could not be read.
+    DocumentRead,
+    /// A `workspace extends` target could not be resolved or loaded.
+    WorkspaceBase,
+    /// A `workspace extends` chain loops back to an active document.
+    WorkspaceBaseCycle,
+    /// A local `!include` target could not be loaded after it resolved.
+    IncludeLoad,
+}
+
+/// Source location for a fatal load failure when the loader can identify one.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorkspaceLoadFailureAnchor {
+    document: DocumentId,
+    span: TextSpan,
+    value_span: Option<TextSpan>,
+    target_text: Option<String>,
+}
+
+impl WorkspaceLoadFailureAnchor {
+    /// Returns the document that owns the failing directive.
+    #[must_use]
+    pub const fn document(&self) -> &DocumentId {
+        &self.document
+    }
+
+    /// Returns the primary source span to highlight.
+    #[must_use]
+    pub const fn span(&self) -> TextSpan {
+        self.span
+    }
+
+    /// Returns the narrower value span when the failure came from a directive value.
+    #[must_use]
+    pub const fn value_span(&self) -> Option<TextSpan> {
+        self.value_span
+    }
+
+    /// Returns the user-facing target text associated with the failing directive.
+    #[must_use]
+    pub fn target_text(&self) -> Option<&str> {
+        self.target_text.as_deref()
+    }
+}
+
+/// One structured fatal workspace-load failure.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorkspaceLoadFailure {
+    kind: WorkspaceLoadFailureKind,
+    message: String,
+    path: Option<PathBuf>,
+    anchor: Option<WorkspaceLoadFailureAnchor>,
+}
+
+impl WorkspaceLoadFailure {
+    fn unanchored(
+        kind: WorkspaceLoadFailureKind,
+        message: impl Into<String>,
+        path: Option<PathBuf>,
+    ) -> Self {
+        Self {
+            kind,
+            message: message.into(),
+            path,
+            anchor: None,
+        }
+    }
+
+    fn anchored(
+        kind: WorkspaceLoadFailureKind,
+        document: &DocumentId,
+        span: TextSpan,
+        value_span: Option<TextSpan>,
+        target_text: Option<String>,
+        path: Option<PathBuf>,
+        message: impl Into<String>,
+    ) -> Self {
+        Self {
+            kind,
+            message: message.into(),
+            path,
+            anchor: Some(WorkspaceLoadFailureAnchor {
+                document: document.clone(),
+                span,
+                value_span,
+                target_text,
+            }),
+        }
+    }
+
+    fn workspace_root(path: &Path, error: &io::Error) -> Self {
+        Self::unanchored(
+            WorkspaceLoadFailureKind::WorkspaceRoot,
+            format!("failed to load workspace root {}: {error}", path.display()),
+            Some(path.to_path_buf()),
+        )
+    }
+
+    fn workspace_scan(root: &Path, error: &io::Error) -> Self {
+        Self::unanchored(
+            WorkspaceLoadFailureKind::WorkspaceScan,
+            format!("failed to scan workspace root {}: {error}", root.display()),
+            Some(root.to_path_buf()),
+        )
+    }
+
+    fn document_read(path: &Path, error: &io::Error) -> Self {
+        Self::unanchored(
+            WorkspaceLoadFailureKind::DocumentRead,
+            format!(
+                "failed to read workspace document {}: {error}",
+                path.display()
+            ),
+            Some(path.to_path_buf()),
+        )
+    }
+
+    fn workspace_base(
+        document: &DocumentId,
+        directive: &WorkspaceBaseDirective,
+        target_text: &str,
+        path: Option<PathBuf>,
+        message: impl Into<String>,
+    ) -> Self {
+        Self::anchored(
+            WorkspaceLoadFailureKind::WorkspaceBase,
+            document,
+            directive.span,
+            Some(directive.value_span),
+            Some(target_text.to_owned()),
+            path,
+            message,
+        )
+    }
+
+    fn workspace_base_cycle(
+        document: &DocumentId,
+        directive: &WorkspaceBaseDirective,
+        target_text: &str,
+        path: PathBuf,
+    ) -> Self {
+        Self::anchored(
+            WorkspaceLoadFailureKind::WorkspaceBaseCycle,
+            document,
+            directive.span,
+            Some(directive.value_span),
+            Some(target_text.to_owned()),
+            Some(path),
+            format!("workspace extends cycle detected while following: {target_text}"),
+        )
+    }
+
+    fn include_load(
+        document: &DocumentId,
+        span: TextSpan,
+        value_span: TextSpan,
+        target_text: &str,
+        path: Option<PathBuf>,
+        error: &io::Error,
+    ) -> Self {
+        Self::anchored(
+            WorkspaceLoadFailureKind::IncludeLoad,
+            document,
+            span,
+            Some(value_span),
+            Some(target_text.to_owned()),
+            path,
+            format!("failed to load include {target_text}: {error}"),
+        )
+    }
+
+    /// Returns the typed failure category.
+    #[must_use]
+    pub const fn kind(&self) -> WorkspaceLoadFailureKind {
+        self.kind
+    }
+
+    /// Returns the user-facing failure explanation.
+    #[must_use]
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    /// Returns the relevant filesystem path when one is known.
+    #[must_use]
+    pub fn path(&self) -> Option<&Path> {
+        self.path.as_deref()
+    }
+
+    /// Returns source anchor metadata when the failure belongs to a directive.
+    #[must_use]
+    pub const fn anchor(&self) -> Option<&WorkspaceLoadFailureAnchor> {
+        self.anchor.as_ref()
+    }
+
+    /// Returns whether this failure can be rendered as a source diagnostic.
+    #[must_use]
+    pub const fn is_anchored(&self) -> bool {
+        self.anchor.is_some()
+    }
+
+    /// Converts an anchored load failure into the normal ruled diagnostic stream.
+    #[must_use]
+    pub fn diagnostic(&self) -> Option<RuledDiagnostic> {
+        let anchor = self.anchor()?;
+
+        Some(RuledDiagnostic::workspace_load_failure(
+            anchor.document(),
+            self.message(),
+            anchor.span(),
+            anchor.value_span(),
+            anchor.target_text(),
+        ))
+    }
+}
+
+/// Structured fatal result for workspace loading.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorkspaceLoadError {
+    failures: Vec<WorkspaceLoadFailure>,
+}
+
+impl WorkspaceLoadError {
+    fn single(failure: WorkspaceLoadFailure) -> Self {
+        Self {
+            failures: vec![failure],
+        }
+    }
+
+    /// Returns the structured failures that caused the load to abort.
+    #[must_use]
+    pub fn failures(&self) -> &[WorkspaceLoadFailure] {
+        &self.failures
+    }
+
+    /// Consumes the error and returns its structured failures.
+    #[must_use]
+    pub fn into_failures(self) -> Vec<WorkspaceLoadFailure> {
+        self.failures
+    }
+}
+
+impl fmt::Display for WorkspaceLoadError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.failures.as_slice() {
+            [] => formatter.write_str("workspace load failed"),
+            [failure] => formatter.write_str(failure.message()),
+            failures => {
+                write!(
+                    formatter,
+                    "workspace load failed with {} fatal failures",
+                    failures.len()
+                )?;
+                for failure in failures {
+                    write!(formatter, "\n- {}", failure.message())?;
+                }
+                Ok(())
+            }
+        }
+    }
+}
+
+impl std::error::Error for WorkspaceLoadError {}
+
+type WorkspaceLoadResult<T> = Result<T, WorkspaceLoadError>;
+
 /// Loader that scans workspace roots and follows explicit include targets.
 #[derive(Default)]
 pub struct WorkspaceLoader {
@@ -609,16 +882,45 @@ impl WorkspaceLoader {
     /// # Errors
     ///
     /// Returns an I/O error when the loader cannot traverse a workspace root or
-    /// read one of the discovered local files.
+    /// read one of the discovered local files. Use
+    /// [`Self::load_paths_with_failures`] when callers need structured fatal
+    /// failure data.
     pub fn load_paths<I, P>(&mut self, roots: I) -> io::Result<WorkspaceFacts>
+    where
+        I: IntoIterator<Item = P>,
+        P: AsRef<Path>,
+    {
+        self.load_paths_with_failures(roots)
+            .map_err(io::Error::other)
+    }
+
+    /// Scans workspace roots while preserving structured fatal failures.
+    ///
+    /// This is the preferred entry point for editor integrations because an
+    /// aborted load can still carry source anchors for the directive that made
+    /// assembled-workspace facts unavailable.
+    ///
+    /// # Errors
+    ///
+    /// Returns a structured load error when the loader cannot normalize a root,
+    /// traverse a workspace root, or read/follow a fatal local dependency.
+    pub fn load_paths_with_failures<I, P>(
+        &mut self,
+        roots: I,
+    ) -> WorkspaceLoadResult<WorkspaceFacts>
     where
         I: IntoIterator<Item = P>,
         P: AsRef<Path>,
     {
         let mut normalized_roots = roots
             .into_iter()
-            .map(|root| normalize_existing_path(root.as_ref()))
-            .collect::<io::Result<Vec<_>>>()?;
+            .map(|root| {
+                let root = root.as_ref();
+                normalize_existing_path(root).map_err(|error| {
+                    WorkspaceLoadError::single(WorkspaceLoadFailure::workspace_root(root, &error))
+                })
+            })
+            .collect::<WorkspaceLoadResult<Vec<_>>>()?;
         normalized_roots.sort();
         normalized_roots.dedup();
 
@@ -996,7 +1298,10 @@ impl<'loader> WorkspaceBuildSession<'loader> {
         }
     }
 
-    fn build_from_roots(mut self, normalized_roots: &[PathBuf]) -> io::Result<WorkspaceFacts> {
+    fn build_from_roots(
+        mut self,
+        normalized_roots: &[PathBuf],
+    ) -> WorkspaceLoadResult<WorkspaceFacts> {
         // Phase 1: Normalize and scan the requested roots so broad workspace
         // discovery respects ignore rules before include traversal begins.
         self.scan_roots(normalized_roots)?;
@@ -1011,10 +1316,14 @@ impl<'loader> WorkspaceBuildSession<'loader> {
         Ok(self.finish(&start_contexts))
     }
 
-    fn scan_roots(&mut self, normalized_roots: &[PathBuf]) -> io::Result<()> {
+    fn scan_roots(&mut self, normalized_roots: &[PathBuf]) -> WorkspaceLoadResult<()> {
         for root in normalized_roots {
-            for path in scan_workspace_root(root)? {
-                self.load_document(path, true)?;
+            for path in scan_workspace_root(root).map_err(|error| {
+                WorkspaceLoadError::single(WorkspaceLoadFailure::workspace_scan(root, &error))
+            })? {
+                self.load_document(path.clone(), true).map_err(|error| {
+                    WorkspaceLoadError::single(WorkspaceLoadFailure::document_read(&path, &error))
+                })?;
             }
         }
 
@@ -1024,7 +1333,7 @@ impl<'loader> WorkspaceBuildSession<'loader> {
     fn process_start_contexts(
         &mut self,
         normalized_roots: &[PathBuf],
-    ) -> io::Result<Vec<DocumentContext>> {
+    ) -> WorkspaceLoadResult<Vec<DocumentContext>> {
         let start_contexts = start_contexts(normalized_roots, &self.loaded_documents);
 
         for context in &start_contexts {
@@ -1070,20 +1379,32 @@ impl<'loader> WorkspaceBuildSession<'loader> {
         Ok(())
     }
 
+    #[allow(clippy::too_many_lines)]
     fn process_document_context(
         &mut self,
         context: DocumentContext,
-    ) -> io::Result<ConstantEnvironment> {
+    ) -> WorkspaceLoadResult<ConstantEnvironment> {
         // Memoize by `(path, inherited constants)` so repeated includes can
         // share the same processed result without rewalking the document.
         if let Some(processed_context) = self.processed_contexts.get(&context.key) {
             return Ok(processed_context.exported_constants.clone());
         }
 
-        self.load_document(context.path.clone(), false)?;
+        self.load_document(context.path.clone(), false)
+            .map_err(|error| {
+                WorkspaceLoadError::single(WorkspaceLoadFailure::document_read(
+                    &context.path,
+                    &error,
+                ))
+            })?;
 
-        if self.cached_context_tree_is_fresh(&context.key, &mut BTreeSet::new())? {
-            self.materialize_cached_context_tree(&context.key, &mut BTreeSet::new())?;
+        if self
+            .cached_context_tree_is_fresh(&context.key, &mut BTreeSet::new())
+            .unwrap_or(false)
+            && self
+                .materialize_cached_context_tree(&context.key, &mut BTreeSet::new())
+                .is_ok()
+        {
             return Ok(self
                 .processed_contexts
                 .get(&context.key)
@@ -1107,7 +1428,7 @@ impl<'loader> WorkspaceBuildSession<'loader> {
         };
 
         self.active_stack.push(context.path.clone());
-        let processed = (|| -> io::Result<ProcessedDocumentContext> {
+        let processed = (|| -> WorkspaceLoadResult<ProcessedDocumentContext> {
             let mut current_constants = context.inherited_constants.clone();
             let mut workspace_base_context = None;
             let mut direct_includes = Vec::new();
@@ -1117,21 +1438,37 @@ impl<'loader> WorkspaceBuildSession<'loader> {
             // directives so inherited constants and bindings mirror the DSL's
             // top-down `workspace extends ...` semantics.
             if let Some(workspace_base) = &workspace_base {
-                let base_path =
-                    resolve_workspace_base(&context.path, workspace_base, &current_constants)?;
-                self.load_document(base_path.clone(), false)?;
+                let resolved_base = resolve_workspace_base(
+                    &document_id,
+                    &context.path,
+                    workspace_base,
+                    &current_constants,
+                )?;
+                self.load_document(resolved_base.path.clone(), false)
+                    .map_err(|error| {
+                        let target_text = &resolved_base.target_text;
+                        WorkspaceLoadError::single(WorkspaceLoadFailure::workspace_base(
+                            &document_id,
+                            workspace_base,
+                            target_text,
+                            Some(resolved_base.path.clone()),
+                            format!("failed to load workspace base {target_text}: {error}"),
+                        ))
+                    })?;
 
-                if self.active_stack.contains(&base_path) {
-                    return Err(io::Error::new(
-                        io::ErrorKind::InvalidInput,
-                        format!(
-                            "workspace extends cycle detected while following: {}",
-                            base_path.display()
+                if self.active_stack.contains(&resolved_base.path) {
+                    return Err(WorkspaceLoadError::single(
+                        WorkspaceLoadFailure::workspace_base_cycle(
+                            &document_id,
+                            workspace_base,
+                            &resolved_base.target_text,
+                            resolved_base.path,
                         ),
                     ));
                 }
 
-                let child_context = DocumentContext::new(base_path, current_constants.clone());
+                let child_context =
+                    DocumentContext::new(resolved_base.path, current_constants.clone());
                 workspace_base_context = Some(child_context.key.clone());
                 current_constants = self.process_document_context(child_context)?;
             }
@@ -1160,7 +1497,17 @@ impl<'loader> WorkspaceBuildSession<'loader> {
                         )?;
 
                         for included_path in &resolved_include.discovered_paths {
-                            self.load_document(included_path.clone(), false)?;
+                            self.load_document(included_path.clone(), false)
+                                .map_err(|error| {
+                                    WorkspaceLoadError::single(WorkspaceLoadFailure::include_load(
+                                        resolved_include.include.including_document(),
+                                        resolved_include.include.span(),
+                                        resolved_include.include.value_span(),
+                                        resolved_include.include.target_text(),
+                                        Some(included_path.clone()),
+                                        &error,
+                                    ))
+                                })?;
                         }
 
                         for included_path in &resolved_include.discovered_paths {
@@ -1338,10 +1685,18 @@ struct ResolvedIncludeWork {
     discovered_paths: Vec<PathBuf>,
 }
 
+#[derive(Debug)]
+struct ResolvedWorkspaceBase {
+    path: PathBuf,
+    target_text: String,
+}
+
 #[derive(Debug, Clone)]
 struct WorkspaceBaseDirective {
     raw_value: String,
     value_kind: DirectiveValueKind,
+    span: TextSpan,
+    value_span: TextSpan,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -1556,13 +1911,24 @@ fn document_id_from_path(path: &Path) -> DocumentId {
     DocumentId::new(path.to_string_lossy().into_owned())
 }
 
+#[allow(clippy::too_many_lines)]
 fn resolve_include(
     including_document: &DocumentId,
     including_document_path: &Path,
     directive: &IncludeDirective,
     constants: &ConstantEnvironment,
-) -> io::Result<ResolvedIncludeWork> {
+) -> WorkspaceLoadResult<ResolvedIncludeWork> {
     let target_text = expand_string_substitutions(&normalized_include_value(directive), constants);
+    let include_error = |path: Option<PathBuf>, error: io::Error| {
+        WorkspaceLoadError::single(WorkspaceLoadFailure::include_load(
+            including_document,
+            directive.span,
+            directive.value_span,
+            &target_text,
+            path,
+            &error,
+        ))
+    };
     let base_include = |target: WorkspaceIncludeTarget, discovered_paths: Vec<PathBuf>| {
         let discovered_documents = discovered_paths
             .iter()
@@ -1593,12 +1959,16 @@ fn resolve_include(
     }
 
     let Some(parent_directory) = including_document_path.parent() else {
-        return Err(io::Error::other(format!(
-            "document path has no parent directory: {}",
-            including_document_path.display()
-        )));
+        return Err(include_error(
+            Some(including_document_path.to_path_buf()),
+            io::Error::other(format!(
+                "document path has no parent directory: {}",
+                including_document_path.display()
+            )),
+        ));
     };
-    let canonical_parent_directory = normalize_existing_path(parent_directory)?;
+    let canonical_parent_directory = normalize_existing_path(parent_directory)
+        .map_err(|error| include_error(Some(parent_directory.to_path_buf()), error))?;
     let relative_target = PathBuf::from(&target_text);
     let joined_target = parent_directory.join(&relative_target);
 
@@ -1613,7 +1983,8 @@ fn resolve_include(
 
     match fs::metadata(&joined_target) {
         Ok(metadata) if metadata.is_file() => {
-            let canonical_file = normalize_existing_path(&joined_target)?;
+            let canonical_file = normalize_existing_path(&joined_target)
+                .map_err(|error| include_error(Some(joined_target.clone()), error))?;
 
             if !canonical_file.starts_with(&canonical_parent_directory) {
                 return Ok(base_include(
@@ -1632,7 +2003,8 @@ fn resolve_include(
             ))
         }
         Ok(metadata) if metadata.is_dir() => {
-            let canonical_directory = normalize_existing_path(&joined_target)?;
+            let canonical_directory = normalize_existing_path(&joined_target)
+                .map_err(|error| include_error(Some(joined_target.clone()), error))?;
 
             if !canonical_directory.starts_with(&canonical_parent_directory) {
                 return Ok(base_include(
@@ -1644,7 +2016,8 @@ fn resolve_include(
             }
 
             let discovered_paths =
-                collect_directory_include_paths(&canonical_directory, &canonical_parent_directory)?;
+                collect_directory_include_paths(&canonical_directory, &canonical_parent_directory)
+                    .map_err(|error| include_error(Some(canonical_directory.clone()), error))?;
 
             Ok(base_include(
                 WorkspaceIncludeTarget::LocalDirectory {
@@ -1665,7 +2038,7 @@ fn resolve_include(
             },
             Vec::new(),
         )),
-        Err(error) => Err(error),
+        Err(error) => Err(include_error(Some(joined_target), error)),
     }
 }
 
@@ -1684,79 +2057,98 @@ fn workspace_base_directive(snapshot: &crate::DocumentSnapshot) -> Option<Worksp
     Some(WorkspaceBaseDirective {
         raw_value: snapshot.source()[base.byte_range()].to_owned(),
         value_kind: DirectiveValueKind::from_node_kind(base.kind()),
+        span: TextSpan::from_node(base),
+        value_span: TextSpan::from_node(base),
     })
 }
 
 fn resolve_workspace_base(
+    document: &DocumentId,
     workspace_path: &Path,
     workspace_base: &WorkspaceBaseDirective,
     constants: &ConstantEnvironment,
-) -> io::Result<PathBuf> {
+) -> WorkspaceLoadResult<ResolvedWorkspaceBase> {
     let base_text = expand_string_substitutions(
         &normalized_directive_value(&workspace_base.raw_value, &workspace_base.value_kind),
         constants,
     );
+    let base_error = |path: Option<PathBuf>, message: String| {
+        WorkspaceLoadError::single(WorkspaceLoadFailure::workspace_base(
+            document,
+            workspace_base,
+            &base_text,
+            path,
+            message,
+        ))
+    };
     if is_remote_include(&base_text) {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
+        return Err(base_error(
+            None,
             format!("remote workspace bases are not supported: {base_text}"),
         ));
     }
 
     let parent = workspace_path.parent().ok_or_else(|| {
-        io::Error::new(
-            io::ErrorKind::InvalidInput,
+        base_error(
+            Some(workspace_path.to_path_buf()),
             format!(
                 "workspace entry has no parent directory for base resolution: {}",
                 workspace_path.display()
             ),
         )
     })?;
-    let canonical_parent_directory = normalize_existing_path(parent)?;
+    let canonical_parent_directory = normalize_existing_path(parent).map_err(|error| {
+        base_error(
+            Some(parent.to_path_buf()),
+            format!("failed to load workspace base {base_text}: {error}"),
+        )
+    })?;
     let relative_target = PathBuf::from(&base_text);
     let base_path = parent.join(&relative_target);
     if !is_supported_local_include_path(&relative_target) {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            format!(
-                "workspace base path escapes the allowed subtree: {}",
-                base_path.display()
-            ),
+        return Err(base_error(
+            Some(base_path),
+            format!("workspace base path escapes the allowed subtree: {base_text}"),
         ));
     }
     let metadata = fs::metadata(&base_path).map_err(|error| {
         if error.kind() == io::ErrorKind::NotFound {
-            io::Error::new(
-                io::ErrorKind::InvalidInput,
-                format!("workspace base does not exist: {}", base_path.display()),
+            base_error(
+                Some(base_path.clone()),
+                format!("workspace base does not exist: {base_text}"),
             )
         } else {
-            error
+            base_error(
+                Some(base_path.clone()),
+                format!("failed to load workspace base {base_text}: {error}"),
+            )
         }
     })?;
 
     if !metadata.is_file() {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            format!(
-                "workspace base must resolve to a file: {}",
-                base_path.display()
-            ),
+        return Err(base_error(
+            Some(base_path),
+            format!("workspace base must resolve to a file: {base_text}"),
         ));
     }
 
-    let canonical_base = normalize_existing_path(&base_path)?;
+    let canonical_base = normalize_existing_path(&base_path).map_err(|error| {
+        base_error(
+            Some(base_path.clone()),
+            format!("failed to load workspace base {base_text}: {error}"),
+        )
+    })?;
     if !canonical_base.starts_with(&canonical_parent_directory) {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            format!(
-                "workspace base path escapes the allowed subtree: {}",
-                canonical_base.display()
-            ),
+        return Err(base_error(
+            Some(canonical_base),
+            format!("workspace base path escapes the allowed subtree: {base_text}"),
         ));
     }
 
-    Ok(canonical_base)
+    Ok(ResolvedWorkspaceBase {
+        path: canonical_base,
+        target_text: base_text,
+    })
 }
 
 fn expand_string_substitutions(value: &str, constants: &ConstantEnvironment) -> String {

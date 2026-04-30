@@ -3,7 +3,7 @@
 use line_index::LineIndex;
 use strz_analysis::{
     Annotation, DiagnosticSeverity as AnalysisSeverity, DocumentId, DocumentSnapshot,
-    RuledDiagnostic, WorkspaceFacts,
+    RuledDiagnostic, WorkspaceFacts, WorkspaceLoadFailure,
 };
 use tower_lsp_server::ls_types::{
     Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, Location, NumberOrString, Uri,
@@ -21,6 +21,7 @@ pub fn document_diagnostics(
     document: &DocumentState,
     snapshot: &DocumentSnapshot,
     workspace_facts: Option<&WorkspaceFacts>,
+    workspace_load_failures: &[WorkspaceLoadFailure],
 ) -> Vec<Diagnostic> {
     let mut diagnostics = snapshot
         .syntax_diagnostics()
@@ -28,12 +29,39 @@ pub fn document_diagnostics(
         .filter_map(|diagnostic| analysis_diagnostic(document, diagnostic, workspace_facts, true))
         .collect::<Vec<_>>();
 
+    diagnostics.extend(load_failure_diagnostics(
+        document,
+        workspace_facts,
+        workspace_load_failures,
+    ));
+
     if let Some(workspace_facts) = workspace_facts {
         diagnostics.extend(include_diagnostics(document, workspace_facts));
         diagnostics.extend(semantic_diagnostics(document, workspace_facts));
     }
 
     diagnostics
+}
+
+fn load_failure_diagnostics(
+    document: &DocumentState,
+    workspace_facts: Option<&WorkspaceFacts>,
+    workspace_load_failures: &[WorkspaceLoadFailure],
+) -> Vec<Diagnostic> {
+    let Some(document_id) = workspace_document_id(document) else {
+        return Vec::new();
+    };
+
+    workspace_load_failures
+        .iter()
+        .filter(|failure| {
+            failure
+                .anchor()
+                .is_some_and(|anchor| anchor.document() == &document_id)
+        })
+        .filter_map(WorkspaceLoadFailure::diagnostic)
+        .filter_map(|diagnostic| analysis_diagnostic(document, &diagnostic, workspace_facts, false))
+        .collect()
 }
 
 /// Convert one analysis diagnostic into an LSP diagnostic.
