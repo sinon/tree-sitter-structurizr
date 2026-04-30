@@ -562,6 +562,15 @@ fn target_is_renameable_in_workspace(
         );
     }
 
+    if target_symbol.kind == SymbolKind::Relationship {
+        return binding_is_uniquely_owned(
+            workspace_index.unique_relationship_bindings(),
+            workspace_index.duplicate_relationship_bindings(),
+            current_name,
+            target_handle,
+        );
+    }
+
     false
 }
 
@@ -645,6 +654,7 @@ const fn is_supported_rename_symbol_kind(kind: SymbolKind) -> bool {
             | SymbolKind::InfrastructureNode
             | SymbolKind::ContainerInstance
             | SymbolKind::SoftwareSystemInstance
+            | SymbolKind::Relationship
     )
 }
 
@@ -653,6 +663,10 @@ const fn symbol_in_same_binding_family(left: SymbolKind, right: SymbolKind) -> b
         && super::navigation::is_element_symbol_kind(right))
         || (super::navigation::is_deployment_symbol_kind(left)
             && super::navigation::is_deployment_symbol_kind(right))
+        || matches!(
+            (left, right),
+            (SymbolKind::Relationship, SymbolKind::Relationship)
+        )
 }
 
 fn is_valid_flat_identifier(value: &str) -> bool {
