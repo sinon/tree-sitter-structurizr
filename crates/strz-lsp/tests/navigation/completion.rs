@@ -707,7 +707,7 @@ async fn completion_inside_container_instance_relationship_destination_suggests_
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn completion_inside_deployment_relationship_destination_suppresses_hierarchical_mode() {
+async fn completion_inside_deployment_relationship_destination_suggests_hierarchical_keys() {
     let (mut service, _socket) = new_service();
 
     initialize(&mut service).await;
@@ -715,14 +715,15 @@ async fn completion_inside_deployment_relationship_destination_suppresses_hierar
 
     let source = deployment_completion_source_with_preamble(
         "!identifiers hierarchical",
-        "primary -> <CURSOR>",
+        "live.primary -> <CURSOR>",
     );
     let uri = file_uri("deployment-relationship-hierarchical-completion.dsl");
     open_document(&mut service, &uri, source.source()).await;
 
-    let labels = completion_labels(&mut service, &uri, &source).await;
+    let mut labels = completion_labels(&mut service, &uri, &source).await;
+    labels.sort_unstable();
 
-    assert!(labels.is_empty());
+    assert_eq!(labels, vec!["live.primary", "live.secondary"]);
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -843,7 +844,7 @@ async fn completion_inside_fresh_relationship_source_before_deployment_environme
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn completion_inside_relationship_destination_suppresses_hierarchical_mode() {
+async fn completion_inside_relationship_destination_suggests_hierarchical_keys() {
     let (mut service, _socket) = new_service();
 
     initialize(&mut service).await;
@@ -865,9 +866,92 @@ async fn completion_inside_relationship_destination_suppresses_hierarchical_mode
     let uri = file_uri("relationship-hierarchical-completion.dsl");
     open_document(&mut service, &uri, source.source()).await;
 
-    let labels = completion_labels(&mut service, &uri, &source).await;
+    let mut labels = completion_labels(&mut service, &uri, &source).await;
+    labels.sort_unstable();
 
-    assert!(labels.is_empty());
+    assert_eq!(labels, vec!["system", "system.api"]);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_workspace_backed_relationship_destination_suggests_hierarchical_keys() {
+    let temp_workspace = TempWorkspace::new(
+        "relationship-completion-hierarchical-cross-file",
+        "workspace {\n  !identifiers hierarchical\n  !include model.dsl\n  !include relationships.dsl\n}\n",
+        &[],
+        &[
+            (
+                Path::new("model.dsl"),
+                "model {\n  system = softwareSystem \"System\" {\n    api = container \"API\"\n  }\n}\n",
+            ),
+            (Path::new("relationships.dsl"), "model {\n  system -> \n}\n"),
+        ],
+    );
+    let (mut service, _socket) = new_service();
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(temp_workspace.path())])
+        .await;
+    initialized(&mut service).await;
+
+    let relationships_path = temp_workspace.path().join("relationships.dsl");
+    let relationships_source = annotated_source(
+        &read_workspace_file(&relationships_path).replacen("system -> ", "system -> <CURSOR>", 1),
+    );
+    let relationships_uri = file_uri_from_path(&relationships_path);
+    open_document(
+        &mut service,
+        &relationships_uri,
+        relationships_source.source(),
+    )
+    .await;
+
+    let mut labels =
+        completion_labels(&mut service, &relationships_uri, &relationships_source).await;
+    labels.sort_unstable();
+
+    assert_eq!(labels, vec!["system", "system.api"]);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_replaces_hierarchical_prefix_with_full_canonical_key() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          model {
+            !identifiers hierarchical
+
+            system = softwareSystem "System" {
+              api = container "API"
+            }
+
+            system -> system.a<CURSOR>
+          }
+        }
+    "#});
+    let uri = file_uri("relationship-hierarchical-prefix-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let items = completion_items(&mut service, &uri, &source).await;
+
+    assert_eq!(
+        applied_completion_source(&source, completion_item(&items, "system.api")),
+        indoc! {r#"
+            workspace {
+              model {
+                !identifiers hierarchical
+
+                system = softwareSystem "System" {
+                  api = container "API"
+                }
+
+                system -> system.api
+              }
+            }
+        "#}
+    );
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -914,6 +998,216 @@ async fn completion_inside_multi_instance_relationship_fragment_returns_no_resul
     .await;
 
     let labels = completion_labels(&mut service, &relationships_uri, &relationships_source).await;
+
+    assert!(labels.is_empty());
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_instance_target_replaces_identifier_prefix() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          model {
+            system = softwareSystem "System" {
+              api = container "API"
+            }
+
+            live = deploymentEnvironment "Live" {
+              node = deploymentNode "Node" {
+                apiInstance = containerInstance ap<CURSOR>
+              }
+            }
+          }
+        }
+    "#});
+    let uri = file_uri("instance-target-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let items = completion_items(&mut service, &uri, &source).await;
+
+    assert_eq!(
+        applied_completion_source(&source, completion_item(&items, "api")),
+        indoc! {r#"
+            workspace {
+              model {
+                system = softwareSystem "System" {
+                  api = container "API"
+                }
+
+                live = deploymentEnvironment "Live" {
+                  node = deploymentNode "Node" {
+                    apiInstance = containerInstance api
+                  }
+                }
+              }
+            }
+        "#}
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_view_include_replaces_relationship_identifier_prefix() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          model {
+            user = person "User"
+            system = softwareSystem "System"
+
+            rel = user -> system "Uses"
+          }
+
+          views {
+            systemLandscape {
+              include re<CURSOR>
+            }
+          }
+        }
+    "#});
+    let uri = file_uri("view-include-relationship-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let items = completion_items(&mut service, &uri, &source).await;
+
+    assert_eq!(
+        applied_completion_source(&source, completion_item(&items, "rel")),
+        indoc! {r#"
+            workspace {
+              model {
+                user = person "User"
+                system = softwareSystem "System"
+
+                rel = user -> system "Uses"
+              }
+
+              views {
+                systemLandscape {
+                  include rel
+                }
+              }
+            }
+        "#}
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_instance_target_uses_workspace_symbols_across_files() {
+    let temp_workspace = TempWorkspace::new(
+        "instance-target-completion-cross-file",
+        "workspace {\n  !include model.dsl\n  !include deployment.dsl\n}\n",
+        &[],
+        &[
+            (
+                Path::new("model.dsl"),
+                "model {\n  system = softwareSystem \"System\" {\n    api = container \"API\"\n  }\n}\n",
+            ),
+            (
+                Path::new("deployment.dsl"),
+                "model {\n  live = deploymentEnvironment \"Live\" {\n    node = deploymentNode \"Node\" {\n      apiInstance = containerInstance api\n    }\n  }\n}\n",
+            ),
+        ],
+    );
+    let (mut service, _socket) = new_service();
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(temp_workspace.path())])
+        .await;
+    initialized(&mut service).await;
+
+    let deployment_path = temp_workspace.path().join("deployment.dsl");
+    let deployment_source = annotated_source(&read_workspace_file(&deployment_path).replacen(
+        "containerInstance api",
+        "containerInstance ap<CURSOR>",
+        1,
+    ));
+    let deployment_uri = file_uri_from_path(&deployment_path);
+    open_document(&mut service, &deployment_uri, deployment_source.source()).await;
+
+    let labels = completion_labels(&mut service, &deployment_uri, &deployment_source).await;
+
+    assert_eq!(labels, vec!["api"]);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_hierarchical_instance_target_returns_no_items() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          model {
+            !identifiers hierarchical
+
+            system = softwareSystem "System" {
+              api = container "API"
+            }
+
+            live = deploymentEnvironment "Live" {
+              node = deploymentNode "Node" {
+                apiInstance = containerInstance a<CURSOR>
+              }
+            }
+          }
+        }
+    "#});
+    let uri = file_uri("hierarchical-instance-target-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let labels = completion_labels(&mut service, &uri, &source).await;
+
+    assert!(labels.is_empty());
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_multi_instance_reference_fragment_returns_no_result() {
+    let temp_workspace = TempWorkspace::new(
+        "identifier-completion-multi-instance",
+        "workspace {\n  !include shared/model-alpha.dsl\n  !include shared/deployment.dsl\n}\n",
+        &[Path::new("shared")],
+        &[
+            (
+                Path::new("beta.dsl"),
+                "workspace {\n  !include shared/model-beta.dsl\n  !include shared/deployment.dsl\n}\n",
+            ),
+            (
+                Path::new("shared/model-alpha.dsl"),
+                "model {\n  systemAlpha = softwareSystem \"Alpha\" {\n    apiAlpha = container \"API Alpha\"\n  }\n}\n",
+            ),
+            (
+                Path::new("shared/model-beta.dsl"),
+                "model {\n  systemBeta = softwareSystem \"Beta\" {\n    apiBeta = container \"API Beta\"\n  }\n}\n",
+            ),
+            (
+                Path::new("shared/deployment.dsl"),
+                "model {\n  live = deploymentEnvironment \"Live\" {\n    node = deploymentNode \"Node\" {\n      apiInstance = containerInstance ap\n    }\n  }\n}\n",
+            ),
+        ],
+    );
+    let (mut service, _socket) = new_service();
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(temp_workspace.path())])
+        .await;
+    initialized(&mut service).await;
+
+    let deployment_path = temp_workspace.path().join("shared/deployment.dsl");
+    let deployment_source = annotated_source(&read_workspace_file(&deployment_path).replacen(
+        "containerInstance ap",
+        "containerInstance ap<CURSOR>",
+        1,
+    ));
+    let deployment_uri = file_uri_from_path(&deployment_path);
+    open_document(&mut service, &deployment_uri, deployment_source.source()).await;
+
+    let labels = completion_labels(&mut service, &deployment_uri, &deployment_source).await;
 
     assert!(labels.is_empty());
 }
