@@ -430,14 +430,20 @@ impl RuledDiagnostic {
 
     pub(crate) fn unresolved_reference(
         document: &DocumentId,
+        target_hint: &str,
         raw_text: &str,
         span: TextSpan,
     ) -> Self {
         Self::new(
             rules::SEMANTIC_UNRESOLVED_REFERENCE.id(),
-            Diagnostic::new(format!("unresolved identifier reference: {raw_text}"), span)
-                .in_document(document)
-                .with_target_text(raw_text),
+            Diagnostic::new(
+                format!(
+                    "unresolved {target_hint} reference: {raw_text} (no matching binding found)"
+                ),
+                span,
+            )
+            .in_document(document)
+            .with_target_text(raw_text),
         )
     }
 
@@ -587,14 +593,50 @@ impl RuledDiagnostic {
 
     pub(crate) fn ambiguous_reference(
         document: &DocumentId,
+        target_hint: Option<&str>,
         raw_text: &str,
+        reason: Option<&str>,
         span: TextSpan,
     ) -> Self {
+        let message = match (target_hint, reason) {
+            (Some(target_hint), Some(reason)) => {
+                format!("ambiguous {target_hint} reference: {raw_text} ({reason})")
+            }
+            (Some(target_hint), None) => format!("ambiguous {target_hint} reference: {raw_text}"),
+            (None, Some(reason)) => {
+                format!("ambiguous identifier reference: {raw_text} ({reason})")
+            }
+            (None, None) => format!("ambiguous identifier reference: {raw_text}"),
+        };
+
         Self::new(
             rules::SEMANTIC_AMBIGUOUS_REFERENCE.id(),
-            Diagnostic::new(format!("ambiguous identifier reference: {raw_text}"), span)
+            Diagnostic::new(message, span)
                 .in_document(document)
                 .with_target_text(raw_text),
+        )
+    }
+
+    pub(crate) fn multi_context_disagreement(
+        document: &DocumentId,
+        original_message: &str,
+        reported_contexts: usize,
+        total_contexts: usize,
+        span: TextSpan,
+    ) -> Self {
+        let message = if reported_contexts == total_contexts {
+            format!(
+                "workspace contexts report different details for: {original_message} (reported in all {total_contexts} contexts)"
+            )
+        } else {
+            format!(
+                "some workspace contexts report: {original_message} (reported in {reported_contexts} of {total_contexts} contexts)"
+            )
+        };
+
+        Self::new(
+            rules::SEMANTIC_MULTI_CONTEXT_DISAGREEMENT.id(),
+            Diagnostic::new(message, span).in_document(document),
         )
     }
 }
