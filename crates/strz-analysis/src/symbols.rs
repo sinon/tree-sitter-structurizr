@@ -105,6 +105,8 @@ pub enum ReferenceKind {
     RelationshipSource,
     /// Relationship destination endpoint reference.
     RelationshipDestination,
+    /// Named relationship reference inside a dynamic view step.
+    DynamicRelationshipReference,
     /// Instance target reference inside `containerInstance` / `softwareSystemInstance`.
     InstanceTarget,
     /// Deployment-layer relationship source endpoint reference.

@@ -35,8 +35,7 @@ const PLACEHOLDER_RELATIONSHIP_SOURCE: &str = r#"workspace {
 
         <CURSOR>rel = user -> system "" "HTTPS" "Async, Observed"
     }
-}
-"#;
+}"#;
 const HOVER_METADATA_VIEWS_SOURCE: &str = r#"views {
     container system "Payments" {
         include <CURSOR:api-reference>api
@@ -118,6 +117,21 @@ const SELECTOR_SEGMENT_HOVER_SOURCE: &str = r#"workspace {
     }
 }
 "#;
+const NAMED_DYNAMIC_RELATIONSHIP_SOURCE: &str = r#"workspace {
+    model {
+        a = softwareSystem "A"
+        b = softwareSystem "B"
+
+        <CURSOR:relationship-declaration>rel = a -> b "Async"
+    }
+
+    views {
+        dynamic * {
+            <CURSOR:named-dynamic-relationship>rel "Async"
+        }
+    }
+}
+"#;
 
 const API_HOVER: &str = indoc! {"
     **Container** `api`
@@ -125,8 +139,8 @@ const API_HOVER: &str = indoc! {"
 
     Processes payment requests
 
-    **Technology:** Axum  
-    **Tags:** Internal, HTTP, Edge  
+    **Technology:** Axum
+    **Tags:** Internal, HTTP, Edge
     **URL:** <https://example.com/api>"};
 const API_HOVER_WITH_WORKSPACE_CONTEXT: &str = indoc! {"
     **Container** `api`
@@ -134,12 +148,12 @@ const API_HOVER_WITH_WORKSPACE_CONTEXT: &str = indoc! {"
 
     Processes payment requests
 
-    **Technology:** Axum  
-    **Tags:** Internal, HTTP, Edge  
+    **Technology:** Axum
+    **Tags:** Internal, HTTP, Edge
     **URL:** <https://example.com/api>
 
-    **Canonical key:** `api`  
-    **Parent chain:** Software System `system`  
+    **Canonical key:** `api`
+    **Parent chain:** Software System `system`
     **Declaration path:** `model.dsl`"};
 const RELATIONSHIP_HOVER: &str = indoc! {"
     **Relationship** `rel`
@@ -147,31 +161,34 @@ const RELATIONSHIP_HOVER: &str = indoc! {"
 
     Delivers asynchronous jobs
 
-    **Technology:** NATS  
-    **Tags:** Async, Messaging, Observed  
+    **Technology:** NATS
+    **Tags:** Async, Messaging, Observed
     **URL:** <https://example.com/rel>"};
+const SIMPLE_RELATIONSHIP_HOVER: &str = indoc! {
+"**Relationship** `rel`
+Async"};
 const RELATIONSHIP_HOVER_WITH_WORKSPACE_CONTEXT: &str = indoc! {"
     **Relationship** `rel`
     Publishes jobs
 
     Delivers asynchronous jobs
 
-    **Technology:** NATS  
-    **Tags:** Async, Messaging, Observed  
+    **Technology:** NATS
+    **Tags:** Async, Messaging, Observed
     **URL:** <https://example.com/rel>
 
-    **Canonical key:** `rel`  
-    **Declaration path:** `model.dsl`  
+    **Canonical key:** `rel`
+    **Declaration path:** `model.dsl`
     **Endpoints:** Container `api` → Container `worker`"};
 const PLACEHOLDER_RELATIONSHIP_HOVER: &str = indoc! {"
     **Relationship** `rel`
 
-    **Technology:** HTTPS  
+    **Technology:** HTTPS
     **Tags:** Async, Observed"};
 const DEPLOYMENT_INSTANCE_HOVER: &str = indoc! {"
     **Software System Instance** `canary`
 
-    **Tags:** Canary, Observed  
+    **Tags:** Canary, Observed
     **URL:** <https://example.com/canary>"};
 const SYSTEM_HOVER: &str = indoc! {"
     **Software System** `system`
@@ -183,8 +200,8 @@ const WORKER_HIERARCHICAL_HOVER: &str = indoc! {"
     **Component** `worker`
     Worker
 
-    **Canonical key:** `system.api.worker`  
-    **Parent chain:** Software System `system` → Container `api`  
+    **Canonical key:** `system.api.worker`
+    **Parent chain:** Software System `system` → Container `api`
     **Declaration path:** `model.dsl`"};
 
 #[tokio::test(flavor = "current_thread")]
@@ -381,13 +398,11 @@ async fn hover_resolves_relationship_endpoint_symbols_declared_via_include() {
     initialized(&mut service).await;
 
     let workspace_path = workspace_root.join("internet-banking-system.dsl");
-    let annotated_source = annotated_source(
-        &read_workspace_file(&workspace_path).replacen(
-            "customer -> webApplication",
-            "customer -> <CURSOR:web-relationship>webApplication",
-            1,
-        ),
-    );
+    let annotated_source = annotated_source(&read_workspace_file(&workspace_path).replacen(
+        "customer -> webApplication",
+        "customer -> <CURSOR:web-relationship>webApplication",
+        1,
+    ));
     let workspace_uri = file_uri_from_path(&workspace_path);
     open_document(&mut service, &workspace_uri, annotated_source.source()).await;
 
@@ -402,6 +417,23 @@ async fn hover_resolves_relationship_endpoint_symbols_declared_via_include() {
         !hover["result"].is_null(),
         "relationship endpoint hover should resolve across !include declarations"
     );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn hover_resolves_named_dynamic_relationship_reference_sites() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(NAMED_DYNAMIC_RELATIONSHIP_SOURCE);
+    let uri = file_uri("hover-named-dynamic-relationship.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    for marker in ["relationship-declaration", "named-dynamic-relationship"] {
+        let hover = request_hover(&mut service, &uri, source.position(marker)).await;
+        assert_hover_markdown(&hover, SIMPLE_RELATIONSHIP_HOVER);
+    }
 }
 
 #[tokio::test(flavor = "current_thread")]
