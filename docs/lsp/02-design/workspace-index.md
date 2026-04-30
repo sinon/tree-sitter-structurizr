@@ -508,6 +508,13 @@ Recommended bounded policy:
 - when one document changes, identify affected workspace instances
 - rebuild each affected workspace index as a whole
 
+The current LSP applies that policy without adding a second cache layer. Text
+sync events choose between two reload plans: broad workspace scanning for cold
+start, unknown files, and recovery after structured load failures; otherwise,
+when the edited file is already present in the latest `WorkspaceFacts`, the LSP
+reloads the known workspace root files directly and lets `WorkspaceLoader` reuse
+its document, include-context, and workspace-instance caches.
+
 This is good enough for the bounded MVP because:
 
 - workspace instances are likely modest in size
