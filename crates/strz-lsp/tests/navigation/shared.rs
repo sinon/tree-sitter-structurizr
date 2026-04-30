@@ -43,6 +43,26 @@ pub const HIERARCHICAL_SELECTOR_CURSOR_SOURCE: &str = r#"workspace {
     }
 }
 "#;
+pub const SELECTOR_SEGMENT_CURSOR_SOURCE: &str = r#"workspace {
+    !identifiers flat
+
+    model {
+        !identifiers hierarchical
+
+        <CURSOR:system-declaration>system = softwareSystem "System" {
+            <CURSOR:api-declaration>api = container "API" {
+                <CURSOR:worker-declaration>worker = component "Worker"
+            }
+        }
+
+        !element <CURSOR:selector-system>system.<CURSOR:selector-api>api.<CURSOR:selector-worker>worker {
+            properties {
+                "team" "Core"
+            }
+        }
+    }
+}
+"#;
 pub const THIS_SOURCE_CURSOR_SOURCE: &str = r#"workspace {
     model {
         system = softwareSystem "System" {

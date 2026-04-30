@@ -90,12 +90,34 @@ const HIERARCHICAL_SELECTOR_HOVER_SOURCE: &str = r#"workspace {
     }
 }
 "#;
+const SELECTOR_SEGMENT_HOVER_SOURCE: &str = r#"workspace {
+    !identifiers flat
+
+    model {
+        !identifiers hierarchical
+
+        system = softwareSystem "System" {
+            api = container "API" {
+                worker = component "Worker"
+            }
+        }
+
+        !element <CURSOR:selector-system>system.<CURSOR:selector-api>api.<CURSOR:selector-worker>worker {
+            properties {
+                "team" "Core"
+            }
+        }
+    }
+}
+"#;
 
 const API_HOVER: &str = "**Container** `api`\nPayments API\n\nProcesses payment requests\n\n**Technology:** Axum  \n**Tags:** Internal, HTTP, Edge  \n**URL:** <https://example.com/api>";
 const RELATIONSHIP_HOVER: &str = "**Relationship** `rel`\nPublishes jobs\n\nDelivers asynchronous jobs\n\n**Technology:** NATS  \n**Tags:** Async, Messaging, Observed  \n**URL:** <https://example.com/rel>";
 const PLACEHOLDER_RELATIONSHIP_HOVER: &str =
     "**Relationship** `rel`\n\n**Technology:** HTTPS  \n**Tags:** Async, Observed";
 const DEPLOYMENT_INSTANCE_HOVER: &str = "**Software System Instance** `canary`\n\n**Tags:** Canary, Observed  \n**URL:** <https://example.com/canary>";
+const SYSTEM_HOVER: &str = "**Software System** `system`\nSystem";
+const WORKER_HOVER: &str = "**Component** `worker`\nWorker";
 
 #[tokio::test(flavor = "current_thread")]
 async fn hover_returns_markdown_for_same_document_declarations() {
@@ -153,6 +175,27 @@ async fn hover_resolves_hierarchical_selector_and_dotted_reference_sites() {
 
     let dotted_hover = request_hover(&mut service, &uri, source.position("dotted-reference")).await;
     assert_hover_markdown(&dotted_hover, API_HOVER);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn hover_resolves_each_selector_segment_to_its_own_binding() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(SELECTOR_SEGMENT_HOVER_SOURCE);
+    let uri = file_uri("hover-selector-segments.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let system_hover = request_hover(&mut service, &uri, source.position("selector-system")).await;
+    assert_hover_markdown(&system_hover, SYSTEM_HOVER);
+
+    let api_hover = request_hover(&mut service, &uri, source.position("selector-api")).await;
+    assert_hover_markdown(&api_hover, "**Container** `api`\nAPI");
+
+    let worker_hover = request_hover(&mut service, &uri, source.position("selector-worker")).await;
+    assert_hover_markdown(&worker_hover, WORKER_HOVER);
 }
 
 #[tokio::test(flavor = "current_thread")]

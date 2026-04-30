@@ -7,7 +7,8 @@ use crate::support::{
 
 use super::shared::{
     DIRECT_REFERENCES_CURSOR_SOURCE, HIERARCHICAL_SELECTOR_CURSOR_SOURCE,
-    SELECTOR_THIS_CURSOR_SOURCE, read_annotated_cursor_workspace_fixture,
+    SELECTOR_SEGMENT_CURSOR_SOURCE, SELECTOR_THIS_CURSOR_SOURCE,
+    read_annotated_cursor_workspace_fixture,
 };
 
 #[tokio::test(flavor = "current_thread")]
@@ -117,6 +118,54 @@ async fn references_include_hierarchical_selector_targets_and_dotted_sites() {
         .collect::<Vec<_>>();
 
     assert_eq!(lines, vec![5, 8, 9, 12]);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn references_include_selector_segment_sites_for_each_ancestor_binding() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(SELECTOR_SEGMENT_CURSOR_SOURCE);
+    let uri = file_uri("selector-segment-references.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    for (marker, expected) in [
+        ("system-declaration", vec!["6:8", "12:17"]),
+        ("api-declaration", vec!["7:12", "12:24"]),
+        ("worker-declaration", vec!["8:16", "12:28"]),
+    ] {
+        let response = request_json(
+            &mut service,
+            "textDocument/references",
+            json!({
+                "textDocument": { "uri": uri.as_str() },
+                "position": source.position(marker),
+                "context": { "includeDeclaration": true },
+            }),
+        )
+        .await;
+
+        let rendered = response["result"]
+            .as_array()
+            .expect("references should return an array")
+            .iter()
+            .map(|location| {
+                format!(
+                    "{}:{}",
+                    location["range"]["start"]["line"]
+                        .as_u64()
+                        .expect("reference line should be numeric"),
+                    location["range"]["start"]["character"]
+                        .as_u64()
+                        .expect("reference character should be numeric")
+                )
+            })
+            .collect::<Vec<_>>();
+
+        assert_eq!(rendered, expected, "{marker}");
+    }
 }
 
 #[tokio::test(flavor = "current_thread")]

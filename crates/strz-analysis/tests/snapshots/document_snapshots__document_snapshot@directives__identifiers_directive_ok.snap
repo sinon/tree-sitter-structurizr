@@ -195,13 +195,51 @@ SnapshotView {
     references: [
         Reference {
             kind: ElementSelectorTarget,
-            raw_text: "system.api.worker",
+            raw_text: "system",
             span: TextSpan {
                 start_byte: 247,
-                end_byte: 264,
+                end_byte: 253,
                 start_point: TextPoint {
                     row: 12,
                     column: 17,
+                },
+                end_point: TextPoint {
+                    row: 12,
+                    column: 23,
+                },
+            },
+            target_hint: ElementOrDeployment,
+            container_node_kind: "element_directive",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ElementSelectorTarget,
+            raw_text: "system.api",
+            span: TextSpan {
+                start_byte: 254,
+                end_byte: 257,
+                start_point: TextPoint {
+                    row: 12,
+                    column: 24,
+                },
+                end_point: TextPoint {
+                    row: 12,
+                    column: 27,
+                },
+            },
+            target_hint: ElementOrDeployment,
+            container_node_kind: "element_directive",
+            containing_symbol: None,
+        },
+        Reference {
+            kind: ElementSelectorTarget,
+            raw_text: "system.api.worker",
+            span: TextSpan {
+                start_byte: 258,
+                end_byte: 264,
+                start_point: TextPoint {
+                    row: 12,
+                    column: 28,
                 },
                 end_point: TextPoint {
                     row: 12,

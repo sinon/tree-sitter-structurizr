@@ -11,8 +11,9 @@ use crate::support::{
 
 use super::shared::{
     ARCHETYPE_THIS_CURSOR_SOURCE, DIRECT_REFERENCES_CURSOR_SOURCE,
-    HIERARCHICAL_SELECTOR_CURSOR_SOURCE, SELECTOR_THIS_CURSOR_SOURCE, THIS_SOURCE_CURSOR_SOURCE,
-    copied_workspace_fixture, read_annotated_cursor_workspace_fixture,
+    HIERARCHICAL_SELECTOR_CURSOR_SOURCE, SELECTOR_SEGMENT_CURSOR_SOURCE,
+    SELECTOR_THIS_CURSOR_SOURCE, THIS_SOURCE_CURSOR_SOURCE, copied_workspace_fixture,
+    read_annotated_cursor_workspace_fixture,
 };
 
 #[tokio::test(flavor = "current_thread")]
@@ -113,6 +114,91 @@ async fn goto_definition_resolves_same_document_dotted_hierarchical_references()
 
     assert_eq!(response["result"]["uri"], uri.as_str());
     assert_eq!(response["result"]["range"]["start"]["line"], 5);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn goto_definition_resolves_each_selector_segment_to_its_own_binding() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(SELECTOR_SEGMENT_CURSOR_SOURCE);
+    let uri = file_uri("selector-segments.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    for (marker, expected_line, expected_character) in [
+        ("selector-system", 6, 8),
+        ("selector-api", 7, 12),
+        ("selector-worker", 8, 16),
+    ] {
+        let response = request_json(
+            &mut service,
+            "textDocument/definition",
+            json!({
+                "textDocument": { "uri": uri.as_str() },
+                "position": source.position(marker),
+            }),
+        )
+        .await;
+
+        assert_eq!(response["result"]["uri"], uri.as_str(), "{marker}");
+        assert_eq!(
+            response["result"]["range"]["start"]["line"], expected_line,
+            "{marker}"
+        );
+        assert_eq!(
+            response["result"]["range"]["start"]["character"], expected_character,
+            "{marker}"
+        );
+    }
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn goto_definition_resolves_selector_segments_from_the_full_selector_path() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(
+        r#"workspace {
+    model {
+        !identifiers hierarchical
+
+        live = softwareSystem "Live"
+
+        <CURSOR:env-declaration>live = deploymentEnvironment "Live" {
+            aws = deploymentNode "AWS" {
+                region = infrastructureNode "Region"
+            }
+        }
+
+        !element <CURSOR:selector-live>live.aws.region {
+            properties {
+                "team" "Ops"
+            }
+        }
+    }
+}
+"#,
+    );
+    let uri = file_uri("selector-ambiguous-prefix.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let response = request_json(
+        &mut service,
+        "textDocument/definition",
+        json!({
+            "textDocument": { "uri": uri.as_str() },
+            "position": source.position("selector-live"),
+        }),
+    )
+    .await;
+
+    assert_eq!(response["result"]["uri"], uri.as_str());
+    assert_eq!(response["result"]["range"]["start"]["line"], 6);
+    assert_eq!(response["result"]["range"]["start"]["character"], 8);
 }
 
 #[tokio::test(flavor = "current_thread")]

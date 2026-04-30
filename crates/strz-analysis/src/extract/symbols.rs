@@ -451,12 +451,69 @@ impl<'a> SymbolExtractor<'a> {
             return;
         };
 
+        let raw_text = node_text(target, self.source);
+        let span = TextSpan::from_node(target);
+        let container_node_kind = directive.kind().to_owned();
+
+        // Dotted selector targets participate in read-only navigation one segment
+        // at a time. Extract cumulative raw texts with per-segment spans so
+        // `system.api.worker` can resolve `system`, `system.api`, and the full
+        // path independently while the directive facts remain the single source
+        // of truth for selector diagnostics.
+        if span.start_point.row == span.end_point.row && raw_text.contains('.') {
+            let mut segment_start = 0usize;
+
+            for segment in raw_text.split('.') {
+                if segment.is_empty() {
+                    self.push_selector_reference(
+                        raw_text,
+                        span,
+                        &container_node_kind,
+                        containing_symbol,
+                    );
+                    return;
+                }
+
+                let segment_end = segment_start + segment.len();
+                self.push_selector_reference(
+                    raw_text[..segment_end].to_owned(),
+                    TextSpan {
+                        start_byte: span.start_byte + segment_start,
+                        end_byte: span.start_byte + segment_end,
+                        start_point: crate::TextPoint {
+                            row: span.start_point.row,
+                            column: span.start_point.column + segment_start,
+                        },
+                        end_point: crate::TextPoint {
+                            row: span.start_point.row,
+                            column: span.start_point.column + segment_end,
+                        },
+                    },
+                    &container_node_kind,
+                    containing_symbol,
+                );
+                segment_start = segment_end + 1;
+            }
+
+            return;
+        }
+
+        self.push_selector_reference(raw_text, span, &container_node_kind, containing_symbol);
+    }
+
+    fn push_selector_reference(
+        &mut self,
+        raw_text: String,
+        span: TextSpan,
+        container_node_kind: &str,
+        containing_symbol: Option<SymbolId>,
+    ) {
         self.references.push(Reference {
             kind: ReferenceKind::ElementSelectorTarget,
-            raw_text: node_text(target, self.source),
-            span: TextSpan::from_node(target),
+            raw_text,
+            span,
             target_hint: ReferenceTargetHint::ElementOrDeployment,
-            container_node_kind: directive.kind().to_owned(),
+            container_node_kind: container_node_kind.to_owned(),
             containing_symbol,
         });
     }

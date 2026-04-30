@@ -446,6 +446,10 @@ impl DocumentSnapshot {
         reference: &Reference,
         mode: ElementIdentifierMode,
     ) -> Option<&Symbol> {
+        if reference.kind == ReferenceKind::ElementSelectorTarget {
+            return resolve_selector_segment_reference(self, reference, mode).resolved();
+        }
+
         if is_contextual_this_reference(reference) {
             return resolve_contextual_this_reference(self, reference, mode).resolved();
         }
@@ -668,6 +672,36 @@ fn resolve_reference_with_symbol_context<'a>(
     SnapshotReferenceResolution::Unresolved
 }
 
+fn resolve_selector_segment_reference<'a>(
+    snapshot: &'a DocumentSnapshot,
+    reference: &Reference,
+    mode: ElementIdentifierMode,
+) -> SnapshotReferenceResolution<'a> {
+    let Some(directive) = enclosing_element_directive(snapshot, reference.span) else {
+        return SnapshotReferenceResolution::Unresolved;
+    };
+    if !matches!(
+        directive.target.value_kind,
+        DirectiveValueKind::BareValue | DirectiveValueKind::Identifier
+    ) {
+        return SnapshotReferenceResolution::Unresolved;
+    }
+
+    let resolved_target = match resolve_element_selector_target(snapshot, directive, mode) {
+        SnapshotReferenceResolution::Resolved(symbol) => symbol,
+        SnapshotReferenceResolution::Ambiguous => return SnapshotReferenceResolution::Ambiguous,
+        SnapshotReferenceResolution::Unresolved => return SnapshotReferenceResolution::Unresolved,
+    };
+    if reference.span == directive.target.span || !directive.target.normalized_text.contains('.') {
+        return SnapshotReferenceResolution::Resolved(resolved_target);
+    }
+    let Some(segment_index) = selector_segment_index(&directive.target, reference.span) else {
+        return SnapshotReferenceResolution::Unresolved;
+    };
+
+    selector_segment_symbol(snapshot, resolved_target, segment_index)
+}
+
 fn resolve_reference_with_selector_context<'a>(
     snapshot: &'a DocumentSnapshot,
     reference: &Reference,
@@ -687,6 +721,26 @@ fn resolve_reference_with_selector_context<'a>(
         let contextual_raw_text = format!("{selector_target}.{}", reference.raw_text);
         let resolution =
             resolve_reference_raw_text(snapshot, reference.target_hint, &contextual_raw_text, mode);
+        if !matches!(resolution, SnapshotReferenceResolution::Unresolved) {
+            return resolution;
+        }
+    }
+
+    SnapshotReferenceResolution::Unresolved
+}
+
+fn resolve_element_selector_target<'a>(
+    snapshot: &'a DocumentSnapshot,
+    directive: &ElementDirectiveFact,
+    mode: ElementIdentifierMode,
+) -> SnapshotReferenceResolution<'a> {
+    for candidate in selector_target_candidates(snapshot, directive, mode) {
+        let resolution = resolve_reference_raw_text(
+            snapshot,
+            ReferenceTargetHint::ElementOrDeployment,
+            &candidate,
+            mode,
+        );
         if !matches!(resolution, SnapshotReferenceResolution::Unresolved) {
             return resolution;
         }
@@ -850,6 +904,96 @@ fn selector_target_candidates(
     }
 
     candidates
+}
+
+fn selector_segment_index(
+    target: &crate::ValueFact,
+    reference_span: crate::TextSpan,
+) -> Option<usize> {
+    let prefix_end = reference_span
+        .end_byte
+        .checked_sub(target.span.start_byte)?;
+    let prefix = target.normalized_text.get(..prefix_end)?;
+    Some(prefix.split('.').count().saturating_sub(1))
+}
+
+fn selector_segment_symbol<'a>(
+    snapshot: &'a DocumentSnapshot,
+    target: &'a Symbol,
+    segment_index: usize,
+) -> SnapshotReferenceResolution<'a> {
+    let Some(path) = canonical_symbol_path(snapshot.symbols(), target.id) else {
+        return SnapshotReferenceResolution::Unresolved;
+    };
+    if segment_index >= path.len() {
+        return SnapshotReferenceResolution::Unresolved;
+    }
+
+    path.get(segment_index)
+        .and_then(|symbol_id| snapshot.symbols().get(symbol_id.0))
+        .map_or(
+            SnapshotReferenceResolution::Unresolved,
+            SnapshotReferenceResolution::Resolved,
+        )
+}
+
+fn canonical_symbol_path(symbols: &[Symbol], target: SymbolId) -> Option<Vec<SymbolId>> {
+    let binding_family = canonical_binding_family(symbols.get(target.0)?.kind)?;
+    let mut path = vec![target];
+    let mut parent = symbols.get(target.0)?.parent;
+
+    while let Some(parent_id) = parent {
+        let ancestor = symbols.get(parent_id.0)?;
+        if !binding_family_matches(binding_family, ancestor.kind) {
+            return None;
+        }
+        path.push(parent_id);
+        parent = ancestor.parent;
+    }
+
+    path.reverse();
+    Some(path)
+}
+
+#[derive(Clone, Copy)]
+enum CanonicalBindingFamily {
+    Element,
+    Deployment,
+}
+
+const fn canonical_binding_family(kind: SymbolKind) -> Option<CanonicalBindingFamily> {
+    match kind {
+        SymbolKind::Person
+        | SymbolKind::SoftwareSystem
+        | SymbolKind::Container
+        | SymbolKind::Component => Some(CanonicalBindingFamily::Element),
+        SymbolKind::DeploymentEnvironment
+        | SymbolKind::DeploymentNode
+        | SymbolKind::InfrastructureNode
+        | SymbolKind::ContainerInstance
+        | SymbolKind::SoftwareSystemInstance => Some(CanonicalBindingFamily::Deployment),
+        SymbolKind::Relationship => None,
+    }
+}
+
+const fn binding_family_matches(family: CanonicalBindingFamily, kind: SymbolKind) -> bool {
+    match family {
+        CanonicalBindingFamily::Element => matches!(
+            kind,
+            SymbolKind::Person
+                | SymbolKind::SoftwareSystem
+                | SymbolKind::Container
+                | SymbolKind::Component
+        ),
+        CanonicalBindingFamily::Deployment => matches!(
+            kind,
+            SymbolKind::DeploymentEnvironment
+                | SymbolKind::DeploymentNode
+                | SymbolKind::InfrastructureNode
+                | SymbolKind::ContainerInstance
+                | SymbolKind::SoftwareSystemInstance
+        ),
+    }
 }
 
 fn enclosing_symbol_for_span(

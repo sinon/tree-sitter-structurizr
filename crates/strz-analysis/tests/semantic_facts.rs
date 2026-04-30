@@ -148,15 +148,22 @@ fn assert_resource_selector_and_property_facts(snapshot: &strz_analysis::Documen
     assert_eq!(selector.target.normalized_text, "system.api");
     assert_eq!(selector.container_node_kind, "model_block");
 
-    let selector_reference = snapshot
+    let selector_references = snapshot
         .references()
         .iter()
-        .find(|reference| reference.kind == ReferenceKind::ElementSelectorTarget)
-        .expect("selector target reference should exist");
-    assert_eq!(selector_reference.raw_text, "system.api");
+        .filter(|reference| reference.kind == ReferenceKind::ElementSelectorTarget)
+        .collect::<Vec<_>>();
     assert_eq!(
-        selector_reference.target_hint,
-        ReferenceTargetHint::ElementOrDeployment
+        selector_references
+            .iter()
+            .map(|reference| reference.raw_text.as_str())
+            .collect::<Vec<_>>(),
+        vec!["system", "system.api"]
+    );
+    assert!(
+        selector_references
+            .iter()
+            .all(|reference| reference.target_hint == ReferenceTargetHint::ElementOrDeployment)
     );
 }
 
@@ -343,7 +350,10 @@ fn analysis_can_resolve_hierarchical_references_with_inherited_mode() {
     let selector_reference = snapshot
         .references()
         .iter()
-        .find(|reference| reference.kind == ReferenceKind::ElementSelectorTarget)
+        .find(|reference| {
+            reference.kind == ReferenceKind::ElementSelectorTarget
+                && reference.raw_text == "system.api"
+        })
         .expect("selector target reference should exist");
     assert_eq!(snapshot.resolve_reference(selector_reference), None);
     assert_eq!(
@@ -368,6 +378,45 @@ fn analysis_can_resolve_hierarchical_references_with_inherited_mode() {
             .and_then(|symbol| symbol.binding_name.as_deref()),
         Some("api")
     );
+}
+
+#[test]
+fn analysis_resolves_selector_segments_from_the_full_selector_target() {
+    let snapshot = analyze(indoc! {r#"
+        model {
+            !identifiers hierarchical
+
+            live = softwareSystem "Live"
+
+            live = deploymentEnvironment "Live" {
+                aws = deploymentNode "AWS" {
+                    region = infrastructureNode "Region"
+                }
+            }
+
+            !element live.aws.region {
+                properties {
+                    "team" "Ops"
+                }
+            }
+        }
+    "#});
+
+    let selector_reference = snapshot
+        .references()
+        .iter()
+        .find(|reference| {
+            reference.kind == ReferenceKind::ElementSelectorTarget && reference.raw_text == "live"
+        })
+        .expect("selector segment reference should exist");
+    let symbol = snapshot
+        .resolve_reference(selector_reference)
+        .expect("selector segment should resolve from the full selector path");
+    assert_eq!(
+        symbol.kind,
+        strz_analysis::SymbolKind::DeploymentEnvironment
+    );
+    assert_eq!(symbol.binding_name.as_deref(), Some("live"));
 }
 
 #[test]
