@@ -76,6 +76,26 @@ WorkspaceIndexSetView {
                 "shared/model.dsl",
                 "shared/view.dsl",
             ],
+            workspace_symbols: [
+                WorkspaceSymbolView {
+                    canonical_key: "api",
+                    root_document: "alpha.dsl",
+                    source_document: "shared/model.dsl",
+                    symbol: "shared/model.dsl::api",
+                },
+                WorkspaceSymbolView {
+                    canonical_key: "system",
+                    root_document: "alpha.dsl",
+                    source_document: "shared/model.dsl",
+                    symbol: "shared/model.dsl::system",
+                },
+                WorkspaceSymbolView {
+                    canonical_key: "user",
+                    root_document: "alpha.dsl",
+                    source_document: "alpha.dsl",
+                    symbol: "alpha.dsl::user",
+                },
+            ],
             unique_element_bindings: [
                 (
                     "api",
@@ -130,6 +150,26 @@ WorkspaceIndexSetView {
                 "beta.dsl",
                 "shared/model.dsl",
                 "shared/view.dsl",
+            ],
+            workspace_symbols: [
+                WorkspaceSymbolView {
+                    canonical_key: "system",
+                    root_document: "beta.dsl",
+                    source_document: "shared/model.dsl",
+                    symbol: "shared/model.dsl::system",
+                },
+                WorkspaceSymbolView {
+                    canonical_key: "system.api",
+                    root_document: "beta.dsl",
+                    source_document: "shared/model.dsl",
+                    symbol: "shared/model.dsl::api",
+                },
+                WorkspaceSymbolView {
+                    canonical_key: "user",
+                    root_document: "beta.dsl",
+                    source_document: "beta.dsl",
+                    symbol: "beta.dsl::user",
+                },
             ],
             unique_element_bindings: [
                 (

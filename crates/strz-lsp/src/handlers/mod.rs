@@ -13,3 +13,4 @@ pub mod rename;
 pub mod symbols;
 pub mod text_sync;
 pub mod type_definition;
+pub mod workspace_symbols;

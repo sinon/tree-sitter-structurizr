@@ -9,7 +9,7 @@ use tower_lsp_server::ls_types::{
     DidOpenTextDocumentParams, DocumentLink, DocumentLinkParams, DocumentSymbolParams,
     DocumentSymbolResponse, GotoDefinitionParams, GotoDefinitionResponse, Hover, HoverParams,
     InitializeParams, InitializeResult, InitializedParams, Location, ReferenceParams, RenameParams,
-    TextDocumentPositionParams, WorkspaceEdit,
+    TextDocumentPositionParams, WorkspaceEdit, WorkspaceSymbolParams, WorkspaceSymbolResponse,
     request::{GotoTypeDefinitionParams, GotoTypeDefinitionResponse},
 };
 use tower_lsp_server::{Client, LanguageServer};
@@ -110,6 +110,18 @@ impl LanguageServer for Backend {
             "dispatching request"
         );
         handlers::symbols::document_symbol(self, params).await
+    }
+
+    async fn symbol(
+        &self,
+        params: WorkspaceSymbolParams,
+    ) -> tower_lsp_server::jsonrpc::Result<Option<WorkspaceSymbolResponse>> {
+        trace!(
+            method = "workspace/symbol",
+            query = params.query.as_str(),
+            "dispatching request"
+        );
+        handlers::workspace_symbols::workspace_symbol(self, params).await
     }
 
     async fn completion(
