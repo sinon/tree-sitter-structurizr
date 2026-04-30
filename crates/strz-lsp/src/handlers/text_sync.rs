@@ -1,14 +1,14 @@
 //! Full-document sync handlers that keep the latest snapshot in server state.
 
-use std::{fs, path::PathBuf, time::Instant};
+use std::{collections::BTreeSet, path::PathBuf, time::Instant};
 
 use strz_analysis::{DocumentAnalyzer, DocumentId};
 use tower_lsp_server::ls_types::{
-    DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams,
+    DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams, MessageType,
 };
 use tracing::{debug, info, warn};
 
-use strz_analysis::{WorkspaceFacts, WorkspaceLoader};
+use strz_analysis::{WorkspaceFacts, WorkspaceLoadFailure, WorkspaceLoader};
 
 use crate::{documents::DocumentState, handlers::diagnostics, server::Backend};
 
@@ -72,22 +72,27 @@ pub async fn did_change(backend: &Backend, params: DidChangeTextDocumentParams) 
 /// Handles `textDocument/didClose` by clearing cached state and diagnostics.
 pub async fn did_close(backend: &Backend, params: DidCloseTextDocumentParams) {
     info!(uri = params.text_document.uri.as_str(), "handling didClose");
-    {
+    let closed_document = {
         let mut state = backend.state().write().await;
+        let closed_document = state.documents().get(&params.text_document.uri).cloned();
         state.documents_mut().close(&params.text_document.uri);
         state.remove_snapshot(&params.text_document.uri);
         debug!(
             open_document_count = state.documents().len(),
             "removed closed document from server state"
         );
-    }
+        closed_document
+    };
 
-    let workspace_facts = recompute_workspace_facts(backend, None).await;
+    let workspace_load =
+        recompute_workspace_facts_after_close(backend, closed_document.as_ref()).await;
 
-    {
+    let messages = {
         let mut state = backend.state().write().await;
-        state.set_workspace_facts(workspace_facts);
-    }
+        state.set_workspace_facts(workspace_load.facts);
+        state.set_workspace_load_failures(workspace_load.failures)
+    };
+    publish_workspace_load_messages(backend, messages);
 
     backend
         .client()
@@ -104,11 +109,11 @@ pub async fn did_close(backend: &Backend, params: DidCloseTextDocumentParams) {
 
 async fn publish_latest_snapshot(backend: &Backend, document: DocumentState) {
     let uri = document.uri().clone();
-    let workspace_facts = recompute_workspace_facts(backend, Some(&document)).await;
+    let workspace_load = recompute_workspace_facts(backend, Some(&document)).await;
     // When workspace recomputation already analyzed this file-backed document
     // through `WorkspaceLoader`, reuse that snapshot instead of immediately
     // parsing and extracting the same document a second time.
-    let snapshot = snapshot_from_workspace_facts(&document, workspace_facts.as_ref())
+    let snapshot = snapshot_from_workspace_facts(&document, workspace_load.facts.as_ref())
         .unwrap_or_else(|| {
             let mut analyzer = DocumentAnalyzer::new();
             analyzer.analyze(document.to_input())
@@ -121,18 +126,21 @@ async fn publish_latest_snapshot(backend: &Backend, document: DocumentState) {
         "analyzed latest document snapshot"
     );
 
-    {
+    let messages = {
         let mut state = backend.state().write().await;
         state.documents_mut().open(document);
         state.set_snapshot(uri.clone(), snapshot);
-        state.set_workspace_facts(workspace_facts);
+        state.set_workspace_facts(workspace_load.facts);
+        let messages = state.set_workspace_load_failures(workspace_load.failures);
         debug!(
             uri = uri.as_str(),
             open_document_count = state.documents().len(),
             "stored latest snapshot and workspace facts"
         );
-    }
+        messages
+    };
 
+    publish_workspace_load_messages(backend, messages);
     publish_open_document_diagnostics(backend).await;
 }
 
@@ -140,6 +148,7 @@ async fn publish_open_document_diagnostics(backend: &Backend) {
     let publish_jobs = {
         let state = backend.state().read().await;
         let workspace_facts = state.workspace_facts();
+        let workspace_load_failures = state.workspace_load_failures();
 
         state
             .documents()
@@ -150,7 +159,12 @@ async fn publish_open_document_diagnostics(backend: &Backend) {
                 Some((
                     document.uri().clone(),
                     document.version(),
-                    diagnostics::document_diagnostics(document, snapshot, workspace_facts),
+                    diagnostics::document_diagnostics(
+                        document,
+                        snapshot,
+                        workspace_facts,
+                        workspace_load_failures,
+                    ),
                 ))
             })
             .collect::<Vec<_>>()
@@ -229,7 +243,7 @@ async fn recompute_workspace_facts(
         add_document_override(&mut loader, current_document);
     }
 
-    match loader.load_paths(load_paths) {
+    match loader.load_paths_with_failures(load_paths) {
         Ok(workspace_facts) => {
             info!(
                 current_document_uri = current_uri.as_deref(),

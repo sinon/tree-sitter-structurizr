@@ -191,6 +191,250 @@ async fn diagnostics_publish_bounded_semantic_errors() {
         .collect::<Vec<_>>();
     assert_eq!(
         workspace_messages,
-        vec!["ambiguous identifier reference: api"]
+        vec!["ambiguous element reference: api (multiple bindings match)"]
     );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn diagnostics_publish_multi_context_disagreement_warnings() {
+    let (mut service, mut socket) = new_service();
+    let workspace_root = workspace_fixture_path("multi-instance-open-fragment");
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
+    initialized(&mut service).await;
+
+    let shared_view_path = workspace_root.join("shared/view.dsl");
+    let shared_view_uri = file_uri_from_path(&shared_view_path);
+    open_document(
+        &mut service,
+        &shared_view_uri,
+        &read_workspace_file(&shared_view_path),
+    )
+    .await;
+    let notification =
+        next_publish_diagnostics_for_uri(&mut socket, shared_view_uri.as_str()).await;
+    let diagnostics = notification["params"]["diagnostics"]
+        .as_array()
+        .expect("diagnostics notification should include an array");
+    let warning = diagnostics
+        .iter()
+        .find(|diagnostic| diagnostic["code"] == "semantic.multi-context-disagreement")
+        .expect("multi-context disagreement diagnostic should publish");
+
+    assert_eq!(warning["severity"], 2);
+    assert_eq!(
+        warning["message"],
+        "some workspace contexts report: unresolved element or relationship reference: api (no matching binding found) (reported in 1 of 2 contexts)"
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn workspace_load_failures_publish_anchored_diagnostics() {
+    let workspace = ProjectTempWorkspace::new("workspace-base-missing");
+    workspace.write_file(
+        "workspace.dsl",
+        "workspace extends \"missing-base.dsl\" {\n}\n",
+    );
+    let (mut service, mut socket) = new_service();
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(workspace.path())]).await;
+    initialized(&mut service).await;
+
+    let workspace_path = workspace.file_path("workspace.dsl");
+    let workspace_uri = file_uri_from_path(&workspace_path);
+    let source = fs::read_to_string(&workspace_path).expect("workspace source should be readable");
+    open_document(&mut service, &workspace_uri, &source).await;
+
+    let notifications =
+        notifications_until_diagnostics_and_load_messages(&mut socket, workspace_uri.as_str(), 0)
+            .await;
+    assert!(
+        workspace_load_message_notifications(&notifications).is_empty(),
+        "anchored load failures should surface as diagnostics, not session messages: {notifications:?}"
+    );
+
+    let diagnostics_notification = notifications
+        .last()
+        .expect("diagnostics notification should be collected");
+    let diagnostics = diagnostics_notification["params"]["diagnostics"]
+        .as_array()
+        .expect("publishDiagnostics should include a diagnostics array");
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(diagnostics[0]["code"], "workspace.load-failure");
+    assert_eq!(
+        diagnostics[0]["message"],
+        "workspace base does not exist: missing-base.dsl"
+    );
+    assert_eq!(diagnostics[0]["range"]["start"]["line"], 0);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn unanchored_workspace_load_failures_show_and_log_once() {
+    let workspace = ProjectTempWorkspace::new("missing-root");
+    workspace.write_file("workspace.dsl", "workspace {\n}\n");
+    let missing_root = workspace.file_path("does-not-exist");
+    let (mut service, mut socket) = new_service();
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&missing_root)]).await;
+    initialized(&mut service).await;
+
+    let workspace_path = workspace.file_path("workspace.dsl");
+    let workspace_uri = file_uri_from_path(&workspace_path);
+    let source = fs::read_to_string(&workspace_path).expect("workspace source should be readable");
+    open_document(&mut service, &workspace_uri, &source).await;
+
+    let notifications =
+        notifications_until_diagnostics_and_load_messages(&mut socket, workspace_uri.as_str(), 2)
+            .await;
+    let load_messages = workspace_load_message_notifications(&notifications);
+    assert_eq!(
+        load_messages
+            .iter()
+            .filter_map(|notification| notification["method"].as_str())
+            .collect::<Vec<_>>(),
+        vec!["window/showMessage", "window/logMessage"]
+    );
+    assert!(
+        load_messages.iter().all(|notification| {
+            notification["params"]["message"]
+                .as_str()
+                .is_some_and(|message| message.contains("failed to load workspace root"))
+        }),
+        "unanchored load failures should explain the workspace-load failure: {load_messages:?}"
+    );
+
+    change_document(&mut service, &workspace_uri, 2, &source).await;
+    let notifications =
+        notifications_until_diagnostics_and_load_messages(&mut socket, workspace_uri.as_str(), 0)
+            .await;
+    assert!(
+        workspace_load_message_notifications(&notifications).is_empty(),
+        "unchanged unanchored load failures should not repeat show/log messages: {notifications:?}"
+    );
+}
+
+async fn notifications_until_diagnostics_and_load_messages(
+    socket: &mut ClientSocket,
+    expected_uri: &str,
+    expected_load_message_count: usize,
+) -> Vec<Value> {
+    let mut notifications = Vec::new();
+    let mut saw_expected_diagnostics = false;
+
+    for _ in 0..16 {
+        let notification =
+            next_server_notification_with_timeout(socket, Duration::from_secs(2)).await;
+        let is_expected_diagnostics = notification["method"] == "textDocument/publishDiagnostics"
+            && notification["params"]["uri"] == expected_uri;
+        if is_expected_diagnostics {
+            saw_expected_diagnostics = true;
+        }
+        notifications.push(notification);
+
+        if saw_expected_diagnostics
+            && workspace_load_message_notifications(&notifications).len()
+                >= expected_load_message_count
+        {
+            return notifications;
+        }
+    }
+
+    panic!(
+        "did not receive diagnostics for `{expected_uri}` and {expected_load_message_count} load messages"
+    );
+}
+
+fn workspace_load_message_notifications(notifications: &[Value]) -> Vec<&Value> {
+    notifications
+        .iter()
+        .filter(|notification| {
+            matches!(
+                notification["method"].as_str(),
+                Some("window/showMessage" | "window/logMessage")
+            )
+        })
+        .collect()
+}
+
+struct ProjectTempWorkspace {
+    root: PathBuf,
+}
+
+impl ProjectTempWorkspace {
+    fn new(name: &str) -> Self {
+        static NEXT_ID: AtomicUsize = AtomicUsize::new(0);
+
+        let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+        let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../..")
+            .canonicalize()
+            .expect("repository root should canonicalize");
+        let tmp_root = repo_root.join("tmp");
+        let stale_prefix = format!("lsp-diagnostics-{name}-");
+        if let Ok(entries) = fs::read_dir(&tmp_root) {
+            for entry in entries.flatten() {
+                if entry
+                    .file_name()
+                    .to_string_lossy()
+                    .starts_with(&stale_prefix)
+                {
+                    let _ = fs::remove_dir_all(entry.path());
+                }
+            }
+        }
+
+        let root = tmp_root.join(format!(
+            "lsp-diagnostics-{name}-{}-{id}",
+            std::process::id()
+        ));
+
+        if root.exists() {
+            fs::remove_dir_all(&root).unwrap_or_else(|error| {
+                panic!(
+                    "failed to clear project-local temp workspace `{}`: {error}",
+                    root.display()
+                )
+            });
+        }
+        fs::create_dir_all(&root).unwrap_or_else(|error| {
+            panic!(
+                "failed to create project-local temp workspace `{}`: {error}",
+                root.display()
+            )
+        });
+
+        Self { root }
+    }
+
+    fn path(&self) -> &Path {
+        &self.root
+    }
+
+    fn file_path(&self, relative_path: &str) -> PathBuf {
+        self.root.join(relative_path)
+    }
+
+    fn write_file(&self, relative_path: &str, source: &str) {
+        let path = self.file_path(relative_path);
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).unwrap_or_else(|error| {
+                panic!(
+                    "failed to create project-local temp parent `{}`: {error}",
+                    parent.display()
+                )
+            });
+        }
+        fs::write(&path, source).unwrap_or_else(|error| {
+            panic!(
+                "failed to write project-local temp file `{}`: {error}",
+                path.display()
+            )
+        });
+    }
+}
+
+impl Drop for ProjectTempWorkspace {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.root);
+    }
 }

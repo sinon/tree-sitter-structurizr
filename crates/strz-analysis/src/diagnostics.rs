@@ -361,6 +361,24 @@ impl RuledDiagnostic {
         )
     }
 
+    pub(crate) fn workspace_load_failure(
+        document: &DocumentId,
+        message: &str,
+        span: TextSpan,
+        value_span: Option<TextSpan>,
+        target_text: Option<&str>,
+    ) -> Self {
+        let mut diagnostic = Diagnostic::new(message, span).in_document(document);
+        if let Some(value_span) = value_span {
+            diagnostic = diagnostic.with_value_span(value_span);
+        }
+        if let Some(target_text) = target_text {
+            diagnostic = diagnostic.with_target_text(target_text);
+        }
+
+        Self::new(rules::WORKSPACE_LOAD_FAILURE.id(), diagnostic)
+    }
+
     // -------------------------------------------------------------------------
     // Semantic constructors
     // -------------------------------------------------------------------------

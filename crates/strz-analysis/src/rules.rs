@@ -97,6 +97,22 @@ declare_rule! {
 
 declare_rule! {
     /// ## What it does
+    /// Reports fatal workspace-load failures that can still be anchored to a source location.
+    ///
+    /// ## Why is this bad?
+    /// Fatal loader failures stop assembled-workspace facts from being built, so
+    /// editor users need a visible diagnostic at the directive that caused the
+    /// load to abort instead of only seeing stale or missing workspace features.
+    pub static WORKSPACE_LOAD_FAILURE = {
+        name: "load-failure",
+        source: "workspace",
+        summary: "reports fatal workspace-load failures with source anchors",
+        default_severity: DiagnosticSeverity::Error,
+    };
+}
+
+declare_rule! {
+    /// ## What it does
     /// Reports when more than one declaration claims the same canonical binding.
     ///
     /// ## Why is this bad?
@@ -375,16 +391,19 @@ mod tests {
                 "semantic.invalid-image-source",
                 "semantic.invalid-view-element",
                 "semantic.missing-image-renderer-property",
+                "semantic.multi-context-disagreement",
                 "semantic.repeated-workspace-section",
                 "semantic.unresolved-element-selector",
                 "semantic.unresolved-reference",
                 "semantic.workspace-scope-mismatch",
                 "syntax.error-node",
                 "syntax.missing-node",
+                "workspace.load-failure",
             ]
         );
         assert!(registry.get("syntax.error-node").is_some());
         assert!(registry.get("syntax.missing-node").is_some());
+        assert!(registry.get("workspace.load-failure").is_some());
         assert!(registry.get("include.cycle").is_some());
         assert!(registry.get("include.escapes-allowed-subtree").is_some());
         assert!(registry.get("include.missing-local-target").is_some());

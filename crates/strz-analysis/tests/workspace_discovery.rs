@@ -1,8 +1,13 @@
-use std::path::{Path, PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    sync::atomic::{AtomicUsize, Ordering},
+};
 
 use rstest::rstest;
 use strz_analysis::{
-    TextSpan, WorkspaceDocumentKind, WorkspaceFacts, WorkspaceIncludeTarget, WorkspaceLoader,
+    TextSpan, WorkspaceDocumentKind, WorkspaceFacts, WorkspaceIncludeTarget,
+    WorkspaceLoadFailureKind, WorkspaceLoader,
 };
 
 macro_rules! set_snapshot_suffix {
@@ -241,6 +246,103 @@ fn constants_must_be_defined_before_they_can_drive_include_resolution() {
     );
 }
 
+#[test]
+fn workspace_base_load_failures_preserve_source_anchors() {
+    let workspace = ProjectTempWorkspace::new("workspace-base-missing");
+    workspace.write_file(
+        "workspace.dsl",
+        "workspace extends \"missing-base.dsl\" {\n}\n",
+    );
+
+    let mut loader = WorkspaceLoader::new();
+    let error = loader
+        .load_paths_with_failures([workspace.root()])
+        .expect_err("missing workspace base should abort the workspace load");
+
+    let failures = error.failures();
+    assert_eq!(failures.len(), 1);
+    let failure = &failures[0];
+    assert_eq!(failure.kind(), WorkspaceLoadFailureKind::WorkspaceBase);
+    assert_eq!(
+        failure.message(),
+        "workspace base does not exist: missing-base.dsl"
+    );
+
+    let anchor = failure
+        .anchor()
+        .expect("workspace base failures should carry the extends value anchor");
+    assert_eq!(
+        display_document_id(anchor.document().as_str(), workspace.root()),
+        "workspace.dsl"
+    );
+    assert_eq!(anchor.target_text(), Some("missing-base.dsl"));
+    assert_eq!(anchor.span().start_point.row, 0);
+
+    let diagnostic = failure
+        .diagnostic()
+        .expect("anchored load failures should convert to diagnostics");
+    assert_eq!(diagnostic.code(), "workspace.load-failure");
+    assert_eq!(
+        diagnostic
+            .document()
+            .map(|document| display_document_id(document.as_str(), workspace.root())),
+        Some("workspace.dsl".to_owned())
+    );
+}
+
+#[test]
+fn include_load_failures_preserve_source_anchors() {
+    let workspace = ProjectTempWorkspace::new("include-invalid-utf8");
+    workspace.write_file("workspace.dsl", "workspace {\n  !include \"bad.inc\"\n}\n");
+    workspace.write_bytes("bad.inc", &[0xff, 0xfe]);
+
+    let mut loader = WorkspaceLoader::new();
+    let error = loader
+        .load_paths_with_failures([workspace.root()])
+        .expect_err("invalid UTF-8 include should abort the workspace load");
+
+    let failures = error.failures();
+    assert_eq!(failures.len(), 1);
+    let failure = &failures[0];
+    assert_eq!(failure.kind(), WorkspaceLoadFailureKind::IncludeLoad);
+    assert!(
+        failure.message().contains("failed to load include bad.inc"),
+        "unexpected include-load failure message: {}",
+        failure.message()
+    );
+
+    let anchor = failure
+        .anchor()
+        .expect("include load failures should carry the include directive anchor");
+    assert_eq!(
+        display_document_id(anchor.document().as_str(), workspace.root()),
+        "workspace.dsl"
+    );
+    assert_eq!(anchor.target_text(), Some("bad.inc"));
+    assert_eq!(anchor.span().start_point.row, 1);
+}
+
+#[test]
+fn root_load_failures_remain_unanchored_session_failures() {
+    let missing_root = workspace_fixture_root().join("does-not-exist");
+    let mut loader = WorkspaceLoader::new();
+    let error = loader
+        .load_paths_with_failures([missing_root.as_path()])
+        .expect_err("missing workspace roots should abort the workspace load");
+
+    let failures = error.failures();
+    assert_eq!(failures.len(), 1);
+    assert_eq!(failures[0].kind(), WorkspaceLoadFailureKind::WorkspaceRoot);
+    assert!(failures[0].anchor().is_none());
+    assert!(
+        failures[0]
+            .message()
+            .contains("failed to load workspace root"),
+        "unexpected root-load failure message: {}",
+        failures[0].message()
+    );
+}
+
 fn workspace_fixture_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../tests/lsp/workspaces")
@@ -270,4 +372,87 @@ fn display_path(path: &Path, root: &Path) -> String {
     }
 
     path.display().to_string()
+}
+
+struct ProjectTempWorkspace {
+    root: PathBuf,
+}
+
+impl ProjectTempWorkspace {
+    fn new(name: &str) -> Self {
+        static NEXT_ID: AtomicUsize = AtomicUsize::new(0);
+
+        let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+        let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../..")
+            .canonicalize()
+            .expect("repository root should canonicalize");
+        let tmp_root = repo_root.join("tmp");
+        let stale_prefix = format!("workspace-discovery-{name}-");
+        if let Ok(entries) = fs::read_dir(&tmp_root) {
+            for entry in entries.flatten() {
+                if entry
+                    .file_name()
+                    .to_string_lossy()
+                    .starts_with(&stale_prefix)
+                {
+                    let _ = fs::remove_dir_all(entry.path());
+                }
+            }
+        }
+
+        let root = tmp_root.join(format!(
+            "workspace-discovery-{name}-{}-{id}",
+            std::process::id()
+        ));
+
+        if root.exists() {
+            fs::remove_dir_all(&root).unwrap_or_else(|error| {
+                panic!(
+                    "failed to clear project-local temp workspace `{}`: {error}",
+                    root.display()
+                )
+            });
+        }
+        fs::create_dir_all(&root).unwrap_or_else(|error| {
+            panic!(
+                "failed to create project-local temp workspace `{}`: {error}",
+                root.display()
+            )
+        });
+
+        Self { root }
+    }
+
+    fn root(&self) -> &Path {
+        &self.root
+    }
+
+    fn write_file(&self, relative_path: &str, source: &str) {
+        self.write_bytes(relative_path, source.as_bytes());
+    }
+
+    fn write_bytes(&self, relative_path: &str, bytes: &[u8]) {
+        let path = self.root.join(relative_path);
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).unwrap_or_else(|error| {
+                panic!(
+                    "failed to create project-local temp parent `{}`: {error}",
+                    parent.display()
+                )
+            });
+        }
+        fs::write(&path, bytes).unwrap_or_else(|error| {
+            panic!(
+                "failed to write project-local temp file `{}`: {error}",
+                path.display()
+            )
+        });
+    }
+}
+
+impl Drop for ProjectTempWorkspace {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.root);
+    }
 }
