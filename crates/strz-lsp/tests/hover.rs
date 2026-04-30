@@ -2,6 +2,7 @@ mod support;
 
 use std::fs;
 
+use indoc::indoc;
 use serde_json::json;
 use support::{
     annotated_source, file_uri, file_uri_from_path, initialize, initialize_with_workspace_folders,
@@ -40,6 +41,13 @@ const HOVER_METADATA_VIEWS_SOURCE: &str = r#"views {
     container system "Payments" {
         include <CURSOR:api-reference>api
         include <CURSOR:relationship-reference>rel
+        autoLayout
+    }
+}
+"#;
+const HIERARCHICAL_CONTEXT_VIEWS_SOURCE: &str = r#"views {
+    component system.api "API components" {
+        include <CURSOR:system-reference>system.<CURSOR:api-reference>api.<CURSOR:worker-reference>worker
         autoLayout
     }
 }
@@ -111,13 +119,73 @@ const SELECTOR_SEGMENT_HOVER_SOURCE: &str = r#"workspace {
 }
 "#;
 
-const API_HOVER: &str = "**Container** `api`\nPayments API\n\nProcesses payment requests\n\n**Technology:** Axum  \n**Tags:** Internal, HTTP, Edge  \n**URL:** <https://example.com/api>";
-const RELATIONSHIP_HOVER: &str = "**Relationship** `rel`\nPublishes jobs\n\nDelivers asynchronous jobs\n\n**Technology:** NATS  \n**Tags:** Async, Messaging, Observed  \n**URL:** <https://example.com/rel>";
-const PLACEHOLDER_RELATIONSHIP_HOVER: &str =
-    "**Relationship** `rel`\n\n**Technology:** HTTPS  \n**Tags:** Async, Observed";
-const DEPLOYMENT_INSTANCE_HOVER: &str = "**Software System Instance** `canary`\n\n**Tags:** Canary, Observed  \n**URL:** <https://example.com/canary>";
-const SYSTEM_HOVER: &str = "**Software System** `system`\nSystem";
-const WORKER_HOVER: &str = "**Component** `worker`\nWorker";
+const API_HOVER: &str = indoc! {"
+    **Container** `api`
+    Payments API
+
+    Processes payment requests
+
+    **Technology:** Axum  
+    **Tags:** Internal, HTTP, Edge  
+    **URL:** <https://example.com/api>"};
+const API_HOVER_WITH_WORKSPACE_CONTEXT: &str = indoc! {"
+    **Container** `api`
+    Payments API
+
+    Processes payment requests
+
+    **Technology:** Axum  
+    **Tags:** Internal, HTTP, Edge  
+    **URL:** <https://example.com/api>
+
+    **Canonical key:** `api`  
+    **Parent chain:** Software System `system`  
+    **Declaration path:** `model.dsl`"};
+const RELATIONSHIP_HOVER: &str = indoc! {"
+    **Relationship** `rel`
+    Publishes jobs
+
+    Delivers asynchronous jobs
+
+    **Technology:** NATS  
+    **Tags:** Async, Messaging, Observed  
+    **URL:** <https://example.com/rel>"};
+const RELATIONSHIP_HOVER_WITH_WORKSPACE_CONTEXT: &str = indoc! {"
+    **Relationship** `rel`
+    Publishes jobs
+
+    Delivers asynchronous jobs
+
+    **Technology:** NATS  
+    **Tags:** Async, Messaging, Observed  
+    **URL:** <https://example.com/rel>
+
+    **Canonical key:** `rel`  
+    **Declaration path:** `model.dsl`  
+    **Endpoints:** Container `api` → Container `worker`"};
+const PLACEHOLDER_RELATIONSHIP_HOVER: &str = indoc! {"
+    **Relationship** `rel`
+
+    **Technology:** HTTPS  
+    **Tags:** Async, Observed"};
+const DEPLOYMENT_INSTANCE_HOVER: &str = indoc! {"
+    **Software System Instance** `canary`
+
+    **Tags:** Canary, Observed  
+    **URL:** <https://example.com/canary>"};
+const SYSTEM_HOVER: &str = indoc! {"
+    **Software System** `system`
+    System"};
+const WORKER_HOVER: &str = indoc! {"
+    **Component** `worker`
+    Worker"};
+const WORKER_HIERARCHICAL_HOVER: &str = indoc! {"
+    **Component** `worker`
+    Worker
+
+    **Canonical key:** `system.api.worker`  
+    **Parent chain:** Software System `system` → Container `api`  
+    **Declaration path:** `model.dsl`"};
 
 #[tokio::test(flavor = "current_thread")]
 async fn hover_returns_markdown_for_same_document_declarations() {
@@ -250,7 +318,7 @@ async fn hover_resolves_cross_file_symbols_through_workspace_indexes() {
         views_source.position("api-reference"),
     )
     .await;
-    assert_hover_markdown(&api_hover, API_HOVER);
+    assert_hover_markdown(&api_hover, API_HOVER_WITH_WORKSPACE_CONTEXT);
 
     let relationship_hover = request_hover(
         &mut service,
@@ -258,7 +326,82 @@ async fn hover_resolves_cross_file_symbols_through_workspace_indexes() {
         views_source.position("relationship-reference"),
     )
     .await;
-    assert_hover_markdown(&relationship_hover, RELATIONSHIP_HOVER);
+    assert_hover_markdown(
+        &relationship_hover,
+        RELATIONSHIP_HOVER_WITH_WORKSPACE_CONTEXT,
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn hover_displays_hierarchical_canonical_context() {
+    let (mut service, _socket) = new_service();
+    let workspace_root = workspace_fixture_path("hover-hierarchical");
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
+    initialized(&mut service).await;
+
+    let views_path = workspace_root.join("views.dsl");
+    let views_source = annotated_source(HIERARCHICAL_CONTEXT_VIEWS_SOURCE);
+    assert_fixture_source(&views_path, views_source.source());
+    let views_uri = file_uri_from_path(&views_path);
+    open_document(&mut service, &views_uri, views_source.source()).await;
+
+    let system_hover = request_hover(
+        &mut service,
+        &views_uri,
+        views_source.position("system-reference"),
+    )
+    .await;
+    assert_hover_markdown(&system_hover, WORKER_HIERARCHICAL_HOVER);
+
+    let api_hover = request_hover(
+        &mut service,
+        &views_uri,
+        views_source.position("api-reference"),
+    )
+    .await;
+    assert_hover_markdown(&api_hover, WORKER_HIERARCHICAL_HOVER);
+
+    let worker_hover = request_hover(
+        &mut service,
+        &views_uri,
+        views_source.position("worker-reference"),
+    )
+    .await;
+
+    assert_hover_markdown(&worker_hover, WORKER_HIERARCHICAL_HOVER);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn hover_resolves_relationship_endpoint_symbols_declared_via_include() {
+    let (mut service, _socket) = new_service();
+    let workspace_root = workspace_fixture_path("big-bank-plc");
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
+    initialized(&mut service).await;
+
+    let workspace_path = workspace_root.join("internet-banking-system.dsl");
+    let annotated_source = annotated_source(
+        &read_workspace_file(&workspace_path).replacen(
+            "customer -> webApplication",
+            "customer -> <CURSOR:web-relationship>webApplication",
+            1,
+        ),
+    );
+    let workspace_uri = file_uri_from_path(&workspace_path);
+    open_document(&mut service, &workspace_uri, annotated_source.source()).await;
+
+    let hover = request_hover(
+        &mut service,
+        &workspace_uri,
+        annotated_source.position("web-relationship"),
+    )
+    .await;
+
+    assert!(
+        !hover["result"].is_null(),
+        "relationship endpoint hover should resolve across !include declarations"
+    );
 }
 
 #[tokio::test(flavor = "current_thread")]
