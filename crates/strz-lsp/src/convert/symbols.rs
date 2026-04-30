@@ -59,7 +59,7 @@ fn build_symbol(
     })
 }
 
-const fn to_lsp_symbol_kind(kind: SymbolKind) -> LspSymbolKind {
+pub(crate) const fn to_lsp_symbol_kind(kind: SymbolKind) -> LspSymbolKind {
     match kind {
         SymbolKind::Person
         | SymbolKind::SoftwareSystem

@@ -19,6 +19,56 @@ WorkspaceIndexSetView {
             documents: [
                 "workspace.dsl",
             ],
+            workspace_symbols: [
+                WorkspaceSymbolView {
+                    canonical_key: "api",
+                    root_document: "workspace.dsl",
+                    source_document: "workspace.dsl",
+                    symbol: "workspace.dsl::api",
+                },
+                WorkspaceSymbolView {
+                    canonical_key: "apiInstance",
+                    root_document: "workspace.dsl",
+                    source_document: "workspace.dsl",
+                    symbol: "workspace.dsl::apiInstance",
+                },
+                WorkspaceSymbolView {
+                    canonical_key: "gateway",
+                    root_document: "workspace.dsl",
+                    source_document: "workspace.dsl",
+                    symbol: "workspace.dsl::gateway",
+                },
+                WorkspaceSymbolView {
+                    canonical_key: "live",
+                    root_document: "workspace.dsl",
+                    source_document: "workspace.dsl",
+                    symbol: "workspace.dsl::live",
+                },
+                WorkspaceSymbolView {
+                    canonical_key: "primary",
+                    root_document: "workspace.dsl",
+                    source_document: "workspace.dsl",
+                    symbol: "workspace.dsl::primary",
+                },
+                WorkspaceSymbolView {
+                    canonical_key: "secondary",
+                    root_document: "workspace.dsl",
+                    source_document: "workspace.dsl",
+                    symbol: "workspace.dsl::secondary",
+                },
+                WorkspaceSymbolView {
+                    canonical_key: "secondaryApiInstance",
+                    root_document: "workspace.dsl",
+                    source_document: "workspace.dsl",
+                    symbol: "workspace.dsl::secondaryApiInstance",
+                },
+                WorkspaceSymbolView {
+                    canonical_key: "system",
+                    root_document: "workspace.dsl",
+                    source_document: "workspace.dsl",
+                    symbol: "workspace.dsl::system",
+                },
+            ],
             unique_element_bindings: [
                 (
                     "api",
