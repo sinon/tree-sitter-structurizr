@@ -3,8 +3,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use strz_analysis::{
-    DocumentId, DocumentSnapshot, ElementIdentifierMode, Symbol, SymbolHandle, SymbolKind,
-    TagSurface, WorkspaceFacts, WorkspaceIndex, WorkspaceInstanceId, tag_surface_for_node_kind,
+    DocumentId, DocumentSnapshot, ElementIdentifierMode, Reference, ReferenceKind,
+    ReferenceTargetHint, Symbol, SymbolHandle, SymbolKind, TagSurface, WorkspaceFacts,
+    WorkspaceIndex, WorkspaceInstanceId, tag_surface_for_node_kind,
 };
 use tower_lsp_server::ls_types::{
     CompletionItem, CompletionItemKind, CompletionTextEdit, Position, Range, TextEdit,
@@ -266,6 +267,36 @@ const DEPLOYMENT_RELATIONSHIP_SOURCE_KINDS: &[SymbolKind] = &[
     SymbolKind::ContainerInstance,
 ];
 
+const DEPLOYMENT_ELEMENT_KINDS: &[SymbolKind] = &[
+    SymbolKind::DeploymentEnvironment,
+    SymbolKind::DeploymentNode,
+    SymbolKind::InfrastructureNode,
+    SymbolKind::SoftwareSystemInstance,
+    SymbolKind::ContainerInstance,
+];
+
+const ELEMENT_OR_DEPLOYMENT_KINDS: &[SymbolKind] = &[
+    SymbolKind::Person,
+    SymbolKind::SoftwareSystem,
+    SymbolKind::Container,
+    SymbolKind::Component,
+    SymbolKind::DeploymentEnvironment,
+    SymbolKind::DeploymentNode,
+    SymbolKind::InfrastructureNode,
+    SymbolKind::SoftwareSystemInstance,
+    SymbolKind::ContainerInstance,
+];
+
+const ELEMENT_OR_RELATIONSHIP_KINDS: &[SymbolKind] = &[
+    SymbolKind::Person,
+    SymbolKind::SoftwareSystem,
+    SymbolKind::Container,
+    SymbolKind::Component,
+    SymbolKind::Relationship,
+];
+
+const RELATIONSHIP_KINDS: &[SymbolKind] = &[SymbolKind::Relationship];
+
 const DEPLOYMENT_NODE_DESTINATION_KINDS: &[SymbolKind] = &[SymbolKind::DeploymentNode];
 
 const INFRASTRUCTURE_NODE_DESTINATION_KINDS: &[SymbolKind] = &[
@@ -289,6 +320,7 @@ enum CompletionContext {
     Tags(TagCompletionContext),
     RelationshipIdentifier(RelationshipCompletionContext),
     FreshRelationshipSource(RelationshipBindingDomain),
+    IdentifierReference(IdentifierReferenceCompletionContext),
     Suppress,
 }
 
@@ -370,6 +402,11 @@ enum RelationshipBindingDomain {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct IdentifierReferenceCompletionContext {
+    target_hint: ReferenceTargetHint,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct TagCompletionContext {
     replace_start: usize,
     mode: TagCompletionMode,
@@ -447,6 +484,14 @@ pub fn completion_items(
             prefix,
             edit_range,
         ),
+        CompletionContext::IdentifierReference(context) => identifier_reference_items(
+            document,
+            snapshot,
+            workspace_facts,
+            context,
+            prefix,
+            edit_range,
+        ),
         CompletionContext::Suppress => Vec::new(),
     }
 }
@@ -512,11 +557,12 @@ fn completion_context(
     }
 
     // First keep the existing syntax-backed refinements intact. Only after those
-    // do we attempt the new semantic relationship-endpoint completion surface.
+    // do we attempt semantic identifier completions at modeled reference sites.
     style_context
         .or(tag_context)
         .or_else(|| relationship_completion_context(text, snapshot, offset, prefix_start))
         .or_else(|| fresh_relationship_source_context(text, snapshot, offset, prefix_start))
+        .or_else(|| identifier_reference_completion_context(snapshot, offset, prefix_start))
         .unwrap_or(CompletionContext::FixedVocabulary)
 }
 
@@ -568,6 +614,36 @@ fn tag_completion_context(
     syntax_nodes_at_offset(text, snapshot, offset, prefix_start)
         .into_iter()
         .find_map(|node| tag_completion_context_from_node(text, node, offset, prefix_start))
+}
+
+fn identifier_reference_completion_context(
+    snapshot: &DocumentSnapshot,
+    offset: usize,
+    prefix_start: usize,
+) -> Option<CompletionContext> {
+    snapshot
+        .references()
+        .iter()
+        .find(|reference| {
+            is_flat_identifier_completion_reference(reference.kind)
+                && reference_matches_cursor(reference, offset, prefix_start)
+        })
+        .map(|reference| {
+            CompletionContext::IdentifierReference(IdentifierReferenceCompletionContext {
+                target_hint: reference.target_hint,
+            })
+        })
+}
+
+const fn is_flat_identifier_completion_reference(kind: ReferenceKind) -> bool {
+    matches!(
+        kind,
+        ReferenceKind::InstanceTarget
+            | ReferenceKind::ViewScope
+            | ReferenceKind::ViewInclude
+            | ReferenceKind::ViewExclude
+            | ReferenceKind::ViewAnimation
+    )
 }
 
 fn style_block_context_from_node(
@@ -1299,6 +1375,16 @@ fn node_matches_cursor(node: tree_sitter::Node<'_>, offset: usize, prefix_start:
         || cursor_probe == node.end_byte()
 }
 
+const fn reference_matches_cursor(reference: &Reference, offset: usize, prefix_start: usize) -> bool {
+    let cursor_probe = offset;
+    let prefix_probe = prefix_start.saturating_sub(1);
+    let span = reference.span;
+
+    span_contains(span.start_byte, span.end_byte, cursor_probe)
+        || span_contains(span.start_byte, span.end_byte, prefix_probe)
+        || cursor_probe == span.end_byte
+}
+
 fn is_blank_endpoint_insertion_point(text: &str, start_byte: usize, offset: usize) -> bool {
     let safe_start = start_byte.min(text.len());
     let safe_offset = offset.min(text.len());
@@ -1435,22 +1521,231 @@ fn relationship_identifier_items(
             WorkspaceCompletionOutcome::Suppress => return Vec::new(),
         };
 
+    identifier_completion_items(candidates, prefix, edit_range)
+}
+
+fn identifier_reference_items(
+    document: &DocumentState,
+    snapshot: &DocumentSnapshot,
+    workspace_facts: Option<&WorkspaceFacts>,
+    context: IdentifierReferenceCompletionContext,
+    prefix: &str,
+    edit_range: Option<Range>,
+) -> Vec<CompletionItem> {
+    let candidates = match workspace_identifier_reference_completion_candidates(
+        document,
+        workspace_facts,
+        context,
+    ) {
+        WorkspaceCompletionOutcome::Candidates(candidates) => candidates,
+        WorkspaceCompletionOutcome::NoWorkspaceContext => {
+            same_document_identifier_reference_completion_candidates(snapshot, context)
+        }
+        WorkspaceCompletionOutcome::Suppress => return Vec::new(),
+    };
+
+    identifier_completion_items(candidates, prefix, edit_range)
+}
+
+fn identifier_completion_items(
+    candidates: BTreeMap<String, IdentifierCompletionCandidate>,
+    prefix: &str,
+    edit_range: Option<Range>,
+) -> Vec<CompletionItem> {
     candidates
         .into_values()
         .filter(|candidate| prefix.is_empty() || candidate.label.starts_with(prefix))
-        .map(|candidate| CompletionItem {
-            label: candidate.label.clone(),
-            kind: Some(CompletionItemKind::REFERENCE),
-            detail: Some(candidate.detail),
-            text_edit: edit_range.map(|range| {
-                CompletionTextEdit::Edit(TextEdit {
-                    range,
-                    new_text: candidate.label,
-                })
-            }),
-            ..CompletionItem::default()
+        .map(|candidate| {
+            let label = candidate.label;
+            CompletionItem {
+                label: label.clone(),
+                kind: Some(CompletionItemKind::REFERENCE),
+                detail: Some(candidate.detail),
+                text_edit: edit_range.map(|range| {
+                    CompletionTextEdit::Edit(TextEdit {
+                        range,
+                        new_text: label,
+                    })
+                }),
+                ..CompletionItem::default()
+            }
         })
         .collect()
+}
+
+fn workspace_identifier_reference_completion_candidates(
+    document: &DocumentState,
+    workspace_facts: Option<&WorkspaceFacts>,
+    context: IdentifierReferenceCompletionContext,
+) -> WorkspaceCompletionOutcome {
+    let Some(workspace_facts) = workspace_facts else {
+        return WorkspaceCompletionOutcome::NoWorkspaceContext;
+    };
+    let Some(document_id) = workspace_document_id(document) else {
+        return WorkspaceCompletionOutcome::NoWorkspaceContext;
+    };
+
+    let candidate_instances = workspace_facts
+        .candidate_instances_for(&document_id)
+        .copied()
+        .collect::<Vec<_>>();
+    if candidate_instances.is_empty() {
+        return WorkspaceCompletionOutcome::NoWorkspaceContext;
+    }
+
+    if candidate_instances.iter().any(|instance_id| {
+        workspace_facts
+            .workspace_index(*instance_id)
+            .and_then(|workspace_index| workspace_index.element_identifier_mode_for(&document_id))
+            != Some(ElementIdentifierMode::Flat)
+    }) {
+        return WorkspaceCompletionOutcome::Suppress;
+    }
+
+    unanimous_workspace_identifier_reference_candidate_map(
+        workspace_facts,
+        &candidate_instances,
+        context.target_hint,
+    )
+    .map_or(
+        WorkspaceCompletionOutcome::Suppress,
+        WorkspaceCompletionOutcome::Candidates,
+    )
+}
+
+fn same_document_identifier_reference_completion_candidates(
+    snapshot: &DocumentSnapshot,
+    context: IdentifierReferenceCompletionContext,
+) -> BTreeMap<String, IdentifierCompletionCandidate> {
+    if snapshot.effective_element_identifier_mode() != ElementIdentifierMode::Flat {
+        return BTreeMap::new();
+    }
+
+    flat_candidate_map_from_symbols(
+        snapshot.symbols(),
+        identifier_reference_target_kinds(context.target_hint),
+    )
+}
+
+fn unanimous_workspace_identifier_reference_candidate_map(
+    workspace_facts: &WorkspaceFacts,
+    candidate_instances: &[WorkspaceInstanceId],
+    target_hint: ReferenceTargetHint,
+) -> Option<BTreeMap<String, IdentifierCompletionCandidate>> {
+    let mut candidates = None;
+
+    for instance_id in candidate_instances {
+        let workspace_index = workspace_facts.workspace_index(*instance_id)?;
+        let current = candidate_map_from_workspace_index_for_target_hint(
+            workspace_facts,
+            workspace_index,
+            target_hint,
+        )?;
+        if candidates
+            .as_ref()
+            .is_some_and(|existing| existing != &current)
+        {
+            return None;
+        }
+        candidates = Some(current);
+    }
+
+    candidates
+}
+
+fn candidate_map_from_workspace_index_for_target_hint(
+    workspace_facts: &WorkspaceFacts,
+    workspace_index: &WorkspaceIndex,
+    target_hint: ReferenceTargetHint,
+) -> Option<BTreeMap<String, IdentifierCompletionCandidate>> {
+    let mut candidates = BTreeMap::new();
+    let mut suppressed = BTreeSet::new();
+
+    match target_hint {
+        ReferenceTargetHint::Element => add_workspace_binding_candidates(
+            workspace_facts,
+            workspace_index.unique_element_bindings(),
+            workspace_index.duplicate_element_bindings(),
+            &mut candidates,
+            &mut suppressed,
+        )?,
+        ReferenceTargetHint::ElementOrDeployment => {
+            add_workspace_binding_candidates(
+                workspace_facts,
+                workspace_index.unique_element_bindings(),
+                workspace_index.duplicate_element_bindings(),
+                &mut candidates,
+                &mut suppressed,
+            )?;
+            add_workspace_binding_candidates(
+                workspace_facts,
+                workspace_index.unique_deployment_bindings(),
+                workspace_index.duplicate_deployment_bindings(),
+                &mut candidates,
+                &mut suppressed,
+            )?;
+        }
+        ReferenceTargetHint::Deployment => add_workspace_binding_candidates(
+            workspace_facts,
+            workspace_index.unique_deployment_bindings(),
+            workspace_index.duplicate_deployment_bindings(),
+            &mut candidates,
+            &mut suppressed,
+        )?,
+        ReferenceTargetHint::Relationship => add_workspace_binding_candidates(
+            workspace_facts,
+            workspace_index.unique_relationship_bindings(),
+            workspace_index.duplicate_relationship_bindings(),
+            &mut candidates,
+            &mut suppressed,
+        )?,
+        ReferenceTargetHint::ElementOrRelationship => {
+            add_workspace_binding_candidates(
+                workspace_facts,
+                workspace_index.unique_element_bindings(),
+                workspace_index.duplicate_element_bindings(),
+                &mut candidates,
+                &mut suppressed,
+            )?;
+            add_workspace_binding_candidates(
+                workspace_facts,
+                workspace_index.unique_relationship_bindings(),
+                workspace_index.duplicate_relationship_bindings(),
+                &mut candidates,
+                &mut suppressed,
+            )?;
+        }
+    }
+
+    Some(candidates)
+}
+
+fn add_workspace_binding_candidates(
+    workspace_facts: &WorkspaceFacts,
+    unique_bindings: &BTreeMap<String, SymbolHandle>,
+    duplicate_bindings: &BTreeMap<String, Vec<SymbolHandle>>,
+    candidates: &mut BTreeMap<String, IdentifierCompletionCandidate>,
+    suppressed: &mut BTreeSet<String>,
+) -> Option<()> {
+    for binding in duplicate_bindings.keys() {
+        suppressed.insert(binding.clone());
+        candidates.remove(binding);
+    }
+
+    for (binding, handle) in unique_bindings {
+        if suppressed.contains(binding) {
+            continue;
+        }
+
+        let symbol = workspace_symbol(workspace_facts, handle)?;
+        let candidate = completion_candidate(binding.clone(), symbol);
+        if candidates.insert(binding.clone(), candidate).is_some() {
+            candidates.remove(binding);
+            suppressed.insert(binding.clone());
+        }
+    }
+
+    Some(())
 }
 
 fn workspace_relationship_completion_candidates(
@@ -1471,18 +1766,6 @@ fn workspace_relationship_completion_candidates(
         .collect::<Vec<_>>();
     if candidate_instances.is_empty() {
         return WorkspaceCompletionOutcome::NoWorkspaceContext;
-    }
-
-    // The first rollout stays flat-mode only. If any candidate workspace instance
-    // would require hierarchical element keys for this document, prefer no answer
-    // over suggesting identifiers the user cannot safely insert.
-    if candidate_instances.iter().any(|instance_id| {
-        workspace_facts
-            .workspace_index(*instance_id)
-            .and_then(|workspace_index| workspace_index.element_identifier_mode_for(&document_id))
-            == Some(ElementIdentifierMode::Hierarchical)
-    }) {
-        return WorkspaceCompletionOutcome::Suppress;
     }
 
     // Deployment relationships reuse the same conservative completion pipeline
@@ -1666,6 +1949,47 @@ fn candidate_map_from_symbols(
     }
 
     unique
+}
+
+fn flat_candidate_map_from_symbols(
+    symbols: &[Symbol],
+    allowed_kinds: &[SymbolKind],
+) -> BTreeMap<String, IdentifierCompletionCandidate> {
+    let mut unique = BTreeMap::new();
+    let mut duplicates = BTreeSet::new();
+
+    for symbol in symbols {
+        let Some(binding_name) = symbol.binding_name.as_deref() else {
+            continue;
+        };
+        if !allowed_kinds.contains(&symbol.kind) {
+            continue;
+        }
+
+        if duplicates.contains(binding_name) {
+            continue;
+        }
+
+        let candidate = completion_candidate(binding_name.to_owned(), symbol);
+        if unique.insert(binding_name.to_owned(), candidate).is_some() {
+            unique.remove(binding_name);
+            duplicates.insert(binding_name.to_owned());
+        }
+    }
+
+    unique
+}
+
+const fn identifier_reference_target_kinds(
+    target_hint: ReferenceTargetHint,
+) -> &'static [SymbolKind] {
+    match target_hint {
+        ReferenceTargetHint::Element => CORE_ELEMENT_KINDS,
+        ReferenceTargetHint::ElementOrDeployment => ELEMENT_OR_DEPLOYMENT_KINDS,
+        ReferenceTargetHint::Deployment => DEPLOYMENT_ELEMENT_KINDS,
+        ReferenceTargetHint::Relationship => RELATIONSHIP_KINDS,
+        ReferenceTargetHint::ElementOrRelationship => ELEMENT_OR_RELATIONSHIP_KINDS,
+    }
 }
 
 fn completion_candidate(label: String, symbol: &Symbol) -> IdentifierCompletionCandidate {
