@@ -26,7 +26,7 @@ anstream = { version = "1.0.0" }
 anstyle = { version = "1.0.14" }
 anyhow = { version = "1.0.102" }
 cc = { version = "1.2" }
-clap = { version = "4.6.0", features = ["derive", "wrap_help"] }
+clap = { version = "4.6.1", features = ["derive", "wrap_help"] }
 criterion = { package = "codspeed-criterion-compat", version = "4.4.1" }
 futures = { version = "0.3" }
 ignore = { version = "0.4.25" }
