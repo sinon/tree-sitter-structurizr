@@ -5,7 +5,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use strz_analysis::{
     DocumentId, DocumentSnapshot, ElementIdentifierMode, Reference, ReferenceKind,
     ReferenceTargetHint, Symbol, SymbolHandle, SymbolKind, TagSurface, WorkspaceFacts,
-    WorkspaceIndex, WorkspaceInstanceId, tag_surface_for_node_kind,
+    WorkspaceIndex, WorkspaceInstanceId, canonical_deployment_binding_key,
+    canonical_element_binding_key, tag_surface_for_node_kind,
 };
 use tower_lsp_server::ls_types::{
     CompletionItem, CompletionItemKind, CompletionTextEdit, Position, Range, TextEdit,
@@ -1802,23 +1803,23 @@ fn same_document_relationship_completion_candidates(
     snapshot: &DocumentSnapshot,
     context: &RelationshipCompletionContext,
 ) -> BTreeMap<String, IdentifierCompletionCandidate> {
-    if !snapshot_uses_flat_identifier_mode(snapshot) {
-        return BTreeMap::new();
-    }
-
+    let mode = snapshot.effective_element_identifier_mode();
     let allowed_kinds = match context.endpoint {
         RelationshipEndpoint::Source => relationship_source_kinds(context.domain),
         RelationshipEndpoint::Destination => {
-            let Some(source_kind) =
-                same_document_source_kind(snapshot, context.domain, context.source_text.as_deref())
-            else {
+            let Some(source_kind) = same_document_source_kind(
+                snapshot,
+                context.domain,
+                context.source_text.as_deref(),
+                mode,
+            ) else {
                 return BTreeMap::new();
             };
             allowed_destination_kinds(context.domain, source_kind)
         }
     };
 
-    candidate_map_from_symbols(snapshot.symbols(), allowed_kinds)
+    candidate_map_from_symbols(snapshot.symbols(), allowed_kinds, mode, context.domain)
 }
 
 fn unanimous_workspace_source_kind(
@@ -1925,26 +1926,28 @@ fn candidate_map_from_workspace_index(
 fn candidate_map_from_symbols(
     symbols: &[Symbol],
     allowed_kinds: &[SymbolKind],
+    mode: ElementIdentifierMode,
+    domain: RelationshipBindingDomain,
 ) -> BTreeMap<String, IdentifierCompletionCandidate> {
     let mut unique = BTreeMap::new();
     let mut duplicates = std::collections::BTreeSet::new();
 
     for symbol in symbols {
-        let Some(binding_name) = symbol.binding_name.as_deref() else {
-            continue;
-        };
         if !allowed_kinds.contains(&symbol.kind) {
             continue;
         }
+        let Some(binding_key) = completion_binding_key(symbols, symbol, mode, domain) else {
+            continue;
+        };
 
-        if duplicates.contains(binding_name) {
+        if duplicates.contains(&binding_key) {
             continue;
         }
 
-        let candidate = completion_candidate(binding_name.to_owned(), symbol);
-        if unique.insert(binding_name.to_owned(), candidate).is_some() {
-            unique.remove(binding_name);
-            duplicates.insert(binding_name.to_owned());
+        let candidate = completion_candidate(binding_key.clone(), symbol);
+        if unique.insert(binding_key.clone(), candidate).is_some() {
+            unique.remove(&binding_key);
+            duplicates.insert(binding_key);
         }
     }
 
@@ -2013,12 +2016,14 @@ fn same_document_source_kind(
     snapshot: &DocumentSnapshot,
     domain: RelationshipBindingDomain,
     source_text: Option<&str>,
+    mode: ElementIdentifierMode,
 ) -> Option<SymbolKind> {
     let source_text = source_text?;
     let allowed_source_kinds = relationship_source_kinds(domain);
     let mut matches = snapshot.symbols().iter().filter(|symbol| {
         allowed_source_kinds.contains(&symbol.kind)
-            && symbol.binding_name.as_deref() == Some(source_text)
+            && completion_binding_key(snapshot.symbols(), symbol, mode, domain).as_deref()
+                == Some(source_text)
     });
     let first = matches.next()?;
     if matches.next().is_some() {
@@ -2028,8 +2033,18 @@ fn same_document_source_kind(
     Some(first.kind)
 }
 
-fn snapshot_uses_flat_identifier_mode(snapshot: &DocumentSnapshot) -> bool {
-    snapshot.effective_element_identifier_mode() == ElementIdentifierMode::Flat
+fn completion_binding_key(
+    symbols: &[Symbol],
+    symbol: &Symbol,
+    mode: ElementIdentifierMode,
+    domain: RelationshipBindingDomain,
+) -> Option<String> {
+    match domain {
+        RelationshipBindingDomain::Core => canonical_element_binding_key(symbols, symbol.id, mode),
+        RelationshipBindingDomain::Deployment => {
+            canonical_deployment_binding_key(symbols, symbol.id, mode)
+        }
+    }
 }
 
 fn workspace_document_id(document: &DocumentState) -> Option<DocumentId> {
