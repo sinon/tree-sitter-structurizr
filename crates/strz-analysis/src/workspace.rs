@@ -243,6 +243,57 @@ impl SymbolHandle {
     }
 }
 
+/// Per-instance symbol projection for workspace-wide symbol queries.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct WorkspaceSymbolFact {
+    canonical_key: String,
+    root_document: DocumentId,
+    source_document: DocumentId,
+    handle: SymbolHandle,
+}
+
+impl WorkspaceSymbolFact {
+    /// Creates a symbol fact scoped to one derived workspace instance.
+    #[must_use]
+    pub const fn new(
+        canonical_key: String,
+        root_document: DocumentId,
+        source_document: DocumentId,
+        handle: SymbolHandle,
+    ) -> Self {
+        Self {
+            canonical_key,
+            root_document,
+            source_document,
+            handle,
+        }
+    }
+
+    /// Returns the canonical key that identifies this symbol inside the instance.
+    #[must_use]
+    pub fn canonical_key(&self) -> &str {
+        &self.canonical_key
+    }
+
+    /// Returns the root document that supplied this symbol's semantic context.
+    #[must_use]
+    pub const fn root_document(&self) -> &DocumentId {
+        &self.root_document
+    }
+
+    /// Returns the document that contains the symbol declaration.
+    #[must_use]
+    pub const fn source_document(&self) -> &DocumentId {
+        &self.source_document
+    }
+
+    /// Returns the stable handle for the declaration symbol.
+    #[must_use]
+    pub const fn handle(&self) -> &SymbolHandle {
+        &self.handle
+    }
+}
+
 /// Stable reference to one extracted reference site in one discovered document.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ReferenceHandle {
@@ -303,6 +354,7 @@ struct DerivedWorkspaceInstance {
     duplicate_deployment_bindings: BTreeMap<String, Vec<SymbolHandle>>,
     unique_relationship_bindings: BTreeMap<String, SymbolHandle>,
     duplicate_relationship_bindings: BTreeMap<String, Vec<SymbolHandle>>,
+    workspace_symbols: Vec<WorkspaceSymbolFact>,
     reference_resolutions: BTreeMap<ReferenceHandle, ReferenceResolutionStatus>,
     references_by_target: BTreeMap<SymbolHandle, Vec<ReferenceHandle>>,
     semantic_diagnostics: Vec<RuledDiagnostic>,
@@ -427,6 +479,12 @@ impl WorkspaceIndex {
     #[must_use]
     pub fn duplicate_relationship_bindings(&self) -> &BTreeMap<String, Vec<SymbolHandle>> {
         &self.derived.duplicate_relationship_bindings
+    }
+
+    /// Returns the per-instance symbols available to workspace-wide symbol queries.
+    #[must_use]
+    pub fn workspace_symbols(&self) -> &[WorkspaceSymbolFact] {
+        &self.derived.workspace_symbols
     }
 
     /// Returns the resolution status recorded for one reference handle.
@@ -2631,8 +2689,8 @@ fn build_derived_workspace_instance(
     // one assembled definition. We intentionally keep only the full instance
     // document list on the derived payload because downstream callers reason
     // about the assembled semantic surface, not the narrower structural slice.
-    let _ = root_document;
     let bindings = build_binding_tables(documents, inherited_workspace_modes);
+    let workspace_symbols = build_workspace_symbols(&root_document.document_id, &bindings);
     let mut semantic_diagnostics = bindings.semantic_diagnostics.clone();
     semantic_diagnostics.extend(workspace_structure_diagnostics(definition_documents));
     semantic_diagnostics.extend(workspace_scope_diagnostics(definition_documents, documents));
@@ -2678,6 +2736,7 @@ fn build_derived_workspace_instance(
         duplicate_deployment_bindings: bindings.duplicate_deployments,
         unique_relationship_bindings: bindings.unique_relationships,
         duplicate_relationship_bindings: bindings.duplicate_relationships,
+        workspace_symbols,
         reference_resolutions: reference_tables.resolutions,
         references_by_target,
         semantic_diagnostics,
@@ -2832,6 +2891,65 @@ struct WorkspaceBindingTables {
     unique_relationships: BTreeMap<String, SymbolHandle>,
     duplicate_relationships: BTreeMap<String, Vec<SymbolHandle>>,
     semantic_diagnostics: Vec<RuledDiagnostic>,
+}
+
+fn build_workspace_symbols(
+    root_document: &DocumentId,
+    bindings: &WorkspaceBindingTables,
+) -> Vec<WorkspaceSymbolFact> {
+    let mut symbols = Vec::new();
+    extend_workspace_symbols(
+        root_document,
+        &bindings.unique_elements,
+        &bindings.duplicate_elements,
+        &mut symbols,
+    );
+    extend_workspace_symbols(
+        root_document,
+        &bindings.unique_deployments,
+        &bindings.duplicate_deployments,
+        &mut symbols,
+    );
+    extend_workspace_symbols(
+        root_document,
+        &bindings.unique_relationships,
+        &bindings.duplicate_relationships,
+        &mut symbols,
+    );
+
+    symbols.sort();
+    symbols
+}
+
+fn extend_workspace_symbols(
+    root_document: &DocumentId,
+    unique_bindings: &BTreeMap<String, SymbolHandle>,
+    duplicate_bindings: &BTreeMap<String, Vec<SymbolHandle>>,
+    symbols: &mut Vec<WorkspaceSymbolFact>,
+) {
+    symbols.extend(unique_bindings.iter().map(|(canonical_key, handle)| {
+        WorkspaceSymbolFact::new(
+            canonical_key.clone(),
+            root_document.clone(),
+            handle.document().clone(),
+            handle.clone(),
+        )
+    }));
+
+    symbols.extend(
+        duplicate_bindings
+            .iter()
+            .flat_map(|(canonical_key, handles)| {
+                handles.iter().map(move |handle| {
+                    WorkspaceSymbolFact::new(
+                        canonical_key.clone(),
+                        root_document.clone(),
+                        handle.document().clone(),
+                        handle.clone(),
+                    )
+                })
+            }),
+    );
 }
 
 fn build_binding_tables(

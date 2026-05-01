@@ -46,6 +46,14 @@ WorkspaceIndexSetView {
                 "shared/system.dsl",
                 "shared/details/alpha-details.dsl",
             ],
+            workspace_symbols: [
+                WorkspaceSymbolView {
+                    canonical_key: "system",
+                    root_document: "alpha.dsl",
+                    source_document: "shared/system.dsl",
+                    symbol: "shared/system.dsl::system",
+                },
+            ],
             unique_element_bindings: [
                 (
                     "system",
@@ -65,6 +73,14 @@ WorkspaceIndexSetView {
                 "beta.dsl",
                 "shared/system.dsl",
                 "shared/details/beta-details.dsl",
+            ],
+            workspace_symbols: [
+                WorkspaceSymbolView {
+                    canonical_key: "system",
+                    root_document: "beta.dsl",
+                    source_document: "shared/system.dsl",
+                    symbol: "shared/system.dsl::system",
+                },
             ],
             unique_element_bindings: [
                 (
