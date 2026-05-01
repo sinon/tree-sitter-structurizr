@@ -44,4 +44,5 @@ pub use workspace::{
     SymbolHandle, WorkspaceDocument, WorkspaceDocumentKind, WorkspaceFacts, WorkspaceIncludeTarget,
     WorkspaceIndex, WorkspaceInstanceId, WorkspaceLoadError, WorkspaceLoadFailure,
     WorkspaceLoadFailureAnchor, WorkspaceLoadFailureKind, WorkspaceLoader, WorkspaceSymbolFact,
+    canonical_deployment_binding_key, canonical_element_binding_key,
 };

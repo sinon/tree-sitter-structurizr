@@ -5673,7 +5673,7 @@ fn last_identifier_mode_for_container(
 }
 
 #[derive(Clone, Copy)]
-pub enum CanonicalBindingKind {
+enum CanonicalBindingKind {
     Element,
     Deployment,
 }
@@ -5700,7 +5700,7 @@ impl CanonicalBindingKind {
     }
 }
 
-pub fn canonical_binding_key(
+fn canonical_binding_key(
     symbols: &[Symbol],
     symbol_id: SymbolId,
     mode: ElementIdentifierMode,
@@ -5737,6 +5737,8 @@ pub fn canonical_binding_key(
     }
 }
 
+/// Returns the exact reference key for an element symbol under the supplied identifier mode.
+#[must_use]
 pub fn canonical_element_binding_key(
     symbols: &[Symbol],
     symbol_id: SymbolId,
@@ -5756,6 +5758,8 @@ pub fn canonical_element_binding_key(
     canonical_binding_key(symbols, symbol_id, mode, CanonicalBindingKind::Element)
 }
 
+/// Returns the exact reference key for a deployment symbol under the supplied identifier mode.
+#[must_use]
 pub fn canonical_deployment_binding_key(
     symbols: &[Symbol],
     symbol_id: SymbolId,
@@ -5912,8 +5916,9 @@ mod tests {
     use tempfile::TempDir;
 
     use super::{
-        SymbolKind, ViewKind, WorkspaceDirectiveEvent, WorkspaceFacts, WorkspaceIndex,
-        WorkspaceLoader, document_id_from_path, is_view_element_kind_allowed,
+        DocumentId, Reference, ReferenceHandle, ReferenceKind, ReferenceResolutionStatus, Symbol,
+        SymbolHandle, SymbolId, SymbolKind, ViewKind, WorkspaceDirectiveEvent, WorkspaceFacts,
+        WorkspaceIndex, WorkspaceLoader, document_id_from_path, is_view_element_kind_allowed,
     };
 
     #[test]
@@ -6058,6 +6063,198 @@ mod tests {
             .expect("workspace index should exist");
 
         assert!(Arc::ptr_eq(&first_index.derived, &second_index.derived));
+    }
+
+    #[test]
+    fn workspace_resolves_dotted_model_references_and_selector_targets() {
+        let fixture = TemporaryWorkspace::new(indoc! {r#"
+            workspace {
+                model {
+                    !identifiers hierarchical
+
+                    system = softwareSystem "System" {
+                        api = container "API" {
+                            worker = component "Worker"
+                        }
+                    }
+
+                    !element system.api.worker {
+                        properties {
+                            "team" "Core"
+                        }
+                    }
+
+                    system.api -> system.api.worker "Uses"
+                }
+            }
+        "#});
+
+        let workspace = WorkspaceLoader::new()
+            .load_paths([fixture.workspace_path().as_path()])
+            .expect("workspace should load");
+        let index = workspace
+            .workspace_indexes()
+            .first()
+            .expect("workspace index should exist");
+        let document_id = document_id_from_path(fixture.workspace_path());
+        let document = workspace
+            .document(&document_id)
+            .expect("workspace document should exist");
+        let snapshot = document.snapshot();
+
+        assert_reference_resolves_to(
+            index,
+            &document_id,
+            snapshot.references(),
+            ReferenceKind::ElementSelectorTarget,
+            "system",
+            SymbolHandle::new(
+                document_id.clone(),
+                symbol_id_by_binding(snapshot.symbols(), "system"),
+            ),
+        );
+        assert_reference_resolves_to(
+            index,
+            &document_id,
+            snapshot.references(),
+            ReferenceKind::ElementSelectorTarget,
+            "system.api",
+            SymbolHandle::new(
+                document_id.clone(),
+                symbol_id_by_binding(snapshot.symbols(), "api"),
+            ),
+        );
+        assert_reference_resolves_to(
+            index,
+            &document_id,
+            snapshot.references(),
+            ReferenceKind::ElementSelectorTarget,
+            "system.api.worker",
+            SymbolHandle::new(
+                document_id.clone(),
+                symbol_id_by_binding(snapshot.symbols(), "worker"),
+            ),
+        );
+        assert_reference_resolves_to(
+            index,
+            &document_id,
+            snapshot.references(),
+            ReferenceKind::RelationshipSource,
+            "system.api",
+            SymbolHandle::new(
+                document_id.clone(),
+                symbol_id_by_binding(snapshot.symbols(), "api"),
+            ),
+        );
+        assert_reference_resolves_to(
+            index,
+            &document_id,
+            snapshot.references(),
+            ReferenceKind::RelationshipDestination,
+            "system.api.worker",
+            SymbolHandle::new(
+                document_id.clone(),
+                symbol_id_by_binding(snapshot.symbols(), "worker"),
+            ),
+        );
+    }
+
+    #[test]
+    fn workspace_resolves_dotted_deployment_references_and_selector_targets() {
+        let fixture = TemporaryWorkspace::new(indoc! {r#"
+            workspace {
+                !identifiers hierarchical
+
+                model {
+                    system = softwareSystem "System" {
+                        api = container "API"
+                    }
+
+                    live = deploymentEnvironment "Live" {
+                        edge = deploymentNode "Edge" {
+                            gateway = infrastructureNode "Gateway"
+                            apiInstance = containerInstance system.api
+                            live.edge.gateway -> live.edge.apiInstance "Routes"
+                        }
+
+                        !element live.edge.apiInstance {
+                            properties {
+                                "team" "Runtime"
+                            }
+                        }
+                    }
+                }
+            }
+        "#});
+
+        let workspace = WorkspaceLoader::new()
+            .load_paths([fixture.workspace_path().as_path()])
+            .expect("workspace should load");
+        let index = workspace
+            .workspace_indexes()
+            .first()
+            .expect("workspace index should exist");
+        let document_id = document_id_from_path(fixture.workspace_path());
+        let document = workspace
+            .document(&document_id)
+            .expect("workspace document should exist");
+        let snapshot = document.snapshot();
+
+        assert_reference_resolves_to(
+            index,
+            &document_id,
+            snapshot.references(),
+            ReferenceKind::ElementSelectorTarget,
+            "live",
+            SymbolHandle::new(
+                document_id.clone(),
+                symbol_id_by_binding(snapshot.symbols(), "live"),
+            ),
+        );
+        assert_reference_resolves_to(
+            index,
+            &document_id,
+            snapshot.references(),
+            ReferenceKind::ElementSelectorTarget,
+            "live.edge",
+            SymbolHandle::new(
+                document_id.clone(),
+                symbol_id_by_binding(snapshot.symbols(), "edge"),
+            ),
+        );
+        assert_reference_resolves_to(
+            index,
+            &document_id,
+            snapshot.references(),
+            ReferenceKind::ElementSelectorTarget,
+            "live.edge.apiInstance",
+            SymbolHandle::new(
+                document_id.clone(),
+                symbol_id_by_binding(snapshot.symbols(), "apiInstance"),
+            ),
+        );
+        assert_reference_resolves_to(
+            index,
+            &document_id,
+            snapshot.references(),
+            ReferenceKind::DeploymentRelationshipSource,
+            "live.edge.gateway",
+            SymbolHandle::new(
+                document_id.clone(),
+                symbol_id_by_binding(snapshot.symbols(), "gateway"),
+            ),
+        );
+        assert_reference_resolves_to(
+            index,
+            &document_id,
+            snapshot.references(),
+            ReferenceKind::DeploymentRelationshipDestination,
+            "live.edge.apiInstance",
+            SymbolHandle::new(
+                document_id.clone(),
+                symbol_id_by_binding(snapshot.symbols(), "apiInstance"),
+            ),
+        );
     }
 
     #[test]
@@ -6477,6 +6674,45 @@ mod tests {
             .iter()
             .find(|index| index.root_document() == &root_document)
             .expect("workspace index for root should exist")
+    }
+
+    fn assert_reference_resolves_to(
+        index: &WorkspaceIndex,
+        document_id: &DocumentId,
+        references: &[Reference],
+        kind: ReferenceKind,
+        raw_text: &str,
+        expected_target: SymbolHandle,
+    ) {
+        let reference_index = references
+            .iter()
+            .enumerate()
+            .find(|(_, reference)| reference.kind == kind && reference.raw_text == raw_text)
+            .map_or_else(
+                || {
+                    let available = references
+                        .iter()
+                        .map(|reference| format!("{:?} `{}`", reference.kind, reference.raw_text))
+                        .collect::<Vec<_>>();
+                    panic!("expected {kind:?} reference `{raw_text}`, got {available:?}")
+                },
+                |(index, _)| index,
+            );
+        let handle = ReferenceHandle::new(document_id.clone(), reference_index);
+
+        assert_eq!(
+            index.reference_resolution(&handle),
+            Some(&ReferenceResolutionStatus::Resolved(expected_target)),
+            "{kind:?} `{raw_text}` should resolve"
+        );
+    }
+
+    fn symbol_id_by_binding(symbols: &[Symbol], binding_name: &str) -> SymbolId {
+        symbols
+            .iter()
+            .find(|symbol| symbol.binding_name.as_deref() == Some(binding_name))
+            .unwrap_or_else(|| panic!("expected symbol binding `{binding_name}`"))
+            .id
     }
 
     struct TemporaryWorkspace {
