@@ -117,10 +117,26 @@ const SELECTOR_SEGMENT_HOVER_SOURCE: &str = r#"workspace {
     }
 }
 "#;
+const NAMED_DYNAMIC_RELATIONSHIP_SOURCE: &str = r#"workspace {
+    model {
+        a = softwareSystem "A"
+        b = softwareSystem "B"
+
+        <CURSOR:relationship-declaration>rel = a -> b "Async"
+    }
+
+    views {
+        dynamic * {
+            <CURSOR:named-dynamic-relationship>rel "Async"
+        }
+    }
+}
+"#;
 
 const API_HOVER: &str = "**Container** `api`\nPayments API\n\nProcesses payment requests\n\n**Technology:** Axum  \n**Tags:** Internal, HTTP, Edge  \n**URL:** <https://example.com/api>";
 const API_HOVER_WITH_WORKSPACE_CONTEXT: &str = "**Container** `api`\nPayments API\n\nProcesses payment requests\n\n**Technology:** Axum  \n**Tags:** Internal, HTTP, Edge  \n**URL:** <https://example.com/api>\n\n**Canonical key:** `api`  \n**Parent chain:** Software System `system`  \n**Declaration path:** `model.dsl`";
 const RELATIONSHIP_HOVER: &str = "**Relationship** `rel`\nPublishes jobs\n\nDelivers asynchronous jobs\n\n**Technology:** NATS  \n**Tags:** Async, Messaging, Observed  \n**URL:** <https://example.com/rel>";
+const SIMPLE_RELATIONSHIP_HOVER: &str = "**Relationship** `rel`\nAsync";
 const RELATIONSHIP_HOVER_WITH_WORKSPACE_CONTEXT: &str = "**Relationship** `rel`\nPublishes jobs\n\nDelivers asynchronous jobs\n\n**Technology:** NATS  \n**Tags:** Async, Messaging, Observed  \n**URL:** <https://example.com/rel>\n\n**Canonical key:** `rel`  \n**Declaration path:** `model.dsl`  \n**Endpoints:** Container `api` \u{2192} Container `worker`";
 const PLACEHOLDER_RELATIONSHIP_HOVER: &str =
     "**Relationship** `rel`\n\n**Technology:** HTTPS  \n**Tags:** Async, Observed";
@@ -296,6 +312,23 @@ async fn hover_displays_hierarchical_canonical_context() {
     .await;
 
     assert_hover_markdown(&hover, WORKER_HIERARCHICAL_HOVER);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn hover_resolves_named_dynamic_relationship_reference_sites() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(NAMED_DYNAMIC_RELATIONSHIP_SOURCE);
+    let uri = file_uri("hover-named-dynamic-relationship.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    for marker in ["relationship-declaration", "named-dynamic-relationship"] {
+        let hover = request_hover(&mut service, &uri, source.position(marker)).await;
+        assert_hover_markdown(&hover, SIMPLE_RELATIONSHIP_HOVER);
+    }
 }
 
 #[tokio::test(flavor = "current_thread")]

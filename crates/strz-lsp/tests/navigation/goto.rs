@@ -11,9 +11,9 @@ use crate::support::{
 
 use super::shared::{
     ARCHETYPE_THIS_CURSOR_SOURCE, DIRECT_REFERENCES_CURSOR_SOURCE,
-    HIERARCHICAL_SELECTOR_CURSOR_SOURCE, SELECTOR_SEGMENT_CURSOR_SOURCE,
-    SELECTOR_THIS_CURSOR_SOURCE, THIS_SOURCE_CURSOR_SOURCE, copied_workspace_fixture,
-    read_annotated_cursor_workspace_fixture,
+    HIERARCHICAL_SELECTOR_CURSOR_SOURCE, NAMED_DYNAMIC_RELATIONSHIP_CURSOR_SOURCE,
+    SELECTOR_SEGMENT_CURSOR_SOURCE, SELECTOR_THIS_CURSOR_SOURCE, THIS_SOURCE_CURSOR_SOURCE,
+    copied_workspace_fixture, read_annotated_cursor_workspace_fixture,
 };
 
 #[tokio::test(flavor = "current_thread")]
@@ -39,6 +39,37 @@ async fn goto_definition_resolves_same_document_relationship_references() {
 
     assert_eq!(response["result"]["uri"], uri.as_str());
     assert_eq!(response["result"]["range"]["start"]["line"], 5);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn goto_definition_resolves_named_dynamic_relationship_reference_sites() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(NAMED_DYNAMIC_RELATIONSHIP_CURSOR_SOURCE);
+    let uri = file_uri("named-dynamic-relationship.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    for marker in ["relationship-declaration", "dynamic-relationship-reference"] {
+        let response = request_json(
+            &mut service,
+            "textDocument/definition",
+            json!({
+                "textDocument": { "uri": uri.as_str() },
+                "position": source.position(marker),
+            }),
+        )
+        .await;
+
+        assert_eq!(response["result"]["uri"], uri.as_str(), "{marker}");
+        assert_eq!(response["result"]["range"]["start"]["line"], 5, "{marker}");
+        assert_eq!(
+            response["result"]["range"]["start"]["character"], 8,
+            "{marker}"
+        );
+    }
 }
 
 #[tokio::test(flavor = "current_thread")]
