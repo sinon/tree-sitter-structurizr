@@ -95,7 +95,7 @@ WorkspaceIndexSetView {
         DiagnosticView {
             document: "workspace.dsl",
             code: "semantic.ambiguous-reference",
-            message: "ambiguous identifier reference: api",
+            message: "ambiguous element reference: api (multiple bindings match)",
             span: TextSpan {
                 start_byte: 119,
                 end_byte: 122,
@@ -218,7 +218,7 @@ WorkspaceIndexSetView {
                 DiagnosticView {
                     document: "workspace.dsl",
                     code: "semantic.ambiguous-reference",
-                    message: "ambiguous identifier reference: api",
+                    message: "ambiguous element reference: api (multiple bindings match)",
                     span: TextSpan {
                         start_byte: 119,
                         end_byte: 122,
