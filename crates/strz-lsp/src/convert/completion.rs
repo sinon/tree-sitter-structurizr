@@ -1376,7 +1376,11 @@ fn node_matches_cursor(node: tree_sitter::Node<'_>, offset: usize, prefix_start:
         || cursor_probe == node.end_byte()
 }
 
-const fn reference_matches_cursor(reference: &Reference, offset: usize, prefix_start: usize) -> bool {
+const fn reference_matches_cursor(
+    reference: &Reference,
+    offset: usize,
+    prefix_start: usize,
+) -> bool {
     let cursor_probe = offset;
     let prefix_probe = prefix_start.saturating_sub(1);
     let span = reference.span;

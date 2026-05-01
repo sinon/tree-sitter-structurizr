@@ -366,6 +366,12 @@ The important part is that invalidation should follow dependency edges:
 
 This is another reason the include graph belongs in the analysis layer rather than being recomputed ad hoc in each LSP handler.
 
+For open-buffer text sync, the LSP now treats the latest analysis-owned
+`WorkspaceFacts` as the source of truth for that dependency edge. Known workspace
+members are reloaded through their known root files, while broad discovery scans
+remain reserved for cold start, unknown files, and recovery after structured
+workspace-load failures.
+
 ## Testing shape to aim for
 
 The current fixture slice under [`crates/strz-lsp/tests/fixtures/`](../../../crates/strz-lsp/tests/fixtures/) is enough for syntax-oriented include coverage, but not yet for analysis/workspace behavior.
