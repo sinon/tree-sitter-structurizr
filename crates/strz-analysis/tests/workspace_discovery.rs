@@ -1,8 +1,13 @@
 use std::path::{Path, PathBuf};
 
+#[path = "../../../tests/support/repo_local_temp_workspace.rs"]
+mod repo_local_temp_workspace;
+
+use repo_local_temp_workspace::RepoLocalTempWorkspace;
 use rstest::rstest;
 use strz_analysis::{
-    TextSpan, WorkspaceDocumentKind, WorkspaceFacts, WorkspaceIncludeTarget, WorkspaceLoader,
+    TextSpan, WorkspaceDocumentKind, WorkspaceFacts, WorkspaceIncludeTarget,
+    WorkspaceLoadFailureKind, WorkspaceLoader,
 };
 
 macro_rules! set_snapshot_suffix {
@@ -238,6 +243,103 @@ fn constants_must_be_defined_before_they_can_drive_include_resolution() {
             &fixture_root,
         ),
         "shared/system.dsl"
+    );
+}
+
+#[test]
+fn workspace_base_load_failures_preserve_source_anchors() {
+    let workspace = RepoLocalTempWorkspace::new("workspace-discovery", "workspace-base-missing");
+    workspace.write_file(
+        "workspace.dsl",
+        "workspace extends \"missing-base.dsl\" {\n}\n",
+    );
+
+    let mut loader = WorkspaceLoader::new();
+    let error = loader
+        .load_paths_with_failures([workspace.path()])
+        .expect_err("missing workspace base should abort the workspace load");
+
+    let failures = error.failures();
+    assert_eq!(failures.len(), 1);
+    let failure = &failures[0];
+    assert_eq!(failure.kind(), WorkspaceLoadFailureKind::WorkspaceBase);
+    assert_eq!(
+        failure.message(),
+        "workspace base does not exist: missing-base.dsl"
+    );
+
+    let anchor = failure
+        .anchor()
+        .expect("workspace base failures should carry the extends value anchor");
+    assert_eq!(
+        display_document_id(anchor.document().as_str(), workspace.path()),
+        "workspace.dsl"
+    );
+    assert_eq!(anchor.target_text(), Some("missing-base.dsl"));
+    assert_eq!(anchor.span().start_point.row, 0);
+
+    let diagnostic = failure
+        .diagnostic()
+        .expect("anchored load failures should convert to diagnostics");
+    assert_eq!(diagnostic.code(), "workspace.load-failure");
+    assert_eq!(
+        diagnostic
+            .document()
+            .map(|document| display_document_id(document.as_str(), workspace.path())),
+        Some("workspace.dsl".to_owned())
+    );
+}
+
+#[test]
+fn include_load_failures_preserve_source_anchors() {
+    let workspace = RepoLocalTempWorkspace::new("workspace-discovery", "include-invalid-utf8");
+    workspace.write_file("workspace.dsl", "workspace {\n  !include \"bad.inc\"\n}\n");
+    workspace.write_bytes("bad.inc", &[0xff, 0xfe]);
+
+    let mut loader = WorkspaceLoader::new();
+    let error = loader
+        .load_paths_with_failures([workspace.path()])
+        .expect_err("invalid UTF-8 include should abort the workspace load");
+
+    let failures = error.failures();
+    assert_eq!(failures.len(), 1);
+    let failure = &failures[0];
+    assert_eq!(failure.kind(), WorkspaceLoadFailureKind::IncludeLoad);
+    assert!(
+        failure.message().contains("failed to load include bad.inc"),
+        "unexpected include-load failure message: {}",
+        failure.message()
+    );
+
+    let anchor = failure
+        .anchor()
+        .expect("include load failures should carry the include directive anchor");
+    assert_eq!(
+        display_document_id(anchor.document().as_str(), workspace.path()),
+        "workspace.dsl"
+    );
+    assert_eq!(anchor.target_text(), Some("bad.inc"));
+    assert_eq!(anchor.span().start_point.row, 1);
+}
+
+#[test]
+fn root_load_failures_remain_unanchored_session_failures() {
+    let missing_root = workspace_fixture_root().join("does-not-exist");
+    let mut loader = WorkspaceLoader::new();
+    let error = loader
+        .load_paths_with_failures([missing_root.as_path()])
+        .expect_err("missing workspace roots should abort the workspace load");
+
+    let failures = error.failures();
+    assert_eq!(failures.len(), 1);
+    assert_eq!(failures[0].kind(), WorkspaceLoadFailureKind::WorkspaceRoot);
+    assert!(failures[0].anchor().is_none());
+    assert!(
+        failures[0]
+            .message()
+            .contains("failed to load workspace root"),
+        "unexpected root-load failure message: {}",
+        failures[0].message()
     );
 }
 
