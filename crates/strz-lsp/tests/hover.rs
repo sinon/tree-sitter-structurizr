@@ -44,6 +44,13 @@ const HOVER_METADATA_VIEWS_SOURCE: &str = r#"views {
     }
 }
 "#;
+const HIERARCHICAL_CONTEXT_VIEWS_SOURCE: &str = r#"views {
+    component system.api "API components" {
+        include <CURSOR:worker-reference>system.api.worker
+        autoLayout
+    }
+}
+"#;
 const DUPLICATE_BINDINGS_WORKSPACE_SOURCE: &str = r#"workspace {
     !include "alpha.dsl"
     !include "beta.dsl"
@@ -112,12 +119,15 @@ const SELECTOR_SEGMENT_HOVER_SOURCE: &str = r#"workspace {
 "#;
 
 const API_HOVER: &str = "**Container** `api`\nPayments API\n\nProcesses payment requests\n\n**Technology:** Axum  \n**Tags:** Internal, HTTP, Edge  \n**URL:** <https://example.com/api>";
+const API_HOVER_WITH_WORKSPACE_CONTEXT: &str = "**Container** `api`\nPayments API\n\nProcesses payment requests\n\n**Technology:** Axum  \n**Tags:** Internal, HTTP, Edge  \n**URL:** <https://example.com/api>\n\n**Canonical key:** `api`  \n**Parent chain:** Software System `system`  \n**Declaration path:** `model.dsl`";
 const RELATIONSHIP_HOVER: &str = "**Relationship** `rel`\nPublishes jobs\n\nDelivers asynchronous jobs\n\n**Technology:** NATS  \n**Tags:** Async, Messaging, Observed  \n**URL:** <https://example.com/rel>";
+const RELATIONSHIP_HOVER_WITH_WORKSPACE_CONTEXT: &str = "**Relationship** `rel`\nPublishes jobs\n\nDelivers asynchronous jobs\n\n**Technology:** NATS  \n**Tags:** Async, Messaging, Observed  \n**URL:** <https://example.com/rel>\n\n**Canonical key:** `rel`  \n**Declaration path:** `model.dsl`  \n**Endpoints:** Container `api` \u{2192} Container `worker`";
 const PLACEHOLDER_RELATIONSHIP_HOVER: &str =
     "**Relationship** `rel`\n\n**Technology:** HTTPS  \n**Tags:** Async, Observed";
 const DEPLOYMENT_INSTANCE_HOVER: &str = "**Software System Instance** `canary`\n\n**Tags:** Canary, Observed  \n**URL:** <https://example.com/canary>";
 const SYSTEM_HOVER: &str = "**Software System** `system`\nSystem";
 const WORKER_HOVER: &str = "**Component** `worker`\nWorker";
+const WORKER_HIERARCHICAL_HOVER: &str = "**Component** `worker`\nWorker\n\n**Canonical key:** `system.api.worker`  \n**Parent chain:** Software System `system` \u{2192} Container `api`  \n**Declaration path:** `model.dsl`";
 
 #[tokio::test(flavor = "current_thread")]
 async fn hover_returns_markdown_for_same_document_declarations() {
@@ -250,7 +260,7 @@ async fn hover_resolves_cross_file_symbols_through_workspace_indexes() {
         views_source.position("api-reference"),
     )
     .await;
-    assert_hover_markdown(&api_hover, API_HOVER);
+    assert_hover_markdown(&api_hover, API_HOVER_WITH_WORKSPACE_CONTEXT);
 
     let relationship_hover = request_hover(
         &mut service,
@@ -258,7 +268,34 @@ async fn hover_resolves_cross_file_symbols_through_workspace_indexes() {
         views_source.position("relationship-reference"),
     )
     .await;
-    assert_hover_markdown(&relationship_hover, RELATIONSHIP_HOVER);
+    assert_hover_markdown(
+        &relationship_hover,
+        RELATIONSHIP_HOVER_WITH_WORKSPACE_CONTEXT,
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn hover_displays_hierarchical_canonical_context() {
+    let (mut service, _socket) = new_service();
+    let workspace_root = workspace_fixture_path("hover-hierarchical");
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
+    initialized(&mut service).await;
+
+    let views_path = workspace_root.join("views.dsl");
+    let views_source = annotated_source(HIERARCHICAL_CONTEXT_VIEWS_SOURCE);
+    assert_fixture_source(&views_path, views_source.source());
+    let views_uri = file_uri_from_path(&views_path);
+    open_document(&mut service, &views_uri, views_source.source()).await;
+
+    let hover = request_hover(
+        &mut service,
+        &views_uri,
+        views_source.position("worker-reference"),
+    )
+    .await;
+
+    assert_hover_markdown(&hover, WORKER_HIERARCHICAL_HOVER);
 }
 
 #[tokio::test(flavor = "current_thread")]
