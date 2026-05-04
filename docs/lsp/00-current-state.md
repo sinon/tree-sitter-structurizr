@@ -34,6 +34,7 @@ Current in-repo behavior includes:
 - include diagnostics for missing and cyclic file-resolution cases
 - bounded semantic diagnostics for currently supported identifier families
 - document symbols
+- workspace symbols backed by the current workspace-facts index
 - keyword/directive completion, style-property completion, bounded
   `element_style` value completion for known colour/boolean/border/shape
   properties, and flat-mode relationship identifier completion for explicit
@@ -44,6 +45,8 @@ Current in-repo behavior includes:
 - bounded read-only selector and hierarchical reference resolution, including
   `!element` selector targets and dotted identifiers such as `system.api`, for
   hover, go-to-definition, and find-references
+- named dynamic relationship reference sites for hover, go-to-definition, and
+  find-references within the current bounded symbol families
 - bounded rename plus `prepareRename` for flat core-element identifiers and
   deployment-layer identifiers when the current workspace facts produce one
   unambiguous edit set
@@ -58,10 +61,8 @@ The current implementation deliberately stays conservative around:
 
 - `this`-based navigation and diagnostics beyond the cases already modeled safely
 - selector-relative and other still-deferred scope edge cases beyond the now-shipped bounded read-only selector / dotted-reference slice
-- named dynamic relationship reference sites
 - richer hover content
 - broader identifier completion, including hierarchical completion for selector / dotted-reference workflows
-- workspace symbols
 - broader or hierarchical rename and code actions
 - semantic tokens
 - runtime-style validation or execution of `!script` / `!plugin`
@@ -82,8 +83,8 @@ For this repository, "feature complete" does not mean upstream runtime parity. I
 
 The remaining path to that state is roughly:
 
-- broaden the remaining safe reference coverage for `this`, named dynamic references, selector-relative edge cases, and other still-deferred scope cases
-- deepen read-only semantic UX with broader hover coverage and workspace symbols
+- broaden the remaining safe reference coverage for `this`, selector-relative edge cases, and other still-deferred scope cases
+- deepen read-only semantic UX with broader hover coverage and richer workspace-symbol coverage/ranking
 - broaden rename beyond the shipped flat/deployment slice, and add code actions,
   only after broader reference coverage lands
 - improve workspace invalidation, performance, and operational visibility so the current implementation scales more gracefully

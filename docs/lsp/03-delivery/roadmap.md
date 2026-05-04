@@ -14,15 +14,15 @@ The repository already contains:
 
 ## Status of the original roadmap phases
 
-| Original phase                          | Status now               | Notes                                                                                                                 |
-| --------------------------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| Phase 0: boundaries and dev loop        | Done in repo             | The grammar/analysis/LSP split is established, and the local CLI loop exists.                                         |
-| Phase 1: grammar/query hardening        | Done as ongoing baseline | The grammar and query surface are real and continue to harden through fixtures and audits.                            |
-| Phase 2: analysis crate                 | Done in repo             | `strz-analysis` is the transport-agnostic semantic layer.                                                             |
-| Phase 3: workspace indexing             | Done in bounded form     | Workspace discovery, include-following, and bounded workspace facts already exist.                                    |
-| Phase 4: LSP crate and bounded handlers | Done in repo             | The current server already ships diagnostics, symbols, completion, navigation, and links within the bounded scope.    |
-| Phase 5: downstream editor delivery     | Done downstream          | The downstream launch path now exists; remaining repo work is to keep status and packaging docs aligned with reality. |
-| Phase 6: broader semantic expansion     | Current                  | This is now the active in-repo track for making the bounded model feel more complete in practice.                     |
+| Original phase                          | Status now               | Notes                                                                                                                                                |
+| --------------------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase 0: boundaries and dev loop        | Done in repo             | The grammar/analysis/LSP split is established, and the local CLI loop exists.                                                                        |
+| Phase 1: grammar/query hardening        | Done as ongoing baseline | The grammar and query surface are real and continue to harden through fixtures and audits.                                                           |
+| Phase 2: analysis crate                 | Done in repo             | `strz-analysis` is the transport-agnostic semantic layer.                                                                                            |
+| Phase 3: workspace indexing             | Done in bounded form     | Workspace discovery, include-following, and bounded workspace facts already exist.                                                                   |
+| Phase 4: LSP crate and bounded handlers | Done in repo             | The current server already ships diagnostics, document/workspace symbols, completion, hover, navigation, rename, and links within the bounded scope. |
+| Phase 5: downstream editor delivery     | Done downstream          | The downstream launch path now exists; remaining repo work is to keep status and packaging docs aligned with reality.                                |
+| Phase 6: broader semantic expansion     | Current                  | This is now the active in-repo track for making the bounded model feel more complete in practice.                                                    |
 
 ## What "feature complete" means here
 
@@ -61,7 +61,6 @@ The next semantic expansion work should stay focused on the existing symbol fami
 
 - selector and hierarchical reference forms such as `system.api`
 - `this`
-- named dynamic relationship reference sites
 - any other still-deferred scope cases that block confident navigation for already-supported constructs
 
 This is the main work that makes the current server feel less "bounded" without changing the architecture.
@@ -73,7 +72,7 @@ Once the broader reference model is strong enough, the next high-value additions
 That includes:
 
 - richer hover
-- workspace symbols
+- richer workspace-symbol coverage and ranking
 - broader identifier completion
 - richer diagnostic messages where the current semantic model already has the underlying facts
 
