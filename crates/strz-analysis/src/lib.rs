@@ -42,5 +42,6 @@ pub use tag_surfaces::{TagSurface, tag_surface_for_node_kind};
 pub use workspace::{
     ElementIdentifierMode, ReferenceHandle, ReferenceResolutionStatus, ResolvedInclude,
     SymbolHandle, WorkspaceDocument, WorkspaceDocumentKind, WorkspaceFacts, WorkspaceIncludeTarget,
-    WorkspaceIndex, WorkspaceInstanceId, WorkspaceLoader,
+    WorkspaceIndex, WorkspaceInstanceId, WorkspaceLoadError, WorkspaceLoadFailure,
+    WorkspaceLoadFailureAnchor, WorkspaceLoadFailureKind, WorkspaceLoader,
 };
