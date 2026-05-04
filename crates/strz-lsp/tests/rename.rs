@@ -2,6 +2,7 @@ mod support;
 
 use std::{collections::BTreeSet, path::Path};
 
+use indoc::indoc;
 use serde_json::json;
 use support::{
     TempWorkspace, annotated_source, file_uri, file_uri_from_path, initialize,
@@ -135,6 +136,47 @@ async fn rename_rewrites_same_document_flat_element_bindings_and_references() {
 }
 
 #[tokio::test(flavor = "current_thread")]
+async fn rename_rewrites_same_document_flat_relationship_bindings_and_references() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(
+        r#"workspace {
+        model {
+            user = person "User"
+            system = softwareSystem "Payments"
+            <CURSOR:relationship-declaration>rel = user -> system "Uses"
+        }
+
+        views {
+            systemLandscape {
+                include <CURSOR:relationship-include>rel
+                exclude <CURSOR:relationship-exclude>rel
+            }
+
+            dynamic * {
+                <CURSOR:dynamic-relationship-reference>rel "Uses"
+            }
+        }
+    }
+    "#,
+    );
+    let uri = file_uri("rename-flat-relationship.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let response = request_rename(
+        &mut service,
+        &uri,
+        source.position("dynamic-relationship-reference"),
+        "usesRel",
+    )
+    .await;
+    assert_workspace_edit(&response, &[(&uri, &[4, 9, 10, 14])], "usesRel");
+}
+
+#[tokio::test(flavor = "current_thread")]
 async fn rename_accepts_leading_digit_new_names_for_the_flat_slice() {
     let (mut service, _socket) = new_service();
 
@@ -213,6 +255,78 @@ async fn rename_rewrites_cross_file_container_instance_bindings_and_references()
 }
 
 #[tokio::test(flavor = "current_thread")]
+async fn rename_rewrites_cross_file_flat_relationship_bindings_and_references() {
+    let temp_workspace = TempWorkspace::new(
+        "rename-cross-file-relationship",
+        indoc! {"workspace {
+            !include model.dsl
+            !include views.dsl
+        }
+        "},
+        &[],
+        &[
+            (
+                Path::new("model.dsl"),
+                indoc! {"
+                model {
+                    user = person \"User\"
+                    system = softwareSystem \"Payments\"
+                    rel = user -> system \"Uses\"
+                }
+                "},
+            ),
+            (
+                Path::new("views.dsl"),
+                indoc! {"
+                views {
+                    systemLandscape {
+                        include rel
+                    }
+
+                    dynamic * {
+                        rel \"Uses\"
+                    }
+                }
+                "},
+            ),
+        ],
+    );
+    let (mut service, mut socket) = new_service();
+    let workspace_root = temp_workspace
+        .path()
+        .canonicalize()
+        .expect("temp workspace root should canonicalize");
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
+    initialized(&mut service).await;
+
+    let views_path = workspace_root.join("views.dsl");
+    let views_source = annotated_source(&read_workspace_file(&views_path).replacen(
+        "rel \"Uses\"",
+        "<CURSOR:dynamic-relationship-reference>rel \"Uses\"",
+        1,
+    ));
+    let views_uri = file_uri_from_path(&views_path);
+    open_document(&mut service, &views_uri, views_source.source()).await;
+    let _ = next_publish_diagnostics_for_uri(&mut socket, views_uri.as_str()).await;
+
+    let response = request_rename(
+        &mut service,
+        &views_uri,
+        views_source.position("dynamic-relationship-reference"),
+        "usesRel",
+    )
+    .await;
+
+    let model_uri = file_uri_from_path(&workspace_root.join("model.dsl"));
+    assert_workspace_edit(
+        &response,
+        &[(&model_uri, &[3]), (&views_uri, &[2, 6])],
+        "usesRel",
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
 async fn rename_returns_no_result_when_element_identifiers_are_hierarchical() {
     let (mut service, _socket) = new_service();
 
@@ -257,6 +371,45 @@ async fn rename_returns_no_result_when_deployment_identifiers_are_hierarchical()
 }
 
 #[tokio::test(flavor = "current_thread")]
+async fn rename_returns_no_result_when_relationship_workspace_is_hierarchical() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(
+        r#"workspace {
+        !identifiers hierarchical
+
+        model {
+            user = person "User"
+            system = softwareSystem "Payments"
+            <CURSOR:relationship-declaration>rel = user -> system "Uses"
+        }
+
+        views {
+            dynamic * {
+                <CURSOR:dynamic-relationship-reference>rel "Uses"
+            }
+        }
+    }
+    "#,
+    );
+    let uri = file_uri("rename-hierarchical-relationship.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let response = request_rename(
+        &mut service,
+        &uri,
+        source.position("dynamic-relationship-reference"),
+        "usesRel",
+    )
+    .await;
+
+    assert!(response["result"].is_null());
+}
+
+#[tokio::test(flavor = "current_thread")]
 async fn rename_returns_no_result_for_duplicate_bindings() {
     let (mut service, _socket) = new_service();
 
@@ -272,6 +425,81 @@ async fn rename_returns_no_result_for_duplicate_bindings() {
         &uri,
         source.position("first-api"),
         "paymentsApi",
+    )
+    .await;
+
+    assert!(response["result"].is_null());
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn rename_returns_no_result_for_duplicate_relationship_bindings() {
+    let source = annotated_source(
+        r#"workspace {
+    model {
+        user = person "User"
+        system = softwareSystem "Payments"
+
+        <CURSOR:first-relationship>rel = user -> system "Uses"
+        rel = system -> user "Responds"
+    }
+}
+"#,
+    );
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let uri = file_uri("rename-duplicate-relationships.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let response = request_rename(
+        &mut service,
+        &uri,
+        source.position("first-relationship"),
+        "usesRel",
+    )
+    .await;
+
+    assert!(response["result"].is_null());
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn rename_returns_no_result_for_element_relationship_ambiguous_references() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(
+        r#"workspace {
+        model {
+            user = person "User"
+            rel = softwareSystem "Payments"
+
+            <CURSOR:relationship-declaration>rel = user -> rel "Uses"
+        }
+
+        views {
+            systemLandscape {
+                include <CURSOR:ambiguous-view-reference>rel
+            }
+
+            dynamic * {
+                <CURSOR:dynamic-relationship-reference>rel "Uses"
+            }
+        }
+    }
+    "#,
+    );
+    let uri = file_uri("rename-element-relationship-ambiguous.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let response = request_rename(
+        &mut service,
+        &uri,
+        source.position("relationship-declaration"),
+        "usesRel",
     )
     .await;
 
@@ -418,6 +646,87 @@ async fn rename_returns_no_result_when_workspace_instances_disagree_on_edit_sets
         &model_uri,
         model_source.position("api-declaration"),
         "paymentsApi",
+    )
+    .await;
+
+    assert!(response["result"].is_null());
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn rename_returns_no_result_when_relationship_workspace_instances_disagree_on_edit_sets() {
+    let temp_workspace = TempWorkspace::new(
+        "rename-relationship-multi-instance-disagreement",
+        "workspace {\n  !include shared/model.dsl\n  !include alpha/views.dsl\n}\n",
+        &[Path::new("shared"), Path::new("alpha"), Path::new("beta")],
+        &[
+            (
+                Path::new("beta.dsl"),
+                indoc! {"
+                workspace {
+                    !include shared/model.dsl
+                    !include beta/views.dsl
+                }"},
+            ),
+            (
+                Path::new("shared/model.dsl"),
+                indoc! {"
+                model {
+                    user = person \"User\"
+                    system = softwareSystem \"Payments\"
+                    rel = user -> system \"Uses\"
+                }
+                "},
+            ),
+            (
+                Path::new("alpha/views.dsl"),
+                indoc! {"
+                views {
+                    systemLandscape {
+                        include rel
+                    }
+                }
+                "},
+            ),
+            (
+                Path::new("beta/views.dsl"),
+                indoc! {"
+                views {
+                    systemLandscape {
+                        include rel
+                    }
+
+                    dynamic * {
+                        rel \"Uses\"
+                    }
+                }
+                "},
+            ),
+        ],
+    );
+    let (mut service, mut socket) = new_service();
+    let workspace_root = temp_workspace
+        .path()
+        .canonicalize()
+        .expect("temp workspace root should canonicalize");
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(&workspace_root)]).await;
+    initialized(&mut service).await;
+
+    let model_path = workspace_root.join("shared/model.dsl");
+    let model_source = annotated_source(&read_workspace_file(&model_path).replacen(
+        "rel = user",
+        "<CURSOR:relationship-declaration>rel = user",
+        1,
+    ));
+    let model_uri = file_uri_from_path(&model_path);
+    open_document(&mut service, &model_uri, model_source.source()).await;
+    let _ = next_publish_diagnostics_for_uri(&mut socket, model_uri.as_str()).await;
+
+    let response = request_rename(
+        &mut service,
+        &model_uri,
+        model_source.position("relationship-declaration"),
+        "usesRel",
     )
     .await;
 
