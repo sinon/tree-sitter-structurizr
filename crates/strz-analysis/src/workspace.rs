@@ -508,6 +508,18 @@ impl WorkspaceIndex {
             .flatten()
     }
 
+    /// Returns the unique canonical binding key for one symbol, if this
+    /// workspace instance can name it without ambiguity.
+    #[must_use]
+    pub fn unique_binding_key_for_symbol(&self, handle: &SymbolHandle) -> Option<&str> {
+        self.derived
+            .unique_element_bindings
+            .iter()
+            .chain(self.derived.unique_deployment_bindings.iter())
+            .chain(self.derived.unique_relationship_bindings.iter())
+            .find_map(|(key, candidate)| (candidate == handle).then_some(key.as_str()))
+    }
+
     /// Returns the semantic diagnostics derived for this workspace instance.
     #[must_use]
     pub fn semantic_diagnostics(&self) -> &[RuledDiagnostic] {

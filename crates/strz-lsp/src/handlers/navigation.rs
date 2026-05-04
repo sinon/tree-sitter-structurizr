@@ -23,6 +23,23 @@ pub enum NavigationSite<'a> {
     },
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum ResolvedSymbolOrigin {
+    Declaration,
+    Reference {
+        kind: ReferenceKind,
+        is_contextual_this: bool,
+    },
+}
+
+pub(super) struct ResolvedSymbolTarget<'a> {
+    pub(super) symbol: &'a Symbol,
+    pub(super) snapshot: &'a DocumentSnapshot,
+    pub(super) handle: Option<SymbolHandle>,
+    pub(super) candidate_instances: Vec<WorkspaceInstanceId>,
+    pub(super) origin: ResolvedSymbolOrigin,
+}
+
 /// Finds the declaration or reference site at one byte offset.
 pub fn navigation_site_at_offset(
     snapshot: &DocumentSnapshot,
@@ -45,16 +62,26 @@ pub fn target_symbol_at_offset(snapshot: &DocumentSnapshot, offset: usize) -> Op
     })
 }
 
-/// Resolves the declaration symbol that should back one hover or other read-only
-/// identifier request.
-pub fn resolved_symbol_at_offset<'a>(
+/// Resolves the declaration symbol plus stable workspace identity, when
+/// available, that should back one hover or other read-only identifier request.
+pub(super) fn resolved_symbol_target_at_offset<'a>(
     state: &'a ServerState,
     document: &'a DocumentState,
     snapshot: &'a DocumentSnapshot,
     offset: usize,
-) -> Option<&'a Symbol> {
+) -> Option<ResolvedSymbolTarget<'a>> {
     match navigation_site_at_offset(snapshot, offset)? {
-        NavigationSite::Symbol(symbol) => Some(symbol),
+        NavigationSite::Symbol(symbol) => {
+            let (handle, candidate_instances) = symbol_workspace_identity(state, document, symbol);
+
+            Some(ResolvedSymbolTarget {
+                symbol,
+                snapshot,
+                handle,
+                candidate_instances,
+                origin: ResolvedSymbolOrigin::Declaration,
+            })
+        }
         NavigationSite::Reference { index, reference } => {
             if let Some((workspace_facts, document_id)) = workspace_context(state, document) {
                 let candidate_instances = candidate_instances(workspace_facts, &document_id);
@@ -66,20 +93,57 @@ pub fn resolved_symbol_at_offset<'a>(
                         &reference_handle,
                     )?;
 
-                    return workspace_facts
-                        .document(target.document())?
-                        .snapshot()
-                        .symbols()
-                        .get(target.symbol_id().0);
+                    let target_document = workspace_facts.document(target.document())?;
+                    let target_snapshot = target_document.snapshot();
+                    let symbol = target_snapshot.symbols().get(target.symbol_id().0)?;
+
+                    return Some(ResolvedSymbolTarget {
+                        symbol,
+                        snapshot: target_snapshot,
+                        handle: Some(target),
+                        candidate_instances,
+                        origin: ResolvedSymbolOrigin::Reference {
+                            kind: reference.kind,
+                            is_contextual_this: is_contextual_this_reference(reference),
+                        },
+                    });
                 }
             }
 
-            snapshot.resolve_reference_with_mode(
+            let symbol = snapshot.resolve_reference_with_mode(
                 reference,
                 same_document_resolution_mode(state, document, snapshot),
-            )
+            )?;
+
+            let (handle, candidate_instances) = symbol_workspace_identity(state, document, symbol);
+
+            Some(ResolvedSymbolTarget {
+                symbol,
+                snapshot,
+                handle,
+                candidate_instances,
+                origin: ResolvedSymbolOrigin::Reference {
+                    kind: reference.kind,
+                    is_contextual_this: is_contextual_this_reference(reference),
+                },
+            })
         }
     }
+}
+
+fn symbol_workspace_identity(
+    state: &ServerState,
+    document: &DocumentState,
+    symbol: &Symbol,
+) -> (Option<SymbolHandle>, Vec<WorkspaceInstanceId>) {
+    let Some((workspace_facts, document_id)) = workspace_context(state, document) else {
+        return (None, Vec::new());
+    };
+
+    let candidate_instances = candidate_instances(workspace_facts, &document_id);
+    let handle =
+        (!candidate_instances.is_empty()).then(|| SymbolHandle::new(document_id, symbol.id));
+    (handle, candidate_instances)
 }
 
 /// Collects all same-document references that resolve to one symbol.
