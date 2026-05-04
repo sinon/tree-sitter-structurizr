@@ -3926,14 +3926,12 @@ fn view_semantic_diagnostics(
     diagnostics.extend(dynamic_view_scope_redundancy_diagnostics(
         documents,
         documents_by_id,
-        bindings,
         reference_tables,
         &declared_relationships,
     ));
     diagnostics.extend(dynamic_view_relationship_diagnostics(
         documents,
         documents_by_id,
-        bindings,
         reference_tables,
         &declared_relationships,
     ));
@@ -4081,7 +4079,6 @@ fn push_invalid_view_value_diagnostics(
 fn dynamic_view_scope_redundancy_diagnostics(
     documents: &[&WorkspaceSemanticDocumentFacts],
     documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
-    bindings: &WorkspaceBindingTables,
     reference_tables: &WorkspaceReferenceTables,
     declared_relationships: &[DeclaredRelationship],
 ) -> Vec<RuledDiagnostic> {
@@ -4097,7 +4094,6 @@ fn dynamic_view_scope_redundancy_diagnostics(
                 document,
                 view,
                 documents_by_id,
-                bindings,
                 reference_tables,
                 declared_relationships,
             ) else {
@@ -4179,7 +4175,6 @@ fn dynamic_view_scope_relationship_annotation(
 fn dynamic_view_relationship_diagnostics(
     documents: &[&WorkspaceSemanticDocumentFacts],
     documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
-    bindings: &WorkspaceBindingTables,
     reference_tables: &WorkspaceReferenceTables,
     declared_relationships: &[DeclaredRelationship],
 ) -> Vec<RuledDiagnostic> {
@@ -4195,7 +4190,6 @@ fn dynamic_view_relationship_diagnostics(
                 document,
                 view,
                 documents_by_id,
-                bindings,
                 reference_tables,
                 declared_relationships,
             ) else {
@@ -4281,7 +4275,6 @@ fn resolved_dynamic_view(
     document: &WorkspaceSemanticDocumentFacts,
     view: &ViewFact,
     documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
-    bindings: &WorkspaceBindingTables,
     reference_tables: &WorkspaceReferenceTables,
     declared_relationships: &[DeclaredRelationship],
 ) -> Option<ResolvedDynamicView> {
@@ -4315,7 +4308,6 @@ fn resolved_dynamic_view(
                 document,
                 step,
                 documents_by_id,
-                bindings,
                 reference_tables,
                 declared_relationships,
             )
@@ -4329,7 +4321,6 @@ fn resolve_dynamic_step(
     document: &WorkspaceSemanticDocumentFacts,
     step: &DynamicViewStepFact,
     documents_by_id: &BTreeMap<DocumentId, &WorkspaceSemanticDocumentFacts>,
-    bindings: &WorkspaceBindingTables,
     reference_tables: &WorkspaceReferenceTables,
     declared_relationships: &[DeclaredRelationship],
 ) -> Option<ResolvedDynamicStep> {
@@ -4363,8 +4354,12 @@ fn resolve_dynamic_step(
             })
         }
         DynamicViewStepFact::RelationshipReference(step) => {
-            let relationship_handle =
-                resolved_relationship_binding(&step.relationship.normalized_text, bindings)?;
+            let relationship_handle = resolved_reference_target(
+                document,
+                ReferenceKind::DynamicRelationshipReference,
+                step.relationship.span,
+                reference_tables,
+            )?;
             let relationship =
                 declared_relationship_for_handle(&relationship_handle, declared_relationships)?;
 
@@ -4693,27 +4688,14 @@ const fn reference_kind_index(reference_kind: ReferenceKind) -> u8 {
         ReferenceKind::ElementSelectorTarget => 0,
         ReferenceKind::RelationshipSource => 1,
         ReferenceKind::RelationshipDestination => 2,
-        ReferenceKind::InstanceTarget => 3,
-        ReferenceKind::DeploymentRelationshipSource => 4,
-        ReferenceKind::DeploymentRelationshipDestination => 5,
-        ReferenceKind::ViewScope => 6,
-        ReferenceKind::ViewInclude => 7,
-        ReferenceKind::ViewExclude => 8,
-        ReferenceKind::ViewAnimation => 9,
-    }
-}
-
-fn resolved_relationship_binding(
-    binding_name: &str,
-    bindings: &WorkspaceBindingTables,
-) -> Option<SymbolHandle> {
-    match resolve_reference_against_binding_table(
-        binding_name,
-        &bindings.unique_relationships,
-        &bindings.duplicate_relationships,
-    ) {
-        ReferenceResolutionStatus::Resolved(handle) => Some(handle),
-        _ => None,
+        ReferenceKind::DynamicRelationshipReference => 3,
+        ReferenceKind::InstanceTarget => 4,
+        ReferenceKind::DeploymentRelationshipSource => 5,
+        ReferenceKind::DeploymentRelationshipDestination => 6,
+        ReferenceKind::ViewScope => 7,
+        ReferenceKind::ViewInclude => 8,
+        ReferenceKind::ViewExclude => 9,
+        ReferenceKind::ViewAnimation => 10,
     }
 }
 
@@ -5071,6 +5053,7 @@ fn resolve_reference_status(
     let status = match reference.kind {
         ReferenceKind::RelationshipSource
         | ReferenceKind::RelationshipDestination
+        | ReferenceKind::DynamicRelationshipReference
         | ReferenceKind::InstanceTarget
         | ReferenceKind::ElementSelectorTarget
         | ReferenceKind::DeploymentRelationshipSource

@@ -63,6 +63,21 @@ pub const SELECTOR_SEGMENT_CURSOR_SOURCE: &str = r#"workspace {
     }
 }
 "#;
+pub const NAMED_DYNAMIC_RELATIONSHIP_CURSOR_SOURCE: &str = r#"workspace {
+    model {
+        a = softwareSystem "A"
+        b = softwareSystem "B"
+
+        <CURSOR:relationship-declaration>rel = a -> b "Async"
+    }
+
+    views {
+        dynamic * {
+            <CURSOR:dynamic-relationship-reference>rel "Async"
+        }
+    }
+}
+"#;
 pub const THIS_SOURCE_CURSOR_SOURCE: &str = r#"workspace {
     model {
         system = softwareSystem "System" {

@@ -170,7 +170,7 @@ fn render_hover_markdown(symbol: &Symbol, context: &HoverContext) -> String {
         metadata_lines.push(format!("**URL:** <{url}>"));
     }
     if !metadata_lines.is_empty() {
-        sections.push(metadata_lines.join("  \n"));
+        sections.push(metadata_lines.join("\n"));
     }
 
     if let Some(context_section) = render_context_section(context) {
@@ -199,7 +199,7 @@ fn render_context_section(context: &HoverContext) -> Option<String> {
         ));
     }
 
-    (!lines.is_empty()).then(|| lines.join("  \n"))
+    (!lines.is_empty()).then(|| lines.join("\n"))
 }
 
 fn unanimous_binding_key(
@@ -337,6 +337,7 @@ fn relationship_endpoint_references(
                 )?;
             }
             ReferenceKind::ElementSelectorTarget
+            | ReferenceKind::DynamicRelationshipReference
             | ReferenceKind::InstanceTarget
             | ReferenceKind::ViewScope
             | ReferenceKind::ViewInclude
