@@ -204,6 +204,23 @@ declare_rule! {
 
 declare_rule! {
     /// ## What it does
+    /// Reports semantic diagnostics that differ across candidate workspace contexts.
+    ///
+    /// ## Why is this bad?
+    /// Shared fragments can participate in more than one workspace. When those
+    /// contexts disagree, the analysis layer cannot safely publish the original
+    /// error as if it applied unconditionally, but suppressing it entirely hides
+    /// useful context from the editor.
+    pub static SEMANTIC_MULTI_CONTEXT_DISAGREEMENT = {
+        name: "multi-context-disagreement",
+        source: "semantic",
+        summary: "reports semantic diagnostics that differ across workspace contexts",
+        default_severity: DiagnosticSeverity::Warning,
+    };
+}
+
+declare_rule! {
+    /// ## What it does
     /// Reports deployment relationships whose endpoints sit in the same containment chain.
     ///
     /// ## Why is this bad?
@@ -342,6 +359,7 @@ pub fn register_rules(registry: &mut RuleRegistryBuilder) {
     registry.register(&SEMANTIC_UNRESOLVED_REFERENCE);
     registry.register(&SEMANTIC_WORKSPACE_SCOPE_MISMATCH);
     registry.register(&SEMANTIC_AMBIGUOUS_REFERENCE);
+    registry.register(&SEMANTIC_MULTI_CONTEXT_DISAGREEMENT);
     registry.register(&SEMANTIC_DEPLOYMENT_PARENT_CHILD_RELATIONSHIP);
     registry.register(&SEMANTIC_FILTERED_VIEW_AUTOLAYOUT_MISMATCH);
     registry.register(&SEMANTIC_DYNAMIC_VIEW_RELATIONSHIP_MISMATCH);
@@ -392,6 +410,7 @@ mod tests {
                 "semantic.invalid-image-source",
                 "semantic.invalid-view-element",
                 "semantic.missing-image-renderer-property",
+                "semantic.multi-context-disagreement",
                 "semantic.repeated-workspace-section",
                 "semantic.unresolved-element-selector",
                 "semantic.unresolved-reference",
@@ -409,6 +428,11 @@ mod tests {
         assert!(registry.get("include.missing-local-target").is_some());
         assert!(registry.get("include.unsupported-remote-target").is_some());
         assert!(registry.get("semantic.duplicate-binding").is_some());
+        assert!(
+            registry
+                .get("semantic.multi-context-disagreement")
+                .is_some()
+        );
         assert!(
             registry
                 .get("semantic.dynamic-view-relationship-mismatch")
@@ -434,6 +458,11 @@ mod tests {
         assert!(
             registry
                 .get("semantic.missing-image-renderer-property")
+                .is_some()
+        );
+        assert!(
+            registry
+                .get("semantic.multi-context-disagreement")
                 .is_some()
         );
         assert!(
