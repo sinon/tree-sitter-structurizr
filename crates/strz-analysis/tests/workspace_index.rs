@@ -40,6 +40,7 @@ struct WorkspaceIndexView {
     id: usize,
     root_document: String,
     documents: Vec<String>,
+    workspace_symbols: Vec<WorkspaceSymbolView>,
     unique_element_bindings: Vec<(String, String)>,
     duplicate_element_bindings: Vec<(String, Vec<String>)>,
     unique_relationship_bindings: Vec<(String, String)>,
@@ -53,6 +54,15 @@ struct WorkspaceIndexView {
 struct ReferenceResolutionView {
     reference: String,
     status: String,
+}
+
+#[allow(dead_code)]
+#[derive(Debug)]
+struct WorkspaceSymbolView {
+    canonical_key: String,
+    root_document: String,
+    source_document: String,
+    symbol: String,
 }
 
 #[allow(dead_code)]
@@ -172,6 +182,16 @@ impl WorkspaceIndexView {
                 .documents()
                 .iter()
                 .map(|document| display_document_id(document.as_str(), root))
+                .collect(),
+            workspace_symbols: index
+                .workspace_symbols()
+                .iter()
+                .map(|symbol| WorkspaceSymbolView {
+                    canonical_key: symbol.canonical_key().to_owned(),
+                    root_document: display_document_id(symbol.root_document().as_str(), root),
+                    source_document: display_document_id(symbol.source_document().as_str(), root),
+                    symbol: display_symbol_handle(facts, symbol.handle(), root),
+                })
                 .collect(),
             unique_element_bindings,
             duplicate_element_bindings,

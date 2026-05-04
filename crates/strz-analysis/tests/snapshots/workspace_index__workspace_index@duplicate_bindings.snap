@@ -119,6 +119,26 @@ WorkspaceIndexSetView {
                 "alpha.dsl",
                 "beta.dsl",
             ],
+            workspace_symbols: [
+                WorkspaceSymbolView {
+                    canonical_key: "api",
+                    root_document: "workspace.dsl",
+                    source_document: "alpha.dsl",
+                    symbol: "alpha.dsl::api",
+                },
+                WorkspaceSymbolView {
+                    canonical_key: "api",
+                    root_document: "workspace.dsl",
+                    source_document: "beta.dsl",
+                    symbol: "beta.dsl::api",
+                },
+                WorkspaceSymbolView {
+                    canonical_key: "user",
+                    root_document: "workspace.dsl",
+                    source_document: "workspace.dsl",
+                    symbol: "workspace.dsl::user",
+                },
+            ],
             unique_element_bindings: [
                 (
                     "user",

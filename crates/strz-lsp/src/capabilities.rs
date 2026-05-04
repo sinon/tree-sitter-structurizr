@@ -3,7 +3,7 @@
 use tower_lsp_server::ls_types::{
     CompletionOptions, DocumentLinkOptions, HoverProviderCapability, OneOf, RenameOptions,
     ServerCapabilities, TextDocumentSyncCapability, TextDocumentSyncKind, TextDocumentSyncOptions,
-    TypeDefinitionProviderCapability, WorkDoneProgressOptions,
+    TypeDefinitionProviderCapability, WorkDoneProgressOptions, WorkspaceSymbolOptions,
 };
 
 const NON_ALPHANUMERIC_COMPLETION_TRIGGER_CHARACTERS: &[char] = &['!', '_'];
@@ -22,6 +22,10 @@ pub fn server_capabilities() -> ServerCapabilities {
             },
         )),
         document_symbol_provider: Some(OneOf::Left(true)),
+        workspace_symbol_provider: Some(OneOf::Right(WorkspaceSymbolOptions {
+            resolve_provider: Some(false),
+            work_done_progress_options: WorkDoneProgressOptions::default(),
+        })),
         completion_provider: Some(CompletionOptions {
             resolve_provider: Some(false),
             trigger_characters: Some(completion_trigger_characters()),

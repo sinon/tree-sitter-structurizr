@@ -33,6 +33,26 @@ WorkspaceIndexSetView {
                 "model.dsl",
                 "views.dsl",
             ],
+            workspace_symbols: [
+                WorkspaceSymbolView {
+                    canonical_key: "rel",
+                    root_document: "workspace.dsl",
+                    source_document: "model.dsl",
+                    symbol: "model.dsl::rel",
+                },
+                WorkspaceSymbolView {
+                    canonical_key: "system",
+                    root_document: "workspace.dsl",
+                    source_document: "model.dsl",
+                    symbol: "model.dsl::system",
+                },
+                WorkspaceSymbolView {
+                    canonical_key: "user",
+                    root_document: "workspace.dsl",
+                    source_document: "model.dsl",
+                    symbol: "model.dsl::user",
+                },
+            ],
             unique_element_bindings: [
                 (
                     "system",

@@ -43,5 +43,5 @@ pub use workspace::{
     ElementIdentifierMode, ReferenceHandle, ReferenceResolutionStatus, ResolvedInclude,
     SymbolHandle, WorkspaceDocument, WorkspaceDocumentKind, WorkspaceFacts, WorkspaceIncludeTarget,
     WorkspaceIndex, WorkspaceInstanceId, WorkspaceLoadError, WorkspaceLoadFailure,
-    WorkspaceLoadFailureAnchor, WorkspaceLoadFailureKind, WorkspaceLoader,
+    WorkspaceLoadFailureAnchor, WorkspaceLoadFailureKind, WorkspaceLoader, WorkspaceSymbolFact,
 };
