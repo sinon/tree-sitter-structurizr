@@ -919,6 +919,199 @@ async fn completion_inside_multi_instance_relationship_fragment_returns_no_resul
 }
 
 #[tokio::test(flavor = "current_thread")]
+async fn completion_inside_view_scope_suggests_flat_element_identifiers() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          model {
+            system = softwareSystem "System"
+          }
+
+          views {
+            container sys<CURSOR> "Containers" {
+              include *
+            }
+          }
+        }
+    "#});
+    let uri = file_uri("view-scope-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let labels = completion_labels(&mut service, &uri, &source).await;
+
+    assert_eq!(labels, vec!["system"]);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_view_exclude_replaces_relationship_identifier_prefix() {
+    let (mut service, _socket) = new_service();
+
+    initialize(&mut service).await;
+    initialized(&mut service).await;
+
+    let source = annotated_source(indoc! {r#"
+        workspace {
+          model {
+            user = person "User"
+            system = softwareSystem "System"
+
+            rel = user -> system "Uses"
+          }
+
+          views {
+            systemLandscape {
+              exclude re<CURSOR>
+            }
+          }
+        }
+    "#});
+    let uri = file_uri("view-exclude-relationship-completion.dsl");
+    open_document(&mut service, &uri, source.source()).await;
+
+    let items = completion_items(&mut service, &uri, &source).await;
+
+    assert_eq!(
+        applied_completion_source(&source, completion_item(&items, "rel")),
+        indoc! {r#"
+            workspace {
+              model {
+                user = person "User"
+                system = softwareSystem "System"
+
+                rel = user -> system "Uses"
+              }
+
+              views {
+                systemLandscape {
+                  exclude rel
+                }
+              }
+            }
+        "#}
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_workspace_backed_deployment_animation_uses_deployment_bindings() {
+    let temp_workspace = TempWorkspace::new(
+        "deployment-animation-completion-cross-file",
+        indoc! {r#"
+            workspace {
+              !include model.dsl
+              !include views.dsl
+            }
+        "#},
+        &[],
+        &[
+            (
+                Path::new("model.dsl"),
+                indoc! {r#"
+                    model {
+                      system = softwareSystem "System" {
+                        api = container "API"
+                      }
+
+                      live = deploymentEnvironment "Live" {
+                        primary = deploymentNode "Primary" {
+                          apiInstance = containerInstance api
+                        }
+                      }
+                    }
+                "#},
+            ),
+            (
+                Path::new("views.dsl"),
+                indoc! {r#"
+                    views {
+                      deployment system "Live" {
+                        include *
+                        animation {
+                          ap<CURSOR>
+                        }
+                      }
+                    }
+                "#},
+            ),
+        ],
+    );
+    let (mut service, _socket) = new_service();
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(temp_workspace.path())])
+        .await;
+    initialized(&mut service).await;
+
+    let views_path = temp_workspace.path().join("views.dsl");
+    let views_source = annotated_source(&read_workspace_file(&views_path));
+    let views_uri = file_uri_from_path(&views_path);
+    open_document(&mut service, &views_uri, views_source.source()).await;
+
+    let labels = completion_labels(&mut service, &views_uri, &views_source).await;
+
+    assert_eq!(labels, vec!["apiInstance"]);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn completion_inside_view_include_suppresses_duplicate_bindings() {
+    let temp_workspace = TempWorkspace::new(
+        "view-include-completion-duplicate-bindings",
+        indoc! {r#"
+            workspace {
+              !include alpha.dsl
+              !include beta.dsl
+              !include views.dsl
+            }
+        "#},
+        &[],
+        &[
+            (
+                Path::new("alpha.dsl"),
+                indoc! {r#"
+                    model {
+                      api = softwareSystem "Alpha API"
+                    }
+                "#},
+            ),
+            (
+                Path::new("beta.dsl"),
+                indoc! {r#"
+                    model {
+                      api = softwareSystem "Beta API"
+                    }
+                "#},
+            ),
+            (
+                Path::new("views.dsl"),
+                indoc! {r#"
+                    views {
+                      systemLandscape {
+                        include ap<CURSOR>
+                      }
+                    }
+                "#},
+            ),
+        ],
+    );
+    let (mut service, _socket) = new_service();
+
+    initialize_with_workspace_folders(&mut service, &[file_uri_from_path(temp_workspace.path())])
+        .await;
+    initialized(&mut service).await;
+
+    let views_path = temp_workspace.path().join("views.dsl");
+    let views_source = annotated_source(&read_workspace_file(&views_path));
+    let views_uri = file_uri_from_path(&views_path);
+    open_document(&mut service, &views_uri, views_source.source()).await;
+
+    let labels = completion_labels(&mut service, &views_uri, &views_source).await;
+
+    assert!(labels.is_empty());
+}
+
+#[tokio::test(flavor = "current_thread")]
 async fn completion_inside_filtered_view_tags_uses_workspace_tag_vocabulary() {
     let (mut service, _socket) = new_service();
 
