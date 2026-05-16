@@ -73,7 +73,7 @@ jobs:
           cargo --version
 
       - name: Install just and cargo-nextest
-        uses: taiki-e/install-action@0abfcd587b70a713fdaa7fb502c885e2112acb15 # v2.75.7
+        uses: taiki-e/install-action@e3134ec54b36203e18f2d1e80652058bd078dd91 # v2.77.3
         with:
           # NOTE: tree-sitter-cli does not currently support binstall and isn't supported directly by `install-action`
           #       hopefully a future version will once relevant upstream cargo issue is resolved.
