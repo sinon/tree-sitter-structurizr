@@ -32,7 +32,7 @@ futures = { version = "0.3" }
 ignore = { version = "0.4.25" }
 indoc = { version = "2.0" }
 insta = { version = "1.47" }
-insta-cmd = { version = "0.6.0" }
+insta-cmd = { version = "0.7.0" }
 line-index = { version = "0.1.2" }
 proptest = { version = "1.11.0" }
 rstest = { version = "0.26" }
