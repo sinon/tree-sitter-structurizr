@@ -39,7 +39,8 @@ cargo build -p strz --bin strz --release
   "lsp": {
     "strz-lsp": {
       "binary": {
-        "path": "~/path/to/tree-sitter-structurizr/target/release/strz"
+        "path": "~/path/to/tree-sitter-structurizr/target/release/strz",
+        "arguments": ["server"]
       }
     }
   }

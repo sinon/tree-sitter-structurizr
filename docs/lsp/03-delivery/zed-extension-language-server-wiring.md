@@ -214,7 +214,8 @@ Recommended local use:
   "lsp": {
     "strz-lsp": {
       "binary": {
-        "path": "/Users/rob/dev/tree-sitter-structurizr/target/debug/strz"
+        "path": "/Users/rob/dev/tree-sitter-structurizr/target/debug/strz",
+        "arguments": ["server"]
       }
     }
   }
@@ -440,7 +441,8 @@ rev = "<local-commit-sha>"
   "lsp": {
     "strz-lsp": {
       "binary": {
-        "path": "/Users/rob/dev/tree-sitter-structurizr/target/debug/strz"
+        "path": "/Users/rob/dev/tree-sitter-structurizr/target/debug/strz",
+        "arguments": ["server"]
       }
     }
   }
