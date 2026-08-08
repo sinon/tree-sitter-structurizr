@@ -59,7 +59,7 @@ jobs:
         run: cargo codspeed build -p strz-analysis -p strz-lsp
 
       - name: Run CodSpeed benchmarks
-        uses: CodSpeedHQ/action@658a901452bb54c799643e060733b7afe9121b8d # v4.14.0
+        uses: CodSpeedHQ/action@88472375d0a4572cf70a9f1fe3a4e0ab8da1b924 # v5.0.1
         with:
           mode: simulation
           run: |
