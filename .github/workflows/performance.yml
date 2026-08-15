@@ -50,7 +50,7 @@ jobs:
           cargo --version
 
       - name: Install cargo-codspeed
-        uses: taiki-e/install-action@0abfcd587b70a713fdaa7fb502c885e2112acb15 # v2.75.7
+        uses: taiki-e/install-action@6c6fd71fe4fb72c3697d269963d0e15df8adedad # v2.85.10
         with:
           tool: cargo-codspeed
           fallback: cargo-binstall
